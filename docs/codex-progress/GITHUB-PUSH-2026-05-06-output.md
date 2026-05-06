@@ -15,3 +15,10 @@ Push all code to `https://github.com/SpringTimeSoftware/Manufacturing`.
 - Added `.gitignore` to exclude local run folders, dependency caches, build outputs, logs, IIS publish artifacts, and packaged zip snapshots from source control.
 - Excluded TypeScript incremental/config compiler outputs from the initial commit.
 - Staged source, documentation, database scripts, deployment scripts, reference UI assets, web/mobile/server projects, and tests for the initial commit.
+- Created initial commit `913940e` with 926 source/documentation files.
+- Pushed branch `main` to `origin/main`.
+
+## Notes
+
+- `gh` is not installed, so no GitHub CLI-based PR workflow was used.
+- Generated local material remains ignored: dependency caches, build folders, logs, IIS publish artifacts, and zip snapshots.
