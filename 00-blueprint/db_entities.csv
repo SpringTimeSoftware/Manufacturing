@@ -1,0 +1,110 @@
+Domain,Entity,Purpose
+Platform,AppUsers,"User record with auth linkage, company/branch defaults, status, locale"
+Platform,Roles,Role templates
+Platform,Permissions,Atomic action/resource permissions
+Platform,RolePermissions,Role-to-permission mapping
+Platform,UserRoles,User-to-role mapping by company/branch scope
+Platform,Languages,Supported languages
+Platform,Translations,Key/value translation entries
+Platform,DocumentSeries,Numbering series by document/company/branch
+Platform,WorkflowDefinitions,Configurable document workflow
+Platform,WorkflowSteps,Workflow step metadata
+Platform,WorkflowTransitions,Allowed state transitions
+Platform,AuditLogs,Immutable action log
+Platform,Attachments,File metadata and linkage
+Platform,Comments,Document comments/notes
+Platform,NotificationTemplates,Email/SMS/WhatsApp templates
+Platform,Notifications,Notification queue and delivery status
+Organization,Companies,Legal entity master
+Organization,Branches,Plant/site/branch master
+Organization,Departments,Department master
+Organization,Warehouses,Warehouse/store definitions
+Organization,Bins,Bin/rack/shelf locations
+Organization,Shifts,Shift definitions
+Measurements,UomClasses,Count/weight/length etc
+Measurements,Uoms,Unit master
+Measurements,UomConversions,Fixed conversions
+Measurements,MeasurementProfiles,Item measurement logic profile
+Measurements,MeasurementFormulas,Formula metadata for dimensional/catch-weight items
+Masters,ItemGroups,Category taxonomy
+Masters,ItemAttributes,Variant attributes
+Masters,ItemAttributeValues,Allowed values
+Masters,Items,Item master
+Masters,ItemVariants,Variant combinations
+Masters,ItemUoms,Per-item UOM behavior
+Masters,ItemBarcodes,Barcode registry
+Masters,Customers,Customer master
+Masters,CustomerAddresses,Ship/bill addresses
+Masters,Suppliers,Supplier master
+Masters,SupplierAddresses,Supplier addresses
+Masters,SupplierLeadTimes,Lead time matrix
+Resources,WorkCenters,Capacity units / cells
+Resources,Machines,Machine master
+Resources,MachineCalendars,Planned machine availability
+Resources,Tools,Tooling master
+Resources,Operations,Operation master
+Resources,Routings,Reusable routing header
+Resources,RoutingOperations,Routing lines
+Engineering,Boms,BOM header
+Engineering,BomRevisions,Revision record
+Engineering,BomLines,Component lines
+Engineering,BomOperations,Operation lines
+Engineering,AlternateItems,Approved item substitutions
+Engineering,EngineeringChanges,ECO header
+Engineering,EngineeringChangeLines,ECO impact lines
+Sales,Quotes,Estimate/quotation header
+Sales,QuoteLines,Estimate/quotation lines
+Sales,SalesOrders,SO header
+Sales,SalesOrderLines,SO lines
+Sales,BlanketOrders,Blanket order header
+Sales,BlanketOrderSchedules,Release schedule
+Sales,DemandForecasts,Forecast header/period bucket
+Sales,DemandForecastLines,Forecast lines
+Planning,MasterProductionSchedules,MPS header
+Planning,MpsLines,MPS item-period quantities
+Planning,MrpRuns,MRP execution header
+Planning,MrpRunItems,MRP item-level results
+Planning,BoqRequirements,Net requirements header by run/order
+Planning,BoqRequirementLines,Requirement lines with BUY/MAKE/TRANSFER
+Planning,CapacityPlans,Capacity planning header
+Planning,CapacityBuckets,Work center/machine/period capacity
+Procurement,PurchaseRequisitions,PR header
+Procurement,PurchaseRequisitionLines,PR lines
+Procurement,RequestsForQuote,RFQ header
+Procurement,PurchaseOrders,PO header
+Procurement,PurchaseOrderLines,PO lines
+Procurement,SubcontractOrders,Outside processing order
+Inventory,StockBalances,Current stock snapshot by item/warehouse/bin/lot/serial
+Inventory,StockTransactions,Movement ledger
+Inventory,StockReservations,Reserved stock
+Inventory,Lots,Lot master
+Inventory,Serials,Serial master
+Inventory,CycleCounts,Count header
+Inventory,CycleCountLines,Count lines
+Production,WorkOrders,WO header
+Production,WorkOrderOperations,WO operation lines
+Production,JobCards,Job card header
+Production,JobCardEvents,Start/pause/resume/complete timeline
+Production,MaterialIssues,Issue transactions
+Production,ProductionReceipts,Receipt header
+Production,ProductionReceiptLines,Receipt lines
+Production,ScrapEntries,Scrap/by-product lines
+Production,ReworkOrders,Rework records
+Production,DowntimeEvents,Downtime log
+Production,MachineSchedules,Planned machine allocation
+Production,ShiftHandovers,Shift summary
+Quality,InspectionPlans,Inspection master
+Quality,InspectionRecords,Actual inspection header
+Quality,InspectionResults,Measured/result rows
+Quality,NonConformances,NCR header
+Dispatch,PackLists,Pack header
+Dispatch,PackListLines,Pack lines
+Dispatch,Shipments,Shipment/delivery header
+Dispatch,ShipmentLines,Shipment lines
+Integrations,IntegrationProviders,Email/SMS/WhatsApp provider registry
+Integrations,IntegrationConnections,Configured connections
+Integrations,WebhookSubscriptions,Webhook targets
+AI,AiProviders,OpenAI/Gemini/future provider registry
+AI,AiModels,Allowed model definitions
+AI,AiPromptTemplates,Prompt catalog
+AI,AiRuns,Prompt execution history

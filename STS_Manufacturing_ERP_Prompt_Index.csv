@@ -1,0 +1,151 @@
+PromptId,Phase,Title,NextPrompt,RelatedScreens
+P000,Phase 0 - Start,"START HERE — operating rules, artifact map, and Codex workflow",P001,
+P001,Phase 0 - Scope,Product guardrails and scope freeze,P002,
+P002,Phase 0 - Repository,Repository and folder structure,P003,
+P003,Phase 0 - Deployment,Server/web/mobile build chain and publish-to-IIS model,P004,
+P004,Phase 0 - Design,Design language extraction from reference UI,P005,"W057_Order_Delivery_Dashboard.html, W108_Stage_Wise_Dashboard.html, W085_PPS_Machine_Occupancy_Calendar.html, W060_BOM_Management.html, W066_BOQ_Requirements.html, W080_Work_Orders.html, W082_Job_Cards.html, W084_Machine_Schedule_Board.html"
+P005,Phase 0 - Domain,Domain glossary and status catalog,P006,
+P006,Phase 0 - Security,Role matrix and data access model,P007,
+P007,Phase 0 - Demo Data,Demo scenarios and seed storylines,P008,
+P008,Phase 0 - Coding Standards,Coding standards and error/result contracts,P009,
+P009,Phase 0 - Observability,Observability and audit strategy,P010,
+P010,Phase 0 - Offline,Offline/mobile sync strategy,P011,
+P011,Phase 0 - Baseline,Architecture baseline sign-off,P012,
+P012,Phase 1 - Database,"Database naming, migration, and partitioning conventions",P013,
+P013,Phase 1 - Database,"Company, branch, department, and shift schema",P014,
+P014,Phase 1 - Database,Warehouse and bin schema,P015,
+P015,Phase 1 - Database,"Language, translation, settings, numbering, and workflow schema",P016,
+P016,Phase 1 - Database,"UOM classes, units, and conversion schema",P017,
+P017,Phase 1 - Database,"Measurement profiles, formulas, and catch-weight schema",P018,
+P018,Phase 1 - Database,"Item group, attribute, and item master schema",P019,
+P019,Phase 1 - Database,"Item variants, barcodes, and item-UOM behavior schema",P020,
+P020,Phase 1 - Database,Customer and address schema,P021,
+P021,Phase 1 - Database,"Supplier, address, and lead-time schema",P022,
+P022,Phase 1 - Database,"Work center, machine, and tooling schema",P023,
+P023,Phase 1 - Database,Operation and routing schema,P024,
+P024,Phase 1 - Database,BOM and revision schema,P025,
+P025,Phase 1 - Database,Engineering changes and alternate item schema,P026,
+P026,Phase 1 - Database,"Quote, sales order, blanket order, and forecast schema",P027,
+P027,Phase 1 - Database,"MPS, MRP, and BOQ requirement schema",P028,
+P028,Phase 1 - Database,"Purchase requisition, purchase order, and subcontract schema",P029,
+P029,Phase 1 - Database,"Inventory, lots, serials, and stock ledger schema",P030,
+P030,Phase 1 - Database,"Work order, job card, and shift handover schema",P031,
+P031,Phase 1 - Database,"Quality, dispatch, notification, AI, and audit schema",P032,
+P032,Phase 2 - SQL Logic,Master data validation views and helper functions,P033,
+P033,Phase 2 - SQL Logic,MRP run logic and exception generation,P034,
+P034,Phase 2 - SQL Logic,BOQ convert-to-PR-and-WO logic,P035,
+P035,Phase 2 - SQL Logic,Capacity rebuild and overload logic,P036,
+P036,Phase 2 - SQL Logic,Work order release and re-release logic,P037,
+P037,Phase 2 - SQL Logic,"Job card create, assign, start, pause, and resume logic",P038,
+P038,Phase 2 - SQL Logic,"Job card quantity, downtime, and complete logic",P039,
+P039,Phase 2 - SQL Logic,"Stock issue, return, transfer, and reservation logic",P040,
+P040,Phase 2 - SQL Logic,"Production receipt, scrap, and rework logic",P041,
+P041,Phase 2 - SQL Logic,Machine board and occupancy queries,P042,
+P042,Phase 2 - SQL Logic,Quality inspection save and hold/release logic,P043,
+P043,Phase 2 - SQL Logic,"Order risk, stage-wise, and executive dashboard views",P044,
+P044,Phase 3 - Backend,ASP.NET solution bootstrap,P045,
+P045,Phase 3 - Backend,"Domain, application, and infrastructure base wiring",P046,
+P046,Phase 3 - Backend,"Authentication, JWT, and context switching",P047,
+P047,Phase 3 - Backend,Authorization policies and data scoping,P048,
+P048,Phase 3 - Backend,"EF Core, Dapper, and stored procedure access pattern",P049,
+P049,Phase 3 - Backend,"Validation, error handling, and API response envelope",P050,
+P050,Phase 3 - Backend,Audit logging and attachment service,P051,
+P051,Phase 3 - Backend,Notification outbox and background jobs,P052,
+P052,Phase 3 - Backend,Localization and translation service,P053,
+P053,Phase 3 - Backend,"Health checks, configuration, and secrets",P054,
+P054,Phase 3 - Backend,Organization APIs,P055,
+P055,Phase 3 - Backend,Measurement and item APIs,P056,
+P056,Phase 3 - Backend,"Customer, supplier, and resource APIs",P057,
+P057,Phase 3 - Backend,"BOM, routing, and ECO APIs",P058,
+P058,Phase 3 - Backend,"Quote, sales order, and forecast APIs",P059,
+P059,Phase 3 - Backend,"MPS, MRP, and BOQ APIs",P060,
+P060,Phase 3 - Backend,Purchase and subcontract APIs,P061,
+P061,Phase 3 - Backend,Inventory and traceability APIs,P062,
+P062,Phase 3 - Backend,Work order APIs,P063,
+P063,Phase 3 - Backend,Job card and downtime APIs,P064,
+P064,Phase 3 - Backend,"Production receipt, scrap, and rework APIs",P065,
+P065,Phase 3 - Backend,Quality APIs,P066,
+P066,Phase 3 - Backend,"Dispatch, dashboard, and report APIs",P067,
+P067,Phase 3 - Backend,"Integration, AI, import, and export APIs",P068,
+P068,Phase 4 - Web Foundation,React web bootstrap with IIS-friendly build,P069,
+P069,Phase 4 - Web Foundation,"Web shell, auth flow, and operating context",P070,
+P070,Phase 4 - Web Foundation,"Design tokens, theme, and reusable surface components",P071,
+P071,Phase 4 - Web Foundation,"Grid, filter, drawer, and form framework",P072,
+P072,Phase 4 - Web Foundation,"KPI, kanban, timeline, lane board, and calendar components",P073,
+P073,Phase 4 - Web Foundation,"i18n, RBAC navigation, and notification center",P074,
+P074,Phase 4 - Web Foundation,"API client, query cache, and state management",P075,
+P075,Phase 4 - Web Foundation,"Print, export, and report framework",P076,
+P076,Phase 4 - Web Foundation,Accessibility and performance patterns,P077,
+P077,Phase 4 - Web Foundation,Demo seed wiring and feature toggle consumption,P078,
+P078,Phase 5 - Web Screens,"Login, forgot password, company switch, notifications, and approvals",P079,"W001, W002, W003, W006, W007"
+P079,Phase 5 - Web Screens,Home dashboard and executive cockpit,P080,"W004, W114"
+P080,Phase 5 - Web Screens,"User, role, and permission screens",P081,"W008, W009"
+P081,Phase 5 - Web Screens,"Language, workflow, numbering, and tenant settings screens",P082,"W010, W011, W012"
+P082,Phase 5 - Web Screens,"Company, branch, and department screens",P083,"W020, W021, W022"
+P083,Phase 5 - Web Screens,"Warehouse, bin, and shift screens",P084,"W023, W024, W025"
+P084,Phase 5 - Web Screens,UOM class and conversion screens,P085,"W029, W030"
+P085,Phase 5 - Web Screens,Measurement profile and dimensional formula screens,P086,W031
+P086,Phase 5 - Web Screens,"Item group, attribute, and reason-code master screens",P087,"W032, W033, W034"
+P087,Phase 5 - Web Screens,Item list and item detail editor,P088,"W040, W041"
+P088,Phase 5 - Web Screens,Item variants and barcode screens,P089,"W042, W043"
+P089,Phase 5 - Web Screens,Customer and supplier list/detail screens,P090,"W044, W045, W046, W047"
+P090,Phase 5 - Web Screens,Supplier lead-time matrix and attachment viewer,P091,"W048, W049"
+P091,Phase 5 - Web Screens,Quote / estimate list and detail screens,P092,W050
+P092,Phase 5 - Web Screens,Sales order list and detail screens,P093,"W051, W052"
+P093,Phase 5 - Web Screens,Blanket order and demand forecast screens,P094,"W053, W054"
+P094,Phase 5 - Web Screens,MPS planner and available-to-promise screen,P095,"W055, W056"
+P095,Phase 5 - Web Screens,BOM library screen,P096,W060
+P096,Phase 5 - Web Screens,BOM detail and editor screen,P097,W061
+P097,Phase 5 - Web Screens,BOM comparison and ECO screens,P098,"W062, W063"
+P098,Phase 5 - Web Screens,Routing and operation standard screens,P099,"W064, W065"
+P099,Phase 5 - Web Screens,Alternate item rules and engineering attachment surfaces,P100,"W070, W049"
+P100,Phase 5 - Web Screens,MRP run console and result screen,P101,"W067, W068"
+P101,Phase 5 - Web Screens,BOQ / requirements screen,P102,W066
+P102,Phase 5 - Web Screens,Capacity planning board,P103,W069
+P103,Phase 5 - Web Screens,Purchase requisition list/detail screens,P104,"W072, W073"
+P104,Phase 5 - Web Screens,Purchase order and subcontract plan screens,P105,"W074, W075, W071"
+P105,Phase 5 - Web Screens,Inventory balance and traceability screens,P106,"W094, W097"
+P106,Phase 5 - Web Screens,Material issue screen,P107,W086
+P107,Phase 5 - Web Screens,"Material return, transfer, and putaway screens",P108,"W087, W095"
+P108,Phase 5 - Web Screens,Cycle count screen,P109,W096
+P109,Phase 5 - Web Screens,Work orders list screen,P110,W080
+P110,Phase 5 - Web Screens,Work order detail / drawer,P111,W081
+P111,Phase 5 - Web Screens,Job cards list screen,P112,W082
+P112,Phase 5 - Web Screens,Job card detail / timeline drawer,P113,W083
+P113,Phase 5 - Web Screens,Machine schedule board,P114,W084
+P114,Phase 5 - Web Screens,PPS machine occupancy calendar,P115,W085
+P115,Phase 5 - Web Screens,Shift production entry and downtime register,P116,"W091, W092"
+P116,Phase 5 - Web Screens,Production receipt and scrap/by-product screens,P117,"W088, W089"
+P117,Phase 5 - Web Screens,Rework order and machine status screen,P118,"W090, W093"
+P118,Phase 5 - Web Screens,QC plan and incoming inspection screens,P119,"W100, W101"
+P119,Phase 5 - Web Screens,In-process/final inspection and NCR screens,P120,"W102, W103, W104"
+P120,Phase 5 - Web Screens,"Pack list, dispatch planning, and shipment screens",P121,"W105, W106, W107"
+P121,Phase 5 - Web Screens,"Stage-wise dashboard, order delivery dashboard, and print pack",P122,"W108, W057, W109"
+P122,Phase 6 - Mobile,React Native app bootstrap and offline shell,P123,"M001, M024"
+P123,Phase 6 - Mobile,"Mobile auth, context switch, and sync status",P124,"M001, M002, M024"
+P124,Phase 6 - Mobile,"Mobile home dashboard, notifications, and approvals",P125,"M003, M004, M005"
+P125,Phase 6 - Mobile,My job cards queue and job card detail,P126,"M006, M007"
+P126,Phase 6 - Mobile,Execution action sheet and quantity capture,P127,"M008, M009"
+P127,Phase 6 - Mobile,Material issue and return scan flows,P128,"M010, M011"
+P128,Phase 6 - Mobile,"Bin transfer, putaway, and cycle count flows",P129,"M012, M013"
+P129,Phase 6 - Mobile,Downtime log and machine status flows,P130,"M014, M015"
+P130,Phase 6 - Mobile,QC checkpoint and NCR capture flows,P131,"M016, M018"
+P131,Phase 6 - Mobile,"Production receipt, scrap, and rework flows",P132,"M017, M018"
+P132,Phase 6 - Mobile,Shift handover and media upload flow,P133,"M022, M023"
+P133,Phase 6 - Mobile,Dispatch loading and proof flow,P134,M019
+P134,Phase 6 - Mobile,Order snapshot and stage-wise mobile board,P135,"M020, M021"
+P135,Phase 6 - Mobile,"Barcode/QR scan, camera, attachment, and device utilities",P136,M023
+P136,Phase 6 - Mobile,Offline queue conflict resolution and mobile test harness,P137,M024
+P137,Phase 6 - Mobile,"Mobile polish, performance, localization, and role-aware navigation",P138,"M003, M024"
+P138,Phase 7 - Integrations / QA / Deploy,"Email, SMS, and WhatsApp provider abstractions",P139,
+P139,Phase 7 - Integrations / QA / Deploy,"Webhooks, import, and export pipelines",P140,
+P140,Phase 7 - Integrations / QA / Deploy,AI provider registry and safe execution layer,P141,
+P141,Phase 7 - Integrations / QA / Deploy,AI daily summary and delay-risk digest,P142,
+P142,Phase 7 - Integrations / QA / Deploy,AI operational assistant and translation,P143,
+P143,Phase 7 - Integrations / QA / Deploy,Automated backend tests,P144,
+P144,Phase 7 - Integrations / QA / Deploy,Automated web tests,P145,
+P145,Phase 7 - Integrations / QA / Deploy,Automated mobile tests,P146,
+P146,Phase 7 - Integrations / QA / Deploy,Security hardening and audit review,P147,
+P147,Phase 7 - Integrations / QA / Deploy,IIS packaging and deployment scripts,P148,
+P148,Phase 7 - Integrations / QA / Deploy,"UAT scripts, demo data refresh, and acceptance matrix",P149,
+P149,Phase 7 - Integrations / QA / Deploy,Final design QA against reference UI and production-readiness review,,

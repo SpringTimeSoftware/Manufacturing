@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Stage Wise Dashboard</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#fff; --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8;
+      --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow: 0 10px 30px rgba(2, 8, 23, .08);
+      --r:18px; --r2:14px; --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--font); color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    .wrap{max-width:1320px;margin:0 auto;padding:22px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.10), rgba(56,189,248,.08))}
+    .btn:hover{box-shadow:0 8px 20px rgba(2,8,23,.06)}
+    .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
+    .filters{padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .in{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .in input,.in select{background:transparent;border:none;outline:none;color:var(--text);min-width:170px}
+    .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px;border-top:1px solid var(--line)}
+    .kpi{border:1px solid var(--line);border-radius:var(--r2);padding:12px;background:linear-gradient(180deg,#fff,#f8fbff)}
+    .kpi .v{font-size:18px;font-weight:800}
+    .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+    .board{display:grid;grid-template-columns: repeat(6, 1fr); gap:10px; padding:14px}
+    .col{border:1px solid var(--line);border-radius:var(--r2);background:linear-gradient(180deg,#fff,#f8fbff);overflow:hidden}
+    .colHd{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .colHd b{font-size:12px}
+    .count{font-size:12px;color:var(--muted)}
+    .list{padding:10px 10px 12px;display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto}
+    .ticket{border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px}
+    .ticket:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .ticketTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .ticket b{font-size:13px}
+    .meta{color:var(--muted);font-size:12px;margin-top:4px;line-height:1.35}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--muted)}
+    .p-good{border-color:rgba(22,163,74,.25);color:#166534;background:rgba(22,163,74,.06)}
+    .p-warn{border-color:rgba(245,158,11,.25);color:#92400e;background:rgba(245,158,11,.08)}
+    .p-bad{border-color:rgba(239,68,68,.25);color:#b91c1c;background:rgba(239,68,68,.06)}
+    .p-sky{border-color:rgba(14,165,233,.25);color:#0369a1;background:rgba(14,165,233,.07)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Stage Wise Dashboard</h1>
+        <div class="sub">Which order / machine / customer is in which stage. Shows done vs pending at each stage.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">Refresh</button>
+        <button class="btn">Export</button>
+        <button class="btn primary">Open Machine Board</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <div class="in">🔎 <input placeholder="Search SO / Customer / WO / Machine..." /></div>
+        <div class="in">
+          <select>
+            <option>Stage View: Orders</option>
+            <option>Stage View: Machines</option>
+            <option>Stage View: Customers</option>
+          </select>
+        </div>
+        <div class="in">
+          <select>
+            <option>Priority: Any</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+        <div class="in">
+          <select>
+            <option>Due Window: All</option>
+            <option>Overdue</option>
+            <option>Due in 0–3 days</option>
+            <option>Due in 4–7 days</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="v">28</div><div class="l">Open Orders</div></div>
+        <div class="kpi"><div class="v">6</div><div class="l">Overdue</div></div>
+        <div class="kpi"><div class="v">14</div><div class="l">In Production</div></div>
+        <div class="kpi"><div class="v">5</div><div class="l">QC Pending</div></div>
+        <div class="kpi"><div class="v">3</div><div class="l">Ready to Dispatch</div></div>
+      </div>
+
+      <div class="board">
+        <div class="col">
+          <div class="colHd"><b>SO Confirmed</b><span class="count">4</span></div>
+          <div class="list">
+            <div class="ticket">
+              <div class="ticketTop">
+                <div>
+                  <b>SO-2026-0191</b>
+                  <div class="meta">Customer: Shree Ozone • Due: 2026-03-09</div>
+                </div>
+                <span class="pill p-sky">● 35%</span>
+              </div>
+              <div class="meta">Pending: BOQ approval + PR creation</div>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <span class="pill p-warn">Risk: Material shortage</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="colHd"><b>BOQ Approved</b><span class="count">6</span></div>
+          <div class="list">
+            <div class="ticket">
+              <div class="ticketTop">
+                <div>
+                  <b>SO-2026-0194</b>
+                  <div class="meta">Customer: BlueSky • Due: 2026-03-12</div>
+                </div>
+                <span class="pill p-sky">● 84%</span>
+              </div>
+              <div class="meta">Pending: final WO receipt</div>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <span class="pill p-good">On Track</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="colHd"><b>Procurement</b><span class="count">5</span></div>
+          <div class="list">
+            <div class="ticket">
+              <div class="ticketTop">
+                <div>
+                  <b>SO-2026-0189</b>
+                  <div class="meta">Customer: Enkay • Due: 2026-03-05</div>
+                </div>
+                <span class="pill p-bad">● Overdue</span>
+              </div>
+              <div class="meta">Pending: PO overdue for RM-SS-SHEET</div>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <span class="pill p-bad">Risk: Supplier delay</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="colHd"><b>Production</b><span class="count">9</span></div>
+          <div class="list">
+            <div class="ticket">
+              <div class="ticketTop">
+                <div>
+                  <b>WO-02642 (SO-0189)</b>
+                  <div class="meta">Machine: MC-01 Laser • Customer: Enkay</div>
+                </div>
+                <span class="pill p-sky">● 62%</span>
+              </div>
+              <div class="meta">Pending: Welding + Final assembly</div>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <span class="pill p-warn">Risk: MC-03 down</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="colHd"><b>QC</b><span class="count">3</span></div>
+          <div class="list">
+            <div class="ticket">
+              <div class="ticketTop">
+                <div>
+                  <b>QC Pending • FG-OZ-50</b>
+                  <div class="meta">SO-2026-0189 • Test bench queue</div>
+                </div>
+                <span class="pill p-warn">● Waiting</span>
+              </div>
+              <div class="meta">Pending: ozone output + leak test</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="colHd"><b>Dispatch</b><span class="count">1</span></div>
+          <div class="list">
+            <div class="ticket">
+              <div class="ticketTop">
+                <div>
+                  <b>Ready • SO-2026-0194</b>
+                  <div class="meta">Packing + DC pending</div>
+                </div>
+                <span class="pill p-good">● Ready</span>
+              </div>
+              <div class="meta">Pending: vehicle assignment</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

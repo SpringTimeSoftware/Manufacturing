@@ -1,0 +1,26 @@
+Severity,Gap,Notes
+Hard Omission,Item media / image / product document model,No item-specific media/document entities; generic attachments only
+Hard Omission,Product catalog domain,No catalog entities/screens/APIs
+Hard Omission,Pricing engine / price lists,No price-list or price-rule model
+Hard Omission,Discount / scheme engine,No discount/promo model
+Hard Omission,Customer commercial control,No credit-limit / payment-term control
+Hard Omission,Partner contact & contact-point model,No Contact / ContactPoint / role entities
+Hard Omission,Communication preference / consent model,No channel/language preference model
+Hard Omission,Commercial tax / currency / trade-term model,No tax/currency/trade-term domain
+Hard Omission,Packaging / pack hierarchy domain,No pack hierarchy / packaging spec model
+Hard Omission,Replenishment policy model,No safety stock / reorder / min-max / EOQ domain
+Hard Omission,Landed cost / purchase charge model,No landed-cost domain
+Hard Omission,Purchase return / vendor claim flow,No vendor-return domain
+Hard Omission,Sales return / exchange / backorder / drop-ship flow,No commercial return/backorder/drop-ship domain
+Hard Omission,Custom-field / UDF / metadata extensibility,No UDF/custom-field metadata layer
+Under-modeled,Customer master split,Only Customers + CustomerAddresses
+Under-modeled,Supplier master depth,Basic supplier model; performance placeholders only
+Under-modeled,Item master depth,Costing placeholders; no ERP-grade item depth
+Under-modeled,Customer-specific item references / aliases,No customer item code/alias model
+Under-modeled,Inventory valuation and costing,Valuation placeholders only
+Under-modeled,Job costing / work-order cost rollup,No explicit job-costing model
+Under-modeled,CRM-lite / lead-opportunity-thread model,No lead/opportunity/thread domain
+Under-modeled,Dispatch commercial detail,Carrier/service/dispatch preference depth is thin
+Under-modeled,Quality CAPA / deviation / root-cause depth,Inspection + NCR only
+Under-modeled,Document / print template management,No document-template model
+Under-modeled,CTO / configurator / rules-based order engineering,"Variants exist, configurator does not"

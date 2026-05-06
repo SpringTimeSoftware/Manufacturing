@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Work Orders (Light)</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#fff; --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow:0 10px 30px rgba(2,8,23,.08); --r:18px; --r2:14px;
+      --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:var(--font);color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    .wrap{max-width:1320px;margin:0 auto;padding:22px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.12), rgba(56,189,248,.08))}
+    .btn:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+    .filters{padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .in{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .in input,.in select{background:transparent;border:none;outline:none;color:var(--text);min-width:170px}
+    .grid{display:grid;grid-template-columns: 1fr 420px;gap:12px;margin-top:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px}
+    th{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);text-align:left;color:var(--muted);font-weight:700}
+    tr:hover td{background:#f6fbff}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;background:#fff}
+    .b-plan{border-color:rgba(245,158,11,.25);color:#92400e;background:rgba(245,158,11,.08)}
+    .b-rel{border-color:rgba(14,165,233,.25);color:#0369a1;background:rgba(14,165,233,.07)}
+    .b-proc{border-color:rgba(56,189,248,.25);color:#075985;background:rgba(56,189,248,.08)}
+    .b-done{border-color:rgba(22,163,74,.25);color:#166534;background:rgba(22,163,74,.06)}
+    .panel{padding:14px}
+    .h2{font-size:14px;margin:0 0 8px 0}
+    .muted{color:var(--muted);font-size:12px;line-height:1.45}
+    .k{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .tile{border:1px solid var(--line);border-radius:var(--r2);padding:12px;background:linear-gradient(180deg,#fff,#f8fbff)}
+    .tile b{display:block;font-size:12px;color:var(--muted)}
+    .tile span{display:block;margin-top:6px;font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Work Orders</h1>
+        <div class="sub">Planner view: release WOs, view materials, operations, and generate job cards.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">Export</button>
+        <button class="btn">Print Pack</button>
+        <button class="btn primary">+ New Work Order</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <div class="in">🔎 <input placeholder="Search WO / Item / SO..." /></div>
+        <div class="in">
+          <select><option>Status: Any</option><option>Planned</option><option>Released</option><option>InProcess</option><option>Completed</option></select>
+        </div>
+        <div class="in">
+          <select><option>Priority: Any</option><option>1 (High)</option><option>2</option><option>3</option></select>
+        </div>
+        <div class="in"><input type="date" style="min-width:160px"/></div>
+        <div class="in"><input type="date" style="min-width:160px"/></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card" style="overflow:hidden">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:16%">WO</th>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th style="width:18%;text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>WO-02641</b><div style="color:var(--muted);font-size:12px">SO-2026-0189</div></td>
+              <td><b>WIP-OZG-MOD</b><div style="color:var(--muted);font-size:12px">Ozone Generator Module</div></td>
+              <td>8 / 10</td>
+              <td>Mar 01 → Mar 08</td>
+              <td><span class="badge b-proc">● InProcess</span></td>
+              <td style="text-align:right">
+                <button class="btn">Open</button>
+                <button class="btn">Job Cards</button>
+              </td>
+            </tr>
+            <tr>
+              <td><b>WO-02642</b><div style="color:var(--muted);font-size:12px">SO-2026-0189</div></td>
+              <td><b>FG-OZ-50</b><div style="color:var(--muted);font-size:12px">OZ-50 Tank Assembly</div></td>
+              <td>0 / 10</td>
+              <td>Mar 05 → Mar 14</td>
+              <td><span class="badge b-rel">● Released</span></td>
+              <td style="text-align:right">
+                <button class="btn">Open</button>
+                <button class="btn primary">Create Job Cards</button>
+              </td>
+            </tr>
+            <tr>
+              <td><b>WO-02621</b><div style="color:var(--muted);font-size:12px">SO-2026-0172</div></td>
+              <td><b>WIP-PR-ASM</b><div style="color:var(--muted);font-size:12px">Pressure Regulator Assembly</div></td>
+              <td>12 / 12</td>
+              <td>Feb 10 → Feb 16</td>
+              <td><span class="badge b-done">● Completed</span></td>
+              <td style="text-align:right">
+                <button class="btn">Open</button>
+                <button class="btn">Receipt</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="card">
+        <div class="panel">
+          <div class="h2">WO Detail Snapshot</div>
+          <div class="muted">In React, open on row click as a right drawer.</div>
+
+          <div class="k">
+            <div class="tile"><b>Status</b><span>Released</span></div>
+            <div class="tile"><b>Priority</b><span>1</span></div>
+            <div class="tile"><b>Materials Reserved</b><span>72%</span></div>
+            <div class="tile"><b>Ops Ready</b><span>3 / 4</span></div>
+          </div>
+
+          <div style="margin-top:12px" class="muted">
+            <b>Primary actions</b><br/>
+            • Release (sp_WO_Release)<br/>
+            • Generate Job Cards (sp_JobCard_CreateForWO)<br/>
+            • Issue Materials (sp_Stock_IssueToWO)<br/>
+            • Production Receipt (sp_ProdReceipt_Create)
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <button class="btn">Open Materials</button>
+            <button class="btn primary">Release / Re-Release</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

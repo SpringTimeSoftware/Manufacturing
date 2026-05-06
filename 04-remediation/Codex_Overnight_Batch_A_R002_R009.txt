@@ -1,0 +1,58 @@
+You are working in the STS Manufacturing ERP repository on branch gap-remediation-v2.
+
+Read first, in this exact order:
+1. /AGENTS.md
+2. /04-remediation/Cutover_Guardrails.md
+3. /04-remediation/Preservation_and_Compatibility_Rules.md
+4. /04-remediation/Pre_P064_Stoplist.md
+5. /04-remediation/Architecture_V2_Delta_Matrix.md
+6. /04-remediation/Superseded_Prompt_Map.md
+7. /04-remediation/R_Prompt_Index.csv
+8. /docs/codex-progress/R000-output.md
+9. /docs/codex-progress/R001-output.md
+10. Any existing files already created under /04-remediation/
+
+Objective:
+Run a docs-only overnight remediation batch for R002 through R009, sequentially, without waiting for further user input unless a hard blocker occurs.
+
+Hard rules:
+- Do not execute P064 or any original P-series prompt beyond P063.
+- Do not modify runtime code, migrations, EF entities, controllers, services, DTOs, SQL scripts, or tests.
+- This batch is documentation-only.
+- Preserve the manufacturing execution backbone and current UI direction.
+- Use the V2 delta matrix and stoplist as the source of truth.
+- If a required prompt file does not exist yet under /04-remediation/prompts/, create it before executing that step.
+- After each R step, write /docs/codex-progress/R00X-output.md.
+- After each R step, update /docs/codex-progress/README.md with the new status.
+- Stop immediately if you hit a genuine ambiguity that would materially change architecture or scope.
+- If you stop early, write a clear blocker note and exact reason.
+
+Execute these steps in order:
+- R002 Master Data V2 canonical domain map
+- R003 Item and catalog V2 schema
+- R004 Item packaging, barcode, variant, and reference V2 schema
+- R005 Customer, contact, credit, and terms V2 schema
+- R006 Supplier compliance and reference V2 schema
+- R007 Pricing, discount, tax, and currency V2 schema
+- R008 Replenishment and planning-input V2 schema
+- R009 Platform extensibility, template, and localization V2 schema
+
+For each step:
+1. Create or update the prompt file under /04-remediation/prompts/ matching the R_Prompt_Index path.
+2. Produce the architecture/schema documents for that step under /04-remediation/ using consistent naming.
+3. Classify affected existing repo surfaces as KEEP / PATCH / REPLACE / DEFER where relevant.
+4. Explicitly list compatibility strategy and cutover approach.
+5. State exact next prompt path.
+
+Deliverables expected by the end of the batch:
+- All prompt files for R002 through R009 under /04-remediation/prompts/
+- All corresponding remediation docs under /04-remediation/
+- /docs/codex-progress/R002-output.md through /docs/codex-progress/R009-output.md
+- Updated /docs/codex-progress/README.md
+
+At the end, return:
+- batch completion status
+- all files created/changed
+- any blockers
+- exact next prompt path
+- confirmation that no runtime code was changed

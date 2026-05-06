@@ -1,0 +1,37 @@
+:root {
+  --page-bg: #f6fbff;
+  --page-bg-soft: #f8fbff;
+  --page-bg-accent: #eaf6ff;
+  --surface: #ffffff;
+  --surface-muted: rgba(255, 255, 255, 0.8);
+  --sidebar-bg: #edf7ff;
+  --sidebar-bg-soft: #f7fbff;
+  --sidebar-active: #e6f3ff;
+  --sidebar-active-border: #b8dcfb;
+  --text-strong: #0f172a;
+  --text-muted: #475569;
+  --text-soft: #64748b;
+  --line: #e2e8f0;
+  --line-strong: #d1deeb;
+  --primary: #0ea5e9;
+  --primary-deep: #0369a1;
+  --primary-dark: #075985;
+  --primary-soft: #38bdf8;
+  --success: #16a34a;
+  --success-deep: #166534;
+  --warn: #f59e0b;
+  --warn-deep: #92400e;
+  --danger: #ef4444;
+  --danger-deep: #b91c1c;
+  --shadow-hero: 0 18px 42px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 6px 16px rgba(15, 23, 42, 0.05);
+  --radius-panel: 22px;
+  --radius-card: 18px;
+  --radius-control: 14px;
+  --radius-pill: 999px;
+  --gap-page: 24px;
+  --gap-card: 16px;
+  --font-sans: "Aptos", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", monospace;
+}

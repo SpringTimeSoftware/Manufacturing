@@ -1,0 +1,13 @@
+Role,Responsibility
+PlatformAdmin,"Global configuration across deployment, environment settings, integrations, AI provider registry"
+CompanyAdmin,"Company/branch setup, workflows, masters, users, numbering, approvals"
+SalesCoordinator,"Quotes, sales orders, promised dates, customer attachments, order follow-up"
+PlanningManager,"Forecasts, MPS, MRP, BOQ requirements, capacity view, shortage actioning"
+PurchaseManager,"PR conversion, RFQ, PO, supplier follow-up, outside processing"
+StoreKeeper,"Receipts, bin transfers, issue/return to work order, cycle count, lot/serial traceability"
+ProductionSupervisor,"Release WOs, assign job cards, monitor machine board, downtime, shift output"
+MachineOperator,"Start/pause/resume/complete job cards, quantity reporting, reason codes, photo/note capture"
+QCInspector,"Incoming, in-process, final inspection, holds, release, NCR"
+DispatchManager,"Pack lists, dispatch staging, loading, shipping proof, delivery tracking"
+PlantHead,"Cross-department action dashboard, bottlenecks, exceptions, load balancing"
+ManagementViewer,"Owner/CEO dashboards, customer/order risk view, daily summaries"

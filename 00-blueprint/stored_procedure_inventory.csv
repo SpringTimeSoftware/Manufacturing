@@ -1,0 +1,23 @@
+StoredProcedure,Responsibility
+sp_WO_Release,Release a work order after material/routing readiness checks
+sp_WO_ReRelease,Recalculate and re-release WO after change
+sp_JobCard_CreateForWO,Create job cards from WO operations
+sp_JobCard_Assign,Assign machine/operator/shift to job card
+sp_JobCard_Start,Start active job card with uniqueness checks
+sp_JobCard_Pause,Pause job card with reason
+sp_JobCard_Resume,Resume paused job card
+sp_JobCard_LogQty,Post good/reject/scrap against job card
+sp_JobCard_LogDowntime,Capture downtime against job card/machine
+sp_JobCard_Complete,Complete operation and push next-stage readiness
+sp_Stock_IssueToWO,Issue material to work order or job card
+sp_Stock_ReturnFromWO,Return unused issue quantity
+sp_ProdReceipt_Create,Create production receipt and ledger movements
+sp_BOQ_ConvertToPRandWO,Convert approved net requirements to PR and WO
+sp_MRP_Run,Execute MRP explosion and write result tables
+sp_Capacity_Rebuild,Recompute capacity buckets by work center/machine
+sp_Machine_Board,Return lane-style machine schedule board
+sp_Machine_Calendar,Return occupancy calendar buckets
+sp_Order_RiskSnapshot,Compute order delivery risk and completion metrics
+sp_StageWise_Dashboard,Return stage-wise cross-functional status tiles
+sp_QC_SaveInspection,Write inspection result and hold/release logic
+sp_Traceability_LotGenealogy,Forward/backward lot genealogy

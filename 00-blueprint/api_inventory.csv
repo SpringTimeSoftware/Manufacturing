@@ -1,0 +1,64 @@
+Group,BaseRoute,Responsibilities
+Auth,/api/auth,"login, refresh, logout, me, switch-context"
+Users,/api/users,"CRUD users, activate/deactivate, reset access, role assignment"
+Roles,/api/roles,"CRUD roles, permission matrix"
+Companies,/api/companies,CRUD companies
+Branches,/api/branches,CRUD branches
+Departments,/api/departments,CRUD departments
+Warehouses,/api/warehouses,CRUD warehouses
+Bins,/api/bins,CRUD bins
+Shifts,/api/shifts,CRUD shifts and calendars
+Languages,/api/languages,"list languages, save translations"
+Settings,/api/settings,"document series, workflows, feature flags"
+UOM,/api/uom,"classes, units, conversions"
+Measurements,/api/measurement-profiles,profiles and formulas
+Items,/api/items,"item CRUD, search, status, defaults"
+ItemVariants,/api/item-variants,variant combinations
+Barcodes,/api/barcodes,barcode registry and print data
+Customers,/api/customers,customer CRUD
+Suppliers,/api/suppliers,supplier CRUD
+SupplierLeadTimes,/api/supplier-lead-times,maintain lead-time matrix
+WorkCenters,/api/work-centers,work center CRUD
+Machines,/api/machines,machine CRUD and live status
+Tools,/api/tools,tool/mould/die CRUD
+Operations,/api/operations,operation standard CRUD
+Routings,/api/routings,routing CRUD
+BOMs,/api/boms,BOM CRUD
+BOMRevisions,/api/bom-revisions,revision clone/approve/obsolete
+ECOs,/api/engineering-changes,engineering change workflow
+Quotes,/api/quotes,estimate/quotation workflow
+SalesOrders,/api/sales-orders,sales order CRUD and release
+BlanketOrders,/api/blanket-orders,blanket schedules
+Forecasts,/api/forecasts,forecast CRUD/import
+MPS,/api/mps,master production schedule
+MRP,/api/mrp,"run MRP, inspect results, approve recommendations"
+BOQ,/api/boq-requirements,"net requirements, override actions, convert"
+Capacity,/api/capacity,RCCP/CRP calculations and views
+PurchaseRequisitions,/api/purchase-requisitions,PR CRUD/approval
+PurchaseOrders,/api/purchase-orders,PO CRUD/approval
+Subcontracting,/api/subcontract-orders,outside processing handoff
+Inventory,/api/inventory,"stock balance, transactions, valuation placeholders"
+StockIssues,/api/stock-issues,issue to WO/JC
+StockReturns,/api/stock-returns,return from WO/JC
+StockTransfers,/api/stock-transfers,warehouse/bin transfer
+CycleCounts,/api/cycle-counts,count workflow
+LotsSerials,/api/traceability,lot/serial genealogy queries
+WorkOrders,/api/work-orders,WO lifecycle
+JobCards,/api/job-cards,assignment and execution
+MachineBoard,/api/machine-board,lane board and occupancy views
+Downtime,/api/downtime,machine downtime capture
+ProductionReceipts,/api/production-receipts,receipt output
+ScrapRework,/api/scrap-rework,"scrap, by-product, rework"
+Quality,/api/quality,"plans, inspections, NCR"
+Dispatch,/api/dispatch,"pack, shipment, loading proof"
+Dashboards,/api/dashboards,"role dashboards, stage-wise, delivery risk"
+Reports,/api/reports,"print pack, exports"
+Attachments,/api/attachments,upload/download/link
+Notifications,/api/notifications,"inbox, delivery, acknowledgments"
+Approvals,/api/approvals,"pending actions, approve/reject"
+Integrations,/api/integrations,provider configuration and health
+Webhooks,/api/webhooks,outbound webhook subscriptions
+AI,/api/ai,"assistant, summaries, translations, provider health"
+Imports,/api/imports,CSV/Excel imports
+Exports,/api/exports,download jobs
+Health,/api/health,health checks and diagnostics

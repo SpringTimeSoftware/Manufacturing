@@ -1,0 +1,29 @@
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .app-shell__sidebar,
+  .app-topbar__controls,
+  .page-shell__filters,
+  .ui-button,
+  .ui-drawer {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+  }
+
+  .app-shell__content {
+    padding: 0;
+  }
+
+  .ui-card,
+  .ui-form-shell,
+  .ui-kanban__column,
+  .ui-lane-board__lane {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}

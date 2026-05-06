@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Machine Schedule Board (Light)</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#fff; --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow:0 10px 30px rgba(2,8,23,.08); --r:18px; --r2:14px;
+      --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:var(--font);color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    .wrap{max-width:1320px;margin:0 auto;padding:22px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.12), rgba(56,189,248,.08))}
+    .btn:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .in{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .in select,.in input{background:transparent;border:none;outline:none;color:var(--text);min-width:180px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+    .board{padding:14px}
+    .lane{border:1px solid var(--line);border-radius:var(--r2);background:linear-gradient(180deg,#fff,#f8fbff);padding:12px;margin-bottom:12px}
+    .laneHd{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+    .laneHd b{font-size:13px}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--muted)}
+    .p-run{border-color:rgba(22,163,74,.25);color:#166534;background:rgba(22,163,74,.06)}
+    .p-idle{border-color:rgba(14,165,233,.25);color:#0369a1;background:rgba(14,165,233,.07)}
+    .p-down{border-color:rgba(239,68,68,.25);color:#b91c1c;background:rgba(239,68,68,.06)}
+    .slots{display:flex;gap:10px;overflow:auto;padding-bottom:6px}
+    .slot{min-width:280px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px}
+    .slot:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .slot.now{border-color:rgba(22,163,74,.28);box-shadow:0 0 0 3px rgba(22,163,74,.10)}
+    .slot b{display:block;font-size:13px}
+    .slot .m{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
+    .slot .t{margin-top:8px;display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+    .tag{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .tag span{padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted);background:#fff}
+    .tag .make{border-color:rgba(56,189,248,.25);color:#075985;background:rgba(56,189,248,.08)}
+    .tag .qc{border-color:rgba(245,158,11,.25);color:#92400e;background:rgba(245,158,11,.08)}
+    .tag .risk{border-color:rgba(239,68,68,.25);color:#b91c1c;background:rgba(239,68,68,.06)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Machine Schedule Board</h1>
+        <div class="sub">At-a-glance: what each machine is running, what’s queued next, and schedule risks.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">Today</button>
+        <button class="btn">This Week</button>
+        <button class="btn primary">Auto-assign (basic)</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px;margin-bottom:12px">
+      <div class="bar">
+        <div class="in">📅 <input type="date" style="min-width:160px"/></div>
+        <div class="in">→ <input type="date" style="min-width:160px"/></div>
+        <div class="in">
+          <select><option>Machine Type: All</option><option>Laser</option><option>Weld</option><option>Test Bench</option></select>
+        </div>
+        <div class="in">
+          <select><option>Status: Any</option><option>Running</option><option>Idle</option><option>Down</option></select>
+        </div>
+        <div class="in">🔎 <input placeholder="Search machine / job card / WO..." /></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="board">
+
+        <div class="lane">
+          <div class="laneHd">
+            <div>
+              <b>MC-01 Laser Cutter</b>
+              <div style="color:var(--muted);font-size:12px;margin-top:4px">Type: Laser • Capacity: 1 shift</div>
+            </div>
+            <span class="pill p-run">● Running</span>
+          </div>
+          <div class="slots">
+            <div class="slot now">
+              <b>JC-90441 • Cutting & Forming</b>
+              <div class="m">WO-02642 • FG-OZ-50 • Qty: 10</div>
+              <div class="t"><span>Start: 10:12</span><span>ETA: 12:10</span></div>
+              <div class="tag"><span class="make">MAKE</span><span class="qc">QC checkpoint</span></div>
+            </div>
+            <div class="slot">
+              <b>JC-90458 • Drilling</b>
+              <div class="m">WO-02642 • FG-OZ-50 • Qty: 10</div>
+              <div class="t"><span>Plan: 12:15</span><span>End: 13:05</span></div>
+              <div class="tag"><span>Queued</span></div>
+            </div>
+            <div class="slot">
+              <b>JC-90460 • Edge finishing</b>
+              <div class="m">WO-02645 • WIP-PR-ASM • Qty: 12</div>
+              <div class="t"><span>Plan: 13:10</span><span>End: 14:05</span></div>
+              <div class="tag"><span class="risk">Risk: Material not issued</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="laneHd">
+            <div>
+              <b>MC-02 Welding Station</b>
+              <div style="color:var(--muted);font-size:12px;margin-top:4px">Type: Weld • Capacity: 1 shift</div>
+            </div>
+            <span class="pill p-idle">● Idle</span>
+          </div>
+          <div class="slots">
+            <div class="slot">
+              <b>JC-90442 • Welding</b>
+              <div class="m">WO-02642 • FG-OZ-50 • Qty: 10</div>
+              <div class="t"><span>Plan: 14:15</span><span>End: 16:30</span></div>
+              <div class="tag"><span>Not assigned</span><span class="risk">Risk: Operator pending</span></div>
+            </div>
+            <div class="slot">
+              <b>JC-90411 • Weld repair</b>
+              <div class="m">WO-02610 • FG-OZ-30 • Qty: 6</div>
+              <div class="t"><span>Plan: 16:45</span><span>End: 17:25</span></div>
+              <div class="tag"><span>Queued</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="laneHd">
+            <div>
+              <b>MC-03 Test Bench</b>
+              <div style="color:var(--muted);font-size:12px;margin-top:4px">Type: Test Bench • Ozone output + leak test</div>
+            </div>
+            <span class="pill p-down">● Down</span>
+          </div>
+          <div class="slots">
+            <div class="slot">
+              <b>JC-90391 • Testing</b>
+              <div class="m">WO-02641 • WIP-OZG-MOD • Qty: 10</div>
+              <div class="t"><span>Blocked</span><span>Reason: Calibration</span></div>
+              <div class="tag"><span class="risk">Downtime</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="color:var(--muted);font-size:12px;margin-top:8px;line-height:1.5">
+          Data source: <b>sp_Machine_Board(@DateFrom,@DateTo,...)</b> returns machine lanes + job card slots.
+          Active job constraint enforced by filtered unique index.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

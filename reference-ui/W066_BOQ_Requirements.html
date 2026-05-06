@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BOQ / Requirements (Light)</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#fff; --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow:0 10px 30px rgba(2,8,23,.08); --r:18px; --r2:14px;
+      --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:var(--font);color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    .wrap{max-width:1320px;margin:0 auto;padding:22px}
+    .top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer}
+    .btn:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.12), rgba(56,189,248,.08))}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+    .hd{padding:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .hd b{font-size:14px}
+    .hd span{color:var(--muted);font-size:12px}
+    .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px}
+    .kpi{border:1px solid var(--line);border-radius:var(--r2);padding:12px;background:linear-gradient(180deg,#fff,#f8fbff)}
+    .kpi .v{font-size:18px;font-weight:800}
+    .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+    .filters{padding:14px;display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line)}
+    .in{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .in input,.in select{background:transparent;border:none;outline:none;color:var(--text);min-width:170px}
+    .seg{display:flex;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+    .seg button{border:none;background:transparent;color:var(--muted);padding:10px 12px;cursor:pointer}
+    .seg button.active{color:var(--text);background:rgba(14,165,233,.10)}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px}
+    th{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);text-align:left;color:var(--muted);font-weight:700}
+    tr:hover td{background:#f6fbff}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;background:#fff}
+    .b-buy{border-color:rgba(14,165,233,.25);color:#0369a1;background:rgba(14,165,233,.07)}
+    .b-make{border-color:rgba(56,189,248,.25);color:#075985;background:rgba(56,189,248,.08)}
+    .b-short{border-color:rgba(239,68,68,.25);color:#b91c1c;background:rgba(239,68,68,.06)}
+    .cellmuted{color:var(--muted);font-size:12px;margin-top:3px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>BOQ / Production Requirements (MRP-lite)</h1>
+        <div class="sub">Net requirements after BOM explosion and stock netting. Override actions and convert to PR + WOs.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">Print</button>
+        <button class="btn">Approve BOQ</button>
+        <button class="btn primary">Convert → PR + Work Orders</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <div>
+          <b>SO: SO-2026-0189 • Customer: Enkay Ozone</b>
+          <div><span>Delivery Due: 2026-03-15 • BOQ Status: Draft • As-of: 2026-02-26</span></div>
+        </div>
+        <span class="badge">Shortage view recommended</span>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="v">42</div><div class="l">Lines</div></div>
+        <div class="kpi"><div class="v">18</div><div class="l">Shortage Lines</div></div>
+        <div class="kpi"><div class="v">₹ 9.2L</div><div class="l">Estimated Buy</div></div>
+        <div class="kpi"><div class="v">6</div><div class="l">Make Items</div></div>
+        <div class="kpi"><div class="v">3</div><div class="l">Critical (&lt;7d)</div></div>
+      </div>
+
+      <div class="filters">
+        <div class="in">🔎 <input placeholder="Search component / code / parent..." /></div>
+        <div class="in">
+          <select>
+            <option>Action: Any</option><option>BUY</option><option>MAKE</option><option>TRANSFER</option>
+          </select>
+        </div>
+        <div class="in">
+          <select>
+            <option>Warehouse: All</option><option>RM Main</option><option>WIP Store</option><option>FG Store</option>
+          </select>
+        </div>
+        <div class="seg">
+          <button class="active">Shortages</button><button>All</button><button>Buy</button><button>Make</button>
+        </div>
+      </div>
+
+      <div style="padding:0 14px 14px">
+        <div style="border:1px solid var(--line);border-radius:var(--r2);overflow:hidden">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:26%">Component</th>
+                <th>Parent</th>
+                <th>Gross</th>
+                <th>Avail</th>
+                <th>Incoming</th>
+                <th>WIP</th>
+                <th>Shortage</th>
+                <th>Action</th>
+                <th style="width:18%">Override</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="font-weight:800">RM-SS-SHEET</div><div class="cellmuted">Stainless Steel Sheet • Level 1</div></td>
+                <td>FG-OZ-50</td><td>25.000</td><td>8.000</td><td>0.000</td><td>0.000</td>
+                <td><span class="badge b-short">● 17.000</span></td>
+                <td><span class="badge b-buy">● BUY</span></td>
+                <td>
+                  <div class="in" style="padding:8px 10px">
+                    <select style="min-width:140px"><option>BUY</option><option>MAKE</option><option>TRANSFER</option><option>NONE</option></select>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><div style="font-weight:800">WIP-OZG-MOD</div><div class="cellmuted">Ozone Generator Module • Level 1</div></td>
+                <td>FG-OZ-50</td><td>10.000</td><td>0.000</td><td>0.000</td><td>2.000</td>
+                <td><span class="badge b-short">● 8.000</span></td>
+                <td><span class="badge b-make">● MAKE</span></td>
+                <td>
+                  <div class="in" style="padding:8px 10px">
+                    <select style="min-width:140px"><option>MAKE</option><option>BUY</option><option>TRANSFER</option><option>NONE</option></select>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><div style="font-weight:800">RM-VALVE-SET</div><div class="cellmuted">Valve Set • Level 2</div></td>
+                <td>WIP-OZG-MOD</td><td>10.000</td><td>4.000</td><td>2.000</td><td>0.000</td>
+                <td><span class="badge b-short">● 4.000</span></td>
+                <td><span class="badge b-buy">● BUY</span></td>
+                <td>
+                  <div class="in" style="padding:8px 10px">
+                    <select style="min-width:140px"><option>BUY</option><option>MAKE</option><option>TRANSFER</option><option>NONE</option></select>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <div style="color:var(--muted);font-size:12px;line-height:1.4">
+            Conversion uses <b>sp_BOQ_ConvertToPRandWO</b> with ActionsJson overrides. Converted BOQ becomes read-only.
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn">Save Overrides</button>
+            <button class="btn primary">Convert Now</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

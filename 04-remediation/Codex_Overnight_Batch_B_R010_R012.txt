@@ -1,0 +1,52 @@
+You are working in the STS Manufacturing ERP repository on branch gap-remediation-v2.
+
+Read first, in this exact order:
+1. /AGENTS.md
+2. /04-remediation/Cutover_Guardrails.md
+3. /04-remediation/Preservation_and_Compatibility_Rules.md
+4. /04-remediation/Pre_P064_Stoplist.md
+5. /04-remediation/Architecture_V2_Delta_Matrix.md
+6. /04-remediation/Superseded_Prompt_Map.md
+7. /04-remediation/R_Prompt_Index.csv
+8. /docs/codex-progress/R000-output.md
+9. /docs/codex-progress/R001-output.md
+10. /docs/codex-progress/R002-output.md through /docs/codex-progress/R009-output.md
+11. All current /04-remediation/ docs
+
+Objective:
+Run a docs-only overnight remediation batch for R010 through R012, sequentially, without waiting for further user input unless a hard blocker occurs.
+
+Hard rules:
+- Do not execute R013 or P064.
+- Do not modify runtime code, migrations, EF entities, controllers, services, DTOs, SQL scripts, or tests.
+- This batch is documentation-only.
+- Preserve the manufacturing execution backbone and current UI direction.
+- If a required prompt file does not exist yet under /04-remediation/prompts/, create it before executing that step.
+- After each R step, write /docs/codex-progress/R010-output.md through R012-output.md.
+- After each R step, update /docs/codex-progress/README.md with the new status.
+- Stop immediately if you hit a genuine ambiguity that would materially change architecture or cutover sequence.
+
+Execute these steps in order:
+- R010 Costing and landed-cost foundation architecture
+- R011 SQL migration pack and cutover strategy
+- R012 EF, domain, and contract refactor plan
+
+For each step:
+1. Create or update the prompt file under /04-remediation/prompts/ matching the R_Prompt_Index path.
+2. Produce the architecture/plan documents for that step under /04-remediation/ using consistent naming.
+3. Explicitly define the salvage, patch, and replacement plan against the current repo.
+4. State the exact runtime surfaces that R013 will be allowed to touch.
+5. State exact next prompt path.
+
+Deliverables expected by the end of the batch:
+- Prompt files for R010 through R012 under /04-remediation/prompts/
+- All corresponding remediation docs under /04-remediation/
+- /docs/codex-progress/R010-output.md through /docs/codex-progress/R012-output.md
+- Updated /docs/codex-progress/README.md
+
+At the end, return:
+- batch completion status
+- all files created/changed
+- blockers
+- exact next prompt path
+- confirmation that no runtime code was changed

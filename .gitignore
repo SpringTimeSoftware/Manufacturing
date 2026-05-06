@@ -1,0 +1,52 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.vs/
+.vscode/
+*.user
+*.suo
+
+# .NET
+bin/
+obj/
+TestResults/
+*.nupkg
+*.snupkg
+
+# Node / React / React Native
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.expo/
+.metro/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+src/web/vite.config.js
+src/web/vite.config.d.ts
+src/web/vitest.config.js
+src/web/vitest.config.d.ts
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key
+*.publishsettings
+
+# Local run output
+.codex-run/
+.codex-run-logs/
+.codex-temp/
+logs/
+artifacts/
+*.log
+
+# Packaged/generated snapshots
+*.zip

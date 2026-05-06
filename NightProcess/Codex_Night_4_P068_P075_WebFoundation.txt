@@ -1,0 +1,34 @@
+You are working in the STS Manufacturing ERP repository after successful completion of P067.
+
+Read first, in this exact order:
+1. /AGENTS.md
+2. /docs/codex-progress/README.md
+3. /docs/codex-progress/P064-output.md through P067-output.md
+4. /00-blueprint/screen_inventory.csv
+5. reference UI files under /reference-ui/
+6. relevant web source code under /src/web/
+
+Objective:
+Execute the web foundation wave: P068 through P075.
+
+Hard rules:
+- Execute in order: P068, P069, P070, P071, P072, P073, P074, P075.
+- Preserve IIS publish-folder deployment model.
+- Preserve the reference UI visual language.
+- Keep web focused on setup/planning/admin and mobile focused on action/execution.
+- Update /docs/codex-progress/P068-output.md through P075-output.md.
+- Update /docs/codex-progress/README.md after each step.
+- Run relevant build/typecheck/test commands at the end of each step if practical, and again at the end of the batch.
+- Stop only for a genuine blocker.
+
+Deliverables expected by the end of the run:
+- runtime changes for P068 through P075 only
+- /docs/codex-progress/P068-output.md through P075-output.md
+- updated /docs/codex-progress/README.md
+
+At the end, return:
+- batch completion status
+- all files changed
+- build/typecheck/test status
+- blockers
+- exact next prompt path

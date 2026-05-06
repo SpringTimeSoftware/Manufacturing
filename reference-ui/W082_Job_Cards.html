@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Job Cards (Light)</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#fff; --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow:0 10px 30px rgba(2,8,23,.08); --r:18px; --r2:14px;
+      --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:var(--font);color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    .wrap{max-width:1320px;margin:0 auto;padding:22px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.12), rgba(56,189,248,.08))}
+    .btn:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .grid{display:grid;grid-template-columns: 1fr 440px;gap:12px;margin-top:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+    .filters{padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .in{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .in input,.in select{background:transparent;border:none;outline:none;color:var(--text);min-width:170px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px}
+    th{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);text-align:left;color:var(--muted);font-weight:700}
+    tr:hover td{background:#f6fbff}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px;background:#fff}
+    .b-created{border-color:rgba(245,158,11,.25);color:#92400e;background:rgba(245,158,11,.08)}
+    .b-run{border-color:rgba(14,165,233,.25);color:#0369a1;background:rgba(14,165,233,.07)}
+    .b-pause{border-color:rgba(56,189,248,.25);color:#075985;background:rgba(56,189,248,.08)}
+    .b-done{border-color:rgba(22,163,74,.25);color:#166534;background:rgba(22,163,74,.06)}
+    .panel{padding:14px}
+    .h2{font-size:14px;margin:0 0 8px 0}
+    .muted{color:var(--muted);font-size:12px;line-height:1.45}
+    .timeline{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+    .evt{display:grid;grid-template-columns: 10px 1fr;gap:10px;align-items:start}
+    .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));margin-top:5px}
+    .evt .box{border:1px solid var(--line);border-radius:var(--r2);padding:10px;background:linear-gradient(180deg,#fff,#f8fbff)}
+    .evt .box b{display:block;font-size:12px}
+    .evt .box span{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Job Cards</h1>
+        <div class="sub">Execution: assign machine/operator, start/pause/complete with event log.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">Print</button>
+        <button class="btn primary">+ Manual Job Card</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <div class="in">🔎 <input placeholder="Search JobCard / WO / Machine..." /></div>
+        <div class="in">
+          <select><option>Status: Any</option><option>Created</option><option>Assigned</option><option>Started</option><option>Paused</option><option>Completed</option></select>
+        </div>
+        <div class="in">
+          <select><option>Machine: All</option><option>MC-01 Laser</option><option>MC-02 Weld</option><option>MC-03 Test Bench</option></select>
+        </div>
+        <div class="in"><input type="date" style="min-width:160px"/></div>
+        <div class="in"><input type="date" style="min-width:160px"/></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card" style="overflow:hidden">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:18%">Job Card</th>
+              <th>WO / Operation</th>
+              <th>Machine</th>
+              <th>Qty</th>
+              <th>Status</th>
+              <th style="width:22%;text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>JC-90441</b><div style="color:var(--muted);font-size:12px">OpSeq 10</div></td>
+              <td><b>WO-02642</b><div style="color:var(--muted);font-size:12px">Cutting & Forming</div></td>
+              <td>MC-01 Laser</td>
+              <td>Planned: 10</td>
+              <td><span class="badge b-run">● Started</span></td>
+              <td style="text-align:right"><button class="btn">Pause</button> <button class="btn">Complete</button></td>
+            </tr>
+            <tr>
+              <td><b>JC-90442</b><div style="color:var(--muted);font-size:12px">OpSeq 20</div></td>
+              <td><b>WO-02642</b><div style="color:var(--muted);font-size:12px">Welding</div></td>
+              <td>Unassigned</td>
+              <td>Planned: 10</td>
+              <td><span class="badge b-created">● Created</span></td>
+              <td style="text-align:right"><button class="btn primary">Assign</button></td>
+            </tr>
+            <tr>
+              <td><b>JC-90391</b><div style="color:var(--muted);font-size:12px">OpSeq 30</div></td>
+              <td><b>WO-02641</b><div style="color:var(--muted);font-size:12px">Testing</div></td>
+              <td>MC-03 Test Bench</td>
+              <td>Good: 8 • Reject: 1</td>
+              <td><span class="badge b-pause">● Paused</span></td>
+              <td style="text-align:right"><button class="btn">Resume</button> <button class="btn">Downtime</button></td>
+            </tr>
+            <tr>
+              <td><b>JC-90311</b><div style="color:var(--muted);font-size:12px">OpSeq 40</div></td>
+              <td><b>WO-02621</b><div style="color:var(--muted);font-size:12px">Final Assembly</div></td>
+              <td>MC-02 Weld</td>
+              <td>Good: 12</td>
+              <td><span class="badge b-done">● Completed</span></td>
+              <td style="text-align:right"><button class="btn">QC</button> <button class="btn">Close</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="card">
+        <div class="panel">
+          <div class="h2">Selected: JC-90441</div>
+          <div class="muted">In React this becomes a right drawer with actions + timeline.</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+            <div class="in" style="padding:10px 12px"><b style="font-size:12px;color:var(--muted)">Machine</b>&nbsp; MC-01 Laser</div>
+            <div class="in" style="padding:10px 12px"><b style="font-size:12px;color:var(--muted)">Operator</b>&nbsp; Ajay</div>
+            <div class="in" style="padding:10px 12px"><b style="font-size:12px;color:var(--muted)">Start</b>&nbsp; 10:12 AM</div>
+            <div class="in" style="padding:10px 12px"><b style="font-size:12px;color:var(--muted)">Downtime</b>&nbsp; 18 min</div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn">Pause</button>
+            <button class="btn">Add Reject</button>
+            <button class="btn primary">Complete</button>
+          </div>
+
+          <div class="timeline">
+            <div class="evt"><div class="dot"></div><div class="box"><b>Started</b><span>10:12 AM • by Supervisor • sp_JobCard_Start</span></div></div>
+            <div class="evt"><div class="dot"></div><div class="box"><b>Downtime logged</b><span>10:47 AM • 12 min • Reason: Power fluctuation</span></div></div>
+            <div class="evt"><div class="dot"></div><div class="box"><b>Resume</b><span>11:02 AM • sp_JobCard_Resume</span></div></div>
+          </div>
+
+          <div style="margin-top:12px" class="muted">
+            Rule: one machine can have only one active job card (enforced via filtered unique index).
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+You are working in the STS Manufacturing ERP repository on branch gap-remediation-v2.
+
+Read first, in this exact order:
+1. /AGENTS.md
+2. /04-remediation/Cutover_Guardrails.md
+3. /04-remediation/Preservation_and_Compatibility_Rules.md
+4. /04-remediation/Pre_P064_Stoplist.md
+5. /04-remediation/Architecture_V2_Delta_Matrix.md
+6. /04-remediation/Superseded_Prompt_Map.md
+7. /04-remediation/R_Prompt_Index.csv
+8. /docs/codex-progress/R000-output.md through /docs/codex-progress/R012-output.md
+9. All current /04-remediation/ docs
+
+Objective:
+Execute only R013: backend master and commercial remediation wave.
+
+Hard rules:
+- Do not execute P064.
+- Touch only the runtime surfaces explicitly permitted by the R010-R012 plans.
+- Preserve P057, P062, and P063 behavior using compatibility adapters where needed.
+- Prefer additive tables, bridge mappings, compatibility DTOs, and staged cutover over destructive replacement.
+- Write migrations/DDL only if R011 explicitly allows them and do so in the ordered pack structure defined there.
+- Update /docs/codex-progress/R013-output.md and /docs/codex-progress/README.md.
+- Run build and relevant tests at the end.
+- Stop if a change would break the preserved manufacturing execution backbone without a compatibility bridge.
+
+Deliverables:
+- runtime changes for the approved R013 wave only
+- /docs/codex-progress/R013-output.md
+- updated /docs/codex-progress/README.md
+
+At the end, return:
+- files changed
+- build/test status
+- blockers
+- exact next prompt path

@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BOM Management (Light)</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#ffffff;
+      --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8;
+      --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow:0 10px 30px rgba(2,8,23,.08);
+      --r:18px; --r2:14px;
+      --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--font); color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    a{color:inherit;text-decoration:none}
+    .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+    .side{
+      padding:18px;border-right:1px solid var(--line);
+      background:linear-gradient(180deg,#ffffffcc, transparent);
+      position:sticky;top:0;height:100vh
+    }
+    .brand{
+      display:flex;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);
+      border-radius:var(--r);background:#fff;box-shadow:0 8px 20px rgba(2,8,23,.05)
+    }
+    .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+    .nav{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+    .nav a{padding:10px 12px;border-radius:12px;color:var(--muted);border:1px solid transparent}
+    .nav a.active{color:var(--text);background:rgba(14,165,233,.08);border-color:rgba(14,165,233,.22)}
+    .nav a:hover{background:#f8fbff}
+    .main{padding:22px 24px 28px}
+    .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+    h1{margin:0;font-size:22px;letter-spacing:.2px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .actions{display:flex;gap:10px;align-items:center}
+    .btn{
+      border:1px solid var(--line);background:#fff;color:var(--text);
+      padding:10px 12px;border-radius:14px;cursor:pointer
+    }
+    .btn:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.12), rgba(56,189,248,.08))}
+    .grid{display:grid;grid-template-columns: 1.1fr .9fr;gap:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+    .hd{padding:14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+    .hd h2{margin:0;font-size:14px}
+    .hd .sub2{margin-top:4px;font-size:12px;color:var(--muted)}
+    .bd{padding:14px}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .in{
+      display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);
+      border-radius:14px;background:#fff
+    }
+    .in input,.in select{background:transparent;border:none;outline:none;color:var(--text);min-width:170px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:#fff}
+    .chip b{color:var(--text)}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px}
+    th{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);text-align:left;color:var(--muted);font-weight:700}
+    tr:hover td{background:#f6fbff}
+    .badge{padding:4px 9px;border-radius:999px;font-size:12px;border:1px solid var(--line);display:inline-flex;gap:6px;align-items:center;background:#fff}
+    .b-ok{border-color:rgba(22,163,74,.25);color:#166534;background:rgba(22,163,74,.06)}
+    .b-draft{border-color:rgba(245,158,11,.25);color:#92400e;background:rgba(245,158,11,.08)}
+    .b-obs{border-color:rgba(239,68,68,.25);color:#b91c1c;background:rgba(239,68,68,.06)}
+    .rowactions{display:flex;gap:8px;justify-content:flex-end}
+    .iconbtn{padding:7px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer}
+    .iconbtn:hover{box-shadow:0 10px 26px rgba(2,8,23,.08)}
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .kpi{padding:12px;border:1px solid var(--line);border-radius:var(--r2);background:linear-gradient(180deg,#fff,#f8fbff)}
+    .kpi .v{font-size:18px;font-weight:800}
+    .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+    .tree{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .node{border:1px solid var(--line);border-radius:var(--r2);background:linear-gradient(180deg,#fff,#f8fbff);overflow:hidden}
+    .node .row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;gap:10px}
+    .node .row:hover{background:#f6fbff}
+    .meta{display:flex;flex-direction:column;gap:2px}
+    .meta .name{font-weight:750;font-size:13px}
+    .meta .code{color:var(--muted);font-size:12px}
+    .qty{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+    .indent{margin-left:18px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="side">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div style="font-weight:800">Ozone Manufacturing</div>
+          <div style="font-size:12px;color:var(--muted)">Engineering • BOM</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#" class="active">BOM</a>
+        <a href="#">BOQ / Requirements</a>
+        <a href="#">Work Orders</a>
+        <a href="#">Job Cards</a>
+        <a href="#">Machine Schedule</a>
+      </nav>
+
+      <div style="margin-top:14px;color:var(--muted);font-size:12px;line-height:1.5">
+        Click a BOM row to open a details drawer in React (revision, tree, approvals, audit).
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h1>BOM Management</h1>
+          <div class="sub">Approved revisions + multi-level components. FG can be component of another FG.</div>
+        </div>
+        <div class="actions">
+          <button class="btn">Import CSV</button>
+          <button class="btn">Print</button>
+          <button class="btn primary">+ New BOM</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <div class="hd">
+            <div>
+              <h2>BOM Library</h2>
+              <div class="sub2">Search, filter, open details. Approvals lock edits.</div>
+            </div>
+            <span class="chip"><b>24</b> active BOMs</span>
+          </div>
+          <div class="bd">
+            <div class="filters">
+              <div class="in">🔎 <input placeholder="Search Item / Code / Revision..." /></div>
+              <div class="in">
+                <select>
+                  <option>Status: Any</option><option>Approved</option><option>Draft</option><option>Obsolete</option>
+                </select>
+              </div>
+              <div class="in">
+                <select>
+                  <option>Item Type: Any</option><option>FG</option><option>WIP</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--line);border-radius:var(--r2);overflow:hidden">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:34%">Parent Item</th>
+                    <th>Revision</th>
+                    <th>Effective</th>
+                    <th>Status</th>
+                    <th style="width:18%;text-align:right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div style="font-weight:800">OZ-50 Tank Assembly</div><div style="color:var(--muted);font-size:12px">ItemCode: FG-OZ-50</div></td>
+                    <td>R3</td>
+                    <td>2026-01-10</td>
+                    <td><span class="badge b-ok">● Approved</span></td>
+                    <td>
+                      <div class="rowactions">
+                        <button class="iconbtn">Open</button>
+                        <button class="iconbtn">Clone</button>
+                        <button class="iconbtn">Print</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><div style="font-weight:800">Ozone Generator Module</div><div style="color:var(--muted);font-size:12px">ItemCode: WIP-OZG-MOD</div></td>
+                    <td>R1</td>
+                    <td>2025-12-01</td>
+                    <td><span class="badge b-draft">● Draft</span></td>
+                    <td>
+                      <div class="rowactions">
+                        <button class="iconbtn">Open</button>
+                        <button class="iconbtn">Approve</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><div style="font-weight:800">Pressure Regulator Assembly</div><div style="color:var(--muted);font-size:12px">ItemCode: WIP-PR-ASM</div></td>
+                    <td>R2</td>
+                    <td>2025-08-15</td>
+                    <td><span class="badge b-obs">● Obsolete</span></td>
+                    <td>
+                      <div class="rowactions">
+                        <button class="iconbtn">Open</button>
+                        <button class="iconbtn">Audit</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="hd">
+            <div>
+              <h2>Selected BOM: OZ-50 Tank Assembly (R3)</h2>
+              <div class="sub2">Tree view + quick actions (React: editable grid + validations).</div>
+            </div>
+            <span class="chip"><b>12</b> components</span>
+          </div>
+
+          <div class="bd">
+            <div class="kpis">
+              <div class="kpi"><div class="v">R3</div><div class="l">Revision</div></div>
+              <div class="kpi"><div class="v">Approved</div><div class="l">Status</div></div>
+              <div class="kpi"><div class="v">Backflush</div><div class="l">Default Issue</div></div>
+            </div>
+
+            <div class="tree">
+              <div class="node">
+                <div class="row">
+                  <div class="meta">
+                    <div class="name">FG-OZ-50 • OZ-50 Tank Assembly</div>
+                    <div class="code">Effective: 2026-01-10 • Notes: v3 nozzle update</div>
+                  </div>
+                  <div class="qty"><span class="badge b-ok">● Top</span></div>
+                </div>
+              </div>
+
+              <div class="node indent">
+                <div class="row">
+                  <div class="meta">
+                    <div class="name">WIP-OZG-MOD • Ozone Generator Module</div>
+                    <div class="code">QtyPer: 1.000 • Scrap: 0%</div>
+                  </div>
+                  <div class="qty">
+                    <span class="chip"><b>MAKE</b> suggested</span>
+                    <span class="chip">Issue: <b>Backflush</b></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="node indent">
+                <div class="row">
+                  <div class="meta">
+                    <div class="name">RM-SS-SHEET • Stainless Steel Sheet</div>
+                    <div class="code">QtyPer: 2.500 • Scrap: 3%</div>
+                  </div>
+                  <div class="qty">
+                    <span class="chip"><b>BUY</b> preferred</span>
+                    <span class="chip">Issue: <b>Manual</b></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="node indent">
+                <div class="row">
+                  <div class="meta">
+                    <div class="name">RM-VALVE-SET • Valve Set</div>
+                    <div class="code">QtyPer: 1.000 • Scrap: 0%</div>
+                  </div>
+                  <div class="qty">
+                    <span class="chip"><b>BUY</b></span>
+                    <span class="chip">Lead: <b>7d</b></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+              <button class="btn">Edit Lines</button>
+              <button class="btn">Clone Revision</button>
+              <button class="btn primary">Approve Revision</button>
+            </div>
+
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

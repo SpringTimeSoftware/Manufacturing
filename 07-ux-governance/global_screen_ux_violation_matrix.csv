@@ -1,0 +1,101 @@
+ScreenName,FilePath,Domain,Platform,ActionBarIssue Yes/No,FilterBarIssue Yes/No,GridAlignmentIssue Yes/No,ModalEditorIssue Yes/No,ValidationSummaryIssue Yes/No,LookupControlIssue Yes/No,FreeTextMasterFieldIssue Yes/No,DeadActionIssue Yes/No,EmptyPanelIssue Yes/No,InternalCopyIssue Yes/No,Severity CRITICAL/HIGH/MEDIUM/LOW,RecommendedFixWave,Notes
+LoginPage,src/web/src/pages/LoginPage.tsx,Platform,Web,No,No,No,No,No,No,No,No,No,No,LOW,Wave UX follow-up,Login was corrected in Wave 1
+ForgotPasswordPage,src/web/src/pages/PlatformPages.tsx,Platform,Web,No,No,No,No,No,No,No,No,No,No,LOW,Wave UX follow-up,Recovery route is business-facing
+ContextSwitchPage,src/web/src/pages/PlatformPages.tsx,Platform,Web,Yes,No,No,No,No,No,No,No,No,No,MEDIUM,Wave Platform UX,Toolbar should adopt ErpActionBar
+NotificationInboxPage,src/web/src/pages/PlatformPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,No,No,Yes,No,No,HIGH,Wave Platform UX,Notification actions need governed grouping
+ApprovalWorkbenchPage,src/web/src/pages/PlatformPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Platform UX,Approval workbench needs action gating and lookup controls
+UserManagementPage,src/web/src/pages/AdminPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Platform UX,User and role selectors need governed controls
+RolePermissionMatrixPage,src/web/src/pages/AdminPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Platform UX,Permission matrix needs compact grid and disabled action reasons
+DashboardHomePage,src/web/src/pages/DashboardPages.tsx,Dashboard,Web,No,No,No,No,No,No,No,No,No,No,LOW,Wave UX follow-up,Dashboard was visually corrected in Wave 1A
+OrderDeliveryDashboardPage,src/web/src/pages/DashboardPages.tsx,Dashboard,Web,Yes,Yes,Yes,No,No,No,No,No,Yes,No,MEDIUM,Wave Dashboard UX,Dashboard cards need compact empty states and chip alignment
+StageWiseDashboardPage,src/web/src/pages/DashboardPages.tsx,Dashboard,Web,Yes,Yes,Yes,No,No,No,No,No,Yes,No,MEDIUM,Wave Dashboard UX,Stage panels need density pass
+ExecutiveCockpitPage,src/web/src/pages/DashboardPages.tsx,Dashboard,Web,Yes,Yes,Yes,No,No,No,No,No,Yes,No,MEDIUM,Wave Dashboard UX,Cockpit needs governed KPIs and empty states
+CompanyMasterPage,src/web/src/pages/OrganizationPages.tsx,Organization,Web,No,No,No,Yes,Yes,Yes,Yes,No,No,No,MEDIUM,Wave Organization UX,Action filter and grid were piloted; drawer fields still need lookup conversion
+BranchMasterPage,src/web/src/pages/OrganizationPages.tsx,Organization,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Organization UX,Branch selectors and disabled actions need governance
+DepartmentMasterPage,src/web/src/pages/OrganizationPages.tsx,Organization,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Organization UX,Department type and manager fields need lookups
+WarehouseMasterPage,src/web/src/pages/OrganizationPages.tsx,Organization,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Organization UX,Warehouse type and branch linked controls need lookups
+BinMasterPage,src/web/src/pages/OrganizationPages.tsx,Organization,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Organization UX,Bin warehouse and status controls need governed lookup behavior
+ShiftCalendarPage,src/web/src/pages/OrganizationPages.tsx,Organization,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,MEDIUM,Wave Organization UX,Calendar profile should be a lookup
+ItemGroupMasterPage,src/web/src/pages/ItemMasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Master Data UX,Group setup drawer still uses free text
+ItemAttributeMasterPage,src/web/src/pages/ItemMasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Master Data UX,Attribute setup actions and editor need governance
+ReasonCodeRulesPage,src/web/src/pages/ItemMasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Master Data UX,Reason-code editor needs controlled fields
+ItemListPage,src/web/src/pages/ItemMasterPages.tsx,Master Data,Web,No,No,No,No,No,No,No,No,No,No,LOW,Wave 4A follow-up,Global UI components applied as pilot
+ItemVariantMatrixPage,src/web/src/pages/ItemMasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Master Data UX,Variant setup still uses legacy patterns
+BarcodeLabelSetupPage,src/web/src/pages/ItemMasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Master Data UX,Barcode setup should use governed lookups
+ItemDirectoryPage,src/web/src/pages/MasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Master Data UX,Directory pages need global component adoption
+CustomerDirectoryPage,src/web/src/pages/MasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Customer UX,Customer directory needs governed grid and lookup controls
+SupplierDirectoryPage,src/web/src/pages/MasterPages.tsx,Master Data,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Supplier UX,Supplier directory needs governed grid and lookup controls
+TranslationSetupPage,src/web/src/pages/MasterPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,MEDIUM,Wave Platform UX,Translation editor needs compact action and validation patterns
+WorkflowNumberingPage,src/web/src/pages/MasterPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Platform UX,Numbering and workflow fields need controlled selects
+TenantSettingsPage,src/web/src/pages/MasterPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,MEDIUM,Wave Platform UX,Tenant settings needs governed action grouping
+PlatformSettingsPage,src/web/src/pages/MasterPages.tsx,Platform,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,MEDIUM,Wave Platform UX,Settings panels need compact validation and dead action gating
+UomClassMasterPage,src/web/src/pages/MeasurementPages.tsx,Measurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Measurement UX,UOM master should become lookup source reference implementation
+UomConversionMasterPage,src/web/src/pages/MeasurementPages.tsx,Measurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Measurement UX,Conversion fields need governed UOM lookups
+MeasurementProfileMasterPage,src/web/src/pages/MeasurementPages.tsx,Measurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Measurement UX,Profile editor needs compact modal workspace
+CustomerListDetailPage,src/web/src/pages/PartnerPages.tsx,Customer,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave 4B,Customer master needs deep governed editor before rollout
+SupplierListDetailPage,src/web/src/pages/PartnerPages.tsx,Supplier,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave 4C,Supplier master needs deep governed editor before rollout
+QuoteEstimateListPage,src/web/src/pages/CommercialPlanningPages.tsx,Commercial,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Commercial UX,Quote list actions and pricing lookups need governance
+SalesOrderListPage,src/web/src/pages/CommercialPlanningPages.tsx,Commercial,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Commercial UX,Sales order fields need customer item and pricing lookups
+BlanketOrderContractPage,src/web/src/pages/CommercialPlanningPages.tsx,Commercial,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Commercial UX,Contract controls need disabled action governance
+DemandForecastPage,src/web/src/pages/CommercialPlanningPages.tsx,Planning,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Planning UX,Forecast workbench needs dense grids and lookup controls
+MpsPlannerPage,src/web/src/pages/CommercialPlanningPages.tsx,Planning,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Planning UX,MPS planner needs governed filters and action gating
+AvailableToPromisePage,src/web/src/pages/CommercialPlanningPages.tsx,Planning,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Planning UX,ATP page needs item customer and warehouse lookup controls
+SupplierLeadTimeMatrixPage,src/web/src/pages/CommercialPlanningPages.tsx,Procurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Procurement UX,Supplier lead-time matrix needs lookup enforcement
+AttachmentViewerPage,src/web/src/pages/CommercialPlanningPages.tsx,Documents,Web,Yes,Yes,No,Yes,Yes,Yes,Yes,Yes,No,No,MEDIUM,Wave Document UX,Attachment actions need real storage gating
+MrpRunConsolePage,src/web/src/pages/PlanningPages.tsx,Planning,Web,No,No,No,Yes,Yes,Yes,Yes,No,No,No,MEDIUM,Wave Planning UX,Action filter and grid were piloted; drawer still needs governed controls
+MrpResultsExceptionsPage,src/web/src/pages/PlanningPages.tsx,Planning,Web,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Wave Planning UX,Exception conversion actions need disabled reasons
+BoqRequirementsPage,src/web/src/pages/PlanningPages.tsx,Planning,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Planning UX,BOQ override fields need governed select controls
+CapacityPlanningBoardPage,src/web/src/pages/PlanningContinuationPages.tsx,Planning,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Planning UX,Capacity board needs compact filters and real launch actions
+BomLibraryPage,src/web/src/pages/EngineeringPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Engineering UX,BOM editor needs modal workspace and lookup enforcement
+BomDetailEditorPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Engineering UX,BOM detail editor is master-linked and must replace free text fields
+BomComparisonPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Engineering UX,Comparison grid needs chip alignment
+EcoRevisionControlPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Engineering UX,ECO approvals need governed action states
+RoutingLibraryPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Engineering UX,Routing steps need work center and machine lookups
+OperationStandardPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Engineering UX,Operation standard editor needs lookup enforcement
+AlternateItemRulesPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Engineering UX,Alternate item fields must use item lookups
+EngineeringAttachmentViewerPage,src/web/src/pages/EngineeringContinuationPages.tsx,Engineering,Web,Yes,Yes,No,Yes,Yes,Yes,Yes,Yes,No,No,MEDIUM,Wave Document UX,Attachment actions need storage gating
+WorkOrdersPage,src/web/src/pages/OperationsPages.tsx,Operations,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Operations UX,Work order editor needs real action gating and lookups
+JobCardsPage,src/web/src/pages/OperationsPages.tsx,Operations,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Operations UX,Job card fields need operator machine and routing lookups
+MachineBoardPage,src/web/src/pages/OperationsPages.tsx,Operations,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Operations UX,Machine board needs status chip alignment and compact empty states
+OccupancyCalendarPage,src/web/src/pages/OperationsPages.tsx,Operations,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Operations UX,Calendar cells need governed actions
+ShiftProductionEntryPage,src/web/src/pages/OperationsPages.tsx,Operations,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Operations UX,Entry fields need controlled item machine and operator values
+DowntimeRegisterPage,src/web/src/pages/OperationsPages.tsx,Operations,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Operations UX,Downtime reason must be reason-code lookup
+CycleCountPage,src/web/src/pages/OperationsPages.tsx,Inventory,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Inventory UX,Cycle count bins and reason codes need lookups
+InventoryBalancePage,src/web/src/pages/InventoryPages.tsx,Inventory,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Inventory UX,Item warehouse bin filters need governed lookup controls
+TraceabilityPage,src/web/src/pages/InventoryPages.tsx,Inventory,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Inventory UX,Traceability graph needs compact empty states and lookup filters
+MaterialIssuePage,src/web/src/pages/InventoryPages.tsx,Inventory,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Inventory UX,Issue action needs item lot bin and work order lookups
+MaterialReturnPage,src/web/src/pages/InventoryPages.tsx,Inventory,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Inventory UX,Return reason and bins need lookup enforcement
+StockTransferPutawayPage,src/web/src/pages/InventoryPages.tsx,Inventory,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Inventory UX,Transfer source and destination bins need governed lookups
+PurchaseRequisitionPage,src/web/src/pages/ProcurementPages.tsx,Procurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Procurement UX,PR lines need item supplier and UOM lookups
+PurchaseOrderPage,src/web/src/pages/ProcurementPages.tsx,Procurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Procurement UX,PO workflow needs supplier item currency and terms lookups
+SubcontractPlanPage,src/web/src/pages/ProcurementPages.tsx,Procurement,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Procurement UX,Subcontract plan needs controlled supplier and routing references
+QcPlanSetupPage,src/web/src/pages/QualityPages.tsx,Quality,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,CRITICAL,Wave Quality UX,QC plan editor should become lookup source reference implementation
+IncomingInspectionPage,src/web/src/pages/QualityPages.tsx,Quality,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Quality UX,Inspection result fields need QC plan and supplier lookups
+InProcessInspectionPage,src/web/src/pages/QualityPages.tsx,Quality,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Quality UX,In-process inspection needs operation and machine lookups
+FinalInspectionPage,src/web/src/pages/QualityPages.tsx,Quality,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Quality UX,Final inspection needs item and order lookups
+NcrDeviationPage,src/web/src/pages/QualityPages.tsx,Quality,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Quality UX,NCR reason and disposition fields need governed lookups
+PackListPage,src/web/src/pages/DispatchPages.tsx,Dispatch,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Dispatch UX,Pack list needs item customer and carrier lookups
+DispatchPlanningPage,src/web/src/pages/DispatchPages.tsx,Dispatch,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,HIGH,Wave Dispatch UX,Dispatch actions need enabled state tied to real workflow
+ShipmentDeliveryPage,src/web/src/pages/DispatchPages.tsx,Dispatch,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Dispatch UX,Shipment fields need carrier customer and address lookups
+PrintPackPage,src/web/src/pages/PrintPackPage.tsx,Print Pack,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Print Pack UX,Print actions need disabled reasons when template support is unavailable
+ProductionReceiptPage,src/web/src/pages/ProductionOutputPages.tsx,Production,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Production UX,Receipt fields need work order item lot and bin lookups
+ScrapByProductPage,src/web/src/pages/ProductionOutputPages.tsx,Production,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Production UX,Scrap reason and by-product item fields need lookups
+ReworkOrderPage,src/web/src/pages/ProductionOutputPages.tsx,Production,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Production UX,Rework reason and routing fields need lookup enforcement
+MachineStatusPage,src/web/src/pages/ProductionOutputPages.tsx,Production,Web,Yes,Yes,Yes,Yes,Yes,Yes,Yes,Yes,No,No,HIGH,Wave Production UX,Machine status reason fields need lookup enforcement
+NotFoundPage,src/web/src/pages/NotFoundPage.tsx,Platform,Web,No,No,No,No,No,No,No,No,No,No,LOW,Wave UX follow-up,No governance issue found
+HomeDashboardScreen,src/mobile/src/screens/HomeDashboardScreen.tsx,Mobile Operations,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,Yes,No,HIGH,Mobile UX wave,Execution dashboard needs governed mobile action states
+LoginScreen,src/mobile/src/screens/LoginScreen.tsx,Mobile Platform,Mobile,No,No,No,No,No,No,No,No,No,No,LOW,Mobile UX wave,Login is audit-only in this pass
+ContextSwitchScreen,src/mobile/src/screens/ContextSwitchScreen.tsx,Mobile Platform,Mobile,Yes,No,No,No,No,Yes,Yes,No,No,No,MEDIUM,Mobile UX wave,Context selectors should use controlled mobile lookups
+DeviceUtilitiesScreen,src/mobile/src/screens/DeviceUtilitiesScreen.tsx,Mobile Platform,Mobile,Yes,No,No,No,No,No,No,Yes,Yes,No,MEDIUM,Mobile UX wave,Device actions need real availability states
+DispatchProofScreen,src/mobile/src/screens/DispatchProofScreen.tsx,Mobile Dispatch,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Proof capture must gate upload actions
+ExecutionCaptureScreen,src/mobile/src/screens/ExecutionCaptureScreen.tsx,Mobile Operations,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Execution capture needs operator machine and job lookups
+InventoryMovementScreen,src/mobile/src/screens/InventoryMovementScreen.tsx,Mobile Inventory,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Movement fields need item warehouse bin lookups
+JobCardsScreen,src/mobile/src/screens/JobCardsScreen.tsx,Mobile Operations,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Job card actions need disabled reasons and lookup fields
+MachineDowntimeScreen,src/mobile/src/screens/MachineDowntimeScreen.tsx,Mobile Operations,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Downtime reason must be controlled
+MaterialScanScreen,src/mobile/src/screens/MaterialScanScreen.tsx,Mobile Inventory,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Scan destinations need controlled warehouse bin context
+NotificationsApprovalsScreen,src/mobile/src/screens/NotificationsApprovalsScreen.tsx,Mobile Platform,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Approval actions need governed availability states
+OrderStageBoardScreen,src/mobile/src/screens/OrderStageBoardScreen.tsx,Mobile Operations,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,Yes,No,HIGH,Mobile UX wave,Stage board needs compact empty states
+ProductionReceiptReworkScreen,src/mobile/src/screens/ProductionReceiptReworkScreen.tsx,Mobile Production,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Receipt and rework reason fields need controlled lookups
+QualityCaptureScreen,src/mobile/src/screens/QualityCaptureScreen.tsx,Mobile Quality,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Quality capture needs QC plan and inspection template lookups
+SettingsSyncStatusScreen,src/mobile/src/screens/SettingsSyncStatusScreen.tsx,Mobile Platform,Mobile,Yes,No,No,No,No,No,No,Yes,Yes,No,MEDIUM,Mobile UX wave,Sync actions need real state and compact empty copy
+ShiftHandoverMediaScreen,src/mobile/src/screens/ShiftHandoverMediaScreen.tsx,Mobile Operations,Mobile,Yes,Yes,Yes,No,No,Yes,Yes,Yes,No,No,HIGH,Mobile UX wave,Media capture upload actions need real storage gating

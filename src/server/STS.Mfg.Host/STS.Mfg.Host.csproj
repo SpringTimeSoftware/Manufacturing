@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\STS.Mfg.Api\STS.Mfg.Api.csproj" />
+    <ProjectReference Include="..\STS.Mfg.Application\STS.Mfg.Application.csproj" />
+    <ProjectReference Include="..\STS.Mfg.Infrastructure\STS.Mfg.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
+  </ItemGroup>
+
+  <Target Name="BuildReactWeb" BeforeTargets="Publish">
+    <Message Importance="high" Text="Building React web app from ..\..\web\" />
+    <Exec WorkingDirectory="..\..\web" Command="npm ci" Condition="!Exists('..\..\web\node_modules\typescript')" />
+    <Exec WorkingDirectory="..\..\web" Command="npm run build" />
+    <Exec WorkingDirectory="..\..\web" Command="npm run build:host" />
+  </Target>
+
+</Project>

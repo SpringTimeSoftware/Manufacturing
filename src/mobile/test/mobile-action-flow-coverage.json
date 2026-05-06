@@ -1,0 +1,49 @@
+{
+  "coverageName": "P145 mobile offline and high-frequency action baseline",
+  "requiredFlowIds": [
+    "login",
+    "queue-sync",
+    "job-card-start-pause-complete",
+    "quantity-posting",
+    "downtime",
+    "quality-checkpoint",
+    "dispatch-proof"
+  ],
+  "flows": [
+    {
+      "id": "login",
+      "screenIds": ["M001", "M002"],
+      "assertions": ["secure sign-in path", "device binding state", "company branch context"]
+    },
+    {
+      "id": "queue-sync",
+      "screenIds": ["M024"],
+      "assertions": ["Queued state visible", "Conflict state visible", "RetryScheduled state visible"]
+    },
+    {
+      "id": "job-card-start-pause-complete",
+      "screenIds": ["M006", "M007", "M008"],
+      "assertions": ["assigned job card visible", "start action present", "pause/resume state vocabulary preserved"]
+    },
+    {
+      "id": "quantity-posting",
+      "screenIds": ["M009", "M017"],
+      "assertions": ["good quantity", "reject quantity", "scrap quantity", "offline queue compatible"]
+    },
+    {
+      "id": "downtime",
+      "screenIds": ["M014", "M015"],
+      "assertions": ["machine down state", "reason code", "escalation label"]
+    },
+    {
+      "id": "quality-checkpoint",
+      "screenIds": ["M016", "M018"],
+      "assertions": ["pass/fail checkpoint", "NCR capture", "photo evidence"]
+    },
+    {
+      "id": "dispatch-proof",
+      "screenIds": ["M019", "M023"],
+      "assertions": ["package scan count", "vehicle and seal notes", "loading proof queued"]
+    }
+  ]
+}

@@ -1,0 +1,280 @@
+# Codex Progress
+
+This folder stores prompt-by-prompt execution notes for the STS Manufacturing ERP repository.
+
+## Execution Rules
+
+1. Read each prompt's required artifacts before making changes.
+2. Execute prompts sequentially from `/02-prompts` using `/03-manifests/prompt_index.csv`.
+3. Do not skip prompts unless a prompt explicitly allows parallel or out-of-order work.
+4. After every prompt, update `/docs/codex-progress/`.
+5. Record blockers, shortcuts, unresolved dependencies, and assumptions explicitly in the current prompt output.
+6. Preserve the blueprint scope, deployment model, platform split, and reference UI visual language across later prompts.
+7. After `P063`, complete the remediation chain under `/04-remediation/` through `R013` before reopening `/02-prompts/P064_production-receipt-scrap-and-rework-apis.md`.
+
+## Locked Constraints
+
+- Backend: ASP.NET Core
+- Database: SQL Server
+- Web: React + TypeScript
+- Mobile: React Native + TypeScript
+- Deployment: IIS publish-folder only; no raw web source on live server
+- V1 exclusions: HR, payroll, full accounting
+- Mobile is for action/execution, web is for setup/planning/admin
+- Preserve reference UI visual language
+
+## Remediation Gate
+
+- The original prompt chain is frozen at `P063`.
+- `P064` remained blocked until `R001-R013` were complete.
+- `R013` completed on 2026-04-17 and reopened the runtime chain.
+- `P064` through `P067` completed on 2026-04-18.
+- `P068` through `P075` completed on 2026-04-18.
+- `P076` and `P077` completed on 2026-04-18.
+- `P078` completed on 2026-04-18.
+- `P079` completed on 2026-04-18.
+- `P080` completed on 2026-04-18.
+- `P081` completed on 2026-04-18.
+- `P082` completed on 2026-04-19.
+- `RUNTIME-ALIGNMENT-01` completed on 2026-04-20 and was reconciled after P083 completion to define the SQL-backed runnable foundation for completed scope through P083.
+- `RUNTIME-ALIGNMENT-02` completed on 2026-04-20 to implement the missing SQL-backed platform/admin runtime foundation for completed scope through P083.
+- `P083` completed on 2026-04-20.
+- `P084` through `P089` completed on 2026-04-20.
+- `P090` through `P095` completed on 2026-04-20.
+- `P096` through `P101` completed on 2026-04-20.
+- `P102` through `P107` completed on 2026-04-20.
+- `P108` through `P115` completed on 2026-04-20.
+- `P116` through `P123` completed on 2026-04-20.
+- `P124` through `P131` completed on 2026-04-20.
+- `P132` through `P141` completed on 2026-04-21.
+- `P142` through `P149` completed on 2026-04-21.
+- There is no next P-series prompt path in `/03-manifests/prompt_index.csv`; `P149` is the final listed prompt.
+- `LOCAL-DB-SETUP` completed on 2026-04-21 and applied the ordered minimum database foundation to `Manufacturing_ERP` on `120.138.10.194`.
+- `LOGIN-AUTH-CORRECTIVE` completed on 2026-04-21 to stop feature expansion and correct the login/auth entry experience before further work.
+- `LOCALHOST-COMPANY-BRANCH-FIX` completed on 2026-04-21 to repair the company and branch API smoke blocker.
+- `LOCALHOST-SMOKE-RERUN` completed on 2026-04-21 after the company/branch fix.
+- `LOCALHOST-UAT` completed on 2026-04-21 with role-wise results still partial due remaining non-company/branch runtime and seed gaps.
+- `WAVE01-CRITICAL-LOGIN-AUTH-SHELL-CONTENT-HARDENING` completed on 2026-04-21 to harden first-impression login, auth restore, shell/navigation, SuperAdmin seed visibility, and production-facing content before deeper screen rework.
+- `WAVE01A-VISUAL-SHELL-SIDEBAR-DASHBOARD-CORRECTION` completed on 2026-04-22 to correct the shell/sidebar, login, and home dashboard visual quality without starting Wave 2.
+- `RUN-PROJECTS-LOCAL` completed on 2026-04-22 to start the web and backend projects locally, apply the local dev database foundation, and verify health plus login through the Vite proxy.
+- `RUN-MOBILE-LOCAL` completed on 2026-04-22 to make the mobile workspace installable, add Metro startup wiring, and run the React Native packager locally.
+- `WAVE01B-SIDEBAR-MENU-REFERENCE-VISUAL-CORRECTION` completed on 2026-04-22 to align the web shell/sidebar and home dashboard closer to the 9001 reference without backend or Wave 2 changes.
+- `WAVE04A1-ITEM-MASTER-MODAL-DRAFT-EDIT-COMPLETION` completed on 2026-04-22 to replace the Item Master drawer with a centered modal editor, wire New Item Draft, and add core/profile save support.
+- `LOCAL-RUN-LOGIN-PROXY-FIX` completed on 2026-04-22 to restart the backend with the HTTPS URL expected by the Vite API proxy and verify login.
+- `WAVE-UX-GLOBAL-02-MASTER-DATA-ENFORCEMENT` completed on 2026-04-22 to apply governed ERP UI/UX and lookup behavior across the Master Data domain without backend/database changes.
+- `WAVE04B-CUSTOMER-SUPPLIER-DEEP-REWORK` completed on 2026-04-22 to deepen Customer and Supplier master workspaces, wire existing core create/update APIs, and preserve database/backend behavior.
+- `RUN-ALL-PROJECTS-2026-04-23` completed on 2026-04-23 to verify backend, web, and mobile Metro are running for local testing.
+- `WAVE04B1-PARTNER-PROFILE-PERSISTENCE-SITES-CONTACTS-DOCUMENTS-AUDIT` completed on 2026-04-23 to add additive customer/supplier profile persistence, site/contact editing, document metadata, and audit readback.
+- `RUN-ALL-PROJECTS-2026-04-23-WAVE04B1` completed on 2026-04-23 to re-verify backend, web, and mobile Metro after Wave 4B.1.
+- `WAVE04C-PRICING-DISCOUNT-TAX-CURRENCY-COMMERCIAL-MASTER` completed on 2026-04-23 to add additive commercial master persistence, governed price/discount/tax/currency/terms screens, controlled lookup behavior, and SQL deployment order.
+- `WAVE-UX-GLOBAL-03-MODAL-DRAFT-LOOKUP-RELIABILITY` completed on 2026-04-23 to enforce centered modal workspaces, honest disabled actions, controlled lookup fields, and business-safe copy across implemented deep-edit/action surfaces.
+- `WAVE-NAV-GLOBAL-01-SUPERADMIN-ROUTE-MENU-COMPLETENESS` completed on 2026-04-23 to reconcile implemented routes with Super Admin navigation, add the commercial setup group, and expose the missing platform settings route.
+- `WAVE05A-ENGINEERING-PLANNING-DEPTH` completed on 2026-04-23 to deepen Engineering and Planning workspaces with governed grids/modals, controlled lookups, real existing lifecycle endpoint wiring, and honest deferred planning actions.
+- `WAVE-ACTION-TRUTH-01` completed on 2026-04-23 to audit visible action labels, prevent handlerless governed actions from rendering enabled, convert passive tiles away from dead buttons, and disable dashboard exports with business-safe reasons.
+- `WAVE05B-ENGINEERING-AUTHORING-PLANNING-WORKFLOW-COMPLETION` completed on 2026-04-24 to finish BOM/routing/operation/MRP authoring flows, lock non-persistable engineering edits, update action-truth status for touched engineering and planning actions, and capture local screenshot evidence under `/docs/codex-review-screens/WAVE05B/`.
+- `WAVE05C-ENGINEERING-DOCUMENTS-ALTERNATES-PLANNING-CAPACITY-COMPLETION` completed on 2026-04-24 to finish engineering document linking, alternate-item authoring, Wave 5C planning/capacity action truth, and screenshot evidence under `/docs/codex-review-screens/WAVE05C/`.
+- `PROCESS-01-DELIVERY-WORKFLOW-HARDENING` completed on 2026-04-24 to add repo-local validation, screenshot, and review-pack automation with a passing Wave 5C proof run under `/docs/codex-review-screens/WAVE05C-PROOF/` and `/artifacts/review-packs/WAVE05C-PROOF-review-pack.zip`.
+- `RUN-CURRENT-WAVE-2026-04-24` completed on 2026-04-24 to execute the configured proof wave through `scripts/run-wave.ps1`, refresh the screenshot pack, and confirm local runtimes remain available.
+
+## Prompt Log
+
+- P000 completed on 2026-04-17. Output: `/docs/codex-progress/P000-output.md`
+- P001 completed on 2026-04-17. Output: `/docs/codex-progress/P001-output.md`
+- P002 completed on 2026-04-17. Output: `/docs/codex-progress/P002-output.md`
+- P003 completed on 2026-04-17. Output: `/docs/codex-progress/P003-output.md`
+- P004 completed on 2026-04-17. Output: `/docs/codex-progress/P004-output.md`
+- P005 completed on 2026-04-17. Output: `/docs/codex-progress/P005-output.md`
+- P006 completed on 2026-04-17. Output: `/docs/codex-progress/P006-output.md`
+- P007 completed on 2026-04-17. Output: `/docs/codex-progress/P007-output.md`
+- P008 completed on 2026-04-17. Output: `/docs/codex-progress/P008-output.md`
+- P009 completed on 2026-04-17. Output: `/docs/codex-progress/P009-output.md`
+- P010 completed on 2026-04-17. Output: `/docs/codex-progress/P010-output.md`
+- P011 completed on 2026-04-17. Output: `/docs/codex-progress/P011-output.md`
+- P012 completed on 2026-04-17. Output: `/docs/codex-progress/P012-output.md`
+- P013 completed on 2026-04-17. Output: `/docs/codex-progress/P013-output.md`
+- P014 completed on 2026-04-17. Output: `/docs/codex-progress/P014-output.md`
+- P015 completed on 2026-04-17. Output: `/docs/codex-progress/P015-output.md`
+- P016 completed on 2026-04-17. Output: `/docs/codex-progress/P016-output.md`
+- P017 completed on 2026-04-17. Output: `/docs/codex-progress/P017-output.md`
+- P018 completed on 2026-04-17. Output: `/docs/codex-progress/P018-output.md`
+- P019 completed on 2026-04-17. Output: `/docs/codex-progress/P019-output.md`
+- P020 completed on 2026-04-17. Output: `/docs/codex-progress/P020-output.md`
+- P021 completed on 2026-04-17. Output: `/docs/codex-progress/P021-output.md`
+- P022 completed on 2026-04-17. Output: `/docs/codex-progress/P022-output.md`
+- P023 completed on 2026-04-17. Output: `/docs/codex-progress/P023-output.md`
+- P024 completed on 2026-04-17. Output: `/docs/codex-progress/P024-output.md`
+- P025 completed on 2026-04-17. Output: `/docs/codex-progress/P025-output.md`
+- P026 completed on 2026-04-17. Output: `/docs/codex-progress/P026-output.md`
+- P027 completed on 2026-04-17. Output: `/docs/codex-progress/P027-output.md`
+- P028 completed on 2026-04-17. Output: `/docs/codex-progress/P028-output.md`
+- P029 completed on 2026-04-17. Output: `/docs/codex-progress/P029-output.md`
+- P030 completed on 2026-04-17. Output: `/docs/codex-progress/P030-output.md`
+- P031 completed on 2026-04-17. Output: `/docs/codex-progress/P031-output.md`
+- P032 completed on 2026-04-17. Output: `/docs/codex-progress/P032-output.md`
+- P033 completed on 2026-04-17. Output: `/docs/codex-progress/P033-output.md`
+- P034 completed on 2026-04-17. Output: `/docs/codex-progress/P034-output.md`
+- P035 completed on 2026-04-17. Output: `/docs/codex-progress/P035-output.md`
+- P036 completed on 2026-04-17. Output: `/docs/codex-progress/P036-output.md`
+- P037 completed on 2026-04-17. Output: `/docs/codex-progress/P037-output.md`
+- P038 completed on 2026-04-17. Output: `/docs/codex-progress/P038-output.md`
+- P039 completed on 2026-04-17. Output: `/docs/codex-progress/P039-output.md`
+- P040 completed on 2026-04-17. Output: `/docs/codex-progress/P040-output.md`
+- P041 completed on 2026-04-17. Output: `/docs/codex-progress/P041-output.md`
+- P042 completed on 2026-04-17. Output: `/docs/codex-progress/P042-output.md`
+- P043 completed on 2026-04-17. Output: `/docs/codex-progress/P043-output.md`
+- P044 completed on 2026-04-17. Output: `/docs/codex-progress/P044-output.md`
+- P045 completed on 2026-04-17. Output: `/docs/codex-progress/P045-output.md`
+- P046 completed on 2026-04-17. Output: `/docs/codex-progress/P046-output.md`
+- P047 completed on 2026-04-17. Output: `/docs/codex-progress/P047-output.md`
+- P048 completed on 2026-04-17. Output: `/docs/codex-progress/P048-output.md`
+- P049 completed on 2026-04-17. Output: `/docs/codex-progress/P049-output.md`
+- P050 completed on 2026-04-17. Output: `/docs/codex-progress/P050-output.md`
+- P051 completed on 2026-04-17. Output: `/docs/codex-progress/P051-output.md`
+- P052 completed on 2026-04-17. Output: `/docs/codex-progress/P052-output.md`
+- P053 completed on 2026-04-17. Output: `/docs/codex-progress/P053-output.md`
+- P054 completed on 2026-04-17. Output: `/docs/codex-progress/P054-output.md`
+- P055 completed on 2026-04-17. Output: `/docs/codex-progress/P055-output.md`
+- P056 completed on 2026-04-17. Output: `/docs/codex-progress/P056-output.md`
+- P057 completed on 2026-04-17. Output: `/docs/codex-progress/P057-output.md`
+- P058 completed on 2026-04-17. Output: `/docs/codex-progress/P058-output.md`
+- P059 completed on 2026-04-17. Output: `/docs/codex-progress/P059-output.md`
+- P060 completed on 2026-04-17. Output: `/docs/codex-progress/P060-output.md`
+- P061 completed on 2026-04-17. Output: `/docs/codex-progress/P061-output.md`
+- P062 completed on 2026-04-17. Output: `/docs/codex-progress/P062-output.md`
+- P063 completed on 2026-04-17. Output: `/docs/codex-progress/P063-output.md`
+- P064 completed on 2026-04-18. Output: `/docs/codex-progress/P064-output.md`
+- P065 completed on 2026-04-18. Output: `/docs/codex-progress/P065-output.md`
+- P066 completed on 2026-04-18. Output: `/docs/codex-progress/P066-output.md`
+- P067 completed on 2026-04-18. Output: `/docs/codex-progress/P067-output.md`
+- P068 completed on 2026-04-18. Output: `/docs/codex-progress/P068-output.md`
+- P069 completed on 2026-04-18. Output: `/docs/codex-progress/P069-output.md`
+- P070 completed on 2026-04-18. Output: `/docs/codex-progress/P070-output.md`
+- P071 completed on 2026-04-18. Output: `/docs/codex-progress/P071-output.md`
+- P072 completed on 2026-04-18. Output: `/docs/codex-progress/P072-output.md`
+- P073 completed on 2026-04-18. Output: `/docs/codex-progress/P073-output.md`
+- P074 completed on 2026-04-18. Output: `/docs/codex-progress/P074-output.md`
+- P075 completed on 2026-04-18. Output: `/docs/codex-progress/P075-output.md`
+- P076 completed on 2026-04-18. Output: `/docs/codex-progress/P076-output.md`
+- P077 completed on 2026-04-18. Output: `/docs/codex-progress/P077-output.md`
+- P078 completed on 2026-04-18. Output: `/docs/codex-progress/P078-output.md`
+- P079 completed on 2026-04-18. Output: `/docs/codex-progress/P079-output.md`
+- P080 completed on 2026-04-18. Output: `/docs/codex-progress/P080-output.md`
+- P081 completed on 2026-04-18. Output: `/docs/codex-progress/P081-output.md`
+- P082 completed on 2026-04-19. Output: `/docs/codex-progress/P082-output.md`
+- P083 completed on 2026-04-20. Output: `/docs/codex-progress/P083-output.md`
+- P084 completed on 2026-04-20. Output: `/docs/codex-progress/P084-output.md`
+- P085 completed on 2026-04-20. Output: `/docs/codex-progress/P085-output.md`
+- P086 completed on 2026-04-20. Output: `/docs/codex-progress/P086-output.md`
+- P087 completed on 2026-04-20. Output: `/docs/codex-progress/P087-output.md`
+- P088 completed on 2026-04-20. Output: `/docs/codex-progress/P088-output.md`
+- P089 completed on 2026-04-20. Output: `/docs/codex-progress/P089-output.md`
+- P090 completed on 2026-04-20. Output: `/docs/codex-progress/P090-output.md`
+- P091 completed on 2026-04-20. Output: `/docs/codex-progress/P091-output.md`
+- P092 completed on 2026-04-20. Output: `/docs/codex-progress/P092-output.md`
+- P093 completed on 2026-04-20. Output: `/docs/codex-progress/P093-output.md`
+- P094 completed on 2026-04-20. Output: `/docs/codex-progress/P094-output.md`
+- P095 completed on 2026-04-20. Output: `/docs/codex-progress/P095-output.md`
+- P096 completed on 2026-04-20. Output: `/docs/codex-progress/P096-output.md`
+- P097 completed on 2026-04-20. Output: `/docs/codex-progress/P097-output.md`
+- P098 completed on 2026-04-20. Output: `/docs/codex-progress/P098-output.md`
+- P099 completed on 2026-04-20. Output: `/docs/codex-progress/P099-output.md`
+- P100 completed on 2026-04-20. Output: `/docs/codex-progress/P100-output.md`
+- P101 completed on 2026-04-20. Output: `/docs/codex-progress/P101-output.md`
+- P102 completed on 2026-04-20. Output: `/docs/codex-progress/P102-output.md`
+- P103 completed on 2026-04-20. Output: `/docs/codex-progress/P103-output.md`
+- P104 completed on 2026-04-20. Output: `/docs/codex-progress/P104-output.md`
+- P105 completed on 2026-04-20. Output: `/docs/codex-progress/P105-output.md`
+- P106 completed on 2026-04-20. Output: `/docs/codex-progress/P106-output.md`
+- P107 completed on 2026-04-20. Output: `/docs/codex-progress/P107-output.md`
+- P108 completed on 2026-04-20. Output: `/docs/codex-progress/P108-output.md`
+- P109 completed on 2026-04-20. Output: `/docs/codex-progress/P109-output.md`
+- P110 completed on 2026-04-20. Output: `/docs/codex-progress/P110-output.md`
+- P111 completed on 2026-04-20. Output: `/docs/codex-progress/P111-output.md`
+- P112 completed on 2026-04-20. Output: `/docs/codex-progress/P112-output.md`
+- P113 completed on 2026-04-20. Output: `/docs/codex-progress/P113-output.md`
+- P114 completed on 2026-04-20. Output: `/docs/codex-progress/P114-output.md`
+- P115 completed on 2026-04-20. Output: `/docs/codex-progress/P115-output.md`
+- P116 completed on 2026-04-20. Output: `/docs/codex-progress/P116-output.md`
+- P117 completed on 2026-04-20. Output: `/docs/codex-progress/P117-output.md`
+- P118 completed on 2026-04-20. Output: `/docs/codex-progress/P118-output.md`
+- P119 completed on 2026-04-20. Output: `/docs/codex-progress/P119-output.md`
+- P120 completed on 2026-04-20. Output: `/docs/codex-progress/P120-output.md`
+- P121 completed on 2026-04-20. Output: `/docs/codex-progress/P121-output.md`
+- P122 completed on 2026-04-20. Output: `/docs/codex-progress/P122-output.md`
+- P123 completed on 2026-04-20. Output: `/docs/codex-progress/P123-output.md`
+- P124 completed on 2026-04-20. Output: `/docs/codex-progress/P124-output.md`
+- P125 completed on 2026-04-20. Output: `/docs/codex-progress/P125-output.md`
+- P126 completed on 2026-04-20. Output: `/docs/codex-progress/P126-output.md`
+- P127 completed on 2026-04-20. Output: `/docs/codex-progress/P127-output.md`
+- P128 completed on 2026-04-20. Output: `/docs/codex-progress/P128-output.md`
+- P129 completed on 2026-04-20. Output: `/docs/codex-progress/P129-output.md`
+- P130 completed on 2026-04-20. Output: `/docs/codex-progress/P130-output.md`
+- P131 completed on 2026-04-20. Output: `/docs/codex-progress/P131-output.md`
+- P132 completed on 2026-04-21. Output: `/docs/codex-progress/P132-output.md`
+- P133 completed on 2026-04-21. Output: `/docs/codex-progress/P133-output.md`
+- P134 completed on 2026-04-21. Output: `/docs/codex-progress/P134-output.md`
+- P135 completed on 2026-04-21. Output: `/docs/codex-progress/P135-output.md`
+- P136 completed on 2026-04-21. Output: `/docs/codex-progress/P136-output.md`
+- P137 completed on 2026-04-21. Output: `/docs/codex-progress/P137-output.md`
+- P138 completed on 2026-04-21. Output: `/docs/codex-progress/P138-output.md`
+- P139 completed on 2026-04-21. Output: `/docs/codex-progress/P139-output.md`
+- P140 completed on 2026-04-21. Output: `/docs/codex-progress/P140-output.md`
+- P141 completed on 2026-04-21. Output: `/docs/codex-progress/P141-output.md`
+- P142 completed on 2026-04-21. Output: `/docs/codex-progress/P142-output.md`
+- P143 completed on 2026-04-21. Output: `/docs/codex-progress/P143-output.md`
+- P144 completed on 2026-04-21. Output: `/docs/codex-progress/P144-output.md`
+- P145 completed on 2026-04-21. Output: `/docs/codex-progress/P145-output.md`
+- P146 completed on 2026-04-21. Output: `/docs/codex-progress/P146-output.md`
+- P147 completed on 2026-04-21. Output: `/docs/codex-progress/P147-output.md`
+- P148 completed on 2026-04-21. Output: `/docs/codex-progress/P148-output.md`
+- P149 completed on 2026-04-21. Output: `/docs/codex-progress/P149-output.md`
+
+## Runtime Alignment Log
+
+- RUNTIME-ALIGNMENT-01 completed on 2026-04-20. Output: `/docs/codex-progress/RUNTIME-ALIGNMENT-01-output.md`
+- RUNTIME-ALIGNMENT-02 completed on 2026-04-20. Output: `/docs/codex-progress/RUNTIME-ALIGNMENT-02-output.md`
+- LOCAL-DB-SETUP completed on 2026-04-21. Output: `/docs/codex-progress/LOCAL-DB-SETUP-output.md`
+- LOGIN-AUTH-CORRECTIVE completed on 2026-04-21. Output: `/docs/codex-progress/LOGIN-AUTH-CORRECTIVE-output.md`
+- LOCALHOST-COMPANY-BRANCH-FIX completed on 2026-04-21. Output: `/docs/codex-progress/LOCALHOST-COMPANY-BRANCH-FIX-output.md`
+- LOCALHOST-SMOKE-RERUN completed on 2026-04-21. Output: `/docs/codex-progress/LOCALHOST-SMOKE-RERUN-output.md`
+- LOCALHOST-UAT completed on 2026-04-21. Output: `/docs/codex-progress/LOCALHOST-UAT-output.md`
+- WAVE01-CRITICAL-LOGIN-AUTH-SHELL-CONTENT-HARDENING completed on 2026-04-21. Output: `/docs/codex-progress/WAVE01-critical-login-auth-shell-content-hardening-output.md`
+- WAVE01A-VISUAL-SHELL-SIDEBAR-DASHBOARD-CORRECTION completed on 2026-04-22. Output: `/docs/codex-progress/WAVE01A-visual-shell-sidebar-dashboard-correction-output.md`
+- RUN-PROJECTS-LOCAL completed on 2026-04-22. Output: `/docs/codex-progress/RUN-PROJECTS-LOCAL-output.md`
+- RUN-MOBILE-LOCAL completed on 2026-04-22. Output: `/docs/codex-progress/RUN-MOBILE-LOCAL-output.md`
+- WAVE01B-SIDEBAR-MENU-REFERENCE-VISUAL-CORRECTION completed on 2026-04-22. Output: `/docs/codex-progress/WAVE01B-sidebar-menu-reference-visual-correction-output.md`
+- WAVE04A-ITEM-MASTER-DEEP-REWORK completed on 2026-04-22 with Item Master UI depth and read-backed V2 extension foundation. Output: `/docs/codex-progress/WAVE04A-item-master-deep-rework-output.md`
+- WAVE04A1-ITEM-MASTER-MODAL-DRAFT-EDIT-COMPLETION completed on 2026-04-22. Output: `/docs/codex-progress/WAVE04A1-item-master-modal-draft-edit-completion-output.md`
+- LOCAL-RUN-LOGIN-PROXY-FIX completed on 2026-04-22. Output: `/docs/codex-progress/LOCAL-RUN-LOGIN-PROXY-FIX-output.md`
+- WAVE-UX-GLOBAL-01 completed on 2026-04-22. Output: `/docs/codex-progress/WAVE-UX-GLOBAL-01-output.md`
+- WAVE-UX-GLOBAL-02-MASTER-DATA-ENFORCEMENT completed on 2026-04-22. Output: `/docs/codex-progress/WAVE-UX-GLOBAL-02-master-data-enforcement-output.md`
+- WAVE04B-CUSTOMER-SUPPLIER-DEEP-REWORK completed on 2026-04-22. Output: `/docs/codex-progress/WAVE04B-customer-supplier-deep-rework-output.md`
+- RUN-ALL-PROJECTS-2026-04-23 completed on 2026-04-23. Output: `/docs/codex-progress/RUN-ALL-PROJECTS-2026-04-23-output.md`
+- WAVE04B1-PARTNER-PROFILE-PERSISTENCE-SITES-CONTACTS-DOCUMENTS-AUDIT completed on 2026-04-23. Output: `/docs/codex-progress/WAVE04B1-partner-profile-persistence-sites-contacts-documents-audit-output.md`
+- RUN-ALL-PROJECTS-2026-04-23-WAVE04B1 completed on 2026-04-23. Output: `/docs/codex-progress/RUN-ALL-PROJECTS-2026-04-23-WAVE04B1-output.md`
+- WAVE04C-PRICING-DISCOUNT-TAX-CURRENCY-COMMERCIAL-MASTER completed on 2026-04-23. Output: `/docs/codex-progress/WAVE04C-pricing-discount-tax-currency-commercial-master-output.md`
+- WAVE-UX-GLOBAL-03-MODAL-DRAFT-LOOKUP-RELIABILITY completed on 2026-04-23. Output: `/docs/codex-progress/WAVE-UX-GLOBAL-03-modal-draft-lookup-reliability-output.md`
+- WAVE-NAV-GLOBAL-01-SUPERADMIN-ROUTE-MENU-COMPLETENESS completed on 2026-04-23. Output: `/docs/codex-progress/WAVE-NAV-GLOBAL-01-superadmin-route-menu-completeness-output.md`
+- WAVE05A-ENGINEERING-PLANNING-DEPTH completed on 2026-04-23. Output: `/docs/codex-progress/WAVE05A-engineering-planning-depth-output.md`
+- WAVE-ACTION-TRUTH-01 completed on 2026-04-23. Output: `/docs/codex-progress/WAVE-ACTION-TRUTH-01-output.md`
+- WAVE05B-ENGINEERING-AUTHORING-PLANNING-WORKFLOW-COMPLETION completed on 2026-04-24. Output: `/docs/codex-progress/WAVE05B-engineering-authoring-planning-workflow-completion-output.md`
+- WAVE05C-ENGINEERING-DOCUMENTS-ALTERNATES-PLANNING-CAPACITY-COMPLETION completed on 2026-04-24. Output: `/docs/codex-progress/WAVE05C-engineering-documents-alternates-planning-capacity-completion-output.md`
+- PROCESS-01-DELIVERY-WORKFLOW-HARDENING completed on 2026-04-24. Output: `/docs/codex-progress/PROCESS-01-delivery-workflow-hardening-output.md`
+- RUN-CURRENT-WAVE-2026-04-24 completed on 2026-04-24. Output: `/docs/codex-progress/RUN-CURRENT-WAVE-2026-04-24-output.md`
+
+## Remediation Log
+
+- R000 completed on 2026-04-17. Output: `/docs/codex-progress/R000-output.md`
+- R001 completed on 2026-04-17. Output: `/docs/codex-progress/R001-output.md`
+- R002 completed on 2026-04-17. Output: `/docs/codex-progress/R002-output.md`
+- R003 completed on 2026-04-17. Output: `/docs/codex-progress/R003-output.md`
+- R004 completed on 2026-04-17. Output: `/docs/codex-progress/R004-output.md`
+- R005 completed on 2026-04-17. Output: `/docs/codex-progress/R005-output.md`
+- R006 completed on 2026-04-17. Output: `/docs/codex-progress/R006-output.md`
+- R007 completed on 2026-04-17. Output: `/docs/codex-progress/R007-output.md`
+- R008 completed on 2026-04-17. Output: `/docs/codex-progress/R008-output.md`
+- R009 completed on 2026-04-17. Output: `/docs/codex-progress/R009-output.md`
+- R010 completed on 2026-04-17. Output: `/docs/codex-progress/R010-output.md`
+- R011 completed on 2026-04-17. Output: `/docs/codex-progress/R011-output.md`
+- R012 completed on 2026-04-17. Output: `/docs/codex-progress/R012-output.md`
+- R013 completed on 2026-04-17. Output: `/docs/codex-progress/R013-output.md`

@@ -1,0 +1,32 @@
+# P015 — Language, translation, settings, numbering, and workflow schema
+
+## Phase
+Phase 1 - Database
+
+## Objective
+Persist localization and configurable workflow rules.
+
+## Read first
+- `/00-blueprint/STS_Manufacturing_ERP_Blueprint.md`
+- `/00-blueprint/screen_inventory.csv`
+- `/00-blueprint/api_inventory.csv`
+- `/00-blueprint/db_entities.csv`
+- `/00-blueprint/stored_procedure_inventory.csv`
+- `/reference-ui/README.md`
+- `/docs/database/conventions.md`
+- `/docs/security/role-matrix.md`
+
+## Work to do
+- Design Languages, Translations, DocumentSeries, WorkflowDefinitions, WorkflowSteps, WorkflowTransitions, and feature settings structures.
+- Support company/branch overrides for series and workflow.
+## Deliverables for this prompt
+- `/docs/database/P015-settings-workflow.md`
+
+## Definition of done
+- Keys, constraints, and relationships are documented.
+- The design supports multi-company, branch, warehouse, bin, and role scoping.
+
+## Handoff notes
+- Update the running progress notes in `/docs/codex-progress/`.
+- Record open issues, shortcuts taken, and unresolved dependencies explicitly.
+- Next prompt: `/02-prompts/P016_uom-classes-units-and-conversion-schema.md`

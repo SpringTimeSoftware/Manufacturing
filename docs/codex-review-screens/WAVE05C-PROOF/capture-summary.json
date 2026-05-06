@@ -1,0 +1,32 @@
+{
+  "wave_id": "WAVE05C-PROOF",
+  "screenshot_mode": "top_mid_bottom",
+  "captures": [
+    {
+      "route": "/engineering/boms",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WAVE05C-PROOF\\bom-library-top.png"
+      ]
+    },
+    {
+      "route": "/planning/mrp",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WAVE05C-PROOF\\mrp-run-console-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/boms",
+      "modal": "New BOM draft",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WAVE05C-PROOF\\bom-library-draft-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/planning/mrp",
+      "modal": "Run MRP draft",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WAVE05C-PROOF\\mrp-run-workspace-overview.png"
+      ]
+    }
+  ]
+}

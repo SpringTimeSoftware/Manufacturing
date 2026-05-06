@@ -1,0 +1,52 @@
+{
+  "wave_id": "WAVE05C-PROOF",
+  "wave_name": "Wave 5C automation proof",
+  "routes_to_capture": [
+    {
+      "route": "/engineering/boms",
+      "ready_text": "BOM Library",
+      "output_prefix": "bom-library"
+    },
+    {
+      "route": "/planning/mrp",
+      "ready_text": "MRP Run Console",
+      "output_prefix": "mrp-run-console"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/engineering/boms",
+      "ready_text": "BOM Library",
+      "open_action_label": "New BOM draft",
+      "modal_ready_text": "Create a BOM header and initial draft revision before authoring component lines.",
+      "output_prefix": "bom-library-draft-modal"
+    },
+    {
+      "route": "/planning/mrp",
+      "ready_text": "MRP Run Console",
+      "open_action_label": "Run MRP draft",
+      "modal_ready_text": "Start an MRP run with governed parameters and a controlled planning horizon.",
+      "output_prefix": "mrp-run-workspace"
+    }
+  ],
+  "expected_outputs": {
+    "wave_output_markdown": "/docs/codex-progress/WAVE05C-engineering-documents-alternates-planning-capacity-completion-output.md",
+    "governance_matrices": [
+      "/07-ux-governance/action_truth_matrix.csv"
+    ],
+    "db_artifacts": [],
+    "seed_artifacts": [],
+    "optional_logs": []
+  },
+  "requires_backend_validation": true,
+  "requires_db_validation": false,
+  "requires_mobile_validation": false,
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173",
+    "backend_http_url": "http://127.0.0.1:5102",
+    "backend_https_url": "https://127.0.0.1:7042",
+    "mobile_url": "http://127.0.0.1:8081"
+  },
+  "screenshot_mode": "top_mid_bottom",
+  "stop_after_completion": true
+}

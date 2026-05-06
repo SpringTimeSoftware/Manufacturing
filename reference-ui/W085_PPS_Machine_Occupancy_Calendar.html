@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PPS — Machine Occupancy Calendar</title>
+  <style>
+    :root{
+      --bg1:#eaf6ff; --bg2:#f6fbff; --card:#fff; --text:#0f172a; --muted:#475569; --line:#e2e8f0;
+      --accent:#0ea5e9; --accent2:#38bdf8;
+      --good:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+      --shadow: 0 10px 30px rgba(2, 8, 23, .08);
+      --r:18px; --r2:14px; --font: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--font); color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(14,165,233,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 10%, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg1),var(--bg2));
+    }
+    .wrap{max-width:1320px;margin:0 auto;padding:22px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    h1{margin:0;font-size:22px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35}
+    .btn{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer}
+    .btn.primary{border-color:rgba(14,165,233,.25);background:linear-gradient(135deg, rgba(14,165,233,.10), rgba(56,189,248,.08))}
+    .btn:hover{box-shadow:0 8px 20px rgba(2,8,23,.06)}
+    .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
+    .filters{padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .in{display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .in input,.in select{background:transparent;border:none;outline:none;color:var(--text);min-width:170px}
+    .legend{display:flex;gap:10px;flex-wrap:wrap}
+    .tag{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted);background:#fff}
+    .sw{width:12px;height:12px;border-radius:4px}
+    .sw.run{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+    .sw.idle{background:#e2e8f0}
+    .sw.down{background:rgba(239,68,68,.25)}
+    .grid{padding:14px}
+    .cal{border:1px solid var(--line);border-radius:var(--r2);overflow:hidden}
+    .calHdr{display:grid;grid-template-columns: 260px repeat(14, 1fr); background:rgba(255,255,255,.9); position:sticky; top:0}
+    .calHdr div{padding:10px 8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:700}
+    .calRow{display:grid;grid-template-columns: 260px repeat(14, 1fr)}
+    .machineCell{
+      padding:10px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);background:#fff
+    }
+    .machineCell b{display:block;font-size:13px}
+    .machineCell span{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+    .day{border-bottom:1px solid var(--line);border-right:1px solid var(--line);background:#fff; padding:6px}
+    .block{
+      height:44px;border-radius:12px;padding:8px;border:1px solid rgba(14,165,233,.22);
+      background:linear-gradient(135deg, rgba(14,165,233,.16), rgba(56,189,248,.10));
+      display:flex;flex-direction:column;justify-content:center
+    }
+    .block b{font-size:12px}
+    .block span{font-size:11px;color:var(--muted);margin-top:2px}
+    .block.down{
+      border-color:rgba(239,68,68,.22);
+      background:linear-gradient(135deg, rgba(239,68,68,.14), rgba(239,68,68,.06));
+    }
+    .empty{height:44px;border-radius:12px;border:1px dashed #e5e7eb;background:#fafcff}
+    .hint{color:var(--muted);font-size:12px;line-height:1.45;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>PPS — Machine Occupancy Calendar</h1>
+        <div class="sub">Basic planning: which machine is occupied and for how many days (calendar-like view).</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn">Today</button>
+        <button class="btn">Next 14 days</button>
+        <button class="btn primary">Assign Job Card</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <div class="in">📅 <input type="date" style="min-width:160px"/></div>
+        <div class="in">
+          <select>
+            <option>Range: 14 days</option>
+            <option>7 days</option>
+            <option>14 days</option>
+            <option>30 days</option>
+          </select>
+        </div>
+        <div class="in">
+          <select>
+            <option>Machine Type: All</option>
+            <option>Laser</option>
+            <option>Weld</option>
+            <option>Test Bench</option>
+          </select>
+        </div>
+        <div class="in">🔎 <input placeholder="Search machine / WO / JC..." /></div>
+        <div class="legend">
+          <span class="tag"><span class="sw run"></span>Occupied</span>
+          <span class="tag"><span class="sw idle"></span>Free</span>
+          <span class="tag"><span class="sw down"></span>Down</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="cal">
+          <div class="calHdr">
+            <div>Machine</div>
+            <div>Mar 05</div><div>Mar 06</div><div>Mar 07</div><div>Mar 08</div><div>Mar 09</div><div>Mar 10</div><div>Mar 11</div>
+            <div>Mar 12</div><div>Mar 13</div><div>Mar 14</div><div>Mar 15</div><div>Mar 16</div><div>Mar 17</div><div>Mar 18</div>
+          </div>
+
+          <!-- Row 1 -->
+          <div class="calRow">
+            <div class="machineCell">
+              <b>MC-01 Laser Cutter</b>
+              <span>Type: Laser • Shift: 1</span>
+            </div>
+            <div class="day"><div class="block"><b>JC-90441</b><span>WO-02642 • Cutting</span></div></div>
+            <div class="day"><div class="block"><b>JC-90441</b><span>WO-02642 • Cutting</span></div></div>
+            <div class="day"><div class="block"><b>JC-90458</b><span>WO-02642 • Drilling</span></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="block"><b>JC-90460</b><span>WO-02645 • Finish</span></div></div>
+            <div class="day"><div class="block"><b>JC-90460</b><span>WO-02645 • Finish</span></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+          </div>
+
+          <!-- Row 2 -->
+          <div class="calRow">
+            <div class="machineCell">
+              <b>MC-02 Welding Station</b>
+              <span>Type: Weld • Shift: 1</span>
+            </div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="block"><b>JC-90442</b><span>WO-02642 • Welding</span></div></div>
+            <div class="day"><div class="block"><b>JC-90442</b><span>WO-02642 • Welding</span></div></div>
+            <div class="day"><div class="block"><b>JC-90442</b><span>WO-02642 • Welding</span></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="block"><b>JC-90411</b><span>WO-02610 • Repair</span></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+          </div>
+
+          <!-- Row 3 -->
+          <div class="calRow">
+            <div class="machineCell">
+              <b>MC-03 Test Bench</b>
+              <span>Type: Test • Ozone output</span>
+            </div>
+            <div class="day"><div class="block down"><b>DOWN</b><span>Calibration</span></div></div>
+            <div class="day"><div class="block down"><b>DOWN</b><span>Calibration</span></div></div>
+            <div class="day"><div class="block down"><b>DOWN</b><span>Calibration</span></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="block"><b>JC-90391</b><span>WO-02641 • Testing</span></div></div>
+            <div class="day"><div class="block"><b>JC-90391</b><span>WO-02641 • Testing</span></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+            <div class="day"><div class="empty"></div></div>
+          </div>
+
+        </div>
+
+        <div class="hint">
+          Implementation note: this grid is generated from <b>sp_Machine_Board(@DateFrom,@DateTo,...)</b>.
+          Each Job Card has PlannedStart/PlannedEnd and MachineId; server expands into day buckets for the UI.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

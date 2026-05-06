@@ -1,0 +1,10 @@
+Role,DashboardHighlights
+ManagementViewer,"Open orders, overdue orders, critical shortages, machine downtime today, dispatch ready today, supplier delays, top risk customers"
+PlantHead,"Orders at risk, WOs released/not released, machine occupancy, delayed job cards, pending QC, pending material issues"
+PlanningManager,"Forecast coverage, MRP exceptions, BOQ shortages, unapproved BOMs, overloaded work centers, due-date risk list"
+PurchaseManager,"PR aging, PO follow-up, late supplier commits, outside processing due list, supplier fill-rate"
+StoreKeeper,"Pending issues to WO, pending returns, low stock bins, cycle counts due, quarantined lots"
+ProductionSupervisor,"Today’s plan vs actual, active job cards, paused jobs, downtime reasons, rework queue, shift handovers"
+MachineOperator,"My assigned job cards, active machine, next operation, QC checkpoint required, alerts"
+QCInspector,"Inspections due, holds pending decision, rejected qty trend, NCR open count"
+DispatchManager,"Packing pending, dispatch-ready orders, vehicle/loading tasks, proof capture pending"

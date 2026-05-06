@@ -1,0 +1,17 @@
+{
+  "prompt_count": 150,
+  "web_screen_count": 95,
+  "mobile_screen_count": 24,
+  "reference_ui_files": [
+    "W057_Order_Delivery_Dashboard.html",
+    "W108_Stage_Wise_Dashboard.html",
+    "W085_PPS_Machine_Occupancy_Calendar.html",
+    "W060_BOM_Management.html",
+    "W066_BOQ_Requirements.html",
+    "W080_Work_Orders.html",
+    "W082_Job_Cards.html",
+    "W084_Machine_Schedule_Board.html"
+  ],
+  "blueprint": "00-blueprint/STS_Manufacturing_ERP_Blueprint.md",
+  "prompts_index": "03-manifests/prompt_index.csv"
+}

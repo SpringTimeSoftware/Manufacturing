@@ -1,0 +1,94 @@
+You are working in the STS Manufacturing ERP repository.
+
+STOP the original prompt chain at P063. Do not execute P064 or later yet.
+Run this in plan-first mode. Do not write production code in this pass.
+
+Read first, in this exact order:
+1. /AGENTS.md
+2. /docs/codex-progress/README.md
+3. all /docs/codex-progress/P*-output.md from P000 through P063
+4. /03-manifests/prompt_index.csv
+5. /00-blueprint/db_entities.csv
+6. /00-blueprint/api_inventory.csv
+7. /00-blueprint/stored_procedure_inventory.csv
+8. /00-blueprint/screen_inventory.csv
+9. /04-remediation/STS_Manufacturing_Gap_Scan_Report.md
+10. /04-remediation/STS_Manufacturing_Gap_Scan_Report.csv
+11. /04-remediation/ERP_V2_NonNegotiables.md
+
+Then inspect the current repo implementation for:
+- domain/entity classes
+- DbContext / EF mappings
+- SQL scripts / migrations
+- controllers
+- services
+- DTOs
+especially for Item, Customer, Supplier, Contact, UOM, Warehouse, Company, Branch, Bin, Sales, Purchasing, Inventory, BOM, WorkOrder, JobCard.
+
+Your task is NOT to continue implementation.
+Your task is to perform an ERP V2 rebaseline and delta-impact analysis.
+
+Required deliverables under /04-remediation/:
+- Architecture_V2_Delta_Matrix.md
+- Superseded_Prompt_Map.md
+- R_Prompt_Index.csv
+
+Required deliverables under /docs/codex-progress/:
+- R000-output.md
+
+In Architecture_V2_Delta_Matrix.md:
+- classify each gap as ADDITIVE / REFACTOR / DEFERRED
+- map each gap to impacted DB entities, APIs, screens, jobs, reports, and permissions
+- mark each existing area as KEEP / PATCH / REPLACE
+- clearly separate “must fix before P064” from “can defer after web/mobile foundations”
+
+In Superseded_Prompt_Map.md:
+- identify which existing prompts P000-P063 remain valid, which need amendment, and which are superseded
+- preserve existing manufacturing execution prompts where possible
+
+In R_Prompt_Index.csv:
+- define an ordered remediation sequence R001 onward
+- place architecture and schema remediation before any more backend implementation
+- include prompt title and exact next prompt path for each R prompt
+
+Must explicitly cover these missing areas:
+1. item media/images/documents
+2. product catalog domain
+3. item texts / multilingual descriptions
+4. UOM-aware packaging hierarchy
+5. dimensions / weight / volume / pack details
+6. barcodes beyond current basic registry
+7. item variants / templates / alternates / aliases
+8. customer item references and vendor item references
+9. customer legal entity vs bill-to / ship-to / site split
+10. contact model with role-based contacts
+11. contact points: email / phone / WhatsApp
+12. communication preference / consent
+13. customer credit profile
+14. customer payment / trade terms / dispatch preferences
+15. price lists
+16. discount rules / slabs / schemes
+17. currency / tax / UOM-aware pricing
+18. supplier depth and compliance placeholders
+19. replenishment policy
+20. landed cost foundation
+21. sales return / purchase return / backorder / drop-ship foundation
+22. UDF / metadata extensibility model
+23. document / print-template management foundation
+24. costing and job-cost rollup impacts
+25. verification of multi-company / branch / warehouse / bin / language / localization setup
+
+Rules:
+- do not execute P064 or any later prompt
+- do not modify runtime code except AGENTS.md if needed to reference the remediation docs
+- do not delete existing work
+- preserve BOM / BOQ / WO / Job Card / Machine Board / Stage / Order dashboards
+- preserve IIS publish-folder deployment model
+- preserve React web + React Native mobile + ASP.NET Core + SQL Server stack
+- end with exact next prompt path for the first remediation prompt
+
+Return a concise summary with:
+- files created
+- top 15 blockers
+- top 15 salvageable assets
+- exact first remediation prompt path

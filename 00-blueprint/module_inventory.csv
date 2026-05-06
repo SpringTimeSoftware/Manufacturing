@@ -1,0 +1,13 @@
+Module,Scope,PrimaryPlatform
+Platform & Security,"Deployment settings, company/branch model, users, roles, workflows, numbering, audit, attachments, localization, feature flags",Web only except login/approvals/notifications on mobile
+Measurement & Master Data,"UOM classes, conversion matrix, measurement profiles, item master, attributes/variants, customers, suppliers, work centers, machines, shifts, reasons",Web setup + mobile read-only lookup
+Sales & Demand,"Estimates/quotes, sales orders, blanket orders, forecasts, ATP / order promise, delivery risk",Web primary + mobile management snapshot
+Engineering,"BOM library, revisions, ECO, routings, operation standards, alternate items, attached drawings/specs",Web primary
+Planning,"MPS, MRP, BOQ/requirements, shortage actions, capacity planning, purchase/work order recommendations",Web primary
+Procurement,"PR, RFQ, PO, supplier lead time, subcontract/outside processing handoff",Web primary + mobile approvals
+Inventory & Stores,"Warehouse/bin, stock ledger, lots/serials, catch weight, reservations, transfers, cycle counts, WIP movement",Web + mobile action screens
+Production Execution,"Work orders, job cards, machine board, occupancy calendar, material issue, production receipt, scrap/rework, downtime, shift log",Web + strong mobile execution
+Quality,"Inspection plans, incoming/in-process/final inspection, holds, NCR, attachment evidence",Web + mobile execution
+Dispatch,"Pack lists, dispatch planning, shipment, loading proof, delivery notes",Web + mobile execution
+Dashboards & Alerts,"Role dashboards, KPI strips, risk tiles, stage-wise board, order delivery board, notifications",Web + selective mobile
+Integrations & AI,"Email/WhatsApp/SMS, import/export, webhooks, AI providers, AI summaries, AI operational assistant, translation",Web config + mobile notification consumption
