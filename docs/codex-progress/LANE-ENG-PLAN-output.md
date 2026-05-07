@@ -56,3 +56,22 @@
 - `dotnet build src/server/STS.Mfg.sln`: PASS, 0 warnings / 0 errors
 - `dotnet test src/server/STS.Mfg.sln --no-build`: PASS, 12 tests
 - `dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release`: PASS
+
+## Merge-Ready Cleanup Pass - 2026-05-07
+- Kept work on `lane/eng-plan` and PR #1 only.
+- Added a visible disabled reason and explicit accessible label to the locked `Horizon` field in the MPS modal workspace.
+- Extended `Wave05AEngineeringPlanningDepth.test.tsx` to assert the locked MPS horizon field and visible reason.
+- Updated `07-ux-governance/action_truth_matrix.csv` for the touched `Save MPS draft` workspace action notes.
+- Refreshed screenshot evidence:
+  - `docs/codex-review-screens/LANE-ENG-PLAN/mps-planner.png`
+  - `docs/codex-review-screens/LANE-ENG-PLAN/mps-workspace.png`
+
+## Merge-Ready Validation - 2026-05-07
+- `npm.cmd run typecheck`: PASS
+- `npm.cmd test -- Wave05AEngineeringPlanningDepth.test.tsx`: PASS, 5 tests
+- `npm.cmd test`: PASS, 34 test files / 136 tests
+- `npm.cmd run build`: PASS
+- `npm.cmd run build:host`: PASS
+- `dotnet build src/server/STS.Mfg.sln`: PASS, 0 warnings / 0 errors
+- `dotnet test src/server/STS.Mfg.sln --no-build`: PASS, 12 tests
+- `dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release`: PASS
