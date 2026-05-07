@@ -39,3 +39,20 @@
 - `docs/codex-review-screens/LANE-ENG-PLAN/capacity-planning-workspace.png`
 - `docs/codex-review-screens/LANE-ENG-PLAN/mps-planner.png`
 - `docs/codex-review-screens/LANE-ENG-PLAN/mps-workspace.png`
+
+## Final Single-Lane Review Pass - 2026-05-07
+- Re-read the lane rules, progress rules, ERP interaction standards, action-truth matrix, latest engineering/planning wave outputs, and current engineering/planning UI/adapters/backend surfaces.
+- Stayed on `lane/eng-plan` only and did not start a new domain wave.
+- Rechecked touched Engineering/Planning action surfaces; page-level direct button scan found only the governed inline helper in `EngineeringContinuationPages.tsx`.
+- Corrected action-truth ownership for `Create shortage actions` and `Export exceptions` from the MRP run console to `MrpResultsExceptionsPage` at `/planning/mrp-results`.
+- Confirmed the MRP Results / Exceptions page renders both touched actions disabled with visible business reasons.
+- Added screenshot evidence: `docs/codex-review-screens/LANE-ENG-PLAN/mrp-results-exceptions.png`.
+
+## Final Review Validation - 2026-05-07
+- `npm.cmd run typecheck`: PASS
+- `npm.cmd test`: PASS, 34 test files / 136 tests
+- `npm.cmd run build`: PASS
+- `npm.cmd run build:host`: PASS
+- `dotnet build src/server/STS.Mfg.sln`: PASS, 0 warnings / 0 errors
+- `dotnet test src/server/STS.Mfg.sln --no-build`: PASS, 12 tests
+- `dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release`: PASS
