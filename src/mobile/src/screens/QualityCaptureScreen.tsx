@@ -45,7 +45,7 @@ export function QualityCaptureScreen() {
         ))}
       </MobileCard>
 
-      <MobileCard title="Rework / NCR Capture" subtitle="Create deviation, hold, and rework instruction without destructive resets.">
+      <MobileCard title="Rework / NCR Capture" subtitle="Create deviation, hold, and rework instruction with linked production context.">
         {seededNcrTasks.map((task) => (
           <MobileListItem key={task.id}>
             <View style={styles.row}>

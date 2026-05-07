@@ -149,7 +149,7 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
             <Card title="Parameter results" description={selected.notes}>
               <DataGrid ariaLabel="Inspection result lines" columns={resultColumns} getRowId={(record) => record.id} records={selected.results} rowLabel={(record) => `${record.parameterCode} result`} />
             </Card>
-            <FormShell initialFingerprint={selected.id} title="Inspection controls"><label><span>Source</span><input defaultValue={selected.sourceDocument} /></label><ErpLookupField disabled disabledReason="Trace selection is controlled by inventory and production traceability." label="Trace" onChange={() => undefined} options={[{ label: selected.traceLabel, value: selected.traceLabel }]} value={selected.traceLabel} /></FormShell>
+            <FormShell initialFingerprint={selected.id} title="Inspection controls"><ErpLookupField disabled disabledReason="Source document is controlled by receipt, job-card, or dispatch context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Trace selection is controlled by inventory and production traceability." label="Trace" onChange={() => undefined} options={[{ label: selected.traceLabel, value: selected.traceLabel }]} value={selected.traceLabel} /></FormShell>
           </>
         ) : null}
       </ErpModalWorkspace>
@@ -197,7 +197,7 @@ export function NcrDeviationPage() {
     <>
       <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New NCR", reason: "NCR creation requires quality workflow enablement." }]} secondary={[{ disabled: true, label: "Export NCR", reason: "NCR export is pending the approved reporting workflow." }]} testId="ncr-action-bar" /></>} description="Non-conformance, hold, decision, and rework linkage for quality and plant review." filters={<FilterBar><input aria-label="Search NCR deviations" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search NCR, source, trace, disposition" value={search} /><select aria-label="NCR status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Open">Open</option><option value="Closed">Closed</option><option value="Rework">Rework</option></select></FilterBar>} title="NCR / Deviation">
       <KpiStrip items={[{ label: "NCRs", value: String(records.length) }, { label: "Open", value: String(records.filter((record) => record.status.toLowerCase().includes("open")).length) }, { label: "Rework linked", value: String(records.filter((record) => !record.reworkLink.includes("No")).length) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
-        <Card title="NCR register" description="Rework links are references; no destructive quality reset occurs from this page.">
+        <Card title="NCR register" description="Disposition and rework links remain visible for quality review.">
           <DataGrid ariaLabel="NCR deviation list" columns={ncrColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.ncrNo} ncr`} />
         </Card>
       </ListPageShell>
@@ -208,7 +208,7 @@ export function NcrDeviationPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.ncrNo ?? "NCR"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="NCR controls" description={selected.remarks}><label><span>Root cause</span><input defaultValue={selected.rootCause} /></label><ErpLookupField disabled disabledReason="Disposition is controlled by quality disposition rules." label="Disposition" onChange={() => undefined} options={[{ label: selected.disposition, value: selected.disposition }]} value={selected.disposition} /><label><span>Rework link</span><input defaultValue={selected.reworkLink} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="NCR controls" description={selected.remarks}><label><span>Root cause</span><input defaultValue={selected.rootCause} /></label><ErpLookupField disabled disabledReason="Disposition is controlled by quality disposition rules." label="Disposition" onChange={() => undefined} options={[{ label: selected.disposition, value: selected.disposition }]} value={selected.disposition} /><ErpLookupField disabled disabledReason="Rework link is controlled by the rework order workflow." label="Rework link" onChange={() => undefined} options={[{ label: selected.reworkLink, value: selected.reworkLink }]} value={selected.reworkLink} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

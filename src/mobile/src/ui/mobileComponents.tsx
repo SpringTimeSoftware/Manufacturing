@@ -14,6 +14,8 @@ interface MobileBadgeProps {
 }
 
 interface MobileButtonProps {
+  disabled?: boolean;
+  disabledReason?: string;
   label: string;
   onPress?: () => void;
   tone?: MobileTone;
@@ -60,11 +62,23 @@ export function MobileBadge({ label, tone = "neutral" }: MobileBadgeProps) {
   return <Text style={[styles.badge, toneStyle(tone)]}>{label}</Text>;
 }
 
-export function MobileButton({ label, onPress, tone = "info" }: MobileButtonProps) {
+export function MobileButton({ disabled = false, disabledReason, label, onPress, tone = "info" }: MobileButtonProps) {
+  const isDisabled = disabled || !onPress;
+  const reason = disabledReason ?? (isDisabled ? "Action requires an enabled mobile workflow." : undefined);
+
   return (
-    <TouchableOpacity accessibilityRole="button" onPress={onPress} style={[styles.button, buttonToneStyle(tone)]}>
-      <Text style={styles.buttonText}>{label}</Text>
-    </TouchableOpacity>
+    <View style={styles.buttonBlock}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ disabled: isDisabled }}
+        disabled={isDisabled}
+        onPress={isDisabled ? undefined : onPress}
+        style={[styles.button, buttonToneStyle(isDisabled ? "neutral" : tone), isDisabled && styles.buttonDisabled]}
+      >
+        <Text style={styles.buttonText}>{label}</Text>
+      </TouchableOpacity>
+      {isDisabled && reason ? <Text style={styles.buttonReason}>{reason}</Text> : null}
+    </View>
   );
 }
 
@@ -127,6 +141,18 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 13
+  },
+  buttonBlock: {
+    gap: 6
+  },
+  buttonDisabled: {
+    opacity: 0.72
+  },
+  buttonReason: {
+    color: "#5c6f68",
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 16
   },
   buttonText: {
     color: "#10251f",

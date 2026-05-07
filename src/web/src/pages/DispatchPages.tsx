@@ -158,7 +158,7 @@ export function DispatchPlanningPage() {
       title="Dispatch Planning"
     >
       <KpiStrip items={[{ label: "Orders", value: String(records.length) }, { label: "Ready", value: String(records.filter((record) => record.status.toLowerCase().includes("ready")).length) }, { label: "At risk", value: String(records.filter((record) => record.status.toLowerCase().includes("risk")).length) }, { label: "Avg ready", value: `${Math.round(records.reduce((total, record) => total + record.readinessPercent, 0) / Math.max(records.length, 1))}%` }]} />
-      <Card title="Readiness queue" description="Next action stays review-oriented; mobile remains responsible for loading proof execution.">
+      <Card title="Readiness queue" description="Loading proof remains visible as dispatch readiness context.">
         <DataGrid ariaLabel="Dispatch planning table" columns={planningColumns} getRowId={(record) => record.id} isLoading={query.isLoading} records={records} rowLabel={(record) => `${record.salesOrderLabel} dispatch plan`} />
       </Card>
     </ListPageShell>
@@ -217,13 +217,13 @@ export function ShipmentDeliveryPage() {
         title="Shipment / Delivery"
       >
       <KpiStrip items={[{ label: "Shipments", value: String(records.length) }, { label: "Shipped qty", value: String(records.reduce((total, record) => total + record.shippedQuantity, 0)) }, { label: "Open proof", value: String(records.filter((record) => record.proofNotes.toLowerCase().includes("pending")).length) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
-        <Card title="Shipment register" description="Loading proof is shown as review state; mobile proof capture remains action/execution.">
+        <Card title="Shipment register" description="Loading proof is shown as review state alongside shipment status.">
           <DataGrid ariaLabel="Shipment table" columns={shipmentColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.shipmentNo} shipment`} />
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
         description="Shipment detail is review-only until shipment preparation is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Export documents", reason: "Shipment document export is pending reporting workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.shipmentNo ?? "Shipment"}

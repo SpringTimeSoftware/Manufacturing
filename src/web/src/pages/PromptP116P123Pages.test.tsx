@@ -125,7 +125,7 @@ describe("Prompt P116-P123 execution surfaces", () => {
     expect(await screen.findByText("NCR-2026-0018")).toBeInTheDocument();
   });
 
-  it("renders P120 dispatch pages with drawer detail", async () => {
+  it("renders P120 dispatch pages with modal detail workspaces", async () => {
     renderWithApp(
       <Routes>
         <Route path="/dispatch/pack-lists" element={<PackListPage />} />
@@ -136,6 +136,7 @@ describe("Prompt P116-P123 execution surfaces", () => {
     expect(await screen.findByText("Pack List")).toBeInTheDocument();
     expect(await screen.findByText("PACK-2026-0042")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("row", { name: "PACK-2026-0042 pack list" }));
+    expect(await screen.findByTestId("erp-modal-workspace")).toBeInTheDocument();
     expect(await screen.findByText("Pack lines")).toBeInTheDocument();
 
     renderWithApp(
@@ -157,6 +158,8 @@ describe("Prompt P116-P123 execution surfaces", () => {
 
     expect(await screen.findByText("Shipment / Delivery")).toBeInTheDocument();
     expect(await screen.findByText("SHIP-2026-0029")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("row", { name: "SHIP-2026-0029 shipment" }));
+    expect(await screen.findByText("Shipment lines")).toBeInTheDocument();
   });
 
   it("preserves P121 dashboard and print pack surfaces", async () => {

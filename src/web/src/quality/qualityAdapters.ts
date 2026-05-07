@@ -118,7 +118,7 @@ function mapPlan(dto: InspectionPlanDto, source: MasterDataSource): QualityPlanI
     operationLabel: operationLabel(dto.operationId),
     autoHoldSignal: dto.autoHoldOnFail ? "Auto hold on fail" : "Manual hold",
     autoNcrSignal: dto.autoCreateNcrOnFail ? "Auto NCR on fail" : "Manual NCR",
-    parameterSummary: "Parameter library detail deferred to plan editor",
+    parameterSummary: "Parameter library detail follows the plan editor",
     status: dto.status,
     source
   };
