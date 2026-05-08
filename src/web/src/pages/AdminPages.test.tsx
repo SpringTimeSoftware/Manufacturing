@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { renderWithApp } from "../test/render";
 import {
+  AuditTrailPage,
   RolePermissionMatrixPage,
   UserManagementPage
 } from "./AdminPages";
@@ -42,5 +43,23 @@ describe("AdminPages", () => {
     fireEvent.click(screen.getByText("Planning Manager"));
 
     expect(await screen.findByText("Permission lanes")).toBeInTheDocument();
+  });
+
+  it("renders audit trail events and opens the audit workspace", async () => {
+    renderWithApp(
+      <Routes>
+        <Route path="/platform/audit-trail" element={<AuditTrailPage />} />
+      </Routes>,
+      {
+        route: "/platform/audit-trail"
+      }
+    );
+
+    expect(await screen.findByText("Audit Trail")).toBeInTheDocument();
+    expect(await screen.findByText("platform.approval.decision")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("platform.approval.decision"));
+
+    expect(await screen.findByText("Audit event detail")).toBeInTheDocument();
   });
 });

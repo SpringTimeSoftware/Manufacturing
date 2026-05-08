@@ -63,6 +63,7 @@ public sealed class ApprovalsController(IPlatformRuntimeService platformRuntimeS
 public sealed class UsersController(IPlatformRuntimeService platformRuntimeService) : ApiControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = AppPolicies.CompanyAdministration)]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<UserDirectoryItem>>>> List(CancellationToken cancellationToken)
     {
         var response = await platformRuntimeService.ListUsersAsync(cancellationToken);
@@ -76,6 +77,7 @@ public sealed class UsersController(IPlatformRuntimeService platformRuntimeServi
 public sealed class RolesController(IPlatformRuntimeService platformRuntimeService) : ApiControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = AppPolicies.CompanyAdministration)]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<RoleMatrixItem>>>> List(CancellationToken cancellationToken)
     {
         var response = await platformRuntimeService.ListRolesAsync(cancellationToken);
@@ -89,6 +91,7 @@ public sealed class RolesController(IPlatformRuntimeService platformRuntimeServi
 public sealed class SettingsController(IPlatformRuntimeService platformRuntimeService) : ApiControllerBase
 {
     [HttpGet("workflow-rules")]
+    [Authorize(Policy = AppPolicies.CompanyAdministration)]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<WorkflowNumberingItem>>>> ListWorkflowRules(CancellationToken cancellationToken)
     {
         var response = await platformRuntimeService.ListWorkflowRulesAsync(cancellationToken);
@@ -96,9 +99,25 @@ public sealed class SettingsController(IPlatformRuntimeService platformRuntimeSe
     }
 
     [HttpGet("tenant-settings")]
+    [Authorize(Policy = AppPolicies.PlatformAdministration)]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<TenantSettingItem>>>> ListTenantSettings(CancellationToken cancellationToken)
     {
         var response = await platformRuntimeService.ListTenantSettingsAsync(cancellationToken);
+        return OkEnvelope(response);
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.AuditRead)]
+[Route("api/audit-trail")]
+public sealed class AuditTrailController(IPlatformRuntimeService platformRuntimeService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<AuditTrailItem>>>> List(
+        [FromQuery] AuditTrailFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.ListAuditTrailAsync(filter, cancellationToken);
         return OkEnvelope(response);
     }
 }

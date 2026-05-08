@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using STS.Mfg.Application.Abstractions.Audit;
 using STS.Mfg.Application.Abstractions.Persistence;
 using STS.Mfg.Application.Abstractions.Platform;
 using STS.Mfg.Application.Abstractions.Security;
@@ -10,8 +11,12 @@ namespace STS.Mfg.Infrastructure.Platform;
 
 public sealed class PlatformRuntimeService(
     ISqlConnectionFactory connectionFactory,
-    ICurrentUserContextAccessor currentUserContextAccessor) : IPlatformRuntimeService
+    ICurrentUserContextAccessor currentUserContextAccessor,
+    IDataScopeService dataScopeService,
+    IAuditTrail auditTrail) : IPlatformRuntimeService
 {
+    private static readonly JsonSerializerOptions SnapshotSerializerOptions = new(JsonSerializerDefaults.Web);
+
     private static readonly string[] RecoveryChallenges =
     {
         "Password reset link",
@@ -84,11 +89,27 @@ public sealed class PlatformRuntimeService(
                 ActionPath
             FROM platform.Notifications
             WHERE Title IS NOT NULL
+              AND (
+                  @HasDeploymentAccess = 1
+                  OR (
+                      (@CompanyId IS NULL OR CompanyId IS NULL OR CompanyId = @CompanyId)
+                      AND (@BranchId IS NULL OR BranchId IS NULL OR BranchId = @BranchId)
+                  )
+              )
             ORDER BY CreatedOn DESC, Id DESC;
             """;
 
+        var scope = dataScopeService.GetCurrentScope();
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
-        var rows = await connection.QueryAsync<NotificationItem>(new CommandDefinition(sql, cancellationToken: cancellationToken));
+        var rows = await connection.QueryAsync<NotificationItem>(new CommandDefinition(
+            sql,
+            new
+            {
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId,
+                BranchId = scope.ActiveBranchId
+            },
+            cancellationToken: cancellationToken));
         return rows.ToArray();
     }
 
@@ -99,11 +120,39 @@ public sealed class PlatformRuntimeService(
             SET IsRead = 1,
                 ReadOn = COALESCE(ReadOn, SYSUTCDATETIME()),
                 ModifiedOn = SYSUTCDATETIME()
-            WHERE NotificationKey = @Id OR CONVERT(NVARCHAR(32), Id) = @Id;
+            WHERE (NotificationKey = @Id OR CONVERT(NVARCHAR(32), Id) = @Id)
+              AND (
+                  @HasDeploymentAccess = 1
+                  OR (
+                      (@CompanyId IS NULL OR CompanyId IS NULL OR CompanyId = @CompanyId)
+                      AND (@BranchId IS NULL OR BranchId IS NULL OR BranchId = @BranchId)
+                  )
+              );
             """;
 
+        var scope = dataScopeService.GetCurrentScope();
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
-        var affected = await connection.ExecuteAsync(new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            sql,
+            new
+            {
+                Id = id,
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId,
+                BranchId = scope.ActiveBranchId
+            },
+            cancellationToken: cancellationToken));
+
+        if (affected > 0)
+        {
+            await WriteAuditAsync(
+                "Notification",
+                "platform.notification.read",
+                id,
+                new { id, status = "Read" },
+                cancellationToken);
+        }
+
         return new ActionResponse(id, affected > 0 ? "Read" : "NotFound", id, Array.Empty<string>());
     }
 
@@ -114,11 +163,39 @@ public sealed class PlatformRuntimeService(
             SET IsRead = 1,
                 ReadOn = COALESCE(ReadOn, SYSUTCDATETIME()),
                 ModifiedOn = SYSUTCDATETIME()
-            WHERE Title IS NOT NULL AND IsRead = 0;
+            WHERE Title IS NOT NULL
+              AND IsRead = 0
+              AND (
+                  @HasDeploymentAccess = 1
+                  OR (
+                      (@CompanyId IS NULL OR CompanyId IS NULL OR CompanyId = @CompanyId)
+                      AND (@BranchId IS NULL OR BranchId IS NULL OR BranchId = @BranchId)
+                  )
+              );
             """;
 
+        var scope = dataScopeService.GetCurrentScope();
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
-        var affected = await connection.ExecuteAsync(new CommandDefinition(sql, cancellationToken: cancellationToken));
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            sql,
+            new
+            {
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId,
+                BranchId = scope.ActiveBranchId
+            },
+            cancellationToken: cancellationToken));
+
+        if (affected > 0)
+        {
+            await WriteAuditAsync(
+                "Notification",
+                "platform.notification.read_all",
+                "notifications",
+                new { affected, status = "Read" },
+                cancellationToken);
+        }
+
         return new ActionResponse("notifications", "Read", affected.ToString(), Array.Empty<string>());
     }
 
@@ -143,14 +220,29 @@ public sealed class PlatformRuntimeService(
                 ActionPath,
                 TagsJson
             FROM platform.ApprovalWorkItems
+            WHERE
+                @HasDeploymentAccess = 1
+                OR (
+                    (@CompanyId IS NULL OR CompanyId IS NULL OR CompanyId = @CompanyId)
+                    AND (@BranchId IS NULL OR BranchId IS NULL OR BranchId = @BranchId)
+                )
             ORDER BY
                 CASE WHEN Status = N'Escalated' THEN 0 WHEN Status = N'Pending' THEN 1 ELSE 2 END,
                 DueOn,
                 Id;
             """;
 
+        var scope = dataScopeService.GetCurrentScope();
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
-        var rows = await connection.QueryAsync<ApprovalRow>(new CommandDefinition(sql, cancellationToken: cancellationToken));
+        var rows = await connection.QueryAsync<ApprovalRow>(new CommandDefinition(
+            sql,
+            new
+            {
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId,
+                BranchId = scope.ActiveBranchId
+            },
+            cancellationToken: cancellationToken));
         return rows.Select(row => new ApprovalWorkItem(
                 row.Id,
                 row.Module,
@@ -194,7 +286,14 @@ public sealed class PlatformRuntimeService(
                 @referenceNo = ReferenceNo,
                 @relatedNotificationKey = RelatedNotificationKey
             FROM platform.ApprovalWorkItems
-            WHERE WorkItemKey = @Id;
+            WHERE WorkItemKey = @Id
+              AND (
+                  @HasDeploymentAccess = 1
+                  OR (
+                      (@CompanyId IS NULL OR CompanyId IS NULL OR CompanyId = @CompanyId)
+                      AND (@BranchId IS NULL OR BranchId IS NULL OR BranchId = @BranchId)
+                  )
+              );
 
             IF @workItemId IS NOT NULL
             BEGIN
@@ -220,12 +319,13 @@ public sealed class PlatformRuntimeService(
                 END;
             END;
 
-            SELECT COALESCE(@referenceNo, @Id);
+            SELECT @workItemId AS WorkItemId, COALESCE(@referenceNo, @Id) AS ReferenceNo;
             """;
 
         var current = currentUserContextAccessor.GetCurrent();
+        var scope = dataScopeService.GetCurrentScope();
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
-        var referenceNo = await connection.ExecuteScalarAsync<string>(new CommandDefinition(
+        var result = await connection.QuerySingleAsync<ApprovalDecisionResult>(new CommandDefinition(
             sql,
             new
             {
@@ -233,11 +333,35 @@ public sealed class PlatformRuntimeService(
                 request.Decision,
                 request.Remarks,
                 NextStatus = nextStatus,
-                current.UserId
+                current.UserId,
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId,
+                BranchId = scope.ActiveBranchId
             },
             cancellationToken: cancellationToken));
 
-        return new ActionResponse(id, request.Decision, referenceNo ?? id, Array.Empty<string>());
+        if (result.WorkItemId.HasValue)
+        {
+            await WriteAuditAsync(
+                "ApprovalWorkItem",
+                "platform.approval.decision",
+                result.WorkItemId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                new
+                {
+                    id,
+                    result.ReferenceNo,
+                    request.Decision,
+                    Status = nextStatus,
+                    request.Remarks
+                },
+                cancellationToken);
+        }
+
+        return new ActionResponse(
+            id,
+            result.WorkItemId.HasValue ? nextStatus : "NotFound",
+            result.ReferenceNo ?? id,
+            Array.Empty<string>());
     }
 
     public async Task<IReadOnlyCollection<UserDirectoryItem>> ListUsersAsync(CancellationToken cancellationToken = default)
@@ -259,12 +383,30 @@ public sealed class PlatformRuntimeService(
             LEFT JOIN platform.Roles r ON r.Id = ur.RoleId
             LEFT JOIN org.Branches b ON b.Id = ur.BranchId
             LEFT JOIN org.Companies c ON c.Id = ur.CompanyId
+            WHERE
+                @HasDeploymentAccess = 1
+                OR EXISTS (
+                    SELECT 1
+                    FROM platform.UserRoles scopedRole
+                    WHERE scopedRole.UserId = u.Id
+                      AND (@CompanyId IS NULL OR scopedRole.CompanyId IS NULL OR scopedRole.CompanyId = @CompanyId)
+                      AND (@BranchId IS NULL OR scopedRole.BranchId IS NULL OR scopedRole.BranchId = @BranchId)
+                )
             GROUP BY u.Id, u.UserName, u.DisplayName, u.Email, u.Status, u.LoginPolicy, u.LastLoginText, u.DeviceBinding
             ORDER BY u.DisplayName;
             """;
 
+        var scope = dataScopeService.GetCurrentScope();
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
-        var rows = await connection.QueryAsync<UserRow>(new CommandDefinition(sql, cancellationToken: cancellationToken));
+        var rows = await connection.QueryAsync<UserRow>(new CommandDefinition(
+            sql,
+            new
+            {
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId,
+                BranchId = scope.ActiveBranchId
+            },
+            cancellationToken: cancellationToken));
         return rows.Select(row => new UserDirectoryItem(
                 row.Id,
                 row.UserName,
@@ -378,6 +520,117 @@ public sealed class PlatformRuntimeService(
         return rows.ToArray();
     }
 
+    public async Task<PagedResult<AuditTrailItem>> ListAuditTrailAsync(
+        AuditTrailFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        var page = filter.Page <= 0 ? 1 : filter.Page;
+        var pageSize = filter.PageSize is <= 0 or > 100 ? 50 : filter.PageSize;
+        var offset = (page - 1) * pageSize;
+        var where = new List<string>();
+        var parameters = new DynamicParameters();
+        var scope = dataScopeService.GetCurrentScope();
+
+        if (!scope.HasDeploymentAccess)
+        {
+            if (scope.ActiveCompanyId.HasValue)
+            {
+                where.Add("(CompanyId IS NULL OR CompanyId = @ScopeCompanyId)");
+                parameters.Add("ScopeCompanyId", scope.ActiveCompanyId.Value);
+            }
+
+            if (scope.ActiveBranchId.HasValue)
+            {
+                where.Add("(BranchId IS NULL OR BranchId = @ScopeBranchId)");
+                parameters.Add("ScopeBranchId", scope.ActiveBranchId.Value);
+            }
+        }
+        else
+        {
+            if (filter.CompanyId.HasValue)
+            {
+                where.Add("CompanyId = @CompanyId");
+                parameters.Add("CompanyId", filter.CompanyId.Value);
+            }
+
+            if (filter.BranchId.HasValue)
+            {
+                where.Add("BranchId = @BranchId");
+                parameters.Add("BranchId", filter.BranchId.Value);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Module))
+        {
+            where.Add("Module = @Module");
+            parameters.Add("Module", filter.Module.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.EntityType))
+        {
+            where.Add("EntityType = @EntityType");
+            parameters.Add("EntityType", filter.EntityType.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.ActionCode))
+        {
+            where.Add("ActionCode = @ActionCode");
+            parameters.Add("ActionCode", filter.ActionCode.Trim());
+        }
+
+        if (filter.DateFrom.HasValue)
+        {
+            where.Add("CreatedOn >= @DateFrom");
+            parameters.Add("DateFrom", filter.DateFrom.Value);
+        }
+
+        if (filter.DateTo.HasValue)
+        {
+            where.Add("CreatedOn <= @DateTo");
+            parameters.Add("DateTo", filter.DateTo.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            where.Add("(Module LIKE @Search OR EntityType LIKE @Search OR ActionCode LIKE @Search OR EntityId LIKE @Search OR CorrelationId LIKE @Search)");
+            parameters.Add("Search", $"%{filter.Search.Trim()}%");
+        }
+
+        parameters.Add("Offset", offset);
+        parameters.Add("PageSize", pageSize);
+
+        var whereClause = where.Count == 0 ? string.Empty : $"WHERE {string.Join(" AND ", where)}";
+        var countSql = $"SELECT COUNT(1) FROM platform.AuditLogs {whereClause};";
+        var rowsSql = $"""
+            SELECT
+                Id,
+                CompanyId,
+                BranchId,
+                CreatedOn,
+                CreatedByUserId,
+                Module,
+                EntityType,
+                ActionCode,
+                EntityId,
+                ReasonCode,
+                CorrelationId,
+                ClientType,
+                BeforeSnapshot,
+                AfterSnapshot
+            FROM platform.AuditLogs
+            {whereClause}
+            ORDER BY CreatedOn DESC, Id DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var totalCount = await connection.ExecuteScalarAsync<int>(new CommandDefinition(countSql, parameters, cancellationToken: cancellationToken));
+        var rows = await connection.QueryAsync<AuditTrailItem>(new CommandDefinition(rowsSql, parameters, cancellationToken: cancellationToken));
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        return new PagedResult<AuditTrailItem>(rows.ToArray(), page, pageSize, totalCount, totalPages);
+    }
+
     private static IReadOnlyCollection<string> SplitCsv(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -407,6 +660,27 @@ public sealed class PlatformRuntimeService(
             return Array.Empty<string>();
         }
     }
+
+    private Task WriteAuditAsync(
+        string entityType,
+        string actionCode,
+        string entityId,
+        object? after,
+        CancellationToken cancellationToken)
+    {
+        return auditTrail.WriteAsync(
+            new AuditEntryDraft(
+                "platform",
+                entityType,
+                actionCode,
+                entityId,
+                null,
+                after is null ? null : JsonSerializer.Serialize(after, SnapshotSerializerOptions),
+                null),
+            cancellationToken);
+    }
+
+    private sealed record ApprovalDecisionResult(long? WorkItemId, string? ReferenceNo);
 
     private sealed record ApprovalRow(
         string Id,

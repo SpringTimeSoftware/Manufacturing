@@ -421,6 +421,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["PlatformAdmin", "CompanyAdmin"]
   },
   {
+    label: "Audit Trail",
+    path: "/platform/audit-trail",
+    section: "Platform",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlantHead"]
+  },
+  {
     label: "Language Setup",
     path: "/platform/translations",
     section: "Platform",

@@ -321,6 +321,23 @@ export interface TenantSettingItemDto {
   description: string;
 }
 
+export interface AuditTrailItemDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  createdOn: string;
+  createdByUserId: number | null;
+  module: string;
+  entityType: string;
+  actionCode: string;
+  entityId: string | null;
+  reasonCode: string | null;
+  correlationId: string;
+  clientType: string;
+  beforeSnapshot: string | null;
+  afterSnapshot: string | null;
+}
+
 export interface StageWiseDashboardItem {
   salesOrderId: number;
   salesOrderNo: string;

@@ -44,7 +44,7 @@ This is not a full production UAT signoff. It confirms that the previous runtime
 | QCInspector | PARTIAL | Login passed. `/api/quality/plans`, `/api/quality/inspections`, `/api/quality/ncrs`, and `/api/traceability/lots/DEMO-LOT-001` returned HTTP `200`. | QC parameter capture, hold/release, NCR disposition/root cause, evidence, and rework/scrap linkage remain incomplete. |
 | DispatchManager | PARTIAL | Login passed. `/api/dispatch/pack-lists`, `/api/dispatch/shipments`, `/api/dispatch/planning`, `/api/reports/pack-lists/95001/print`, and `/api/dashboards/order-delivery` returned HTTP `200`. | Pack hierarchy, labels, loading/delivery proof, held-stock blocking, customer proof, and document templates remain incomplete. |
 | PlantHead | PARTIAL | Login passed. `/api/dashboards/stage-wise` and `/api/dashboards/order-delivery` returned HTTP `200`. | Executive summaries, AI daily summary review, escalation actions, and real KPI drilldown remain incomplete. |
-| PlatformAdmin | PARTIAL | Login passed. `/api/auth/me`, org APIs, users, roles, tenant settings, integration providers, AI providers, AI provider health, and AI execution policy returned HTTP `200`. | Audit viewer, rate limiting, attachment authorization tests, provider secret rotation, and full admin lifecycle proof remain incomplete. |
+| PlatformAdmin | PARTIAL | Login passed. `/api/auth/me`, org APIs, users, roles, tenant settings, integration providers, AI providers, AI provider health, and AI execution policy returned HTTP `200`. Wave 2 adds scoped audit viewer coverage, baseline API rate limiting, masked provider references, and attachment visibility tests. | Provider secret rotation, device trust procedures, and full user/role/admin lifecycle proof remain incomplete. |
 
 ## Pass Counts
 
@@ -79,7 +79,7 @@ Supporting verification count:
 | Production execution | PARTIAL | Work orders, job cards, downtime, machine board, receipts, scrap, and rework reads pass; transition/posting proof remains incomplete. |
 | Quality | PARTIAL | Quality and traceability proof reads pass; hold/release and NCR lifecycle remain incomplete. |
 | Dispatch and print pack | PARTIAL | Dispatch and print proof reads pass; proof, labels, templates, and held-stock blocking remain incomplete. |
-| Platform admin | PARTIAL | Users, roles, tenant settings, integration, and AI provider reads pass; audit/security hardening remains incomplete. |
+| Platform admin | PARTIAL | Users, roles, tenant settings, integration, AI provider reads, audit viewer, baseline rate limiting, and attachment visibility tests now pass at the implementation level; full lifecycle proof remains incomplete. |
 | Mobile execution | PARTIAL | Role identity and supporting APIs pass; mobile live execution is not UAT-proven in the localhost web deployment. |
 
 ## Demo Scenario Coverage
@@ -104,7 +104,7 @@ Supporting verification count:
 - Full role-wise UAT still has 10 `PARTIAL` roles because acceptance criteria require workflow completion, not only route/API availability.
 - Transactional write flows are not end-to-end UAT-proven for sales demand, MRP/BOQ conversion, PR/PO/subcontract, work-order release, job-card execution, inventory movement, QC hold/release, NCR, dispatch proof, and print/template governance.
 - Mobile execution is not live UAT-proven for device trust, scan validation, media upload, offline replay, idempotency, and conflict handling.
-- Audit viewer, rate limiting, attachment authorization tests, provider secret governance, and pilot-grade admin controls remain incomplete.
+- Provider secret rotation, device trust, and pilot-grade admin lifecycle controls remain incomplete.
 
 ## Readiness Recommendation
 

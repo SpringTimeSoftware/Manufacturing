@@ -1,6 +1,7 @@
 import { readStoredSession } from "../auth/authStorage";
 import type {
   ActionResponse,
+  AuditTrailItemDto,
   AttachmentDto,
   AttachmentFilter,
   AttachmentUploadRequest,
@@ -801,6 +802,10 @@ export const apiClient = {
     roles: () => request<RoleMatrixItemDto[]>("/api/roles"),
     workflowRules: () => request<WorkflowNumberingItemDto[]>("/api/settings/workflow-rules"),
     tenantSettings: () => request<TenantSettingItemDto[]>("/api/settings/tenant-settings"),
+    auditTrail: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<AuditTrailItemDto>>(`/api/audit-trail?${query}`);
+    },
     attachments: (filter: AttachmentFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<AttachmentDto>>(`/api/attachments?${query}`);

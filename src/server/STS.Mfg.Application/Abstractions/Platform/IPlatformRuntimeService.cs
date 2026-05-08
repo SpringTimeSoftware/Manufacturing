@@ -29,4 +29,8 @@ public interface IPlatformRuntimeService
     Task<IReadOnlyCollection<WorkflowNumberingItem>> ListWorkflowRulesAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<TenantSettingItem>> ListTenantSettingsAsync(CancellationToken cancellationToken = default);
+
+    Task<PagedResult<AuditTrailItem>> ListAuditTrailAsync(
+        AuditTrailFilter filter,
+        CancellationToken cancellationToken = default);
 }

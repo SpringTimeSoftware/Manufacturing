@@ -25,7 +25,7 @@ internal sealed class AttachmentService(
         CancellationToken cancellationToken = default)
     {
         var scope = GetScope();
-        var query = DbContext.Attachments.AsNoTracking().ApplyActiveOrganizationScope(scope);
+        var query = DbContext.Attachments.AsNoTracking().ApplyActiveOrganizationScope(scope).ApplyRecordVisibility(scope);
 
         if (filter.CompanyId.HasValue)
         {

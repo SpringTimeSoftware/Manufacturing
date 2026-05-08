@@ -16,15 +16,17 @@ Prompt P146 reviewed auth, authorization, attachment access, secret handling, pr
 | Secret handling | Partial | Provider credentials use credential references and configuration; no vendor secrets are hard-coded in P138-P142 code. |
 | AI safety | Present | AI execution is draft-only, masks common PII, maps assistant intents to approved stored procedures, and blocks arbitrary SQL. |
 | Health checks | Present | Live and ready health endpoints are exposed under `/api/health/*`. |
+| Rate limiting | Present | Wave 2 adds global ASP.NET Core rate limiting with stricter buckets for authentication, AI, integration, and import/export APIs. |
+| Audit viewer | Present | Wave 2 adds a least-privilege audit read API and a scoped platform audit viewer. |
 
 ## Production Gaps To Close Before Pilot
 
 | Gap | Risk | Required Action |
 | --- | --- | --- |
-| Rate limiting policy | Login, AI, import/export, and integration endpoints can be overused by clients. | Add endpoint-specific ASP.NET Core rate limiting with safe API-envelope rejection. |
-| Attachment authorization | Metadata/storage abstraction exists, but every download path must prove document-scope access. | Add authorization tests around attachment download and preview endpoints. |
+| Rate limiting policy | Closed for Wave 2 baseline; production tuning may still change limits. | Monitor 429 rates in UAT and adjust bucket sizes per deployment traffic. |
+| Attachment authorization | Closed for Wave 2 baseline list/read access; additional endpoint-specific cases can be expanded during pilot hardening. | Keep adding regression tests when new attachment preview/download surfaces are introduced. |
 | Secret rotation | Credential references avoid hard-coded secrets, but rotation procedure is not scripted. | Document Key Vault/Windows secret-store rotation and provider disable process. |
-| Audit read model | Audit write path exists; production audit viewer access needs least-privilege verification. | Add audit viewer API tests for PlatformAdmin/CompanyAdmin/PlantHead boundaries. |
+| Audit read model | Closed for Wave 2 baseline API/UI; deeper role-boundary tests remain useful before pilot. | Expand authorization tests for PlatformAdmin, CompanyAdmin, and PlantHead boundaries. |
 | Provider outbound delivery | Email/Sms/WhatsApp adapters are vendor-neutral placeholders. | Bind real providers through environment configuration and run redacted delivery tests. |
 | Mobile device trust | Device binding is represented, but production revocation policy is not complete. | Add device revoke and lost-device procedures before pilot. |
 
@@ -32,4 +34,4 @@ Prompt P146 reviewed auth, authorization, attachment access, secret handling, pr
 
 - No destructive schema or scope changes were made.
 - No HR, payroll, accounting, or unrelated modules were introduced.
-- P146 is complete as a hardening review artifact with explicit follow-up backlog rather than silent TODOs.
+- Wave 2 closes the baseline rate limiting, audit viewer, attachment visibility test, and masked provider reference gaps while keeping provider rotation and device trust as explicit pilot blockers.

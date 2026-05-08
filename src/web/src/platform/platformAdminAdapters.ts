@@ -1,4 +1,4 @@
-import type { AuthSessionResponse, RoleCode } from "../api/contracts";
+import type { AuditTrailItemDto, AuthSessionResponse, RoleCode } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { translationRecords } from "../api/mockData";
 import type { FeatureFlags } from "../featureFlags/FeatureFlagProvider";
@@ -61,6 +61,16 @@ export interface TenantSettingItem {
   value: string;
   status: "Applied" | "Pending";
   description: string;
+}
+
+export type AuditTrailItem = AuditTrailItemDto;
+
+export interface AuditTrailQuery {
+  search?: string;
+  module?: string;
+  actionCode?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 const seededUsers: UserDirectoryItem[] = [
@@ -260,6 +270,57 @@ const seededTenantSettingsBase: TenantSettingItem[] = [
   }
 ];
 
+const seededAuditTrail: AuditTrailItem[] = [
+  {
+    id: 9001,
+    companyId: 1,
+    branchId: 11,
+    createdOn: "2026-05-08T08:30:00Z",
+    createdByUserId: 1000,
+    module: "platform",
+    entityType: "ApprovalWorkItem",
+    actionCode: "platform.approval.decision",
+    entityId: "approval-bom-r4",
+    reasonCode: null,
+    correlationId: "seed-audit-approval",
+    clientType: "web",
+    beforeSnapshot: null,
+    afterSnapshot: "{\"status\":\"Approved\",\"referenceNo\":\"BOM-FG-OZ-50 / R4\"}"
+  },
+  {
+    id: 9002,
+    companyId: 1,
+    branchId: 11,
+    createdOn: "2026-05-08T08:35:00Z",
+    createdByUserId: 1001,
+    module: "platform",
+    entityType: "Notification",
+    actionCode: "platform.notification.read",
+    entityId: "notif-wo-risk",
+    reasonCode: null,
+    correlationId: "seed-audit-notification",
+    clientType: "web",
+    beforeSnapshot: null,
+    afterSnapshot: "{\"status\":\"Read\"}"
+  },
+  {
+    id: 9003,
+    companyId: 1,
+    branchId: 11,
+    createdOn: "2026-05-08T08:40:00Z",
+    createdByUserId: 999,
+    module: "integration",
+    entityType: "IntegrationConnection",
+    actionCode: "integration.connection.update",
+    entityId: "3",
+    reasonCode: null,
+    correlationId: "seed-audit-integration",
+    clientType: "web",
+    beforeSnapshot: "{\"credentialReference\":\"vault...1234\"}",
+    afterSnapshot: "{\"credentialReference\":\"vault...5678\"}"
+  }
+];
+
 function isDemoSession(session: AuthSessionResponse | null | undefined) {
   return !session || session.accessToken.startsWith("demo-");
 }
@@ -346,6 +407,39 @@ export async function listTenantSettings(
       description: "Shows curated workflow shortcuts for common manufacturing reviews."
     }
   ];
+}
+
+export async function listAuditTrail(
+  session: AuthSessionResponse | null | undefined,
+  filter: AuditTrailQuery
+): Promise<AuditTrailItem[]> {
+  if (!isDemoSession(session)) {
+    try {
+      const page = await apiClient.platform.auditTrail({
+        page: filter.page ?? 1,
+        pageSize: filter.pageSize ?? 50,
+        search: filter.search,
+        module: filter.module === "all" ? undefined : filter.module,
+        actionCode: filter.actionCode === "all" ? undefined : filter.actionCode
+      });
+      return page.items;
+    } catch {
+      // Keep the audit viewer available when the runtime audit table is not deployed yet.
+    }
+  }
+
+  const search = filter.search?.trim().toLowerCase() ?? "";
+  return seededAuditTrail.filter((entry) => {
+    const matchesSearch =
+      search.length === 0 ||
+      `${entry.module} ${entry.entityType} ${entry.actionCode} ${entry.entityId ?? ""} ${entry.correlationId}`
+        .toLowerCase()
+        .includes(search);
+    const matchesModule = !filter.module || filter.module === "all" || entry.module === filter.module;
+    const matchesAction = !filter.actionCode || filter.actionCode === "all" || entry.actionCode === filter.actionCode;
+
+    return matchesSearch && matchesModule && matchesAction;
+  });
 }
 
 export async function listTranslationRegistry(

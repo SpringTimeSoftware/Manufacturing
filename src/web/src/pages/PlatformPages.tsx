@@ -15,7 +15,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { Drawer } from "../ui/Drawer";
+import { ErpActionBar, ErpModalWorkspace } from "../ui/ErpComponents";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
@@ -441,7 +441,12 @@ export function NotificationInboxPage() {
     <>
       <ListPageShell
         actions={
-          <Button disabled={unreadCount === 0} variant="secondary" onClick={markAllAsRead}>
+          <Button
+            disabled={unreadCount === 0}
+            title={unreadCount === 0 ? "All visible notifications are already read." : undefined}
+            variant="secondary"
+            onClick={markAllAsRead}
+          >
             Mark all as read
           </Button>
         }
@@ -511,34 +516,39 @@ export function NotificationInboxPage() {
         )}
       </ListPageShell>
 
-      <Drawer
+      <ErpModalWorkspace
         description="Audit-friendly notification detail with compatible open and mark-read actions."
         footer={
           selected ? (
-            <div className="context-chip-row">
-              {!selected.isRead ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    markAsRead(selected.id);
-                    setSelected({ ...selected, isRead: true });
-                  }}
-                >
-                  {selected.auditActionLabel ?? "Acknowledge notification"}
-                </Button>
-              ) : null}
-              {selected.actionPath ? (
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    markAsRead(selected.id);
-                    navigate(selected.actionPath ?? "/");
-                  }}
-                >
-                  {selected.actionLabel ?? "Open linked record"}
-                </Button>
-              ) : null}
-            </div>
+            <ErpActionBar
+              primary={
+                selected.actionPath
+                  ? [
+                      {
+                        label: selected.actionLabel ?? "Open linked record",
+                        onClick: () => {
+                          markAsRead(selected.id);
+                          navigate(selected.actionPath ?? "/");
+                        }
+                      }
+                    ]
+                  : []
+              }
+              secondary={
+                !selected.isRead
+                  ? [
+                      {
+                        label: selected.auditActionLabel ?? "Acknowledge notification",
+                        onClick: () => {
+                          markAsRead(selected.id);
+                          setSelected({ ...selected, isRead: true });
+                        }
+                      }
+                    ]
+                  : []
+              }
+              utility={[{ label: "Close", onClick: () => setSelected(null), variant: "quiet" }]}
+            />
           ) : null
         }
         isOpen={Boolean(selected)}
@@ -559,7 +569,7 @@ export function NotificationInboxPage() {
             </div>
           </Card>
         ) : null}
-      </Drawer>
+      </ErpModalWorkspace>
     </>
   );
 }
@@ -790,21 +800,18 @@ export function ApprovalWorkbenchPage() {
         </Card>
       </ListPageShell>
 
-      <Drawer
+      <ErpModalWorkspace
         description="Review summary, capture remarks, and submit an audit-friendly approval decision."
         footer={
           selected ? (
-            <div className="context-chip-row">
-              <Button disabled={isSubmitting} variant="secondary" onClick={() => void applyDecision("RequestChanges")}>
-                Request changes
-              </Button>
-              <Button disabled={isSubmitting} variant="ghost" onClick={() => void applyDecision("Reject")}>
-                Reject
-              </Button>
-              <Button disabled={isSubmitting} variant="primary" onClick={() => void applyDecision("Approve")}>
-                Approve
-              </Button>
-            </div>
+            <ErpActionBar
+              primary={[{ disabled: isSubmitting, label: "Approve", onClick: () => void applyDecision("Approve") }]}
+              secondary={[
+                { disabled: isSubmitting, label: "Request changes", onClick: () => void applyDecision("RequestChanges") },
+                { disabled: isSubmitting, label: "Reject", onClick: () => void applyDecision("Reject"), variant: "ghost" }
+              ]}
+              utility={[{ label: "Close", onClick: () => setSelected(null), variant: "quiet" }]}
+            />
           ) : null
         }
         isOpen={Boolean(selected)}
@@ -857,7 +864,7 @@ export function ApprovalWorkbenchPage() {
             </FormShell>
           </>
         ) : null}
-      </Drawer>
+      </ErpModalWorkspace>
     </>
   );
 }

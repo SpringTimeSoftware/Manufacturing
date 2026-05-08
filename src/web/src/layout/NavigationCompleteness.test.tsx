@@ -75,6 +75,7 @@ const implementedProtectedRoutes = [
   "/dispatch/shipments",
   "/platform/users",
   "/platform/roles",
+  "/platform/audit-trail",
   "/platform/translations",
   "/platform/workflow-numbering",
   "/platform/settings",

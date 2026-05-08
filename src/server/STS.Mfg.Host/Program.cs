@@ -5,6 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using STS.Mfg.Api;
 using STS.Mfg.Api.Middleware;
 using STS.Mfg.Application;
+using STS.Mfg.Host;
 using STS.Mfg.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,7 @@ JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 builder.Services.AddApplicationLayer();
 builder.Services.AddInfrastructureLayer(builder.Configuration);
 builder.Services.AddApiLayer();
+builder.Services.AddApiRateLimiting();
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
 var app = builder.Build();
@@ -30,6 +32,7 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

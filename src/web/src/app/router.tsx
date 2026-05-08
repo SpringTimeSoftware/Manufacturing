@@ -5,6 +5,7 @@ import { AppShell } from "../layout/AppShell";
 import { navigationItems } from "../layout/navigation";
 import { LoginPage } from "../pages/LoginPage";
 import {
+  AuditTrailPage,
   RolePermissionMatrixPage,
   UserManagementPage
 } from "../pages/AdminPages";
@@ -205,6 +206,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("sales/available-to-promise", <AvailableToPromisePage />),
       guardedRoute("platform/users", <UserManagementPage />),
       guardedRoute("platform/roles", <RolePermissionMatrixPage />),
+      guardedRoute("platform/audit-trail", <AuditTrailPage />),
       guardedRoute("platform/translations", <TranslationSetupPage />),
       guardedRoute("platform/workflow-numbering", <WorkflowNumberingPage />),
       guardedRoute("platform/tenant-settings", <TenantSettingsPage />),

@@ -2,8 +2,10 @@ import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import {
+  listAuditTrail,
   listRoleMatrix,
   listUserDirectory,
+  type AuditTrailItem,
   type RoleMatrixItem,
   type UserDirectoryItem
 } from "../platform/platformAdminAdapters";
@@ -19,6 +21,32 @@ import { KpiStrip } from "../ui/boards";
 
 function AdapterBadge() {
   return <Badge tone="info">Admin review</Badge>;
+}
+
+function downloadCsv(filename: string, headers: string[], rows: string[][]) {
+  const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function formatSnapshot(value: unknown, emptyText: string) {
+  if (value === null || value === undefined || value === "") {
+    return emptyText;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return JSON.stringify(value, null, 2);
 }
 
 const userColumns: DataGridColumn<UserDirectoryItem>[] = [
@@ -145,6 +173,21 @@ export function UserManagementPage() {
     [deferredSearch, records, roleFilter, statusFilter]
   );
   const selected = filtered.find((record) => record.id === selectedId) ?? null;
+  const exportUsers = () =>
+    downloadCsv(
+      "user-directory.csv",
+      ["User name", "Display name", "Email", "Roles", "Branch access", "Status", "Login policy", "Device binding"],
+      filtered.map((record) => [
+        record.userName,
+        record.displayName,
+        record.email,
+        record.roles.join("; "),
+        record.branchAccess.join("; "),
+        record.status,
+        record.loginPolicy,
+        record.deviceBinding
+      ])
+    );
 
   return (
     <>
@@ -154,7 +197,7 @@ export function UserManagementPage() {
             <AdapterBadge />
             <ErpActionBar
               primary={[{ disabled: true, label: "Invite user", reason: "User invitations require the approved access workflow." }]}
-              secondary={[{ disabled: true, label: "Export", reason: "User export is pending the approved reporting workflow." }]}
+              secondary={[{ label: "Export", onClick: exportUsers }]}
               testId="user-management-action-bar"
             />
           </>
@@ -306,6 +349,21 @@ export function RolePermissionMatrixPage() {
     [deferredSearch, records, statusFilter]
   );
   const selected = filtered.find((record) => record.id === selectedId) ?? null;
+  const exportRoles = () =>
+    downloadCsv(
+      "role-permission-matrix.csv",
+      ["Role code", "Role label", "Audience", "Scope mode", "Active users", "Mobile surface", "Status", "Permissions"],
+      filtered.map((record) => [
+        record.roleCode,
+        record.label,
+        record.audience,
+        record.scopeMode,
+        String(record.activeUsers),
+        record.mobileSurface,
+        record.status,
+        record.permissions.map((permission) => `${permission.module}:${permission.access}:${permission.dataScope}`).join("; ")
+      ])
+    );
 
   return (
     <>
@@ -315,7 +373,7 @@ export function RolePermissionMatrixPage() {
             <AdapterBadge />
             <ErpActionBar
               primary={[{ disabled: true, label: "Create custom role", reason: "Custom role creation requires the approved role governance workflow." }]}
-              secondary={[{ disabled: true, label: "Export matrix", reason: "Role matrix export is pending the approved reporting workflow." }]}
+              secondary={[{ label: "Export matrix", onClick: exportRoles }]}
               testId="role-permission-action-bar"
             />
           </>
@@ -434,6 +492,211 @@ export function RolePermissionMatrixPage() {
                 options={[{ label: selected.mobileSurface, value: selected.mobileSurface }]}
                 value={selected.mobileSurface}
               />
+            </FormShell>
+          </>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
+  );
+}
+
+const auditColumns: DataGridColumn<AuditTrailItem>[] = [
+  {
+    key: "created",
+    header: "Created",
+    width: "18%",
+    render: (record) => (
+      <div>
+        <strong>{new Date(record.createdOn).toLocaleString("en-IN")}</strong>
+        <div className="muted">{record.clientType}</div>
+      </div>
+    )
+  },
+  {
+    key: "module",
+    header: "Module",
+    width: "14%",
+    render: (record) => <Badge tone={record.module === "platform" ? "info" : "neutral"}>{record.module}</Badge>
+  },
+  {
+    key: "entity",
+    header: "Entity",
+    width: "22%",
+    render: (record) => (
+      <div>
+        <strong>{record.entityType}</strong>
+        <div className="muted">{record.entityId ?? "No entity id"}</div>
+      </div>
+    )
+  },
+  {
+    key: "action",
+    header: "Action",
+    width: "24%",
+    render: (record) => record.actionCode
+  },
+  {
+    key: "scope",
+    header: "Scope",
+    width: "12%",
+    render: (record) => `${record.companyId ?? "Tenant"} / ${record.branchId ?? "All"}`
+  },
+  {
+    key: "actor",
+    header: "Actor",
+    width: "10%",
+    render: (record) => record.createdByUserId ?? "System"
+  }
+];
+
+export function AuditTrailPage() {
+  const { session } = useAuth();
+  const [search, setSearch] = useState("");
+  const [moduleFilter, setModuleFilter] = useState("all");
+  const [actionFilter, setActionFilter] = useState("all");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const deferredSearch = useDeferredValue(search);
+
+  const query = useApiQuery(
+    ["platform", "audit-trail", moduleFilter, actionFilter, deferredSearch],
+    () =>
+      listAuditTrail(session, {
+        search: deferredSearch,
+        module: moduleFilter,
+        actionCode: actionFilter,
+        pageSize: 50
+      }),
+    { staleTime: 30_000 }
+  );
+  const records = query.data ?? [];
+  const selected = records.find((record) => record.id === selectedId) ?? null;
+  const actionOptions = Array.from(new Set(records.map((record) => record.actionCode))).sort();
+
+  return (
+    <>
+      <ListPageShell
+        actions={
+          <>
+            <Badge tone="success">Live audit viewer</Badge>
+            <ErpActionBar
+              secondary={[
+                {
+                  label: "Export audit",
+                  onClick: () =>
+                    downloadCsv(
+                      "audit-trail.csv",
+                      ["Created", "Module", "Entity type", "Action", "Entity id", "Actor", "Correlation"],
+                      records.map((record) => [
+                        record.createdOn,
+                        record.module,
+                        record.entityType,
+                        record.actionCode,
+                        record.entityId ?? "",
+                        String(record.createdByUserId ?? "System"),
+                        record.correlationId
+                      ])
+                    )
+                }
+              ]}
+              testId="audit-trail-action-bar"
+            />
+          </>
+        }
+        description="Role-scoped audit review for approvals, notifications, attachments, integrations, and governed admin actions."
+        filters={
+          <FilterBar>
+            <input
+              onChange={(event) => {
+                startTransition(() => setSearch(event.target.value));
+              }}
+              placeholder="Search action, entity, or correlation"
+              value={search}
+            />
+            <select onChange={(event) => setModuleFilter(event.target.value)} value={moduleFilter}>
+              <option value="all">Module: All</option>
+              <option value="platform">Platform</option>
+              <option value="integration">Integration</option>
+              <option value="ai">AI</option>
+              <option value="engineering">Engineering</option>
+              <option value="planning">Planning</option>
+              <option value="production">Production</option>
+              <option value="inventory">Inventory</option>
+              <option value="quality">Quality</option>
+              <option value="dispatch">Dispatch</option>
+            </select>
+            <select onChange={(event) => setActionFilter(event.target.value)} value={actionFilter}>
+              <option value="all">Action: All</option>
+              {actionOptions.map((action) => (
+                <option key={action} value={action}>
+                  {action}
+                </option>
+              ))}
+            </select>
+          </FilterBar>
+        }
+        title="Audit Trail"
+      >
+        <KpiStrip
+          items={[
+            { label: "Events", value: String(records.length) },
+            { label: "Platform", value: String(records.filter((record) => record.module === "platform").length) },
+            { label: "Integration", value: String(records.filter((record) => record.module === "integration").length) },
+            { label: "Actors", value: String(new Set(records.map((record) => record.createdByUserId ?? "System")).size) }
+          ]}
+        />
+
+        <Card title="Audit events" description="Time-ordered, role-scoped actions with entity and correlation context.">
+          <DataGrid
+            ariaLabel="Audit trail events"
+            columns={auditColumns}
+            emptyState={{
+              title: "No audit events match the current filter",
+              description: "Adjust the search, module, or action filters to restore audit activity."
+            }}
+            getRowId={(record) => String(record.id)}
+            isLoading={query.isLoading}
+            onRowSelect={(record) => setSelectedId(record.id)}
+            records={records}
+            rowLabel={(record) => `${record.actionCode} ${record.entityType}`}
+            virtualization={{ enabled: true }}
+          />
+        </Card>
+      </ListPageShell>
+
+      <ErpModalWorkspace
+        description="Review event scope, actor, correlation, and captured snapshots."
+        footer={<ErpActionBar utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        isOpen={Boolean(selected)}
+        onClose={() => setSelectedId(null)}
+        title={selected?.actionCode ?? "Audit event"}
+      >
+        {selected ? (
+          <>
+            <KpiStrip
+              items={[
+                { label: "Module", value: selected.module },
+                { label: "Entity", value: selected.entityType },
+                { label: "Actor", value: String(selected.createdByUserId ?? "System") },
+                { label: "Client", value: selected.clientType }
+              ]}
+            />
+            <FormShell initialFingerprint={String(selected.id)} title="Audit event detail">
+              <label>
+                <span>Correlation ID</span>
+                <input readOnly value={selected.correlationId} />
+              </label>
+              <label>
+                <span>Entity ID</span>
+                <input readOnly value={selected.entityId ?? ""} />
+              </label>
+              <label>
+                <span>Before snapshot</span>
+                <textarea readOnly rows={4} value={formatSnapshot(selected.beforeSnapshot, "No before snapshot captured.")} />
+              </label>
+              <label>
+                <span>After snapshot</span>
+                <textarea readOnly rows={5} value={formatSnapshot(selected.afterSnapshot, "No after snapshot captured.")} />
+              </label>
             </FormShell>
           </>
         ) : null}

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using STS.Mfg.Application.Abstractions.Audit;
 using STS.Mfg.Application.Abstractions.Integration;
@@ -524,14 +525,58 @@ internal sealed class IntegrationService(
         new(entity.Id, entity.ProviderCode, entity.ProviderName, entity.ProviderType, entity.BaseUrl, entity.Status, entity.IsSystemBase);
 
     private static IntegrationConnectionDto MapConnection(IntegrationConnection entity) =>
-        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId, entity.IntegrationProviderId, entity.ConnectionCode, entity.ConnectionName, entity.EndpointUrl, entity.CredentialReference, entity.Status, entity.LastHealthCheckedOn, entity.LastHealthStatus);
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId, entity.IntegrationProviderId, entity.ConnectionCode, entity.ConnectionName, entity.EndpointUrl, MaskSecretReference(entity.CredentialReference), entity.Status, entity.LastHealthCheckedOn, entity.LastHealthStatus);
 
     private static WebhookSubscriptionDto MapWebhook(WebhookSubscription entity) =>
-        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId, entity.SubscriptionCode, entity.EventType, entity.TargetUrl, entity.SecretReference, entity.HeadersJson, entity.Status, entity.LastDeliveredOn, entity.RetryQueuedOn);
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId, entity.SubscriptionCode, entity.EventType, entity.TargetUrl, MaskSecretReference(entity.SecretReference), MaskHeadersJson(entity.HeadersJson), entity.Status, entity.LastDeliveredOn, entity.RetryQueuedOn);
 
     private static ImportJobDto MapImportJob(ImportJob entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.JobNo, entity.Module, entity.SourceFormat, entity.StoragePath, entity.RequestToken, entity.Status, entity.RequestedOn, entity.ProcessedOn, entity.LastError);
 
     private static ExportJobDto MapExportJob(ExportJob entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.JobNo, entity.Module, entity.OutputFormat, entity.FilterJson, entity.StoragePath, entity.Status, entity.RequestedOn, entity.ProcessedOn, entity.LastError);
+
+    private static string? MaskSecretReference(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.Length <= 8)
+        {
+            return "masked";
+        }
+
+        return $"{trimmed[..4]}...{trimmed[^4..]}";
+    }
+
+    private static string? MaskHeadersJson(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        try
+        {
+            var headers = JsonSerializer.Deserialize<Dictionary<string, string>>(value);
+            if (headers is null)
+            {
+                return value;
+            }
+
+            var masked = headers.ToDictionary(entry => entry.Key, entry => MaskSecretReference(entry.Value) ?? "masked");
+            return JsonSerializer.Serialize(masked);
+        }
+        catch (JsonException)
+        {
+            return value.Contains("secret", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("token", StringComparison.OrdinalIgnoreCase) ||
+                value.Contains("authorization", StringComparison.OrdinalIgnoreCase)
+                    ? "masked"
+                    : value;
+        }
+    }
 }

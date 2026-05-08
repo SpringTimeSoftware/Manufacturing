@@ -1,3 +1,5 @@
+using STS.Mfg.Application.Contracts;
+
 namespace STS.Mfg.Application.Contracts.Platform;
 
 public sealed record ForgotPasswordRequest(
@@ -93,3 +95,31 @@ public sealed record TenantSettingItem(
     string Value,
     string Status,
     string Description);
+
+public sealed record AuditTrailFilter(
+    int Page = 1,
+    int PageSize = 50,
+    string? Search = null,
+    DateTimeOffset? DateFrom = null,
+    DateTimeOffset? DateTo = null,
+    long? CompanyId = null,
+    long? BranchId = null,
+    string? Module = null,
+    string? EntityType = null,
+    string? ActionCode = null) : QueryFilter(Page, PageSize, Search, null, DateFrom, DateTo);
+
+public sealed record AuditTrailItem(
+    long Id,
+    long? CompanyId,
+    long? BranchId,
+    DateTimeOffset CreatedOn,
+    long? CreatedByUserId,
+    string Module,
+    string EntityType,
+    string ActionCode,
+    string? EntityId,
+    string? ReasonCode,
+    string CorrelationId,
+    string ClientType,
+    string? BeforeSnapshot,
+    string? AfterSnapshot);
