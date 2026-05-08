@@ -81,6 +81,31 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function GovernedInlineAction({
+  disabled,
+  label,
+  onClick,
+  reason,
+  variant = "secondary"
+}: {
+  disabled: boolean;
+  label: string;
+  onClick: () => void;
+  reason?: string;
+  variant?: "primary" | "secondary" | "ghost" | "quiet";
+}) {
+  const disabledReason = disabled ? reason ?? "Action requires an enabled engineering workflow." : undefined;
+
+  return (
+    <span className="erp-action-bar__action">
+      <Button disabled={disabled} onClick={disabled ? undefined : onClick} title={disabledReason} variant={variant}>
+        {label}
+      </Button>
+      {disabledReason ? <small className="erp-action-bar__reason">{disabledReason}</small> : null}
+    </span>
+  );
+}
+
 function createExportJobRequest(
   companyId: number,
   branchId: number,
@@ -646,15 +671,11 @@ export function BomDetailEditorPage() {
                     <label><span>Effective to</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveTo: event.target.value || null } : entry) })} type="date" value={component.effectiveTo ?? ""} /></label>
                     <div className="compact-stack">
                       <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Line mode" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, recommendation: value } : entry) })} options={[{ label: "Stock", value: "BUY" }, { label: "Phantom", value: "MAKE" }]} value={component.recommendation} />
-                      <Button disabled={!canEditDraft} onClick={() => setDraft({ ...draft, components: draft.components.filter((entry) => entry.id !== component.id) })} title={!canEditDraft ? saveReason : undefined} variant="quiet">
-                        Remove line
-                      </Button>
+                      <GovernedInlineAction disabled={!canEditDraft} label="Remove line" onClick={() => setDraft({ ...draft, components: draft.components.filter((entry) => entry.id !== component.id) })} reason={!canEditDraft ? saveReason : undefined} variant="quiet" />
                     </div>
                   </div>
                 ))}
-                <Button disabled={!canEditDraft} onClick={addComponentLine} title={!canEditDraft ? saveReason : undefined} variant="secondary">
-                  Add component line
-                </Button>
+                <GovernedInlineAction disabled={!canEditDraft} label="Add component line" onClick={addComponentLine} reason={!canEditDraft ? saveReason : undefined} variant="secondary" />
               </div>
             </Card>
             <Card title="Operation links" description="Maintain BOM operation references with controlled operation lookups and cycle values.">
@@ -669,15 +690,11 @@ export function BomDetailEditorPage() {
                     <div className="compact-stack">
                       <label><span>QC checkpoint</span><input checked={operation.requiresQcCheckpoint} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, requiresQcCheckpoint: event.target.checked } : entry) })} type="checkbox" /></label>
                       <label><span>Optional</span><input checked={operation.isOptional} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, isOptional: event.target.checked } : entry) })} type="checkbox" /></label>
-                      <Button disabled={!canEditDraft} onClick={() => setDraft({ ...draft, operations: draft.operations.filter((entry) => entry.id !== operation.id) })} title={!canEditDraft ? saveReason : undefined} variant="quiet">
-                        Remove operation
-                      </Button>
+                      <GovernedInlineAction disabled={!canEditDraft} label="Remove operation" onClick={() => setDraft({ ...draft, operations: draft.operations.filter((entry) => entry.id !== operation.id) })} reason={!canEditDraft ? saveReason : undefined} variant="quiet" />
                     </div>
                   </div>
                 ))}
-                <Button disabled={!canEditDraft} onClick={addOperationLine} title={!canEditDraft ? saveReason : undefined} variant="secondary">
-                  Add operation line
-                </Button>
+                <GovernedInlineAction disabled={!canEditDraft} label="Add operation line" onClick={addOperationLine} reason={!canEditDraft ? saveReason : undefined} variant="secondary" />
               </div>
             </Card>
             {saveMessage ? <Card title="Save status" description={saveMessage}><StatusBadge status={saveMessage.includes("saved") ? "Saved" : "Review"} /></Card> : null}
@@ -1036,15 +1053,11 @@ export function RoutingLibraryPage() {
                     <div className="compact-stack">
                       <label><span>QC checkpoint</span><input checked={step.requiresQcCheckpoint} disabled={!canEditRouting} onChange={(event) => updateStep(step.id, { requiresQcCheckpoint: event.target.checked })} type="checkbox" /></label>
                       <label><span>Outside processing</span><input checked={step.isOutsideProcessing} disabled={!canEditRouting} onChange={(event) => updateStep(step.id, { isOutsideProcessing: event.target.checked })} type="checkbox" /></label>
-                      <Button disabled={!canEditRouting} onClick={() => setDraft({ ...draft, steps: draft.steps.filter((entry) => entry.id !== step.id) })} title={!canEditRouting ? saveReason : undefined} variant="quiet">
-                        Remove step
-                      </Button>
+                      <GovernedInlineAction disabled={!canEditRouting} label="Remove step" onClick={() => setDraft({ ...draft, steps: draft.steps.filter((entry) => entry.id !== step.id) })} reason={!canEditRouting ? saveReason : undefined} variant="quiet" />
                     </div>
                   </div>
                 ))}
-                <Button disabled={!canEditRouting} onClick={addStep} title={!canEditRouting ? saveReason : undefined} variant="secondary">
-                  Add routing step
-                </Button>
+                <GovernedInlineAction disabled={!canEditRouting} label="Add routing step" onClick={addStep} reason={!canEditRouting ? saveReason : undefined} variant="secondary" />
               </div>
             </Card>
             {saveMessage ? <Card title="Save status" description={saveMessage}><StatusBadge status={saveMessage.includes("saved") ? "Saved" : "Review"} /></Card> : null}
