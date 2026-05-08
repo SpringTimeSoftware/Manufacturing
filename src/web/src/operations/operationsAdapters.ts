@@ -1045,7 +1045,7 @@ export async function listShiftProductionSetup(
       rejectQuantity: item.completedRejectQty,
       scrapQuantity: item.completedScrapQty,
       downtimeMinutes: 0,
-      issueSummary: "Job-card-backed shift summary; direct shift production endpoint is deferred.",
+      issueSummary: "Job-card-backed shift summary pending supervisor confirmation.",
       status: item.status,
       source: "Live" as MasterDataSource
     }));

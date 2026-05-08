@@ -346,13 +346,13 @@ export function WorkOrdersPage() {
         {detail ? (
           <>
             <KpiStrip items={[{ label: "Status", value: detail.status }, { label: "Materials", value: detail.materialSummary }, { label: "Operations", value: detail.operationSummary }, { label: "Readiness", value: detail.readinessSignal }]} />
-            <Card title="Primary actions" description="Web shows release and traveler actions without moving mobile execution into the browser.">
+            <Card title="Primary actions" description="Release and traveler actions stay visible as controlled review states.">
               <div className="context-chip-row">
                 {detail.primaryActions.map((action) => <Badge key={action} tone="info">{action}</Badge>)}
               </div>
             </Card>
             {detail.blockers.length > 0 ? (
-              <Card title="Release blockers" description="Readiness blockers returned by the work-order API.">
+              <Card title="Release blockers" description="Release blockers that must clear before the selected work order can move forward.">
                 {detail.blockers.map((blocker) => <div className="notification-item" key={blocker}><strong>{blocker}</strong></div>)}
               </Card>
             ) : null}
@@ -546,7 +546,7 @@ export function ShiftProductionEntryPage() {
         title="Shift Production Entry"
       >
         <KpiStrip items={[{ label: "Rows", value: String(records.length) }, { label: "Good qty", value: String(records.reduce((total, record) => total + record.goodQuantity, 0)) }, { label: "Reject/scrap", value: String(records.reduce((total, record) => total + record.rejectQuantity + record.scrapQuantity, 0)) }, { label: "Down min", value: String(records.reduce((total, record) => total + record.downtimeMinutes, 0)) }]} />
-        <Card title="Shift output register" description="This web surface reviews shift output; mobile remains the action/execution channel.">
+        <Card title="Shift output register" description="Shift output remains review-only until production summary submission is enabled.">
           <DataGrid ariaLabel="Shift production list" columns={shiftProductionColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.shiftLabel} shift production`} />
         </Card>
       </ListPageShell>

@@ -97,6 +97,8 @@ describe("Prompt P102-P107 planning, procurement, and inventory pages", () => {
     expect(await screen.findByText("ISS-WO-2026-044")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("row", { name: "ISS-WO-2026-044 material issue" }));
     expect(await screen.findByText("Material issue controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Source")).toBeDisabled();
+    expect(screen.getByText("Source document is controlled by work-order and job-card release.")).toBeInTheDocument();
   });
 
   it("renders P107 material return and stock transfer/putaway screens", async () => {

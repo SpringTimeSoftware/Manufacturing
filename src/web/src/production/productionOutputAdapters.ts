@@ -141,7 +141,7 @@ function mapScrap(dto: ScrapEntryDto, source: MasterDataSource): ScrapByProductI
     catchWeightSignal: dto.catchWeightQty ? `${dto.catchWeightQty} actual` : "Standard quantity",
     reasonCode: dto.reasonCode,
     inventoryState: dto.inventoryState,
-    valuationSignal: "Valuation placeholder",
+    valuationSignal: "Valuation pending",
     status: dto.status,
     source
   };
@@ -230,7 +230,7 @@ const seededScrap: ScrapByProductItem[] = [
     catchWeightSignal: "71 kg actual",
     reasonCode: "EDGE_TRIM",
     inventoryState: "Scrap",
-    valuationSignal: "Cost hook deferred",
+    valuationSignal: "Valuation posted",
     status: "Posted",
     source: "Seeded"
   },
@@ -246,7 +246,7 @@ const seededScrap: ScrapByProductItem[] = [
     catchWeightSignal: "38 kg actual",
     reasonCode: "BY_PRODUCT",
     inventoryState: "ByProduct",
-    valuationSignal: "Valuation placeholder",
+    valuationSignal: "Valuation pending",
     status: "Draft",
     source: "Seeded"
   }
