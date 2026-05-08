@@ -110,3 +110,8 @@ Platform Admin,userRole,User role,string,Lookup,Role Matrix,Yes,,,No,Save user l
 Platform Admin,tenantCode,Tenant,string,Lookup,Tenant Registry,Yes,,,No,Save tenant setting,Tenant settings must use governed tenant selection.
 Platform Admin,workflowRuleId,Workflow rule,int,Lookup,Workflow Rule Registry,No,,,No,Save workflow rule,Workflow references must remain governed.
 Platform Admin,auditEventId,Audit event,string,ReadOnly,,Yes,,,No,Open audit event,Audit events are review-only and must not appear editable.
+Attachment,documentType,Document type,string,Lookup,Document Type Registry,Yes,,,No,Save document metadata,Document type is governed and must not be entered as free text.
+Attachment,relatedRecord,Related record,string,Lookup,Linked ERP Record,Yes,,,No,Open linked record,Related entity references must resolve through governed record selectors.
+Attachment,fileName,File name,string,ReadOnly,,Yes,,,No,Upload file,Binary upload storage controls the file name after a real upload.
+Notification,templateId,Notification template,int,Lookup,Notification Template,No,,,No,Send notification,Notification templates are governed by platform setup.
+Approval,workflowId,Approval workflow,int,Lookup,Approval Workflow,Yes,,,No,Approve or reject,Approval work items must reference a governed workflow definition.

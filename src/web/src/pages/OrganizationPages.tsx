@@ -212,7 +212,7 @@ function SetupAside({
   return (
     <Card title="Organization guidance" description={description}>
       <div className="notification-item">
-        <strong>Workspace records</strong>
+        <strong>Organization records</strong>
         <p>Organization records stay scoped to the active company and branch context.</p>
         <div className="context-chip-row">
           <SourceBadge source={source} />

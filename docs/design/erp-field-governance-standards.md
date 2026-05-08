@@ -78,3 +78,4 @@ OVERNIGHT-CORRECTION-01 extends these rules project-wide:
 - Numeric review fields must use the governed number/decimal/money controls even when disabled, so the user can distinguish quantity, days, rates, and money from narrative text.
 - Action-truth evidence must be updated when a previously disabled workflow is wired, including create/save draft paths.
 - Business-facing pages must avoid internal implementation words such as adapter, fallback, mock, seeded, source status, workspace data, governed setup, reference UI, React, TypeScript, prompt IDs, backend reachable, and guarded demo shell.
+- Generic visible labels such as workspace guidance, workspace records, workspace ready, and workspace preview must be replaced with business-specific labels such as planning guidance, master records, organization records, account controls, and context preview.

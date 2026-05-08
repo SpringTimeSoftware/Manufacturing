@@ -45,7 +45,7 @@ function MeasurementAside({
   return (
     <Card title="Measurement guidance" description={description}>
       <div className="notification-item">
-        <strong>Workspace records</strong>
+        <strong>Measurement records</strong>
         <p>Measurement setup stays aligned with the active master-data rules.</p>
         <div className="context-chip-row">
           <SourceBadge source={source} />

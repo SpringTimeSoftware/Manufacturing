@@ -74,13 +74,13 @@ function WorkbenchAside({
   source: MasterDataSource;
 }) {
   return (
-    <Card title="Workspace guidance" description={description}>
+    <Card title="Planning guidance" description={description}>
       <div className="notification-item">
-        <strong>Workspace records</strong>
-        <p>Review the records available for this workspace before taking the next planning action.</p>
+        <strong>Planning records</strong>
+        <p>Review the records available for this planning area before taking the next action.</p>
         <div className="context-chip-row">
           <SourceBadge source={source} />
-          <Badge tone="info">Workspace ready</Badge>
+          <Badge tone="info">Ready for review</Badge>
         </div>
       </div>
     </Card>

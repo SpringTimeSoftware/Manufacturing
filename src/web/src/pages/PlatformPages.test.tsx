@@ -9,7 +9,7 @@ import {
 } from "./PlatformPages";
 
 describe("PlatformPages", () => {
-  it("renders the context switch workspace preview with warehouse data", async () => {
+  it("renders the context switch preview with warehouse data", async () => {
     renderWithApp(
       <Routes>
         <Route path="/platform/context-switch" element={<ContextSwitchPage />} />
@@ -21,7 +21,7 @@ describe("PlatformPages", () => {
 
     expect(await screen.findByText("Company / Branch / Warehouse Switch")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Main Fabrication Plant")).toBeInTheDocument();
-    expect(screen.getByText("Workspace preview")).toBeInTheDocument();
+    expect(screen.getByText("Context preview")).toBeInTheDocument();
   });
 
   it("loads approvals and records a decision", async () => {

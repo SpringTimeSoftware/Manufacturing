@@ -123,3 +123,9 @@ Route,Field,ViolationType,Severity,FixApplied,RemainingDependency
 /platform/translations,Live translation rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,Translation lifecycle remains partial
 /sales/quotes,New quote draft,dead action,High,Wired New quote draft to centered modal workspace and saveQuoteDraft API,Quote approval/convert workflow remains partial
 /sales/quotes,Save quote draft,dead action,High,Wired valid live quote drafts to POST/PUT quote API with disabled reasons for demo/incomplete drafts,Line-level pricing/approval depth remains partial
+/sales/quotes,Workspace guidance copy,layout violation,Low,Replaced generic workspace copy with planning-specific guidance,Continue domain wording scan during UAT
+/masters/item-groups,Workspace records copy,layout violation,Low,Replaced generic workspace record label with master-record wording,Continue domain wording scan during UAT
+/measurements/uom-classes,Workspace records copy,layout violation,Low,Replaced generic workspace record label with measurement-record wording,Continue domain wording scan during UAT
+/organization/companies,Workspace records copy,layout violation,Low,Replaced generic workspace record label with organization-record wording,Continue domain wording scan during UAT
+/partners/customers,Commercial workspace guidance copy,layout violation,Low,Replaced generic workspace wording with commercial guidance,Continue domain wording scan during UAT
+/platform/context-switch,Workspace guidance and preview copy,layout violation,Low,Replaced generic workspace labels with context guidance and context preview,Continue domain wording scan during UAT

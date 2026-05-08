@@ -58,11 +58,11 @@ function MasterAside({
   return (
     <Card title="Master-data guidance" description={description}>
       <div className="notification-item">
-        <strong>Workspace records</strong>
+        <strong>Master records</strong>
         <p>Item setup remains aligned with the approved master-data structure.</p>
         <div className="context-chip-row">
           <SourceBadge source={source} />
-      <Badge tone="info">Controlled setup</Badge>
+          <Badge tone="info">Setup controls</Badge>
         </div>
       </div>
     </Card>

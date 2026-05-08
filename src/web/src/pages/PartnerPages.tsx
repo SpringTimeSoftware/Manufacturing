@@ -153,7 +153,7 @@ function SourceBadge({ source }: { source: MasterDataSource }) {
 
 function PartnerAside({ description, source }: { description: string; source: MasterDataSource }) {
   return (
-    <Card title="Commercial workspace guidance" description={description}>
+    <Card title="Commercial guidance" description={description}>
       <div className="notification-item">
         <strong>Account controls</strong>
         <p>Partner records stay aligned with the active company, branch, and commercial governance.</p>

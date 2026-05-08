@@ -277,10 +277,10 @@ export function ContextSwitchPage() {
         </>
       }
       aside={
-        <Card title="Workspace guidance" description="Choose the company, branch, and warehouse context for your current work session.">
+        <Card title="Context guidance" description="Choose the company, branch, and warehouse context for your current work session.">
           <div className="notification-item">
             <strong>Company and branch</strong>
-            <p>Your selected company and branch determine the records, dashboards, and actions shown in the workspace.</p>
+            <p>Your selected company and branch determine the records, dashboards, and actions shown in the current view.</p>
           </div>
           <div className="notification-item">
             <strong>Preferred warehouse</strong>
@@ -343,7 +343,7 @@ export function ContextSwitchPage() {
           {message ? <div className="ui-validation-summary">{message}</div> : null}
         </FormShell>
 
-        <Card title="Workspace preview" description="Review the work context before applying the change.">
+        <Card title="Context preview" description="Review the work context before applying the change.">
           <div className="utility-grid">
             <Tile label="Next company" meta="Company scope">
               {companies.find((company) => company.companyId === draftCompanyId)?.companyName ?? "No company"}
