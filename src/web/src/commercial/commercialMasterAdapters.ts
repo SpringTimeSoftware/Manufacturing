@@ -17,6 +17,7 @@ import type {
   TradeTermUpsertRequest
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 
 export interface CommercialLookupOption {
   label: string;
@@ -223,10 +224,6 @@ const seededDiscountSchemes: DiscountSchemeDto[] = [
   }
 ];
 
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
-}
-
 function filterRows<T>(rows: T[], filter: QueryFilter, searchText: (row: T) => string) {
   const search = typeof filter.search === "string" ? filter.search.trim().toLowerCase() : "";
   const status = typeof filter.status === "string" ? filter.status : "";
@@ -253,7 +250,7 @@ async function loadRows<T>(
     const response = await liveLoader(filter);
     return response.items;
   } catch {
-    return filterRows(seededRows, filter, searchText);
+    throw liveDataUnavailable("Commercial setup");
   }
 }
 

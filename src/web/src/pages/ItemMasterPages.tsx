@@ -29,10 +29,13 @@ import { Card } from "../ui/Card";
 import type { DataGridColumn } from "../ui/DataGrid";
 import {
   ErpActionBar,
+  ErpDecimalField,
+  ErpFileActionState,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
   ErpModalWorkspace,
+  ErpNumberField,
   ErpStatusChip
 } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
@@ -41,7 +44,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Reference view"}</ErpStatusChip>;
+  return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Review mode"}</ErpStatusChip>;
 }
 
 function MasterAside({
@@ -1097,6 +1100,19 @@ function TextField({
   value: string | number;
   type?: "text" | "number";
 }) {
+  if (type === "number") {
+    const numericValue = typeof value === "number" ? value : value ? Number(value) : null;
+
+    return (
+      <ErpNumberField
+        label={label}
+        min={0}
+        onChange={(nextValue) => onChange(nextValue === null ? "" : String(nextValue))}
+        value={numericValue}
+      />
+    );
+  }
+
   return (
     <label className="item-master__editor-field">
       <span>{label}</span>
@@ -1270,7 +1286,7 @@ function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
           Media storage is not enabled for this workspace, so upload actions are unavailable.
         </p>
         <div className="context-chip-row">
-          <Button aria-describedby="item-media-action-reason" disabled title="Media storage is not enabled for this workspace." variant="secondary">Upload media</Button>
+          <ErpFileActionState disabledReason="Media storage is not enabled for this workspace." enabled={false} label="Upload media" />
           <Button disabled title="Select a stored media record before changing the primary image." variant="secondary">Set primary</Button>
           <Button disabled title="Select a stored media record before retiring media." variant="secondary">Retire media</Button>
         </div>
@@ -1742,14 +1758,14 @@ function ItemDetailEditor({
                     <tbody>
                       {item.vendorReferences.map((reference, index) => (
                         <tr key={reference.id}>
-                          <td><input aria-label={`Supplier ID ${index + 1}`} onChange={(event) => patchVendorReference(index, { supplierId: Number(event.target.value) || null })} type="number" value={reference.supplierId ?? ""} /></td>
-                          <td><input aria-label={`Supplier ${index + 1}`} onChange={(event) => patchVendorReference(index, { supplier: event.target.value })} value={reference.supplier} /></td>
+                          <td><ErpNumberField label={`Supplier ID ${index + 1}`} min={0} onChange={(value) => patchVendorReference(index, { supplierId: value })} value={reference.supplierId} /></td>
+                          <td><ErpLookupField label={`Supplier ${index + 1}`} onChange={(value) => patchVendorReference(index, { supplier: value })} options={item.vendorReferences.map((entry) => ({ label: entry.supplier || "Supplier pending", value: entry.supplier })).filter((entry) => entry.value)} value={reference.supplier} /></td>
                           <td><input aria-label={`Vendor item code ${index + 1}`} onChange={(event) => patchVendorReference(index, { vendorItemCode: event.target.value })} value={reference.vendorItemCode} /></td>
-                          <td><input aria-label={`Minimum order quantity ${index + 1}`} onChange={(event) => patchVendorReference(index, { minimumOrderQty: event.target.value })} value={reference.minimumOrderQty} /></td>
-                          <td><input aria-label={`Lead time ${index + 1}`} onChange={(event) => patchVendorReference(index, { leadTime: event.target.value })} value={reference.leadTime} /></td>
-                          <td><input aria-label={`Purchase UOM ${index + 1}`} onChange={(event) => patchVendorReference(index, { purchaseUom: event.target.value })} value={reference.purchaseUom} /></td>
-                          <td><input aria-label={`Compliance ${index + 1}`} onChange={(event) => patchVendorReference(index, { complianceStatus: event.target.value })} value={reference.complianceStatus} /></td>
-                          <td><input aria-label={`Document status ${index + 1}`} onChange={(event) => patchVendorReference(index, { documentStatus: event.target.value })} value={reference.documentStatus} /></td>
+                          <td><ErpDecimalField label={`Minimum order quantity ${index + 1}`} min={0} onChange={(value) => patchVendorReference(index, { minimumOrderQty: value === null ? "" : String(value) })} scale={3} value={reference.minimumOrderQty ? Number(reference.minimumOrderQty) : null} /></td>
+                          <td><ErpNumberField label={`Lead time ${index + 1}`} min={0} onChange={(value) => patchVendorReference(index, { leadTime: value === null ? "" : `${value} days` })} unit="days" value={reference.leadTime ? Number.parseInt(reference.leadTime, 10) : null} /></td>
+                          <td><ErpLookupField label={`Purchase UOM ${index + 1}`} onChange={(value) => patchVendorReference(index, { purchaseUom: value })} options={uomOptions.map((option) => ({ label: option.label, value: option.label }))} value={reference.purchaseUom} /></td>
+                          <td><ErpLookupField label={`Compliance ${index + 1}`} onChange={(value) => patchVendorReference(index, { complianceStatus: value })} options={["Draft", "Approved", "Pending", "Blocked"].map((value) => ({ label: value, value }))} value={reference.complianceStatus} /></td>
+                          <td><ErpLookupField label={`Document status ${index + 1}`} onChange={(value) => patchVendorReference(index, { documentStatus: value })} options={["Not attached", "Pending", "Approved", "Expired"].map((value) => ({ label: value, value }))} value={reference.documentStatus || "Not attached"} /></td>
                           <td><Button onClick={() => removeVendorReference(index)} variant="quiet">Remove</Button></td>
                         </tr>
                       ))}
@@ -1811,13 +1827,13 @@ function ItemDetailEditor({
                   <tbody>
                     {item.customerReferences.map((reference, index) => (
                       <tr key={reference.id}>
-                        <td><input aria-label={`Customer ID ${index + 1}`} onChange={(event) => patchCustomerReference(index, { customerId: Number(event.target.value) || null })} type="number" value={reference.customerId ?? ""} /></td>
-                        <td><input aria-label={`Customer ${index + 1}`} onChange={(event) => patchCustomerReference(index, { customer: event.target.value })} value={reference.customer} /></td>
+                        <td><ErpNumberField label={`Customer ID ${index + 1}`} min={0} onChange={(value) => patchCustomerReference(index, { customerId: value })} value={reference.customerId} /></td>
+                        <td><ErpLookupField label={`Customer ${index + 1}`} onChange={(value) => patchCustomerReference(index, { customer: value })} options={item.customerReferences.map((entry) => ({ label: entry.customer || "Customer pending", value: entry.customer })).filter((entry) => entry.value)} value={reference.customer} /></td>
                         <td><input aria-label={`Customer item code ${index + 1}`} onChange={(event) => patchCustomerReference(index, { customerItemCode: event.target.value })} value={reference.customerItemCode} /></td>
                         <td><input aria-label={`Drawing revision ${index + 1}`} onChange={(event) => patchCustomerReference(index, { drawingRevision: event.target.value })} value={reference.drawingRevision} /></td>
                         <td><input aria-label={`Packaging override ${index + 1}`} onChange={(event) => patchCustomerReference(index, { packagingOverride: event.target.value })} value={reference.packagingOverride} /></td>
                         <td><input aria-label={`Specification override ${index + 1}`} onChange={(event) => patchCustomerReference(index, { specificationOverride: event.target.value })} value={reference.specificationOverride} /></td>
-                        <td><input aria-label={`Approval ${index + 1}`} onChange={(event) => patchCustomerReference(index, { approvalStatus: event.target.value })} value={reference.approvalStatus} /></td>
+                        <td><ErpLookupField label={`Approval ${index + 1}`} onChange={(value) => patchCustomerReference(index, { approvalStatus: value })} options={["Draft", "Review", "Approved", "Rejected"].map((value) => ({ label: value, value }))} value={reference.approvalStatus} /></td>
                         <td><Button onClick={() => removeCustomerReference(index)} variant="quiet">Remove</Button></td>
                       </tr>
                     ))}

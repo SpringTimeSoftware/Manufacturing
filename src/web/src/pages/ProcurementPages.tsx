@@ -24,7 +24,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function StatusBadge({ status }: { status: string }) {

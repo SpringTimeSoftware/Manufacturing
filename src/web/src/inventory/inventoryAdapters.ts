@@ -7,6 +7,7 @@ import type {
   StockTransactionDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface StockBalanceItem {
@@ -95,10 +96,6 @@ export interface StockTransferPutawayItem {
   movementType: string;
   status: string;
   source: MasterDataSource;
-}
-
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
 }
 
 function matchesFilter(value: string, filter: QueryFilter) {
@@ -475,7 +472,7 @@ export async function listStockBalanceSetup(
     const response = await apiClient.inventory.balances(filter);
     return response.items.map((item) => mapStockBalance(item, "Live"));
   } catch {
-    return filterSeeded(seededBalances, filter, (item) => `${item.itemLabel} ${item.warehouseLabel} ${item.binLabel} ${item.status}`);
+    throw liveDataUnavailable("Inventory balance");
   }
 }
 
@@ -484,6 +481,10 @@ export async function listTraceabilitySetup(
   filter: QueryFilter
 ): Promise<TraceabilityItem[]> {
   const search = filter.search?.trim();
+
+  if (hasLiveSession(session) && !search) {
+    return [];
+  }
 
   if (hasLiveSession(session) && search) {
     try {
@@ -494,7 +495,7 @@ export async function listTraceabilitySetup(
         const serial = await apiClient.inventory.serialTraceability(search, filter);
         return [mapSerialTraceability(serial, "Live")];
       } catch {
-        return filterSeeded(seededTraceability, filter, (item) => `${item.traceRef} ${item.itemLabel} ${item.status}`);
+        throw liveDataUnavailable("Traceability");
       }
     }
   }
@@ -514,7 +515,7 @@ export async function listMaterialIssueSetup(
     const response = await apiClient.inventory.transactions({ ...filter, transactionType: "IssueToWO" });
     return response.items.map((item) => mapMaterialIssue(item, "Live"));
   } catch {
-    return filterSeeded(seededIssues, filter, (item) => `${item.transactionNo} ${item.sourceDocument} ${item.itemLabel} ${item.status}`);
+    throw liveDataUnavailable("Material issue");
   }
 }
 
@@ -530,7 +531,7 @@ export async function listMaterialReturnSetup(
     const response = await apiClient.inventory.transactions({ ...filter, transactionType: "ReturnFromWO" });
     return response.items.map((item) => mapMaterialReturn(item, "Live"));
   } catch {
-    return filterSeeded(seededReturns, filter, (item) => `${item.transactionNo} ${item.sourceDocument} ${item.itemLabel} ${item.status}`);
+    throw liveDataUnavailable("Material return");
   }
 }
 
@@ -546,6 +547,6 @@ export async function listStockTransferPutawaySetup(
     const response = await apiClient.inventory.transactions({ ...filter, transactionType: "Transfer" });
     return response.items.map((item) => mapStockTransfer(item, "Live"));
   } catch {
-    return filterSeeded(seededTransfers, filter, (item) => `${item.transactionNo} ${item.itemLabel} ${item.fromLocation} ${item.toLocation} ${item.status}`);
+    throw liveDataUnavailable("Stock transfer and putaway");
   }
 }

@@ -412,7 +412,7 @@ const notificationColumns: DataGridColumn<NotificationItem>[] = [
 export function NotificationInboxPage() {
   const navigate = useNavigate();
   const { flags } = useFeatureFlags();
-  const { markAllAsRead, markAsRead, notifications, unreadCount } = useNotifications();
+  const { isLoading, loadError, markAllAsRead, markAsRead, notifications, unreadCount } = useNotifications();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [moduleFilter, setModuleFilter] = useState("all");
@@ -442,8 +442,16 @@ export function NotificationInboxPage() {
       <ListPageShell
         actions={
           <Button
-            disabled={unreadCount === 0}
-            title={unreadCount === 0 ? "All visible notifications are already read." : undefined}
+            disabled={isLoading || Boolean(loadError) || unreadCount === 0}
+            title={
+              loadError
+                ? "Notifications must load before acknowledgement."
+                : isLoading
+                  ? "Notifications are still loading."
+                  : unreadCount === 0
+                    ? "All visible notifications are already read."
+                    : undefined
+            }
             variant="secondary"
             onClick={markAllAsRead}
           >
@@ -482,6 +490,17 @@ export function NotificationInboxPage() {
             description="The shared notification toggle is off, so the inbox is paused."
             hint="Re-enable notifications from Platform Settings to restore this workspace."
             title="Notification center is paused"
+          />
+        ) : loadError ? (
+          <EmptyState
+            description="Live notification data is unavailable for this workspace. Only verified alerts are shown in this session."
+            hint={loadError}
+            title="Notification inbox unavailable"
+          />
+        ) : isLoading ? (
+          <EmptyState
+            description="Live notification data is being loaded for the current workspace."
+            title="Loading notifications"
           />
         ) : (
           <>
@@ -637,6 +656,7 @@ export function ApprovalWorkbenchPage() {
   const [moduleFilter, setModuleFilter] = useState("all");
   const [remarks, setRemarks] = useState("");
   const [isLoading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -652,6 +672,20 @@ export function ApprovalWorkbenchPage() {
 
         setApprovals(items);
         setSelected(items[0] ?? null);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setApprovals([]);
+        setSelected(null);
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Approval queue could not be loaded. Retry after the approval service is available."
+        );
       })
       .finally(() => {
         if (isMounted) {
@@ -766,38 +800,48 @@ export function ApprovalWorkbenchPage() {
         }
         title="Approval Workbench"
       >
-        <KpiStrip
-          items={[
-            { label: "Pending", value: String(pendingCount) },
-            { label: "Escalated", value: String(escalatedCount) },
-            {
-              label: "Due today",
-              value: String(
-                approvals.filter((approval) => new Date(approval.dueOn).toDateString() === new Date().toDateString()).length
-              )
-            },
-            {
-              label: "Approved",
-              value: String(approvals.filter((approval) => approval.status === "Approved").length)
-            }
-          ]}
-        />
-        <Card title="Approval queue" description="Review and act on manager-owned decisions without leaving the shared shell.">
-          <DataGrid
-            ariaLabel="Approval workbench"
-            columns={approvalColumns}
-            emptyState={{
-              title: "No approvals match the current filter",
-              description: "Adjust the module or status filters to restore the review queue.",
-              hint: "Approval work items are available for review in the current workspace."
-            }}
-            getRowId={(record) => record.id}
-            isLoading={isLoading}
-            onRowSelect={setSelected}
-            records={filtered}
-            rowLabel={(record) => `${record.referenceNo} ${record.title}`}
+        {loadError ? (
+          <EmptyState
+            description="Live approval data is unavailable for this workspace. Only verified approvals are shown in this session."
+            hint={loadError}
+            title="Approval queue unavailable"
           />
-        </Card>
+        ) : (
+          <>
+            <KpiStrip
+              items={[
+                { label: "Pending", value: String(pendingCount) },
+                { label: "Escalated", value: String(escalatedCount) },
+                {
+                  label: "Due today",
+                  value: String(
+                    approvals.filter((approval) => new Date(approval.dueOn).toDateString() === new Date().toDateString()).length
+                  )
+                },
+                {
+                  label: "Approved",
+                  value: String(approvals.filter((approval) => approval.status === "Approved").length)
+                }
+              ]}
+            />
+            <Card title="Approval queue" description="Review and act on manager-owned decisions without leaving the shared shell.">
+              <DataGrid
+                ariaLabel="Approval workbench"
+                columns={approvalColumns}
+                emptyState={{
+                  title: "No approvals match the current filter",
+                  description: "Adjust the module or status filters to restore the review queue.",
+                  hint: "Approval work items are available for review in the current workspace."
+                }}
+                getRowId={(record) => record.id}
+                isLoading={isLoading}
+                onRowSelect={setSelected}
+                records={filtered}
+                rowLabel={(record) => `${record.referenceNo} ${record.title}`}
+              />
+            </Card>
+          </>
+        )}
       </ListPageShell>
 
       <ErpModalWorkspace

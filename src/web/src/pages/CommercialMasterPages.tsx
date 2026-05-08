@@ -42,11 +42,14 @@ import { Card } from "../ui/Card";
 import type { DataGridColumn } from "../ui/DataGrid";
 import {
   ErpActionBar,
+  ErpDecimalField,
   ErpEmptyState,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
+  ErpMoneyField,
   ErpModalWorkspace,
+  ErpNumberField,
   ErpStatusChip,
   ErpValidationSummary
 } from "../ui/ErpComponents";
@@ -108,6 +111,21 @@ function formatMoney(value: number, currencyCode: string | null | undefined) {
 }
 
 function textInput(label: string, value: string | number | null | undefined, onChange: (value: string) => void, type = "text") {
+  if (type === "number") {
+    const numericValue = typeof value === "number" ? value : value ? Number(value) : null;
+    const commitNumber = (nextValue: number | null) => onChange(nextValue === null ? "" : String(nextValue));
+
+    if (/price|amount/i.test(label)) {
+      return <ErpMoneyField currencyCode="INR" label={label} min={0} onChange={commitNumber} value={numericValue} />;
+    }
+
+    if (/rate|percent|quantity/i.test(label)) {
+      return <ErpDecimalField label={label} min={0} onChange={commitNumber} scale={3} value={numericValue} />;
+    }
+
+    return <ErpNumberField label={label} min={0} onChange={commitNumber} value={numericValue} />;
+  }
+
   return (
     <label className="erp-lookup-field">
       <span>{label}</span>

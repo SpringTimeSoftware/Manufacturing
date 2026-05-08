@@ -271,7 +271,7 @@ export function MrpRunConsolePage() {
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="MRP run parameters">
             <ErpLookupField disabled disabledReason="Run type is controlled by planning policy." label="Run type" onChange={() => undefined} options={[{ label: selected.runType, value: selected.runType }]} value={selected.runType} />
-            <label><span>Planning horizon</span><input defaultValue={selected.horizon} disabled /></label>
+            <ErpLookupField disabled disabledReason="Planning horizon is controlled by the stored MRP run." label="Planning horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} />
             <ErpLookupField disabled disabledReason="MPS source is selected from the planning schedule register." label="Triggered from" onChange={() => undefined} options={[{ label: selected.triggeredFrom, value: selected.triggeredFrom }]} value={selected.triggeredFrom} />
           </FormShell>
         ) : null}

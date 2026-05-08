@@ -45,7 +45,17 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpFilterBar, ErpGrid, ErpLookupField, ErpModalWorkspace, ErpValidationSummary } from "../ui/ErpComponents";
+import {
+  ErpActionBar,
+  ErpDecimalField,
+  ErpFileActionState,
+  ErpFilterBar,
+  ErpGrid,
+  ErpLookupField,
+  ErpModalWorkspace,
+  ErpNumberField,
+  ErpValidationSummary
+} from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
 import { Tile } from "../ui/Tile";
@@ -104,6 +114,42 @@ function GovernedInlineAction({
       {disabledReason ? <small className="erp-action-bar__reason">{disabledReason}</small> : null}
     </span>
   );
+}
+
+function NumericEditField({
+  disabled,
+  label,
+  min = 0,
+  onChange,
+  step = 1,
+  value
+}: {
+  disabled?: boolean;
+  label: string;
+  min?: number;
+  onChange: (value: number | null) => void;
+  step?: number;
+  value: number | null;
+}) {
+  return <ErpNumberField disabled={disabled} label={label} min={min} onChange={onChange} step={step} value={value} />;
+}
+
+function DecimalEditField({
+  disabled,
+  label,
+  onChange,
+  scale = 3,
+  step,
+  value
+}: {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: number | null) => void;
+  scale?: number;
+  step?: number;
+  value: number | null;
+}) {
+  return <ErpDecimalField disabled={disabled} label={label} min={0} onChange={onChange} scale={scale} step={step} value={value} />;
 }
 
 function createExportJobRequest(
@@ -661,11 +707,11 @@ export function BomDetailEditorPage() {
               <div className="compact-stack" data-testid="bom-component-editor">
                 {draft.components.map((component) => (
                   <div className="form-grid form-grid--three" key={component.id}>
-                    <label><span>Sequence</span><input disabled={!canEditDraft} min={10} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, sequenceNo: Number(event.target.value) || 0 } : entry) })} type="number" value={component.sequenceNo} /></label>
+                    <NumericEditField disabled={!canEditDraft} label="Sequence" min={10} onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, sequenceNo: value ?? 0 } : entry) })} value={component.sequenceNo} />
                     <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Component item" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, componentItemId: Number(value) || 0 } : entry) })} options={itemOptions} required value={String(component.componentItemId || "")} />
                     <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Issue UOM" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, issueUomId: Number(value) || 0 } : entry) })} options={uomOptions} required value={String(component.issueUomId || "")} />
-                    <label><span>Quantity per</span><input disabled={!canEditDraft} min={0} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, quantityPer: event.target.value } : entry) })} step="0.001" type="number" value={component.quantityPer} /></label>
-                    <label><span>Scrap %</span><input disabled={!canEditDraft} min={0} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, scrapPercent: Number(event.target.value) || 0 } : entry) })} step="0.1" type="number" value={component.scrapPercent} /></label>
+                    <DecimalEditField disabled={!canEditDraft} label="Quantity per" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, quantityPer: value === null ? "" : String(value) } : entry) })} scale={3} value={component.quantityPer ? Number(component.quantityPer) : null} />
+                    <DecimalEditField disabled={!canEditDraft} label="Scrap %" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, scrapPercent: value ?? 0 } : entry) })} scale={2} step={0.1} value={component.scrapPercent} />
                     <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Issue method" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, issueMethod: value } : entry) })} options={[{ label: "Manual", value: "Manual" }, { label: "Backflush", value: "Backflush" }]} value={component.issueMethod} />
                     <label><span>Effective from</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveFrom: event.target.value || null } : entry) })} type="date" value={component.effectiveFrom ?? ""} /></label>
                     <label><span>Effective to</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveTo: event.target.value || null } : entry) })} type="date" value={component.effectiveTo ?? ""} /></label>
@@ -682,11 +728,11 @@ export function BomDetailEditorPage() {
               <div className="compact-stack" data-testid="bom-operation-editor">
                 {draft.operations.map((operation) => (
                   <div className="form-grid form-grid--three" key={operation.id}>
-                    <label><span>Sequence</span><input disabled={!canEditDraft} min={10} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, sequenceNo: Number(event.target.value) || 0 } : entry) })} type="number" value={operation.sequenceNo} /></label>
+                    <NumericEditField disabled={!canEditDraft} label="Sequence" min={10} onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, sequenceNo: value ?? 0 } : entry) })} value={operation.sequenceNo} />
                     <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Operation standard" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, operationId: Number(value) || null } : entry) })} options={operationOptions} required value={String(operation.operationId ?? "")} />
-                    <label><span>Setup minutes</span><input disabled={!canEditDraft} min={0} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, setupMinutes: Number(event.target.value) || 0 } : entry) })} step="0.1" type="number" value={operation.setupMinutes} /></label>
-                    <label><span>Run minutes / unit</span><input disabled={!canEditDraft} min={0} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, runMinutesPerUnit: Number(event.target.value) || 0 } : entry) })} step="0.1" type="number" value={operation.runMinutesPerUnit} /></label>
-                    <label><span>Teardown minutes</span><input disabled={!canEditDraft} min={0} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, teardownMinutes: Number(event.target.value) || 0 } : entry) })} step="0.1" type="number" value={operation.teardownMinutes} /></label>
+                    <DecimalEditField disabled={!canEditDraft} label="Setup minutes" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, setupMinutes: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.setupMinutes} />
+                    <DecimalEditField disabled={!canEditDraft} label="Run minutes / unit" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, runMinutesPerUnit: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.runMinutesPerUnit} />
+                    <DecimalEditField disabled={!canEditDraft} label="Teardown minutes" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, teardownMinutes: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.teardownMinutes} />
                     <div className="compact-stack">
                       <label><span>QC checkpoint</span><input checked={operation.requiresQcCheckpoint} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, requiresQcCheckpoint: event.target.checked } : entry) })} type="checkbox" /></label>
                       <label><span>Optional</span><input checked={operation.isOptional} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, isOptional: event.target.checked } : entry) })} type="checkbox" /></label>
@@ -1041,13 +1087,13 @@ export function RoutingLibraryPage() {
               <div className="compact-stack" data-testid="routing-step-editor">
                 {draft.steps.map((step) => (
                   <div className="form-grid form-grid--three" key={step.id}>
-                    <label><span>Sequence</span><input disabled={!canEditRouting} min={10} onChange={(event) => updateStep(step.id, { sequenceNo: Number(event.target.value) || 0 })} type="number" value={step.sequenceNo} /></label>
+                    <NumericEditField disabled={!canEditRouting} label="Sequence" min={10} onChange={(value) => updateStep(step.id, { sequenceNo: value ?? 0 })} value={step.sequenceNo} />
                     <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Operation standard" onChange={(value) => updateStep(step.id, { operationId: Number(value) || 0 })} options={operationOptions} required value={String(step.operationId || "")} />
                     <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Work center" onChange={(value) => updateStep(step.id, { workCenterId: value ? Number(value) : null })} options={workCenterOptions} value={String(step.workCenterId ?? "")} />
-                    <label><span>Setup minutes</span><input disabled={!canEditRouting} min={0} onChange={(event) => updateStep(step.id, { setupMinutes: Number(event.target.value) || 0 })} step="0.1" type="number" value={step.setupMinutes} /></label>
-                    <label><span>Run minutes / unit</span><input disabled={!canEditRouting} min={0} onChange={(event) => updateStep(step.id, { runMinutesPerUnit: Number(event.target.value) || 0 })} step="0.1" type="number" value={step.runMinutesPerUnit} /></label>
-                    <label><span>Teardown minutes</span><input disabled={!canEditRouting} min={0} onChange={(event) => updateStep(step.id, { teardownMinutes: Number(event.target.value) || 0 })} step="0.1" type="number" value={step.teardownMinutes} /></label>
-                    <label><span>Overlap %</span><input disabled={!canEditRouting} min={0} onChange={(event) => updateStep(step.id, { overlapPercentValue: event.target.value ? Number(event.target.value) : null, overlapPercent: `${event.target.value || 0}%` })} step="0.1" type="number" value={step.overlapPercentValue ?? 0} /></label>
+                    <DecimalEditField disabled={!canEditRouting} label="Setup minutes" onChange={(value) => updateStep(step.id, { setupMinutes: value ?? 0 })} scale={2} step={0.1} value={step.setupMinutes} />
+                    <DecimalEditField disabled={!canEditRouting} label="Run minutes / unit" onChange={(value) => updateStep(step.id, { runMinutesPerUnit: value ?? 0 })} scale={2} step={0.1} value={step.runMinutesPerUnit} />
+                    <DecimalEditField disabled={!canEditRouting} label="Teardown minutes" onChange={(value) => updateStep(step.id, { teardownMinutes: value ?? 0 })} scale={2} step={0.1} value={step.teardownMinutes} />
+                    <DecimalEditField disabled={!canEditRouting} label="Overlap %" onChange={(value) => updateStep(step.id, { overlapPercentValue: value, overlapPercent: `${value ?? 0}%` })} scale={2} step={0.1} value={step.overlapPercentValue ?? 0} />
                     <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Step status" onChange={(value) => updateStep(step.id, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Active", value: "Active" }]} value={step.status} />
                     <ErpLookupField disabled disabledReason="Machine assignment stays in capacity planning until routing-machine control is enabled." label="Machine assignment" onChange={() => undefined} options={machineOptions} value="" />
                     <div className="compact-stack">
@@ -1231,9 +1277,9 @@ export function OperationStandardPage() {
               <ErpLookupField disabled disabledReason="Machine assignment remains controlled in capacity planning until resource-machine mapping is enabled." label="Default machine" onChange={() => undefined} options={[]} value="" />
               <ErpLookupField disabled disabledReason="Operator qualification is maintained in the resource register before operation assignment is enabled." label="Operator qualification" onChange={() => undefined} options={[]} value="" />
               <ErpLookupField disabled={!canEditOperation} disabledReason={!canEditOperation ? saveReason : undefined} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Active", value: "Active" }, { label: "Inactive", value: "Inactive" }]} value={draft.status} />
-              <label><span>Setup minutes</span><input disabled={!canEditOperation} min={0} onChange={(event) => setDraft({ ...draft, setupMinutes: Number(event.target.value) || 0 })} step="0.1" type="number" value={draft.setupMinutes} /></label>
-              <label><span>Run minutes / unit</span><input disabled={!canEditOperation} min={0} onChange={(event) => setDraft({ ...draft, runMinutesPerUnit: Number(event.target.value) || 0 })} step="0.1" type="number" value={draft.runMinutesPerUnit} /></label>
-              <label><span>Teardown minutes</span><input disabled={!canEditOperation} min={0} onChange={(event) => setDraft({ ...draft, teardownMinutes: Number(event.target.value) || 0 })} step="0.1" type="number" value={draft.teardownMinutes} /></label>
+              <DecimalEditField disabled={!canEditOperation} label="Setup minutes" onChange={(value) => setDraft({ ...draft, setupMinutes: value ?? 0 })} scale={2} step={0.1} value={draft.setupMinutes} />
+              <DecimalEditField disabled={!canEditOperation} label="Run minutes / unit" onChange={(value) => setDraft({ ...draft, runMinutesPerUnit: value ?? 0 })} scale={2} step={0.1} value={draft.runMinutesPerUnit} />
+              <DecimalEditField disabled={!canEditOperation} label="Teardown minutes" onChange={(value) => setDraft({ ...draft, teardownMinutes: value ?? 0 })} scale={2} step={0.1} value={draft.teardownMinutes} />
             </FormShell>
             <Card title="Execution controls" description="Overlap, QC, and outside-processing flags stay explicit before the standard is released into routings.">
               <div className="form-grid form-grid--three">
@@ -1285,6 +1331,15 @@ export function AlternateItemRulesPage() {
   );
   const itemOptions = (itemsQuery.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
   const bomOptions = (bomQuery.data ?? []).map((bom) => ({ label: `${bom.bomCode} / ${bom.bomName}`, value: String(bom.id) }));
+  const reasonCodeOptions = useMemo(() => {
+    const knownCodes = new Set(
+      ["SHORTAGE", "PROCUREMENT", "QUALITY", "COST"].concat(
+        records.map((record) => record.reasonCode).filter((reasonCode) => reasonCode && reasonCode !== "Not specified")
+      )
+    );
+
+    return Array.from(knownCodes).map((reasonCode) => ({ label: reasonCode, value: reasonCode }));
+  }, [records]);
   const saveMutation = useApiMutation(
     (request: { alternateRuleId: number | null; body: AlternateItemUpsertRequest }) =>
       request.alternateRuleId
@@ -1420,10 +1475,17 @@ export function AlternateItemRulesPage() {
               <ErpLookupField disabled={!canEditRule} disabledReason={!canEditRule ? saveReason : undefined} label="Context" onChange={(value) => setDraft({ ...draft, contextType: value, bomId: value === "BOM" ? draft.bomId : null })} options={[{ label: "Global", value: "Global" }, { label: "BOM", value: "BOM" }, { label: "Shortage", value: "Shortage" }, { label: "Procurement", value: "Procurement" }]} required value={draft.contextType} />
               <ErpLookupField disabled={!canEditRule || draft.contextType !== "BOM"} disabledReason={draft.contextType !== "BOM" ? "BOM context is required before selecting a BOM." : !canEditRule ? saveReason : undefined} label="BOM context" onChange={(value) => setDraft({ ...draft, bomId: value ? Number(value) : null })} options={bomOptions} value={String(draft.bomId ?? "")} />
               <ErpLookupField disabled={!canEditRule} disabledReason={!canEditRule ? saveReason : undefined} label="Approval status" onChange={(value) => setDraft({ ...draft, approvalStatus: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Approved", value: "Approved" }, { label: "Obsolete", value: "Obsolete" }]} value={draft.approvalStatus} />
-              <label><span>Priority rank</span><input disabled={!canEditRule} min={1} onChange={(event) => setDraft({ ...draft, priorityRank: Number(event.target.value) || 0 })} step={1} type="number" value={draft.priorityRank} /></label>
+              <NumericEditField disabled={!canEditRule} label="Priority rank" min={1} onChange={(value) => setDraft({ ...draft, priorityRank: value ?? 0 })} value={draft.priorityRank} />
               <label><span>Effective from</span><input disabled={!canEditRule} onChange={(event) => setDraft({ ...draft, effectiveFrom: event.target.value })} type="date" value={draft.effectiveFrom} /></label>
               <label><span>Effective to</span><input disabled={!canEditRule} onChange={(event) => setDraft({ ...draft, effectiveTo: event.target.value })} type="date" value={draft.effectiveTo} /></label>
-              <label><span>Reason code</span><input disabled={!canEditRule} onChange={(event) => setDraft({ ...draft, reasonCode: event.target.value })} placeholder="Supply risk, customer override, approved source" value={draft.reasonCode} /></label>
+              <ErpLookupField
+                disabled={!canEditRule}
+                disabledReason={!canEditRule ? saveReason : undefined}
+                label="Reason code"
+                onChange={(value) => setDraft({ ...draft, reasonCode: value })}
+                options={reasonCodeOptions}
+                value={draft.reasonCode}
+              />
             </FormShell>
             <Card title="Rule release guardrails" description="Alternate-item approval remains explicit so planners and buyers see the same rule context.">
               <div className="utility-grid">
@@ -1535,8 +1597,8 @@ export function EngineeringAttachmentViewerPage() {
           <>
             <FormShell initialFingerprint={`${draft.mode}-${draft.attachmentId ?? "draft"}`} title="Document link">
               <ErpLookupField disabled={draft.mode === "view"} disabledReason={draft.mode === "view" ? "Existing document links are reviewed here and changed through a new document link." : undefined} label="Related document type" onChange={(value) => setDraft({ ...draft, relatedDocumentType: value })} options={[{ label: "BOM", value: "BOM" }, { label: "Routing", value: "Routing" }, { label: "ECO", value: "ECO" }, { label: "Alternate item", value: "AlternateItem" }]} required value={draft.relatedDocumentType} />
-              <label><span>Related document ID</span><input disabled={draft.mode === "view"} min={1} onChange={(event) => setDraft({ ...draft, relatedDocumentId: Number(event.target.value) || 0 })} type="number" value={draft.relatedDocumentId || ""} /></label>
-              <label><span>Linked file</span><input aria-label="Linked file" disabled={draft.mode === "view"} onChange={(event) => { const file = event.target.files?.[0] ?? null; setDraft({ ...draft, file, fileName: file?.name ?? draft.fileName }); }} type="file" /></label>
+              <NumericEditField disabled={draft.mode === "view"} label="Related document ID" min={1} onChange={(value) => setDraft({ ...draft, relatedDocumentId: value ?? 0 })} value={draft.relatedDocumentId || null} />
+              <ErpFileActionState enabled={draft.mode !== "view"} fileName={draft.file?.name ?? draft.fileName} label="Linked file" onFileSelect={(file) => setDraft({ ...draft, file, fileName: file?.name ?? draft.fileName })} />
               <label><span>File name</span><input disabled value={draft.file?.name ?? draft.fileName} /></label>
             </FormShell>
             <Card title="Link summary" description="Linked engineering documents remain searchable by source record and file name.">

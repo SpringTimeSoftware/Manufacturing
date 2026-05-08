@@ -26,6 +26,10 @@ const navigationGroups: Array<{ label: string; sourceSections: string[]; visible
 ];
 
 type NavigationIconName =
+  | "approval"
+  | "attachment"
+  | "audit"
+  | "bell"
   | "dashboard"
   | "dispatch"
   | "engineering"
@@ -37,7 +41,11 @@ type NavigationIconName =
   | "procurement"
   | "production"
   | "quality"
-  | "reports";
+  | "reports"
+  | "roles"
+  | "settings"
+  | "users"
+  | "workflow";
 
 function groupNavigationItems() {
   const grouped = navigationGroups
@@ -99,6 +107,38 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     return "procurement";
   }
 
+  if (item.path === "/platform/notifications") {
+    return "bell";
+  }
+
+  if (item.path === "/platform/approvals") {
+    return "approval";
+  }
+
+  if (item.path === "/platform/attachments") {
+    return "attachment";
+  }
+
+  if (item.path === "/platform/users") {
+    return "users";
+  }
+
+  if (item.path === "/platform/roles") {
+    return "roles";
+  }
+
+  if (item.path === "/platform/audit-trail") {
+    return "audit";
+  }
+
+  if (item.path === "/platform/workflow-numbering") {
+    return "workflow";
+  }
+
+  if (item.path.includes("/platform/settings") || item.path.includes("/platform/tenant-settings")) {
+    return "settings";
+  }
+
   if (item.path.includes("platform")) {
     return "platform";
   }
@@ -128,6 +168,33 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
   };
 
   const paths: Record<NavigationIconName, ReactElement> = {
+    approval: (
+      <>
+        <path {...common} d="M7 4h10v16H7V4Z" />
+        <path {...common} d="M9.5 8h5" />
+        <path {...common} d="m9.5 13 1.5 1.5 3.5-4" />
+      </>
+    ),
+    attachment: (
+      <>
+        <path {...common} d="m8 12 5.8-5.8a3 3 0 0 1 4.2 4.2l-7.3 7.3a4.2 4.2 0 0 1-5.9-5.9l6.6-6.6" />
+        <path {...common} d="m10 14 5.6-5.6" />
+      </>
+    ),
+    audit: (
+      <>
+        <path {...common} d="M6 4h9l3 3v13H6V4Z" />
+        <path {...common} d="M15 4v4h3" />
+        <path {...common} d="M8.5 12h7" />
+        <path {...common} d="M8.5 16h4" />
+      </>
+    ),
+    bell: (
+      <>
+        <path {...common} d="M6.5 10.5a5.5 5.5 0 0 1 11 0v3.2l1.5 2.8H5l1.5-2.8v-3.2Z" />
+        <path {...common} d="M10 19a2 2 0 0 0 4 0" />
+      </>
+    ),
     dashboard: (
       <>
         <path {...common} d="M4 13.5h5.5V4H4v9.5Z" />
@@ -221,6 +288,42 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="M9 15v2" />
         <path {...common} d="M12 12v5" />
         <path {...common} d="M15 13.5V17" />
+      </>
+    ),
+    roles: (
+      <>
+        <path {...common} d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path {...common} d="M3.8 19a4.2 4.2 0 0 1 8.4 0" />
+        <path {...common} d="M15 8h5" />
+        <path {...common} d="M15 12h4" />
+        <path {...common} d="M15 16h3" />
+      </>
+    ),
+    settings: (
+      <>
+        <path {...common} d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+        <path {...common} d="M12 3.5v2" />
+        <path {...common} d="M12 18.5v2" />
+        <path {...common} d="M4.6 7.2 6.2 8.3" />
+        <path {...common} d="m17.8 15.7 1.6 1.1" />
+        <path {...common} d="m19.4 7.2-1.6 1.1" />
+        <path {...common} d="m6.2 15.7-1.6 1.1" />
+      </>
+    ),
+    users: (
+      <>
+        <path {...common} d="M9 11a3.2 3.2 0 1 0 0-6.4A3.2 3.2 0 0 0 9 11Z" />
+        <path {...common} d="M3.8 19a5.2 5.2 0 0 1 10.4 0" />
+        <path {...common} d="M16 10.5a2.4 2.4 0 1 0 0-4.8" />
+        <path {...common} d="M17 19a4 4 0 0 0-2.2-3.6" />
+      </>
+    ),
+    workflow: (
+      <>
+        <path {...common} d="M5 6.5h5v5H5v-5Z" />
+        <path {...common} d="M14 12.5h5v5h-5v-5Z" />
+        <path {...common} d="M10 9h2.5a3.5 3.5 0 0 1 3.5 3.5" />
+        <path {...common} d="M12 15H9.5A3.5 3.5 0 0 1 6 11.5" />
       </>
     )
   };
@@ -326,20 +429,24 @@ export function AppShell() {
                   </span>
                 </button>
                 <div className="app-shell__nav-links">
-                  {visibleItems.map((item) => (
-                    <NavLink
-                      key={item.path}
-                      className={({ isActive }) =>
-                        `app-shell__nav-link ${isActive ? "app-shell__nav-link--active" : ""}`
-                      }
-                      to={item.path}
-                    >
-                      <span className="app-shell__nav-icon" aria-hidden="true">
-                        <NavigationIcon name={getNavigationIcon(item, group.label)} />
-                      </span>
-                      <span className="app-shell__nav-text">{item.label}</span>
-                    </NavLink>
-                  ))}
+                  {visibleItems.map((item) => {
+                    const iconName = getNavigationIcon(item, group.label);
+
+                    return (
+                      <NavLink
+                        key={item.path}
+                        className={({ isActive }) =>
+                          `app-shell__nav-link app-shell__nav-link--child ${isActive ? "app-shell__nav-link--active" : ""}`
+                        }
+                        to={item.path}
+                      >
+                        <span className="app-shell__nav-icon" aria-hidden="true" data-nav-icon={iconName}>
+                          <NavigationIcon name={iconName} />
+                        </span>
+                        <span className="app-shell__nav-text">{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
                 </div>
               </section>
             );

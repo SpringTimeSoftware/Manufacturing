@@ -2,12 +2,17 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   ErpActionBar,
+  ErpDecimalField,
+  ErpFileActionState,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
+  ErpMoneyField,
   ErpModalWorkspace,
+  ErpNumberField,
   ErpStatusChip,
-  ErpValidationSummary
+  ErpValidationSummary,
+  parseGovernedNumberInput
 } from "./ErpComponents";
 import type { DataGridColumn } from "./DataGrid";
 import { Tile } from "./Tile";
@@ -86,6 +91,49 @@ describe("ERP governance UI components", () => {
 
     expect(screen.getByLabelText("Stock UOM").tagName).toBe("SELECT");
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("disables empty governed lookups instead of allowing uncontrolled master text", () => {
+    render(<ErpLookupField label="Warehouse" onChange={vi.fn()} options={[]} value="" />);
+
+    expect(screen.getByLabelText("Warehouse")).toBeDisabled();
+    expect(screen.getByText("Lookup source is not available for this context.")).toBeInTheDocument();
+  });
+
+  it("normalizes numeric, decimal, and money controls through governed inputs", () => {
+    const onNumber = vi.fn();
+    const onDecimal = vi.fn();
+    const onMoney = vi.fn();
+
+    render(
+      <>
+        <ErpNumberField label="Lead time days" min={0} onChange={onNumber} value={5} />
+        <ErpDecimalField label="Quantity per" min={0} onChange={onDecimal} scale={3} value={1.25} />
+        <ErpMoneyField currencyCode="INR" label="Unit price" min={0} onChange={onMoney} value={42.5} />
+      </>
+    );
+
+    fireEvent.change(screen.getByLabelText("Lead time days"), { target: { value: "7" } });
+    fireEvent.change(screen.getByLabelText("Quantity per"), { target: { value: "2.1254" } });
+    fireEvent.change(screen.getByLabelText("Unit price"), { target: { value: "99.987" } });
+
+    expect(onNumber).toHaveBeenCalledWith(7);
+    expect(onDecimal).toHaveBeenCalledWith(2.125);
+    expect(onMoney).toHaveBeenCalledWith(99.99);
+    expect(parseGovernedNumberInput("plain text")).toBeNull();
+  });
+
+  it("keeps file actions disabled unless storage or a real file workflow is available", () => {
+    render(
+      <ErpFileActionState
+        disabledReason="Document storage is not enabled."
+        enabled={false}
+        label="Upload document"
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Upload document" })).toBeDisabled();
+    expect(screen.getByText("Document storage is not enabled.")).toBeInTheDocument();
   });
 
   it("renders fixed ERP status chips and dense grids", () => {

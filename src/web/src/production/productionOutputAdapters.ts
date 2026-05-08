@@ -7,6 +7,7 @@ import type {
   ScrapEntryDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface ProductionReceiptItem {
@@ -71,10 +72,6 @@ export interface MachineStatusItem {
   riskStatus: string;
   availabilityPercent: number;
   source: MasterDataSource;
-}
-
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
 }
 
 function matchesFilter(value: string, filter: QueryFilter) {
@@ -310,7 +307,7 @@ export async function listProductionReceipts(session: AuthSessionResponse | null
     const response = await apiClient.production.productionReceipts(filter);
     return response.items.map((item) => mapReceipt(item, "Live"));
   } catch {
-    return filterSeeded(seededReceipts, filter, (item) => `${item.receiptNo} ${item.workOrderLabel} ${item.status}`);
+    throw liveDataUnavailable("Production receipt");
   }
 }
 
@@ -323,7 +320,7 @@ export async function listScrapByProducts(session: AuthSessionResponse | null | 
     const response = await apiClient.production.scrapEntries(filter);
     return response.items.map((item) => mapScrap(item, "Live"));
   } catch {
-    return filterSeeded(seededScrap, filter, (item) => `${item.scrapNo} ${item.itemLabel} ${item.reasonCode} ${item.status}`);
+    throw liveDataUnavailable("Scrap and by-product");
   }
 }
 
@@ -336,7 +333,7 @@ export async function listReworkOrders(session: AuthSessionResponse | null | und
     const response = await apiClient.production.reworkOrders(filter);
     return response.items.map((item) => mapRework(item, "Live"));
   } catch {
-    return filterSeeded(seededRework, filter, (item) => `${item.reworkNo} ${item.sourceDocument} ${item.status}`);
+    throw liveDataUnavailable("Rework order");
   }
 }
 
@@ -353,6 +350,6 @@ export async function listMachineStatus(session: AuthSessionResponse | null | un
     });
     return response.map((item) => mapMachineStatus(item, "Live"));
   } catch {
-    return filterSeeded(seededMachineStatus, filter, (item) => `${item.machineLabel} ${item.currentStatus} ${item.riskStatus}`);
+    throw liveDataUnavailable("Machine status");
   }
 }

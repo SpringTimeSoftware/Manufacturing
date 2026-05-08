@@ -62,6 +62,21 @@ describe("AuthProvider session restore", () => {
     expect(readStoredSession()).toBeNull();
   });
 
+  it("keeps a current browser session when live profile verification has a transient failure", async () => {
+    storeSession(buildDemoSession());
+    vi.spyOn(apiClient.auth, "me").mockRejectedValueOnce(new ApiError("Profile service unavailable.", 500));
+
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(screen.getByTestId("auth-status")).toHaveTextContent("authenticated"));
+    await waitFor(() => expect(screen.getByTestId("restore-error")).toHaveTextContent("Session was restored"));
+    expect(readStoredSession()?.accessToken).toBe("demo-access-token");
+  });
+
   it("clears malformed stored sessions before restore", async () => {
     localStorage.setItem("sts-mfg.web.session", JSON.stringify({ refreshToken: "expired-refresh-token" }));
 

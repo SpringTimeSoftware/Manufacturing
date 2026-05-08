@@ -26,7 +26,7 @@ import { ListPageShell } from "../ui/ListPageShell";
 import { FilterBar } from "../ui/FilterBar";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
+import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { Timeline } from "../ui/Timeline";
 import { KpiStrip, LaneBoard, OccupancyCalendar } from "../ui/boards";
@@ -34,7 +34,7 @@ import type { BomRecord } from "../api/mockData";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -167,7 +167,7 @@ export function BomLibraryPage() {
             >
               <label>
                 <span>Parent item</span>
-                <input defaultValue={selected.parentItem} />
+                <input disabled defaultValue={selected.parentItem} />
               </label>
               <label>
                 <span>Default issue method</span>
@@ -257,7 +257,7 @@ export function CycleCountPage() {
             </Card>
             <FormShell initialFingerprint={selected.id} title="Approval controls">
               <ErpLookupField disabled disabledReason="Count status is controlled by count approval workflow." label="Status" onChange={() => undefined} options={[{ label: selected.status, value: selected.status }]} value={selected.status} />
-              <label><span>Remarks</span><input defaultValue={selected.remarks} /></label>
+              <label><span>Remarks</span><input disabled defaultValue={selected.remarks} /></label>
             </FormShell>
           </>
         ) : null}
@@ -551,7 +551,7 @@ export function ShiftProductionEntryPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace description="Shift production detail is review-only until summary submission is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Submit summary", reason: "Shift summary submission requires production execution workflow enablement." }]} secondary={[{ disabled: true, label: "Save shift draft", reason: "Shift draft save requires production execution workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.jobCardLabel ?? "Shift production"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Shift production controls" description={selected.issueSummary}><label><span>Good quantity</span><input defaultValue={selected.goodQuantity} /></label><label><span>Reject quantity</span><input defaultValue={selected.rejectQuantity} /></label><label><span>Scrap quantity</span><input defaultValue={selected.scrapQuantity} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Shift production controls" description={selected.issueSummary}><ErpNumberField disabled disabledReason="Shift quantities are posted through the controlled production workflow." label="Good quantity" onChange={() => undefined} value={selected.goodQuantity} /><ErpNumberField disabled disabledReason="Shift quantities are posted through the controlled production workflow." label="Reject quantity" onChange={() => undefined} value={selected.rejectQuantity} /><ErpNumberField disabled disabledReason="Shift quantities are posted through the controlled production workflow." label="Scrap quantity" onChange={() => undefined} value={selected.scrapQuantity} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -586,7 +586,7 @@ export function DowntimeRegisterPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace description="Downtime detail is review-only until RCA workflow is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save downtime review", reason: "Downtime review save requires RCA workflow enablement." }]} secondary={[{ disabled: true, label: "Open RCA queue", reason: "RCA workflow is pending quality action enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.reasonCode ?? "Downtime event"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Downtime review controls" description={selected.remarks}><ErpLookupField disabled disabledReason="Machine selection is controlled by machine master." label="Machine" onChange={() => undefined} options={[{ label: selected.machineLabel, value: selected.machineLabel }]} value={selected.machineLabel} /><label><span>Start</span><input defaultValue={selected.startOn} /></label><label><span>End</span><input defaultValue={selected.endOn} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Downtime review controls" description={selected.remarks}><ErpLookupField disabled disabledReason="Machine selection is controlled by machine master." label="Machine" onChange={() => undefined} options={[{ label: selected.machineLabel, value: selected.machineLabel }]} value={selected.machineLabel} /><label><span>Start</span><input disabled defaultValue={selected.startOn} /></label><label><span>End</span><input disabled defaultValue={selected.endOn} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

@@ -5,6 +5,7 @@ import {
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren
 } from "react";
@@ -98,6 +99,16 @@ function toUserSafeSignInMessage(error: unknown) {
   return "Sign-in could not be completed. Retry or contact your administrator.";
 }
 
+function isAccessTokenCurrent(session: AuthSessionResponse) {
+  const expiresOn = Date.parse(session.accessTokenExpiresOnUtc);
+
+  if (!Number.isFinite(expiresOn)) {
+    return false;
+  }
+
+  return expiresOn > Date.now() + 30_000;
+}
+
 interface AuthProviderProps extends PropsWithChildren {
   disableAutoRestore?: boolean;
   initialRestoreError?: string | null;
@@ -115,6 +126,7 @@ export function AuthProvider({
   const [status, setStatus] = useState<AuthStatus>(initialSession ? "authenticated" : initialStatus);
   const [session, setSession] = useState<AuthSessionResponse | null>(initialSession);
   const [restoreError, setRestoreError] = useState<string | null>(initialRestoreError);
+  const restoreStarted = useRef(false);
 
   const commitSession = (nextSession: AuthSessionResponse | null) => {
     setSession(nextSession);
@@ -136,6 +148,10 @@ export function AuthProvider({
       return;
     }
 
+    if (isAccessTokenCurrent(stored)) {
+      commitSession(stored);
+    }
+
     try {
       const currentUser = await apiClient.auth.me();
       commitSession({
@@ -146,8 +162,14 @@ export function AuthProvider({
       return;
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401) {
+        if (isAccessTokenCurrent(stored)) {
+          commitSession(stored);
+          setRestoreError("Session was restored from this browser. Live profile refresh will retry with the next API call.");
+          return;
+        }
+
         commitSession(null);
-        setRestoreError(null);
+        setRestoreError("Session could not be verified. Sign in again to continue.");
         return;
       }
     }
@@ -159,17 +181,26 @@ export function AuthProvider({
       });
       commitSession(refreshed);
       setRestoreError(null);
-    } catch {
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status >= 500 || error.status === 0) {
+        if (isAccessTokenCurrent(stored)) {
+          commitSession(stored);
+          setRestoreError("Session was restored from this browser. Token refresh will retry when the API is available.");
+          return;
+        }
+      }
+
       commitSession(null);
       setRestoreError(null);
     }
   });
 
   useEffect(() => {
-    if (disableAutoRestore) {
+    if (disableAutoRestore || restoreStarted.current) {
       return;
     }
 
+    restoreStarted.current = true;
     void restoreSession();
   }, [disableAutoRestore, restoreSession]);
 

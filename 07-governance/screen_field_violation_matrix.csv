@@ -1,0 +1,125 @@
+Route,Field,ViolationType,Severity,FixApplied,RemainingDependency
+/platform/notifications,Live notification rows,seeded/live data issue,High,Live authenticated sessions no longer render seeded notifications on API failure,Notification delivery/audit depth remains partial
+/platform/approvals,Live approval rows,seeded/live data issue,High,Live authenticated sessions no longer render seeded approvals or record local success on API failure,Approval comments/delegation/history remain partial
+/masters/items,Lead time days,numeric as text,High,Replaced with ErpNumberField,Full item extension persistence remains partial
+/masters/items,Upload media,upload action not truthful,High,Replaced disabled upload button with ErpFileActionState disabled reason,Media storage workflow not enabled
+/masters/items,Supplier ID / Customer ID,numeric as text,High,Replaced editable ID cells with ErpNumberField,Reference rows still need full customer/supplier lookup source
+/masters/items,Supplier / Customer reference,free text instead of lookup,High,Replaced touched reference name cells with ErpLookupField,Lookup source should use full partner APIs instead of current row values
+/masters/items,Purchase UOM,free text instead of lookup,High,Replaced editable reference UOM with ErpLookupField,UOM source remains derived from current item list
+/masters/items,Compliance / document status,free text instead of lookup,Medium,Replaced touched status cells with ErpLookupField,Status-rule source should be centralized
+/partners/customers,Credit days,numeric as text,High,Replaced with ErpNumberField,Customer credit workflow remains partial
+/partners/customers,Upload customer document,upload action not truthful,High,Replaced action-bar disabled upload with ErpFileActionState disabled reason,Binary storage/document control remains disabled
+/partners/suppliers,Upload compliance document,upload action not truthful,High,Replaced action-bar disabled upload with ErpFileActionState disabled reason,Binary storage/document control remains disabled
+/partners/suppliers,Upload supplier document,upload action not truthful,High,Replaced action-bar disabled upload with ErpFileActionState disabled reason,Binary storage/document control remains disabled
+/commercial/price-lists,Line number,numeric as text,High,Commercial numeric helper now routes type=number to ErpNumberField,Price-list authoring is still partially disabled outside live write access
+/commercial/price-lists,Minimum quantity,numeric as text,High,Commercial numeric helper now routes quantities to ErpDecimalField,Line persistence depends on commercial API
+/commercial/price-lists,Unit price,numeric as text,High,Commercial numeric helper now routes price/amount fields to ErpMoneyField,Currency display is currently inherited as INR in helper
+/commercial/discount-schemes,Discount percent,numeric as text,High,Commercial numeric helper now routes percent fields to ErpDecimalField,Discount approval workflow remains partial
+/commercial/discount-schemes,Discount amount,numeric as text,High,Commercial numeric helper now routes amount fields to ErpMoneyField,Currency display should bind selected scheme currency
+/commercial/currencies,Decimal precision,numeric as text,Medium,Commercial numeric helper now routes to ErpNumberField,Currency setup persistence is live only
+/commercial/exchange-rates,Manual rate,numeric as text,High,Commercial numeric helper now routes rate fields to ErpDecimalField,Exchange-rate approval workflow remains partial
+/commercial/tax-categories,Default rate percent,numeric as text,High,Commercial numeric helper now routes percent fields to ErpDecimalField,Tax approval/versioning remains partial
+/commercial/payment-terms,Net days / discount days,numeric as text,Medium,Commercial numeric helper now routes day fields to ErpNumberField,Payment term versioning remains partial
+/sales/quotes,Live quote rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/sales/orders,Live sales order rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/sales/blankets,Live blanket rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/sales/forecasts,Live forecast rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/planning/mps,Live MPS rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/engineering/boms,Parent item,free text instead of lookup,Medium,Legacy operations BOM preview parent item made disabled read-only,Full older BOM library screen remains reference-only
+/engineering/bom-editor,Component sequence,numeric as text,High,Replaced with ErpNumberField,Live BOM draft API remains required for editing
+/engineering/bom-editor,Quantity per,numeric as text,High,Replaced with ErpDecimalField,Live BOM draft API remains required for editing
+/engineering/bom-editor,Scrap percent,numeric as text,High,Replaced with ErpDecimalField,Live BOM draft API remains required for editing
+/engineering/bom-editor,Operation timing,numeric as text,High,Replaced setup/run/teardown fields with ErpDecimalField,Operation source remains governed by operation standards
+/engineering/routings,Routing step sequence,numeric as text,High,Replaced with ErpNumberField,Live routing draft API remains required for editing
+/engineering/routings,Routing step timing,numeric as text,High,Replaced setup/run/teardown/overlap fields with ErpDecimalField,Machine assignment workflow remains disabled
+/engineering/operations,Operation timing,numeric as text,High,Replaced setup/run/teardown fields with ErpDecimalField,Machine/operator qualification sources remain disabled
+/engineering/alternate-items,Priority rank,numeric as text,Medium,Replaced with ErpNumberField,Alternate approval workflow remains partial
+/engineering/alternate-items,Reason code,free text instead of lookup,High,Replaced with ErpLookupField backed by known alternate-item reason codes and live record reason codes,Central reason-code API should replace the local known-code list
+/engineering/documents,Related document ID,numeric as text,Medium,Replaced with ErpNumberField,Related document search/lookup remains pending
+/engineering/documents,Linked file,upload action not truthful,High,Replaced file input with ErpFileActionState for real linked-document workflow,Document-control audit remains disabled
+/planning/boq,Controlled item/BOM fields,free text instead of lookup,Medium,Existing lookup controls verified; no new screen-specific hack applied,BOQ conversion workflow remains partial
+/planning/mrp-run,Branch/warehouse/demand source,free text instead of lookup,Medium,Existing controlled selects remain enforced; no dead start action added,MRP run depth remains partial
+/planning/capacity,Capacity board layout,layout violation,High,Capacity board scroll containment retained from stabilization,Reschedule/split workflows remain disabled
+/production/work-orders,Live work order rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/production/work-orders,Review-only fields,dead action,Medium,Read-only parent item field disabled where touched,Work-order release/create lifecycle remains partial
+/production/job-cards,Live job card rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/production/shift-production,Good/reject/scrap quantities,numeric as text,High,Replaced review quantities with disabled ErpNumberField,Posting workflow remains disabled
+/production/downtime,Start/end review fields,dead action,Medium,Read-only date fields disabled,Overlap validation/RCA workflow remains partial
+/production/machine-board,Live machine board rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Page-specific error state can be improved
+/inventory/balances,Live inventory balances,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Traceability depth remains partial
+/inventory/material-issue,Live material issue rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Posting workflow remains disabled
+/inventory/material-return,Live material return rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Posting workflow remains disabled
+/inventory/transfers,Live transfer rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Posting workflow remains disabled
+/inventory/traceability,Trace lookup,seeded/live data issue,High,Live session without trace search now returns empty and live failures throw unavailable,Trace search UX should expose error state more clearly
+/production/receipts,Live receipt rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Posting workflow remains disabled
+/production/receipts,Output / posted fields,dead action,Medium,Review-only fields disabled,Receipt posting workflow remains disabled
+/production/scrap-by-products,Live scrap rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Posting/costing workflow remains disabled
+/production/scrap-by-products,Valuation field,dead action,Medium,Review-only field disabled,Costing workflow remains deferred
+/production/rework-orders,Live rework rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Quality/production rework workflow remains disabled
+/production/rework-orders,Released/closed field,dead action,Medium,Review-only field disabled,Rework lifecycle remains disabled
+/production/machine-status,Live machine status rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,OEE-lite export remains disabled
+/quality/qc-plans,Live QC plan rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,QC plan authoring remains disabled
+/quality/incoming-inspection,Live inspection rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Inspection entry workflow remains disabled
+/quality/in-process-inspection,Live inspection rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Inspection entry workflow remains disabled
+/quality/final-inspection,Live inspection rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Inspection entry workflow remains disabled
+/quality/ncr,Live NCR rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,NCR creation/disposition workflow remains disabled
+/quality/ncr,Root cause field,dead action,Medium,Review-only field disabled,NCR save workflow remains disabled
+/dispatch/pack-lists,Live pack-list rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Pack-list creation remains disabled
+/dispatch/planning,Live dispatch planning rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Dispatch-wave planning remains disabled
+/dispatch/shipments,Live shipment rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded fallback on API failure,Shipment preparation remains disabled
+/dispatch/shipments,Tracking field,dead action,Medium,Review-only field disabled,Shipment save workflow remains disabled
+/platform/attachments,Upload/download/version actions,upload action not truthful,High,Existing action truth remains disabled where workflow is unavailable,Attachment authorization/versioning remains partial
+/platform/users,Role/scope selectors,free text instead of lookup,Medium,Existing role/scope controls remain governed,User lifecycle remains partial
+/platform/roles,Permission actions,dead action,Medium,ErpActionBar continues disabling handlerless role actions,Role cloning/custom role governance remains disabled
+/organization/companies,Country/tax/calendar fields,free text instead of lookup,Medium,No new changes this pass,Organization extension lookups remain partial
+/organization/branches,Warehouse/contact/calendar fields,free text instead of lookup,Medium,No new changes this pass,Branch policy lookups remain partial
+/organization/departments,Manager mapping,free text instead of lookup,Medium,No new changes this pass,User/manager lookup depth remains partial
+/organization/warehouses,Branch/bin policy fields,free text instead of lookup,Medium,No new changes this pass,Warehouse capacity/policy depth remains partial
+/organization/bins,Warehouse/bin parent fields,free text instead of lookup,Medium,No new changes this pass,Bin hierarchy depth remains partial
+/organization/shifts,Branch/work-center/crew fields,free text instead of lookup,Medium,No new changes this pass,Calendar versioning remains partial
+/measurements/uom-classes,UOM class fields,free text instead of lookup,Low,Existing lookup behavior retained,Activation dependency workflow remains partial
+/measurements/uom-conversions,Conversion factors,numeric as text,Medium,No new changes this pass,Formula editor needs ErpDecimalField migration
+/measurements/profiles,Measurement values,numeric as text,Medium,No new changes this pass,Catch-weight/dimension model needs numeric migration
+/masters/item-groups,Default UOM/profile fields,free text instead of lookup,Medium,No new changes this pass,Category default source depth remains partial
+/masters/item-attributes,Allowed values/status,free text instead of lookup,Low,No new changes this pass,Attribute value governance remains partial
+/masters/reason-codes,Applicability/status fields,free text instead of lookup,Medium,No new changes this pass,Reason-code workflow source should feed all dependent screens
+/partners/supplier-lead-times,Lead time days,numeric as text,High,Replaced review value with disabled ErpNumberField,Supplier lead-time save workflow remains partial
+/inventory/balances,Lot / serial,free text instead of lookup,Medium,Replaced review value with disabled ErpLookupField,Lot/serial selector and trace lookup depth remain partial
+/inventory/balances,Catch-weight basis,free text instead of lookup,Medium,Replaced review value with disabled ErpLookupField,Catch-weight decimal persistence remains partial
+/sales/blanket-orders,Horizon,free text instead of lookup,Medium,Replaced review value with disabled ErpLookupField,Editable blanket horizon workflow remains partial
+/sales/blanket-orders,Next release,layout violation,Medium,Replaced generic disabled text field with governed disabled selector/date-control placeholder,Editable release calendar workflow remains partial
+/planning/mps,Horizon,free text instead of lookup,Medium,Replaced review value with disabled ErpLookupField,MPS draft edit workflow remains partial
+/planning/mrp,Planning horizon,free text instead of lookup,Medium,Replaced selected-run review value with disabled ErpLookupField,MRP horizon source should bind planning calendar API
+/masters/uom-classes,Live setup rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded setup rows on API failure,Page-specific error state can be improved
+/masters/uom-conversions,Live setup rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded setup rows on API failure,Formula editor numeric migration remains partial
+/masters/measurement-profiles,Live setup rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded setup rows on API failure,Measurement detail model remains partially string-backed
+/masters/items,Live item rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded item rows on API failure,Page-specific error state can be improved
+/partners/customers,Live customer rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded customer rows on API failure,Customer profile depth remains partial
+/partners/suppliers,Live supplier rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded supplier rows on API failure,Supplier profile depth remains partial
+/organization/companies,Live company rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded organization rows on API failure,Organization extension lookups remain partial
+/organization/branches,Live branch rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded organization rows on API failure,Branch policy depth remains partial
+/organization/departments,Live department rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded organization rows on API failure,Manager lookup depth remains partial
+/organization/warehouses,Live warehouse rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded organization rows on API failure,Warehouse policy depth remains partial
+/organization/bins,Live bin rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded organization rows on API failure,Bin hierarchy depth remains partial
+/organization/shifts,Live shift rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded organization rows on API failure,Calendar versioning remains partial
+/engineering/bom-library,Live BOM library rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded BOM rows on API failure,Older BOM library authoring remains reference-only
+/engineering/bom-editor,Live BOM editor rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded BOM editor rows on API failure,BOM draft save workflow remains partial
+/engineering/routings,Live routing rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded routing rows on API failure,Routing draft workflow remains partial
+/engineering/eco,Live ECO rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded ECO rows on API failure,ECO approval depth remains partial
+/engineering/operations,Live operation rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded operation rows on API failure,Machine/operator source depth remains partial
+/engineering/alternate-items,Live alternate item rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded alternate rows on API failure,Central reason-code API remains pending
+/engineering/documents,Live engineering document rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded document rows on API failure,Document binary workflow remains disabled
+/procurement/requisitions,Live procurement rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded procurement rows on API failure,Procurement approval workflow remains partial
+/procurement/purchase-orders,Live procurement rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded procurement rows on API failure,Purchase-order release workflow remains partial
+/procurement/subcontracting,Live procurement rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded procurement rows on API failure,Subcontract lifecycle remains partial
+/dashboards/order-delivery,Live dashboard cards,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded dashboard rows on API failure,Dashboard endpoint readiness must be validated against production SQL
+/dashboards/stage-wise,Live dashboard cards,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded dashboard rows on API failure,Dashboard endpoint readiness must be validated against production SQL
+/dashboards/executive-cockpit,Live dashboard cards,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded dashboard rows on API failure,Dashboard endpoint readiness must be validated against production SQL
+/platform/users,Live user rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,User lifecycle depth remains partial
+/platform/roles,Live role matrix rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,Role cloning/custom role workflow remains partial
+/platform/workflows,Live workflow rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,Workflow authoring depth remains partial
+/platform/tenants,Live tenant rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,Tenant policy depth remains partial
+/platform/audit-trail,Live audit rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,Audit export remains client-scoped
+/platform/translations,Live translation rows,seeded/live data issue,High,Live adapter now throws unavailable instead of seeded admin rows on API failure,Translation lifecycle remains partial
+/sales/quotes,New quote draft,dead action,High,Wired New quote draft to centered modal workspace and saveQuoteDraft API,Quote approval/convert workflow remains partial
+/sales/quotes,Save quote draft,dead action,High,Wired valid live quote drafts to POST/PUT quote API with disabled reasons for demo/incomplete drafts,Line-level pricing/approval depth remains partial

@@ -28,6 +28,7 @@ import type {
   UomDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 
 export type MasterDataSource = "Live" | "Seeded" | "Deferred";
 
@@ -2589,7 +2590,7 @@ export async function listUomClassSetup(
     ]);
     return classes.items.map((item) => mapUomClass(item, uoms, "Live"));
   } catch {
-    return filterSeeded(seededUomClasses, filter, (item) => `${item.code} ${item.name}`);
+    throw liveDataUnavailable("UOM class");
   }
 }
 
@@ -2608,7 +2609,7 @@ export async function listUomConversionSetup(
     ]);
     return conversions.items.map((item) => mapUomConversion(item, uoms, "Live"));
   } catch {
-    return filterSeeded(seededUomConversions, filter, (item) => `${item.fromUom} ${item.toUom} ${item.conversionMode}`);
+    throw liveDataUnavailable("UOM conversion");
   }
 }
 
@@ -2627,7 +2628,7 @@ export async function listMeasurementProfileSetup(
     ]);
     return profiles.items.map((item) => mapMeasurementProfile(item, classes, "Live"));
   } catch {
-    return filterSeeded(seededProfiles, filter, (item) => `${item.code} ${item.name} ${item.profileType}`);
+    throw liveDataUnavailable("Measurement profile");
   }
 }
 
@@ -2646,7 +2647,7 @@ export async function listMeasurementFormulaSetup(
     ]);
     return formulas.items.map((item) => mapMeasurementFormula(item, uoms, "Live"));
   } catch {
-    return filterSeeded(seededFormulas, filter, (item) => `${item.code} ${item.name} ${item.purpose}`);
+    throw liveDataUnavailable("Measurement formula");
   }
 }
 
@@ -2693,12 +2694,7 @@ export async function listItemMasterSetup(
 
     return mappedItems.map((item) => applyLiveItemProfile(item, profilesByItem.get(item.itemId)));
   } catch {
-    return filterSeeded(
-      seededItems,
-      filter,
-      (item) =>
-        `${item.code} ${item.name} ${item.itemType} ${item.groupLabel} ${item.category} ${item.subCategory} ${item.defaultMakeType}`
-    );
+    throw liveDataUnavailable("Item master");
   }
 }
 
@@ -2719,7 +2715,7 @@ export async function listItemVariantSetup(
     ]);
     return variants.items.map((item) => mapItemVariant(item, items, uoms, profiles, "Live"));
   } catch {
-    return filterSeeded(seededVariants, filter, (item) => `${item.code} ${item.name} ${item.attributeSummary}`);
+    throw liveDataUnavailable("Item variant");
   }
 }
 
@@ -2740,7 +2736,7 @@ export async function listBarcodeSetup(
     ]);
     return barcodes.items.map((item) => mapBarcode(item, items, variants, uoms, "Live"));
   } catch {
-    return filterSeeded(seededBarcodes, filter, (item) => `${item.barcodeValue} ${item.itemLabel} ${item.scanPurpose}`);
+    throw liveDataUnavailable("Barcode");
   }
 }
 
@@ -2756,7 +2752,7 @@ export async function listCustomerSetup(
     const response = await apiClient.partners.customers(filter);
     return response.items.map((item) => mapCustomer(item, "Live"));
   } catch {
-    return filterSeeded(seededCustomers, filter, (item) => `${item.code} ${item.name} ${item.customerType}`);
+    throw liveDataUnavailable("Customer");
   }
 }
 
@@ -2772,7 +2768,7 @@ export async function listCustomerAddressSetup(
     const response = await apiClient.partners.customerAddresses({ ...filter, pageSize: 100 });
     return response.items.map((item) => mapCustomerAddress(item, "Live"));
   } catch {
-    return filterSeeded(seededCustomerAddresses, filter, (item) => `${item.code} ${item.city} ${item.contactName}`);
+    throw liveDataUnavailable("Customer address");
   }
 }
 
@@ -2788,7 +2784,7 @@ export async function listSupplierSetup(
     const response = await apiClient.partners.suppliers(filter);
     return response.items.map((item) => mapSupplier(item, "Live"));
   } catch {
-    return filterSeeded(seededSuppliers, filter, (item) => `${item.code} ${item.name} ${item.supplierType}`);
+    throw liveDataUnavailable("Supplier");
   }
 }
 
@@ -2804,7 +2800,7 @@ export async function listSupplierAddressSetup(
     const response = await apiClient.partners.supplierAddresses({ ...filter, pageSize: 100 });
     return response.items.map((item) => mapSupplierAddress(item, "Live"));
   } catch {
-    return filterSeeded(seededSupplierAddresses, filter, (item) => `${item.code} ${item.city} ${item.contactName}`);
+    throw liveDataUnavailable("Supplier address");
   }
 }
 
@@ -2823,6 +2819,6 @@ export async function listSupplierLeadTimeSetup(
     ]);
     return response.items.map((item) => mapSupplierLeadTime(item, items, "Live"));
   } catch {
-    return filterSeeded(seededSupplierLeadTimes, filter, (item) => `${item.itemLabel} ${item.leadTimeDays}`);
+    throw liveDataUnavailable("Supplier lead time");
   }
 }

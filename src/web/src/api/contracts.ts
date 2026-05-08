@@ -1321,6 +1321,21 @@ export interface QuoteLineDto {
   status: string;
 }
 
+export interface QuoteLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  orderUomId: number;
+  quantity: number;
+  makeType: string;
+  promisedDate: string | null;
+  priorityCode: string;
+  customerSpecRef: string | null;
+  status: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+}
+
 export interface QuoteDto {
   id: number;
   companyId: number;
@@ -1334,6 +1349,22 @@ export interface QuoteDto {
   status: string;
   customerSpecRef: string | null;
   lines: QuoteLineDto[];
+}
+
+export interface QuoteUpsertRequest {
+  companyId: number;
+  branchId: number;
+  quoteNo: string;
+  customerId: number;
+  customerAddressId: number | null;
+  quoteDate: string;
+  expiryDate: string | null;
+  priorityCode: string;
+  status: string;
+  customerSpecRef: string | null;
+  lines: QuoteLineUpsertRequest[];
+  customerCode?: string | null;
+  customerAddressCode?: string | null;
 }
 
 export interface SalesOrderLineDto {

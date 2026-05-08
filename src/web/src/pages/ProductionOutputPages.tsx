@@ -23,7 +23,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -106,7 +106,7 @@ export function ProductionReceiptPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.receiptNo ?? "Production receipt"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Receipt controls"><ErpLookupField disabled disabledReason="Work order and job card selection is controlled by production release." label="WO / JC" onChange={() => undefined} options={[{ label: `${selected.workOrderLabel} / ${selected.jobCardLabel}`, value: `${selected.workOrderLabel} / ${selected.jobCardLabel}` }]} value={`${selected.workOrderLabel} / ${selected.jobCardLabel}`} /><label><span>Output</span><input defaultValue={selected.outputSummary} /></label><label><span>Posted</span><input defaultValue={selected.postedLabel} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Receipt controls"><ErpLookupField disabled disabledReason="Work order and job card selection is controlled by production release." label="WO / JC" onChange={() => undefined} options={[{ label: `${selected.workOrderLabel} / ${selected.jobCardLabel}`, value: `${selected.workOrderLabel} / ${selected.jobCardLabel}` }]} value={`${selected.workOrderLabel} / ${selected.jobCardLabel}`} /><label><span>Output</span><input disabled defaultValue={selected.outputSummary} /></label><label><span>Posted</span><input disabled defaultValue={selected.postedLabel} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -151,7 +151,7 @@ export function ScrapByProductPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.scrapNo ?? "Scrap entry"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Scrap / by-product controls"><ErpLookupField disabled disabledReason="Reason code is controlled by reason-code master." label="Reason" onChange={() => undefined} options={[{ label: selected.reasonCode, value: selected.reasonCode }]} value={selected.reasonCode} /><ErpLookupField disabled disabledReason="Inventory state is controlled by production posting rules." label="Inventory state" onChange={() => undefined} options={[{ label: selected.inventoryState, value: selected.inventoryState }]} value={selected.inventoryState} /><label><span>Valuation</span><input defaultValue={selected.valuationSignal} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Scrap / by-product controls"><ErpLookupField disabled disabledReason="Reason code is controlled by reason-code master." label="Reason" onChange={() => undefined} options={[{ label: selected.reasonCode, value: selected.reasonCode }]} value={selected.reasonCode} /><ErpLookupField disabled disabledReason="Inventory state is controlled by production posting rules." label="Inventory state" onChange={() => undefined} options={[{ label: selected.inventoryState, value: selected.inventoryState }]} value={selected.inventoryState} /><label><span>Valuation</span><input disabled defaultValue={selected.valuationSignal} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -196,7 +196,7 @@ export function ReworkOrderPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.reworkNo ?? "Rework order"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Rework controls" description={selected.instructions}><ErpLookupField disabled disabledReason="Source document is controlled by NCR and production release context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Route selection is controlled by routing master." label="Route" onChange={() => undefined} options={[{ label: selected.routeLabel, value: selected.routeLabel }]} value={selected.routeLabel} /><label><span>Released / closed</span><input defaultValue={`${selected.releasedLabel} / ${selected.closedLabel}`} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Rework controls" description={selected.instructions}><ErpLookupField disabled disabledReason="Source document is controlled by NCR and production release context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Route selection is controlled by routing master." label="Route" onChange={() => undefined} options={[{ label: selected.routeLabel, value: selected.routeLabel }]} value={selected.routeLabel} /><label><span>Released / closed</span><input disabled defaultValue={`${selected.releasedLabel} / ${selected.closedLabel}`} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

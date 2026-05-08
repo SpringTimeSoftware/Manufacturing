@@ -10,6 +10,7 @@ type ErpStatusTone = "info" | "success" | "warn" | "danger" | "neutral";
 
 export interface ErpAction {
   disabled?: boolean;
+  hidden?: boolean;
   label: string;
   onClick?: () => void;
   reason?: string;
@@ -25,19 +26,21 @@ interface ErpActionBarProps {
 }
 
 function ErpActionGroup({ actions, group }: { actions?: ErpAction[]; group: string }) {
-  if (!actions || actions.length === 0) {
+  const visibleActions = actions?.filter((action) => !action.hidden) ?? [];
+
+  if (visibleActions.length === 0) {
     return null;
   }
 
   return (
     <div className={`erp-action-bar__group erp-action-bar__group--${group}`} role="group">
-      {actions.map((action) => {
+      {visibleActions.map((action) => {
         const missingHandler = !action.onClick;
         const disabled = action.disabled || missingHandler;
         const reason = action.reason ?? (missingHandler ? "Action requires an enabled workflow." : action.disabled ? "Action is temporarily unavailable." : undefined);
 
         return (
-          <span className="erp-action-bar__action" key={`${group}-${action.label}`}>
+          <span className="erp-action-bar__action" data-action-state={disabled ? "disabled" : "working"} key={`${group}-${action.label}`}>
             <Button
               className={group === "danger" ? "erp-action-bar__button--danger" : undefined}
               disabled={disabled}
@@ -144,9 +147,12 @@ export function ErpLookupField({
 
     return [{ label: value, value }, ...options];
   }, [options, value]);
+  const sourceUnavailable = !allowFreeText && normalizedOptions.length === 0 && !value;
+  const isDisabled = disabled || sourceUnavailable;
+  const reason = disabledReason ?? (sourceUnavailable ? "Lookup source is not available for this context." : undefined);
 
   return (
-    <label className={`erp-lookup-field ${error ? "erp-lookup-field--error" : ""}`}>
+    <label className={`erp-lookup-field erp-governed-field ${error ? "erp-lookup-field--error" : ""}`} data-control-type={allowFreeText ? "free-text" : "lookup"}>
       <span>
         {label}
         {required ? <b aria-hidden="true">*</b> : null}
@@ -154,13 +160,13 @@ export function ErpLookupField({
       {allowFreeText ? (
         <input
           aria-label={label}
-          disabled={disabled}
+          disabled={isDisabled}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           value={value}
         />
       ) : (
-        <select aria-label={label} disabled={disabled} onChange={(event) => onChange(event.target.value)} required={required} value={value}>
+        <select aria-label={label} disabled={isDisabled} onChange={(event) => onChange(event.target.value)} required={required} value={value}>
           <option value="">{placeholder}</option>
           {normalizedOptions.map((option) => (
             <option disabled={option.disabled} key={option.value} value={option.value}>
@@ -170,10 +176,189 @@ export function ErpLookupField({
         </select>
       )}
       {helper ? <small>{helper}</small> : null}
-      {disabled && disabledReason ? <small>{disabledReason}</small> : null}
+      {isDisabled && reason ? <small>{reason}</small> : null}
       {quickCreateEnabled ? <small>Quick create is available for authorized users.</small> : null}
       {error ? <small className="erp-lookup-field__error">{error}</small> : null}
     </label>
+  );
+}
+
+type NumberValue = number | null;
+
+interface ErpNumberFieldProps {
+  disabled?: boolean;
+  disabledReason?: string;
+  error?: string;
+  helper?: string;
+  label: string;
+  max?: number;
+  min?: number;
+  onChange: (value: NumberValue) => void;
+  required?: boolean;
+  step?: number;
+  unit?: string;
+  value: NumberValue;
+}
+
+function toNumberInputValue(value: NumberValue) {
+  return value === null || Number.isNaN(value) ? "" : String(value);
+}
+
+export function parseGovernedNumberInput(value: string, scale?: number): NumberValue {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  if (typeof scale !== "number") {
+    return parsed;
+  }
+
+  const factor = 10 ** scale;
+  return Math.round(parsed * factor) / factor;
+}
+
+export function ErpNumberField({
+  disabled,
+  disabledReason,
+  error,
+  helper,
+  label,
+  max,
+  min,
+  onChange,
+  required,
+  step = 1,
+  unit,
+  value
+}: ErpNumberFieldProps) {
+  return (
+    <label className={`erp-number-field erp-governed-field ${error ? "erp-lookup-field--error" : ""}`} data-control-type="number">
+      <span>
+        {label}
+        {required ? <b aria-hidden="true">*</b> : null}
+      </span>
+      <input
+        aria-label={label}
+        aria-invalid={Boolean(error)}
+        disabled={disabled}
+        inputMode="numeric"
+        max={max}
+        min={min}
+        onChange={(event) => onChange(parseGovernedNumberInput(event.target.value, 0))}
+        required={required}
+        step={step}
+        type="number"
+        value={toNumberInputValue(value)}
+      />
+      {unit ? <small>{unit}</small> : null}
+      {helper ? <small>{helper}</small> : null}
+      {disabled && disabledReason ? <small>{disabledReason}</small> : null}
+      {error ? <small className="erp-lookup-field__error">{error}</small> : null}
+    </label>
+  );
+}
+
+interface ErpDecimalFieldProps extends Omit<ErpNumberFieldProps, "step"> {
+  precision?: number;
+  scale?: number;
+  step?: number;
+}
+
+export function ErpDecimalField({ precision, scale = 3, step, ...props }: ErpDecimalFieldProps) {
+  const decimalStep = step ?? Number(`0.${"0".repeat(Math.max(scale - 1, 0))}1`);
+  const max = props.max ?? (precision ? 10 ** Math.max(precision - scale, 1) - decimalStep : undefined);
+
+  return (
+    <label className={`erp-number-field erp-decimal-field erp-governed-field ${props.error ? "erp-lookup-field--error" : ""}`} data-control-type="decimal">
+      <span>
+        {props.label}
+        {props.required ? <b aria-hidden="true">*</b> : null}
+      </span>
+      <input
+        aria-label={props.label}
+        aria-invalid={Boolean(props.error)}
+        disabled={props.disabled}
+        inputMode="decimal"
+        max={max}
+        min={props.min}
+        onChange={(event) => props.onChange(parseGovernedNumberInput(event.target.value, scale))}
+        required={props.required}
+        step={decimalStep}
+        type="number"
+        value={toNumberInputValue(props.value)}
+      />
+      {props.unit ? <small>{props.unit}</small> : null}
+      {props.helper ? <small>{props.helper}</small> : null}
+      {props.disabled && props.disabledReason ? <small>{props.disabledReason}</small> : null}
+      {props.error ? <small className="erp-lookup-field__error">{props.error}</small> : null}
+    </label>
+  );
+}
+
+interface ErpMoneyFieldProps extends Omit<ErpDecimalFieldProps, "unit"> {
+  currencyCode?: string;
+}
+
+export function ErpMoneyField({ currencyCode = "INR", scale = 2, step = 0.01, ...props }: ErpMoneyFieldProps) {
+  return (
+    <div className="erp-money-field">
+      <ErpDecimalField {...props} scale={scale} step={step} unit={currencyCode} />
+    </div>
+  );
+}
+
+interface ErpFileActionStateProps {
+  accept?: string;
+  disabledReason?: string;
+  enabled: boolean;
+  fileName?: string;
+  label: string;
+  onAction?: () => void;
+  onFileSelect?: (file: File | null) => void;
+}
+
+export function ErpFileActionState({
+  accept,
+  disabledReason = "File storage is not enabled for this workspace.",
+  enabled,
+  fileName,
+  label,
+  onAction,
+  onFileSelect
+}: ErpFileActionStateProps) {
+  const working = enabled && Boolean(onAction || onFileSelect);
+  const reason = working ? undefined : disabledReason;
+
+  if (onFileSelect) {
+    return (
+      <label className="erp-file-action-state erp-governed-field" data-action-state={working ? "working" : "disabled"} data-control-type="file-action">
+        <span>{label}</span>
+        <input
+          accept={accept}
+          aria-label={label}
+          disabled={!working}
+          onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
+          type="file"
+        />
+        {fileName ? <small>{fileName}</small> : null}
+        {reason ? <small>{reason}</small> : null}
+      </label>
+    );
+  }
+
+  return (
+    <span className="erp-file-action-state" data-action-state={working ? "working" : "disabled"} data-control-type="file-action">
+      <Button disabled={!working} onClick={working ? onAction : undefined} title={reason} variant="secondary">
+        {label}
+      </Button>
+      {fileName ? <small>{fileName}</small> : null}
+      {reason ? <small>{reason}</small> : null}
+    </span>
   );
 }
 

@@ -8,6 +8,7 @@ import type {
   ShipmentLineDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface PackListLineItem {
@@ -78,10 +79,6 @@ export interface ShipmentItem {
   shippedQuantity: number;
   source: MasterDataSource;
   lines: ShipmentLineItem[];
-}
-
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
 }
 
 function matchesFilter(value: string, filter: QueryFilter) {
@@ -321,7 +318,7 @@ export async function listPackLists(session: AuthSessionResponse | null | undefi
     const response = await apiClient.dispatch.packLists(filter);
     return response.items.map((item) => mapPackList(item, "Live"));
   } catch {
-    return filterSeeded(seededPackLists, filter, (item) => `${item.packListNo} ${item.salesOrderLabel} ${item.status}`);
+    throw liveDataUnavailable("Pack list");
   }
 }
 
@@ -334,7 +331,7 @@ export async function listDispatchPlanning(session: AuthSessionResponse | null |
     const response = await apiClient.dispatch.planning(filter);
     return response.map((item) => mapPlanning(item, "Live"));
   } catch {
-    return filterSeeded(seededPlanning, filter, (item) => `${item.salesOrderLabel} ${item.customerLabel} ${item.status}`);
+    throw liveDataUnavailable("Dispatch planning");
   }
 }
 
@@ -347,6 +344,6 @@ export async function listShipments(session: AuthSessionResponse | null | undefi
     const response = await apiClient.dispatch.shipments(filter);
     return response.items.map((item) => mapShipment(item, "Live"));
   } catch {
-    return filterSeeded(seededShipments, filter, (item) => `${item.shipmentNo} ${item.customerLabel} ${item.status}`);
+    throw liveDataUnavailable("Shipment");
   }
 }

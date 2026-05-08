@@ -31,7 +31,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Reference view"}</ErpStatusChip>;
+  return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Review mode"}</ErpStatusChip>;
 }
 
 function MeasurementAside({

@@ -7,6 +7,7 @@ import type {
   QueryFilter
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface MrpExceptionItem {
@@ -365,7 +366,7 @@ export async function listMrpRunConsoleSetup(session: AuthSessionResponse | null
     const response = await apiClient.planning.mrpRuns(filter);
     return response.items.map((item) => mapMrpRun(item, "Live"));
   } catch {
-    return filterSeeded(seededMrpRuns, filter, (item) => `${item.runCode} ${item.runType} ${item.status}`);
+    throw liveDataUnavailable("MRP run");
   }
 }
 
@@ -378,7 +379,7 @@ export async function listBoqRequirementSetup(session: AuthSessionResponse | nul
     const response = await apiClient.planning.boqRequirements(filter);
     return response.items.map((item) => mapBoqRequirement(item, "Live"));
   } catch {
-    return filterSeeded(seededBoqRequirements, filter, (item) => `${item.sourceDocument} ${item.mrpRunLabel} ${item.status}`);
+    throw liveDataUnavailable("BOQ requirement");
   }
 }
 

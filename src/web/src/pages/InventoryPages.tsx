@@ -26,7 +26,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -94,7 +94,7 @@ export function InventoryBalancePage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace description="Inventory balance detail is review-only; stock changes remain controlled by inventory transactions." footer={<ErpActionBar primary={[{ disabled: true, label: "Save balance", reason: "Balance quantities are controlled by inventory postings." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.itemLabel ?? "Inventory balance"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Balance review"><ErpLookupField disabled disabledReason="Warehouse and bin are controlled by inventory location master." label="Location" onChange={() => undefined} options={[{ label: `${selected.warehouseLabel} / ${selected.binLabel}`, value: `${selected.warehouseLabel} / ${selected.binLabel}` }]} value={`${selected.warehouseLabel} / ${selected.binLabel}`} /><label><span>Lot / serial</span><input defaultValue={selected.lotSerialLabel} /></label><label><span>Catch weight</span><input defaultValue={selected.catchWeightLabel} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Balance review"><ErpLookupField disabled disabledReason="Warehouse and bin are controlled by inventory location master." label="Location" onChange={() => undefined} options={[{ label: `${selected.warehouseLabel} / ${selected.binLabel}`, value: `${selected.warehouseLabel} / ${selected.binLabel}` }]} value={`${selected.warehouseLabel} / ${selected.binLabel}`} /><ErpLookupField disabled disabledReason="Lot and serial values are controlled by inventory postings." label="Lot / serial" onChange={() => undefined} options={[{ label: selected.lotSerialLabel, value: selected.lotSerialLabel }]} value={selected.lotSerialLabel} /><ErpLookupField disabled disabledReason="Catch-weight basis is controlled by item and inventory posting rules." label="Catch-weight basis" onChange={() => undefined} options={[{ label: selected.catchWeightLabel, value: selected.catchWeightLabel }]} value={selected.catchWeightLabel} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

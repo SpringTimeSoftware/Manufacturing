@@ -74,7 +74,7 @@ describe("Prompt P084-P089 master-data pages", () => {
     expect(await screen.findByText("Raw Materials")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("row", { name: "RAW item group" }));
     expect(await screen.findByText("Item group setup")).toBeInTheDocument();
-    expect(screen.getAllByText("Reference view").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Review mode").length).toBeGreaterThan(0);
   });
 
   it("renders P087 item list and detail editor", async () => {

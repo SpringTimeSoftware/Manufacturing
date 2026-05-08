@@ -28,7 +28,7 @@ import { Tile } from "../ui/Tile";
 import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: SetupDataSource }) {
-  return <Badge tone={source === "Live" ? "success" : "neutral"}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={source === "Live" ? "success" : "neutral"}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function buildOrganizationFilter(

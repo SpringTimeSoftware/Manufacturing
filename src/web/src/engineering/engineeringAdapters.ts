@@ -1,5 +1,6 @@
 import type { AuthSessionResponse, BomDto, BomLineDto, BomRevisionDto, QueryFilter } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 import { bomRecords } from "../api/mockData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
@@ -156,7 +157,7 @@ export async function listBomLibrarySetup(
     const response = await apiClient.engineering.boms(filter);
     return response.items.map((item) => mapBom(item, "Live"));
   } catch {
-    return filterSeeded(seededBoms, filter);
+    throw liveDataUnavailable("BOM library");
   }
 }
 

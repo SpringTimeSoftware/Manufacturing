@@ -56,9 +56,12 @@ describe("AdminPages", () => {
     );
 
     expect(await screen.findByText("Audit Trail")).toBeInTheDocument();
-    expect(await screen.findByText("platform.approval.decision")).toBeInTheDocument();
+    const approvalRow = await screen.findByRole("row", {
+      name: /platform\.approval\.decision ApprovalWorkItem/
+    });
+    expect(approvalRow).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("platform.approval.decision"));
+    fireEvent.click(approvalRow);
 
     expect(await screen.findByText("Audit event detail")).toBeInTheDocument();
   });

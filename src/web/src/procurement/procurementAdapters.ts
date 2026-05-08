@@ -8,6 +8,7 @@ import type {
   SubcontractOrderDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface PurchaseRequisitionLineItem {
@@ -319,7 +320,7 @@ export async function listPurchaseRequisitionSetup(
     const response = await apiClient.procurement.purchaseRequisitions(filter);
     return response.items.map((item) => mapPr(item, "Live"));
   } catch {
-    return filterSeeded(seededPurchaseRequisitions, filter, (item) => `${item.purchaseRequisitionNo} ${item.sourceDocument} ${item.status}`);
+    throw liveDataUnavailable("Purchase requisition");
   }
 }
 
@@ -335,7 +336,7 @@ export async function listPurchaseOrderSetup(
     const response = await apiClient.procurement.purchaseOrders(filter);
     return response.items.map((item) => mapPo(item, "Live"));
   } catch {
-    return filterSeeded(seededPurchaseOrders, filter, (item) => `${item.purchaseOrderNo} ${item.supplierLabel} ${item.status} ${item.overdueSignal}`);
+    throw liveDataUnavailable("Purchase order");
   }
 }
 
@@ -351,6 +352,6 @@ export async function listSubcontractPlanSetup(
     const response = await apiClient.procurement.subcontractOrders(filter);
     return response.items.map((item) => mapSubcontract(item, "Live"));
   } catch {
-    return filterSeeded(seededSubcontractOrders, filter, (item) => `${item.subcontractOrderNo} ${item.supplierLabel} ${item.workOrderLabel} ${item.status}`);
+    throw liveDataUnavailable("Subcontract plan");
   }
 }

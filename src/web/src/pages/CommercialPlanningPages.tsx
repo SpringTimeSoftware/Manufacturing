@@ -1,5 +1,8 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { queryKeys, useApiQuery } from "../api/hooks";
+import type { QuoteDto, QuoteUpsertRequest } from "../api/contracts";
+import { apiClient } from "../api/http";
+import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
+import { hasLiveSession } from "../api/liveData";
 import { useAuth } from "../auth/AuthContext";
 import {
   listAttachmentViewerSetup,
@@ -9,6 +12,7 @@ import {
   listMpsPlannerSetup,
   listQuoteSetup,
   listSalesOrderSetup,
+  saveQuoteDraft,
   type AttachmentViewerItem,
   type AvailablePromiseItem,
   type BlanketOrderSetupItem,
@@ -28,11 +32,14 @@ import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
 import {
   ErpActionBar,
+  ErpDecimalField,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
   ErpModalWorkspace,
-  ErpStatusChip
+  ErpNumberField,
+  ErpStatusChip,
+  ErpValidationSummary
 } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
@@ -144,6 +151,77 @@ const salesOrderColumns: DataGridColumn<SalesOrderSetupItem>[] = [
   { key: "qty", header: "Lines / qty", width: "14%", render: (record) => `${record.lineCount} / ${record.totalQuantity}` },
   { key: "status", header: "Status", width: "12%", render: (record) => <StatusBadge status={record.status} /> }
 ];
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysIso(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function buildDraftQuoteNo() {
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
+  return `QT-DRAFT-${stamp}`;
+}
+
+function buildQuoteDraft(companyId: number, branchId: number): QuoteUpsertRequest {
+  return {
+    companyId,
+    branchId,
+    quoteNo: buildDraftQuoteNo(),
+    customerId: 0,
+    customerAddressId: null,
+    quoteDate: todayIso(),
+    expiryDate: addDaysIso(30),
+    priorityCode: "Medium",
+    status: "Draft",
+    customerSpecRef: "",
+    lines: [
+      {
+        lineNo: 10,
+        itemId: 0,
+        itemVariantId: null,
+        orderUomId: 0,
+        quantity: 1,
+        makeType: "Make",
+        promisedDate: addDaysIso(14),
+        priorityCode: "Medium",
+        customerSpecRef: "",
+        status: "Draft"
+      }
+    ]
+  };
+}
+
+function toQuoteDraft(dto: QuoteDto): QuoteUpsertRequest {
+  return {
+    companyId: dto.companyId,
+    branchId: dto.branchId,
+    quoteNo: dto.quoteNo,
+    customerId: dto.customerId,
+    customerAddressId: dto.customerAddressId,
+    quoteDate: dto.quoteDate,
+    expiryDate: dto.expiryDate,
+    priorityCode: dto.priorityCode,
+    status: dto.status,
+    customerSpecRef: dto.customerSpecRef ?? "",
+    lines: dto.lines.map((line) => ({
+      lineNo: line.lineNo,
+      itemId: line.itemId,
+      itemVariantId: line.itemVariantId,
+      orderUomId: line.orderUomId,
+      quantity: line.quantity,
+      makeType: line.makeType,
+      promisedDate: line.promisedDate,
+      priorityCode: line.priorityCode,
+      customerSpecRef: line.customerSpecRef ?? "",
+      status: line.status
+    }))
+  };
+}
 
 const blanketOrderColumns: DataGridColumn<BlanketOrderSetupItem>[] = [
   { key: "blanket", header: "Contract", width: "20%", render: (record) => <strong>{record.blanketOrderNo}</strong> },
@@ -297,7 +375,15 @@ export function SupplierLeadTimeMatrixPage() {
               options={Array.from(new Set(records.map((record) => String(record.supplierId)))).map((option) => ({ label: `Supplier ${option}`, value: option }))}
               value={String(selected.supplierId)}
             />
-            <label><span>Lead time days</span><input defaultValue={selected.leadTimeDays} /></label>
+            <ErpNumberField
+              disabled
+              disabledReason="Lead time is controlled by the supplier lead-time workflow."
+              label="Lead time days"
+              min={0}
+              onChange={() => undefined}
+              unit="days"
+              value={selected.leadTimeDays}
+            />
             <ErpLookupField
               label="Order policy"
               onChange={() => undefined}
@@ -388,15 +474,90 @@ export function QuoteEstimateListPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draftQuoteId, setDraftQuoteId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<QuoteUpsertRequest | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
+  const companyId = user?.activeContext.companyId ?? null;
+  const branchId = user?.activeContext.branchId ?? null;
+  const isLive = hasLiveSession(session);
   const filter = useMemo(
-    () => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
-    [deferredSearch, status, user?.activeContext.branchId, user?.activeContext.companyId]
+    () => buildMasterFilter(companyId, branchId, deferredSearch, status),
+    [branchId, companyId, deferredSearch, status]
   );
-  const query = useApiQuery(queryKeys.salesPlanning.quotes(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listQuoteSetup(session, filter), { staleTime: 60_000 });
+  const query = useApiQuery(queryKeys.salesPlanning.quotes(companyId, branchId, deferredSearch, status), () => listQuoteSetup(session, filter), { staleTime: 60_000 });
+  const customersQuery = useApiQuery(
+    queryKeys.partners.customers(companyId, branchId, "", "Active"),
+    () => isLive && companyId ? apiClient.partners.customers({ companyId, branchId: branchId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]),
+    { staleTime: 60_000 }
+  );
+  const itemsQuery = useApiQuery(
+    ["sales-planning", "quote-items", companyId ?? 0],
+    () => isLive ? apiClient.masters.itemLookup(companyId) : Promise.resolve([]),
+    { staleTime: 60_000 }
+  );
+  const uomsQuery = useApiQuery(
+    queryKeys.measurements.uoms(companyId, "", "Active"),
+    () => isLive ? apiClient.measurements.uoms({ pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]),
+    { staleTime: 60_000 }
+  );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const customerOptions = (customersQuery.data ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
+  const itemOptions = (itemsQuery.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
+  const uomOptions = (uomsQuery.data ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));
+  const draftLine = draft?.lines[0] ?? null;
+  const validation = draft
+    ? [
+        !draft.quoteNo.trim() ? "Quote number is required." : "",
+        !draft.customerId ? "Customer is required." : "",
+        !draft.quoteDate ? "Quote date is required." : "",
+        !draftLine?.itemId ? "At least one quote line item is required." : "",
+        !draftLine?.orderUomId ? "Order UOM is required." : "",
+        draftLine && draftLine.quantity <= 0 ? "Line quantity must be greater than zero." : ""
+      ].filter(Boolean)
+    : [];
+  const saveReason = !draft
+    ? "Open a quote draft before saving."
+    : !isLive
+      ? "Live workspace sign-in is required before saving quote drafts."
+      : validation[0];
+  const newDraftReason = !companyId || !branchId ? "Select an operating company and branch before creating a quote draft." : undefined;
+  const saveMutation = useApiMutation(
+    (request: QuoteUpsertRequest) => saveQuoteDraft(session, draftQuoteId, request),
+    {
+      onError: (error) => setSaveMessage(error.message),
+      onSuccess: (saved) => {
+        setDraftQuoteId(saved.id);
+        setDraft(toQuoteDraft(saved));
+        setSelectedId(`quote-${saved.id}`);
+        setSaveMessage(`Saved ${saved.quoteNo}.`);
+      }
+    }
+  );
+
+  const openNewDraft = () => {
+    if (!companyId || !branchId) {
+      return;
+    }
+
+    setSelectedId(null);
+    setDraftQuoteId(null);
+    setDraft(buildQuoteDraft(companyId, branchId));
+    setSaveMessage(null);
+  };
+
+  const updateLine = (patch: Partial<QuoteUpsertRequest["lines"][number]>) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            lines: current.lines.map((line, index) => (index === 0 ? { ...line, ...patch } : line))
+          }
+        : current
+    );
+  };
 
   return (
     <>
@@ -405,7 +566,7 @@ export function QuoteEstimateListPage() {
           <>
             <SourceBadge source={source} />
             <ErpActionBar
-              primary={[{ disabled: true, label: "New quote draft", reason: "Quote draft creation requires the commercial workflow to be enabled." }]}
+              primary={[{ disabled: Boolean(newDraftReason), label: "New quote draft", onClick: newDraftReason ? undefined : openNewDraft, reason: newDraftReason }]}
               secondary={[{ disabled: true, label: "Export quotes", reason: "Quote export is pending the approved reporting workflow." }]}
               testId="quote-action-bar"
             />
@@ -422,8 +583,8 @@ export function QuoteEstimateListPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Quote detail is review-only until quote drafting is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save quote draft", reason: "Quote save requires the commercial workflow to be enabled." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        description="Quote queue records are review-only here; use New quote draft to author a governed commercial quote."
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save quote draft", reason: "Selected queue records are review-only in this workspace. Use New quote draft to create and save a live quote draft." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.quoteNo ?? "Quote detail"}
@@ -431,9 +592,53 @@ export function QuoteEstimateListPage() {
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="Quote detail">
             <ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} />
-            <label><span>Spec reference</span><input defaultValue={selected.specRef} /></label>
+            <label><span>Spec reference</span><input defaultValue={selected.specRef} disabled title="Open a new quote draft to author commercial quote details." /></label>
             <ErpLookupField disabled disabledReason="Priority changes require quote workflow enablement." label="Priority" onChange={() => undefined} options={[{ label: selected.priorityCode, value: selected.priorityCode }]} value={selected.priorityCode} />
           </FormShell>
+        ) : null}
+      </ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Create a quote draft against a controlled customer, item, and order UOM before submitting it for downstream demand planning."
+        footer={
+          <ErpActionBar
+            primary={[{ disabled: Boolean(saveReason) || saveMutation.isPending, label: saveMutation.isPending ? "Saving quote draft" : "Save quote draft", onClick: saveReason ? undefined : () => draft && saveMutation.mutate(draft), reason: saveReason }]}
+            utility={[{ label: "Close", onClick: () => { setDraft(null); setDraftQuoteId(null); setSaveMessage(null); }, variant: "quiet" }]}
+          />
+        }
+        isOpen={Boolean(draft)}
+        onClose={() => { setDraft(null); setDraftQuoteId(null); setSaveMessage(null); }}
+        panelClassName="ui-modal__panel--item-master"
+        statusMeta={<>{draft ? <StatusBadge status={draft.status} /> : null}{saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}</>}
+        title={draftQuoteId ? `Quote ${draft?.quoteNo}` : "New quote draft"}
+        validation={<ErpValidationSummary errors={validation} title="Quote draft checks" />}
+      >
+        {draft ? (
+          <div className="modal-form-grid" data-testid="quote-draft-modal">
+            <Card title="Quote header" description="Customer, validity, and commercial priority are controlled before quote save.">
+              <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${draft.quoteNo}`} title="Header">
+                <label><span>Quote number</span><input onChange={(event) => setDraft({ ...draft, quoteNo: event.target.value })} value={draft.quoteNo} /></label>
+                <ErpLookupField label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
+                <label><span>Quote date</span><input onChange={(event) => setDraft({ ...draft, quoteDate: event.target.value })} type="date" value={draft.quoteDate} /></label>
+                <label><span>Expiry date</span><input onChange={(event) => setDraft({ ...draft, expiryDate: event.target.value || null })} type="date" value={draft.expiryDate ?? ""} /></label>
+                <ErpLookupField label="Priority" onChange={(value) => setDraft({ ...draft, priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draft.priorityCode} />
+                <ErpLookupField label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={draft.status} />
+                <label><span>Customer spec reference</span><input onChange={(event) => setDraft({ ...draft, customerSpecRef: event.target.value })} value={draft.customerSpecRef ?? ""} /></label>
+              </FormShell>
+            </Card>
+            <Card title="First quote line" description="A quote draft needs one governed line before it can be saved.">
+              {draftLine ? (
+                <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${draftLine.lineNo}`} title="Line">
+                  <ErpLookupField label="Item" onChange={(value) => updateLine({ itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(draftLine.itemId || "")} />
+                  <ErpLookupField label="Order UOM" onChange={(value) => updateLine({ orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(draftLine.orderUomId || "")} />
+                  <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine({ quantity: value ?? 0 })} required scale={3} value={draftLine.quantity} />
+                  <ErpLookupField label="Make type" onChange={(value) => updateLine({ makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={draftLine.makeType} />
+                  <label><span>Promised date</span><input onChange={(event) => updateLine({ promisedDate: event.target.value || null })} type="date" value={draftLine.promisedDate ?? ""} /></label>
+                  <ErpLookupField label="Line priority" onChange={(value) => updateLine({ priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draftLine.priorityCode} />
+                  <ErpLookupField label="Line status" onChange={(value) => updateLine({ status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={draftLine.status} />
+                </FormShell>
+              ) : null}
+            </Card>
+          </div>
         ) : null}
       </ErpModalWorkspace>
     </>
@@ -508,7 +713,7 @@ export function BlanketOrderContractPage() {
           <DataGrid ariaLabel="Blanket order list" columns={blanketOrderColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.blanketOrderNo} blanket order`} virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Blanket order detail is review-only until contract drafting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save blanket draft", reason: "Blanket order save requires the contract workflow to be enabled." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.blanketOrderNo ?? "Blanket order detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="Blanket order setup"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><label><span>Horizon</span><input defaultValue={selected.horizon} /></label><label><span>Next release</span><input defaultValue={selected.nextRelease} /></label></FormShell> : null}</ErpModalWorkspace>
+      <ErpModalWorkspace description="Blanket order detail is review-only until contract drafting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save blanket draft", reason: "Blanket order save requires the contract workflow to be enabled." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.blanketOrderNo ?? "Blanket order detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="Blanket order setup"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><ErpLookupField disabled disabledReason="Contract horizon is controlled by the blanket-order schedule." label="Horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} /><ErpLookupField disabled disabledReason="Next release is calculated from the blanket-order schedule." label="Next release" onChange={() => undefined} options={[{ label: selected.nextRelease, value: selected.nextRelease }]} value={selected.nextRelease} /></FormShell> : null}</ErpModalWorkspace>
     </>
   );
 }
@@ -553,7 +758,7 @@ export function MpsPlannerPage() {
           <ErpGrid ariaLabel="MPS planner list" columns={mpsColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.mpsCode} mps`} testId="mps-grid" virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="MPS detail is review-only until MPS drafting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save MPS draft", reason: "MPS save requires planning workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.mpsCode ?? "MPS detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="MPS setup"><label><span>Horizon</span><input aria-describedby="mps-horizon-disabled-reason" aria-label="Horizon" defaultValue={selected.horizon} disabled title="MPS drafting is disabled until planning workflow enablement." /><small id="mps-horizon-disabled-reason">MPS drafting is disabled until planning workflow enablement.</small></label><ErpLookupField disabled disabledReason="MPS bucket item is controlled by Item Master and planning UOM setup." label="First bucket" onChange={() => undefined} options={[{ label: selected.firstBucket, value: selected.firstBucket }]} value={selected.firstBucket} /></FormShell> : null}</ErpModalWorkspace>
+      <ErpModalWorkspace description="MPS detail is review-only until MPS drafting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save MPS draft", reason: "MPS save requires planning workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.mpsCode ?? "MPS detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="MPS setup"><ErpLookupField disabled disabledReason="MPS horizon is controlled by the approved planning cycle." label="Horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} /><ErpLookupField disabled disabledReason="MPS bucket item is controlled by Item Master and planning UOM setup." label="First bucket" onChange={() => undefined} options={[{ label: selected.firstBucket, value: selected.firstBucket }]} value={selected.firstBucket} /></FormShell> : null}</ErpModalWorkspace>
     </>
   );
 }

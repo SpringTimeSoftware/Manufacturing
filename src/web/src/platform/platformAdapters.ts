@@ -129,7 +129,7 @@ export async function listApprovalWorkItems(): Promise<ApprovalWorkItem[]> {
     try {
       return await apiClient.approvals.list();
     } catch {
-      // Preserve seeded queue for degraded or not-yet-migrated deployments.
+      throw new Error("Approval queue could not be loaded. Retry after the approval service is available.");
     }
   }
 
@@ -145,7 +145,7 @@ export async function submitApprovalDecision(
     try {
       return await apiClient.approvals.decide(approval.id, request);
     } catch {
-      // Fall through to the deterministic local response for offline/demo use.
+      throw new Error("Approval decision could not be recorded. Retry after the approval service is available.");
     }
   }
 

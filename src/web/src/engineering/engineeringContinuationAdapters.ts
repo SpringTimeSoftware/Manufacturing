@@ -14,6 +14,7 @@ import type {
   RoutingOperationDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 import { bomRecords } from "../api/mockData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
@@ -791,7 +792,7 @@ export async function listBomEditorSetup(session: AuthSessionResponse | null | u
     const response = await apiClient.engineering.boms(filter);
     return response.items.map((item) => mapBomEditor(item, "Live"));
   } catch {
-    return filterSeeded(seededBomEditors, filter, (item) => `${item.bomCode} ${item.bomName} ${item.status}`);
+    throw liveDataUnavailable("BOM editor");
   }
 }
 
@@ -804,7 +805,7 @@ export async function listBomComparisonSetup(session: AuthSessionResponse | null
     const response = await apiClient.engineering.boms(filter);
     return response.items.map((item) => mapComparison(item, "Live"));
   } catch {
-    return filterSeeded(seededBomComparisons, filter, (item) => `${item.bomCode} ${item.itemLabel} ${item.status}`);
+    throw liveDataUnavailable("BOM comparison");
   }
 }
 
@@ -817,7 +818,7 @@ export async function listEcoRevisionSetup(session: AuthSessionResponse | null |
     const response = await apiClient.engineering.engineeringChanges(filter);
     return response.items.map((item) => mapEco(item, "Live"));
   } catch {
-    return filterSeeded(seededEcoRevisions, filter, (item) => `${item.ecoCode} ${item.ecoTitle} ${item.approvalStatus}`);
+    throw liveDataUnavailable("ECO");
   }
 }
 
@@ -830,7 +831,7 @@ export async function listRoutingLibrarySetup(session: AuthSessionResponse | nul
     const response = await apiClient.engineering.routings(filter);
     return response.items.map((item) => mapRouting(item, "Live"));
   } catch {
-    return filterSeeded(seededRoutings, filter, (item) => `${item.routingCode} ${item.routingName} ${item.status}`);
+    throw liveDataUnavailable("Routing");
   }
 }
 
@@ -843,7 +844,7 @@ export async function listOperationStandardSetup(session: AuthSessionResponse | 
     const response = await apiClient.resources.operations(filter);
     return response.items.map((item) => mapOperation(item, "Live"));
   } catch {
-    return filterSeeded(seededOperations, filter, (item) => `${item.operationCode} ${item.operationName} ${item.status}`);
+    throw liveDataUnavailable("Operation standard");
   }
 }
 
@@ -856,7 +857,7 @@ export async function listAlternateItemRuleSetup(session: AuthSessionResponse | 
     const response = await apiClient.engineering.alternateItems(filter);
     return response.items.map((item) => mapAlternate(item, "Live"));
   } catch {
-    return filterSeeded(seededAlternateItems, filter, (item) => `${item.primaryItemLabel} ${item.alternateItemLabel} ${item.approvalStatus}`);
+    throw liveDataUnavailable("Alternate item");
   }
 }
 
@@ -871,7 +872,7 @@ export async function listEngineeringAttachmentSetup(
     const response = await apiClient.platform.attachments(filter);
     return response.items.map((item) => mapAttachment(item, "Live"));
   } catch {
-    return filterSeeded(seededEngineeringAttachments, filter, (item) => `${item.documentNo} ${item.fileName} ${item.linkedRecord} ${item.status}`);
+    throw liveDataUnavailable("Engineering document");
   }
 }
 

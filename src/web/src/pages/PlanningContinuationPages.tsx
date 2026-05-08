@@ -171,7 +171,9 @@ export function CapacityPlanningBoardPage() {
       >
         <KpiStrip items={[{ label: "Buckets", value: String(records.length) }, { label: "Overloaded", value: String(records.filter((record) => record.status === "Overloaded").length) }, { label: "Avg utilization", value: `${avgUtilization}%` }, { label: "Planned", value: String(records.filter((record) => record.source === "Deferred").length) }]} />
         <Card title="Machine load lanes" description="Lane view keeps the capacity screen aligned with the manufacturing board visual language.">
-          <LaneBoard lanes={buildCapacityLanes(records)} />
+          <div className="capacity-board-scroll" data-testid="capacity-board-scroll">
+            <LaneBoard lanes={buildCapacityLanes(records)} />
+          </div>
         </Card>
         <Card title="Capacity buckets" description="Select a work center bucket to review load drivers and guardrails.">
           <ErpGrid ariaLabel="Capacity planning buckets" columns={capacityColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.workCenterLabel} ${record.bucketDate} capacity bucket`} testId="capacity-grid" />

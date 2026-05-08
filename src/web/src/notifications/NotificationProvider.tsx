@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
 import type { NotificationItem } from "../api/contracts";
 import { apiClient } from "../api/http";
-import { readStoredSession } from "../auth/authStorage";
+import { useAuth } from "../auth/AuthContext";
 
 export const seededNotifications: NotificationItem[] = [
   {
@@ -82,6 +82,9 @@ export const seededNotifications: NotificationItem[] = [
 ];
 
 interface NotificationValue {
+  isLiveSession: boolean;
+  isLoading: boolean;
+  loadError: string | null;
   notifications: NotificationItem[];
   unreadCount: number;
   markAsRead: (id: string) => void;
@@ -94,42 +97,69 @@ interface NotificationProviderProps extends PropsWithChildren {
 
 const NotificationContext = createContext<NotificationValue | undefined>(undefined);
 
-function hasLiveSession() {
-  const session = readStoredSession();
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
-}
-
 export function NotificationProvider({
   children,
   initialNotifications = seededNotifications
 }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { session, status } = useAuth();
+  const isLiveSession = Boolean(
+    status === "authenticated" &&
+      session?.accessToken &&
+      !session.accessToken.startsWith("demo-")
+  );
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() =>
+    isLiveSession ? [] : initialNotifications
+  );
+  const [isLoading, setLoading] = useState(isLiveSession);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!hasLiveSession()) {
+    if (status === "restoring") {
+      setLoading(true);
+      setLoadError(null);
+      return;
+    }
+
+    if (!isLiveSession) {
+      setNotifications(initialNotifications);
+      setLoading(false);
+      setLoadError(null);
       return;
     }
 
     let isMounted = true;
+
+    setNotifications([]);
+    setLoading(true);
+    setLoadError(null);
 
     void apiClient.notifications
       .list()
       .then((items) => {
         if (isMounted) {
           setNotifications(items);
+          setLoading(false);
+          setLoadError(null);
         }
       })
       .catch(() => {
-        // Keep seeded notifications for degraded deployments or un-applied SQL packs.
+        if (isMounted) {
+          setNotifications([]);
+          setLoading(false);
+          setLoadError("Live notifications could not be loaded. Retry after the notification service is available.");
+        }
       });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialNotifications, isLiveSession, status]);
 
   const value = useMemo<NotificationValue>(
     () => ({
+      isLiveSession,
+      isLoading,
+      loadError,
       notifications,
       unreadCount: notifications.filter((entry) => !entry.isRead).length,
       markAsRead: (id) => {
@@ -137,19 +167,30 @@ export function NotificationProvider({
           current.map((entry) => (entry.id === id ? { ...entry, isRead: true } : entry))
         );
 
-        if (hasLiveSession()) {
-          void apiClient.notifications.markRead(id).catch(() => undefined);
+        if (isLiveSession) {
+          void apiClient.notifications.markRead(id).catch(() => {
+            setNotifications((current) =>
+              current.map((entry) => (entry.id === id ? { ...entry, isRead: false } : entry))
+            );
+            setLoadError("Notification acknowledgement could not be recorded. Retry after the notification service is available.");
+          });
         }
       },
       markAllAsRead: () => {
+        const unreadIds = notifications.filter((entry) => !entry.isRead).map((entry) => entry.id);
         setNotifications((current) => current.map((entry) => ({ ...entry, isRead: true })));
 
-        if (hasLiveSession()) {
-          void apiClient.notifications.markAllRead().catch(() => undefined);
+        if (isLiveSession) {
+          void apiClient.notifications.markAllRead().catch(() => {
+            setNotifications((current) =>
+              current.map((entry) => (unreadIds.includes(entry.id) ? { ...entry, isRead: false } : entry))
+            );
+            setLoadError("Notification acknowledgements could not be recorded. Retry after the notification service is available.");
+          });
         }
       }
     }),
-    [notifications]
+    [isLiveSession, isLoading, loadError, notifications]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

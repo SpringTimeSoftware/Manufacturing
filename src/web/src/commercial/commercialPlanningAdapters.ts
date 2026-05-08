@@ -5,9 +5,11 @@ import type {
   MasterProductionScheduleDto,
   QueryFilter,
   QuoteDto,
+  QuoteUpsertRequest,
   SalesOrderDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface AttachmentViewerItem {
@@ -314,10 +316,6 @@ const seededPromiseItems: AvailablePromiseItem[] = [
   }
 ];
 
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
-}
-
 function matchesFilter(value: string, search?: string, status?: string) {
   const searchText = search?.trim().toLowerCase();
   const statusText = status?.trim().toLowerCase();
@@ -440,8 +438,23 @@ export async function listQuoteSetup(
     const response = await apiClient.salesPlanning.quotes(filter);
     return response.items.map((item) => mapQuote(item, "Live"));
   } catch {
-    return filterSeeded(seededQuotes, filter, (item) => `${item.quoteNo} ${item.customerLabel} ${item.specRef}`);
+    throw liveDataUnavailable("Quote");
   }
+}
+
+function requireLiveSession(session: AuthSessionResponse | null | undefined, label: string) {
+  if (!hasLiveSession(session)) {
+    throw new Error(`Live workspace sign-in is required before saving ${label}.`);
+  }
+}
+
+export async function saveQuoteDraft(
+  session: AuthSessionResponse | null | undefined,
+  quoteId: number | null,
+  request: QuoteUpsertRequest
+) {
+  requireLiveSession(session, "quote drafts");
+  return quoteId ? apiClient.salesPlanning.updateQuote(quoteId, request) : apiClient.salesPlanning.createQuote(request);
 }
 
 export async function listSalesOrderSetup(
@@ -456,7 +469,7 @@ export async function listSalesOrderSetup(
     const response = await apiClient.salesPlanning.salesOrders(filter);
     return response.items.map((item) => mapSalesOrder(item, "Live"));
   } catch {
-    return filterSeeded(seededSalesOrders, filter, (item) => `${item.salesOrderNo} ${item.customerLabel} ${item.sourceQuoteLabel}`);
+    throw liveDataUnavailable("Sales order");
   }
 }
 
@@ -472,7 +485,7 @@ export async function listBlanketOrderSetup(
     const response = await apiClient.salesPlanning.blanketOrders(filter);
     return response.items.map((item) => mapBlanketOrder(item, "Live"));
   } catch {
-    return filterSeeded(seededBlanketOrders, filter, (item) => `${item.blanketOrderNo} ${item.customerLabel} ${item.nextRelease}`);
+    throw liveDataUnavailable("Blanket order");
   }
 }
 
@@ -488,7 +501,7 @@ export async function listDemandForecastSetup(
     const response = await apiClient.salesPlanning.forecasts(filter);
     return response.items.map((item) => mapForecast(item, "Live"));
   } catch {
-    return filterSeeded(seededForecasts, filter, (item) => `${item.forecastCode} ${item.forecastName} ${item.periodType}`);
+    throw liveDataUnavailable("Demand forecast");
   }
 }
 
@@ -504,7 +517,7 @@ export async function listMpsPlannerSetup(
     const response = await apiClient.salesPlanning.mps(filter);
     return response.items.map((item) => mapMps(item, "Live"));
   } catch {
-    return filterSeeded(seededMps, filter, (item) => `${item.mpsCode} ${item.horizon} ${item.firstBucket}`);
+    throw liveDataUnavailable("MPS");
   }
 }
 

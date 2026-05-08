@@ -80,6 +80,7 @@ import type {
   PurchaseRequisitionDto,
   QueryFilter,
   QuoteDto,
+  QuoteUpsertRequest,
   RefreshTokenRequest,
   ApprovalDecisionRequest,
   ApprovalWorkItem,
@@ -546,6 +547,16 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<QuoteDto>>(`/api/quotes?${query}`);
     },
+    createQuote: (body: QuoteUpsertRequest) =>
+      request<QuoteDto>("/api/quotes", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateQuote: (quoteId: number, body: QuoteUpsertRequest) =>
+      request<QuoteDto>(`/api/quotes/${quoteId}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     salesOrders: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<SalesOrderDto>>(`/api/sales-orders?${query}`);

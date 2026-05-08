@@ -27,7 +27,7 @@ import { ListPageShell } from "../ui/ListPageShell";
 import { Tile } from "../ui/Tile";
 import { KpiStrip } from "../ui/boards";
 
-function AdapterBadge({ label = "Reference review" }: { label?: string }) {
+function AdapterBadge({ label = "Review mode" }: { label?: string }) {
   return <Badge tone="info">{label}</Badge>;
 }
 

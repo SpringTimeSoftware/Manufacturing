@@ -53,7 +53,7 @@ describe("Wave UX-GLOBAL-02 master-data enforcement", () => {
     expect(await screen.findByText("Mild Steel Plate 6mm")).toBeInTheDocument();
     expect(screen.queryByText("Workspace data")).not.toBeInTheDocument();
     expect(document.body.textContent ?? "").not.toMatch(internalCopyPattern);
-    expect(screen.getAllByText(/Setup complete|Reference view/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Setup complete|Review mode/).length).toBeGreaterThan(0);
   });
 
   it("opens Customer detail in a governed modal workspace with controlled lookups", async () => {

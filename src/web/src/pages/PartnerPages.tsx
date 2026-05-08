@@ -39,10 +39,12 @@ import type { DataGridColumn } from "../ui/DataGrid";
 import {
   ErpActionBar,
   ErpEmptyState,
+  ErpFileActionState,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
   ErpModalWorkspace,
+  ErpNumberField,
   ErpStatusChip,
   ErpValidationSummary
 } from "../ui/ErpComponents";
@@ -146,7 +148,7 @@ function uniqueOptions(values: string[], defaults: string[] = []) {
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Reference view"}</ErpStatusChip>;
+  return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Review mode"}</ErpStatusChip>;
 }
 
 function PartnerAside({ description, source }: { description: string; source: MasterDataSource }) {
@@ -900,15 +902,13 @@ function CustomerEditor({
         <Card title={CUSTOMER_SECTIONS[5]} description="Operational credit controls without introducing accounting ledger behavior.">
           <div className="item-master__editor-grid">
             <ErpLookupField label="Credit status" onChange={(value) => updateProfile("creditStatus", value)} options={creditStatusOptions} value={workspace.profile.creditStatus ?? creditStatus} />
-            <label className="item-master__editor-field">
-              <span>Credit days</span>
-              <input
-                min={0}
-                onChange={(event) => onChange("creditDays", creditDaysLabel(event.target.value ? Number(event.target.value) : null))}
-                type="number"
-                value={parseCreditDays(customer.creditDays) ?? 0}
-              />
-            </label>
+            <ErpNumberField
+              label="Credit days"
+              min={0}
+              onChange={(value) => onChange("creditDays", creditDaysLabel(value))}
+              unit="days"
+              value={parseCreditDays(customer.creditDays)}
+            />
             <ErpLookupField label="Credit hold rule" onChange={(value) => updateProfile("creditHoldRule", value)} options={["Standard release", "Manager review", "Dispatch hold"].map(toOption)} value={workspace.profile.creditHoldRule ?? "Standard release"} />
           </div>
         </Card>
@@ -958,7 +958,8 @@ function CustomerEditor({
         </Card>
 
         <Card title={CUSTOMER_SECTIONS[10]} description="Tax, commercial, and dispatch documents for customer readiness.">
-          <ErpActionBar secondary={[{ label: "Add document metadata", onClick: onAddDocument }, { disabled: true, label: "Upload customer document", reason: documentDisabledReason }]} />
+          <ErpActionBar secondary={[{ label: "Add document metadata", onClick: onAddDocument }]} />
+          <ErpFileActionState disabledReason={documentDisabledReason} enabled={false} label="Upload customer document" />
           <ErpGrid
             ariaLabel="Customer documents"
             columns={documentColumns}
@@ -1220,7 +1221,8 @@ function SupplierEditor({
         </Card>
 
         <Card title={SUPPLIER_SECTIONS[9]} description="Compliance document status and approval readiness.">
-          <ErpActionBar secondary={[{ label: "Add compliance metadata", onClick: onAddDocument }, { disabled: true, label: "Upload compliance document", reason: documentDisabledReason }]} />
+          <ErpActionBar secondary={[{ label: "Add compliance metadata", onClick: onAddDocument }]} />
+          <ErpFileActionState disabledReason={documentDisabledReason} enabled={false} label="Upload compliance document" />
           <ErpGrid
             ariaLabel="Supplier compliance documents"
             columns={documentColumns}
@@ -1235,7 +1237,8 @@ function SupplierEditor({
         </Card>
 
         <Card title={SUPPLIER_SECTIONS[10]} description="General supplier documents and commercial attachments.">
-          <ErpActionBar secondary={[{ label: "Add document metadata", onClick: onAddDocument }, { disabled: true, label: "Upload supplier document", reason: documentDisabledReason }]} />
+          <ErpActionBar secondary={[{ label: "Add document metadata", onClick: onAddDocument }]} />
+          <ErpFileActionState disabledReason={documentDisabledReason} enabled={false} label="Upload supplier document" />
           {documentRows.length > 0 ? (
             <ErpGrid ariaLabel="Supplier documents" columns={documentColumns} getRowId={(record) => record.id} records={documentRows} rowLabel={(record) => `${record.document} supplier document`} />
           ) : (

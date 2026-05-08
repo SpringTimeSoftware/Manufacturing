@@ -27,8 +27,15 @@ describe("Wave UX-GLOBAL-03 modal, action, and lookup reliability", () => {
 
     expect(await screen.findByText("Estimate / Quote List")).toBeInTheDocument();
     expect(screen.getByTestId("quote-action-bar")).toHaveClass("erp-action-bar");
-    expect(screen.getByRole("button", { name: "New quote draft" })).toBeDisabled();
-    expect(screen.getByText("Quote draft creation requires the commercial workflow to be enabled.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New quote draft" })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "New quote draft" }));
+    const draftDialog = await screen.findByRole("dialog", { name: "New quote draft" });
+    expect(within(draftDialog).getByTestId("erp-modal-workspace")).toBeInTheDocument();
+    expect(within(draftDialog).getByLabelText("Customer").tagName).toBe("SELECT");
+    expect(within(draftDialog).getByRole("button", { name: "Save quote draft" })).toBeDisabled();
+    expect(within(draftDialog).getByText("Live workspace sign-in is required before saving quote drafts.")).toBeInTheDocument();
+    fireEvent.click(within(draftDialog).getAllByRole("button", { name: "Close" })[0]);
 
     fireEvent.click(await screen.findByRole("row", { name: "QT-2026-0042 quote" }));
     const dialog = await screen.findByRole("dialog", { name: "QT-2026-0042" });

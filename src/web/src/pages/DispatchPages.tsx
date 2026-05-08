@@ -23,7 +23,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -234,7 +234,7 @@ export function ShipmentDeliveryPage() {
             <Card title="Shipment lines" description={selected.proofNotes}>
               <DataGrid ariaLabel="Shipment lines" columns={shipmentLineColumns} getRowId={(record) => record.id} records={selected.lines} rowLabel={(record) => `${record.itemLabel} shipment line`} />
             </Card>
-            <FormShell initialFingerprint={selected.id} title="Shipment controls"><ErpLookupField disabled disabledReason="Vehicle assignment is controlled by dispatch workflow." label="Vehicle" onChange={() => undefined} options={[{ label: selected.vehicleRef, value: selected.vehicleRef }]} value={selected.vehicleRef} /><label><span>Tracking</span><input defaultValue={selected.trackingRef} /></label></FormShell>
+            <FormShell initialFingerprint={selected.id} title="Shipment controls"><ErpLookupField disabled disabledReason="Vehicle assignment is controlled by dispatch workflow." label="Vehicle" onChange={() => undefined} options={[{ label: selected.vehicleRef, value: selected.vehicleRef }]} value={selected.vehicleRef} /><label><span>Tracking</span><input disabled defaultValue={selected.trackingRef} /></label></FormShell>
           </>
         ) : null}
       </ErpModalWorkspace>

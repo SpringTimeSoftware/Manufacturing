@@ -10,7 +10,26 @@ interface NotificationCenterProps {
 
 export function NotificationCenter({ compact = false }: NotificationCenterProps) {
   const navigate = useNavigate();
-  const { markAllAsRead, markAsRead, notifications, unreadCount } = useNotifications();
+  const { isLoading, loadError, markAllAsRead, markAsRead, notifications, unreadCount } = useNotifications();
+
+  if (loadError) {
+    return (
+      <EmptyState
+        description="Live notification data is not available right now. Only verified alerts are shown in this session."
+        hint={loadError}
+        title="Notification inbox unavailable"
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <EmptyState
+        description="Live notification data is being loaded for the current workspace."
+        title="Loading notifications"
+      />
+    );
+  }
 
   if (notifications.length === 0) {
     return (
@@ -30,7 +49,12 @@ export function NotificationCenter({ compact = false }: NotificationCenterProps)
             <Badge tone={unreadCount > 0 ? "warn" : "success"}>{`${unreadCount} unread`}</Badge>
           </div>
           <div className="ui-filter-bar__actions">
-            <Button variant="secondary" onClick={markAllAsRead}>
+            <Button
+              disabled={unreadCount === 0}
+              title={unreadCount === 0 ? "No unread notifications are available." : undefined}
+              variant="secondary"
+              onClick={markAllAsRead}
+            >
               Mark all as read
             </Button>
           </div>

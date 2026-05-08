@@ -10,6 +10,7 @@ import type {
   WarehouseDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { isDemoSession, liveDataUnavailable } from "../api/liveData";
 
 export type SetupDataSource = "Live" | "Seeded";
 
@@ -386,10 +387,6 @@ const seededShifts: ShiftSetupItem[] = [
   }
 ];
 
-function hasRunnableSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken);
-}
-
 function matchesFilter(value: string, search?: string, status?: string) {
   const searchText = search?.trim().toLowerCase();
   const statusText = status?.trim().toLowerCase();
@@ -530,7 +527,7 @@ export async function listCompanySetup(
   session: AuthSessionResponse | null | undefined,
   filter: QueryFilter
 ): Promise<CompanySetupItem[]> {
-  if (!hasRunnableSession(session)) {
+  if (isDemoSession(session)) {
     return filterSeeded(seededCompanies, filter, (item) => `${item.code} ${item.name} ${item.legalName}`);
   }
 
@@ -538,7 +535,7 @@ export async function listCompanySetup(
     const response = await apiClient.organization.companies(filter);
     return response.items.map((item) => mapCompany(item, "Live"));
   } catch {
-    return filterSeeded(seededCompanies, filter, (item) => `${item.code} ${item.name} ${item.legalName}`);
+    throw liveDataUnavailable("Company");
   }
 }
 
@@ -546,7 +543,7 @@ export async function listBranchSetup(
   session: AuthSessionResponse | null | undefined,
   filter: QueryFilter
 ): Promise<BranchSetupItem[]> {
-  if (!hasRunnableSession(session)) {
+  if (isDemoSession(session)) {
     return filterSeeded(seededBranches, filter, (item) => `${item.code} ${item.name} ${item.branchType}`);
   }
 
@@ -554,7 +551,7 @@ export async function listBranchSetup(
     const response = await apiClient.organization.branches(filter);
     return response.items.map((item) => mapBranch(item, "Live"));
   } catch {
-    return filterSeeded(seededBranches, filter, (item) => `${item.code} ${item.name} ${item.branchType}`);
+    throw liveDataUnavailable("Branch");
   }
 }
 
@@ -562,7 +559,7 @@ export async function listDepartmentSetup(
   session: AuthSessionResponse | null | undefined,
   filter: QueryFilter
 ): Promise<DepartmentSetupItem[]> {
-  if (!hasRunnableSession(session)) {
+  if (isDemoSession(session)) {
     return filterSeeded(seededDepartments, filter, (item) => `${item.code} ${item.name} ${item.departmentType}`);
   }
 
@@ -570,7 +567,7 @@ export async function listDepartmentSetup(
     const response = await apiClient.organization.departments(filter);
     return response.items.map((item) => mapDepartment(item, "Live"));
   } catch {
-    return filterSeeded(seededDepartments, filter, (item) => `${item.code} ${item.name} ${item.departmentType}`);
+    throw liveDataUnavailable("Department");
   }
 }
 
@@ -578,7 +575,7 @@ export async function listWarehouseSetup(
   session: AuthSessionResponse | null | undefined,
   filter: QueryFilter
 ): Promise<WarehouseSetupItem[]> {
-  if (!hasRunnableSession(session)) {
+  if (isDemoSession(session)) {
     return filterSeeded(seededWarehouses, filter, (item) => `${item.code} ${item.name} ${item.warehouseType}`);
   }
 
@@ -586,7 +583,7 @@ export async function listWarehouseSetup(
     const response = await apiClient.organization.warehouses(filter);
     return response.items.map((item) => mapWarehouse(item, "Live"));
   } catch {
-    return filterSeeded(seededWarehouses, filter, (item) => `${item.code} ${item.name} ${item.warehouseType}`);
+    throw liveDataUnavailable("Warehouse");
   }
 }
 
@@ -594,7 +591,7 @@ export async function listBinSetup(
   session: AuthSessionResponse | null | undefined,
   filter: QueryFilter
 ): Promise<BinSetupItem[]> {
-  if (!hasRunnableSession(session)) {
+  if (isDemoSession(session)) {
     return filterSeeded(seededBins, filter, (item) => `${item.code} ${item.name} ${item.binType} ${item.blockReason}`);
   }
 
@@ -602,7 +599,7 @@ export async function listBinSetup(
     const response = await apiClient.organization.bins(filter);
     return response.items.map((item) => mapBin(item, "Live"));
   } catch {
-    return filterSeeded(seededBins, filter, (item) => `${item.code} ${item.name} ${item.binType} ${item.blockReason}`);
+    throw liveDataUnavailable("Bin");
   }
 }
 
@@ -610,7 +607,7 @@ export async function listShiftSetup(
   session: AuthSessionResponse | null | undefined,
   filter: QueryFilter
 ): Promise<ShiftSetupItem[]> {
-  if (!hasRunnableSession(session)) {
+  if (isDemoSession(session)) {
     return filterSeeded(seededShifts, filter, (item) => `${item.code} ${item.name} ${item.calendarProfileCode}`);
   }
 
@@ -618,7 +615,7 @@ export async function listShiftSetup(
     const response = await apiClient.organization.shifts(filter);
     return response.items.map((item) => mapShift(item, "Live"));
   } catch {
-    return filterSeeded(seededShifts, filter, (item) => `${item.code} ${item.name} ${item.calendarProfileCode}`);
+    throw liveDataUnavailable("Shift");
   }
 }
 

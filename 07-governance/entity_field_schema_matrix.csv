@@ -1,0 +1,112 @@
+Entity,FieldName,BusinessLabel,DataType,ControlType,LookupSource,Required,Precision/Scale,Unit,AllowFreeText,ActionTruthDependency,Notes
+Item,code,Item code,string,Text,,Yes,,,Yes,Save item draft,Identifier text is business-entered.
+Item,name,Item name,string,Text,,Yes,,,Yes,Save item draft,Narrative master name.
+Item,itemType,Item type,string,Lookup,Item type status list,Yes,,,No,Save item draft,Controlled setup value.
+Item,itemGroupId,Item group/category,int,Lookup,Item Group / Category Master,Yes,,,No,Save item draft,Must preserve ID where available.
+Item,stockUomId,Stock UOM,int,Lookup,UOM Master,Yes,,,No,Save item draft,No free-text UOM.
+Item,purchaseUomId,Purchase UOM,int,Lookup,UOM Master,No,,,No,Save item draft,Used by vendor references.
+Item,salesUomId,Sales UOM,int,Lookup,UOM Master,No,,,No,Save item draft,Used by sales/commercial.
+Item,defaultWarehouse,Default warehouse,string,Lookup,Warehouse Master,No,,,No,Save item draft,Disabled when warehouse source missing.
+Item,leadTimeDays,Lead time days,int,ErpNumberField,,No,,days,No,Save item draft,Whole number.
+Item,netWeight,Net weight,decimal,ErpDecimalField,,No,"18,3",kg,No,Save item draft,Remaining model stores string; must migrate to decimal.
+Item,grossWeight,Gross weight,decimal,ErpDecimalField,,No,"18,3",kg,No,Save item draft,Remaining model stores string; must migrate to decimal.
+Item,customerId,Customer reference,int,Lookup,Customer Master,No,,,No,Save customer reference,Customer reference row must not use free text.
+Item,supplierId,Supplier reference,int,Lookup,Supplier Master,No,,,No,Save vendor reference,Supplier reference row must not use free text.
+Customer,code,Customer code,string,Text,,Yes,,,Yes,Save customer,Identifier text.
+Customer,name,Customer name,string,Text,,Yes,,,Yes,Save customer,Narrative master name.
+Customer,customerType,Customer type,string,Lookup,Customer type list,Yes,,,No,Save customer,Controlled value.
+Customer,status,Lifecycle status,string,Lookup,Status rule master,Yes,,,No,Save customer,Controlled status.
+Customer,taxCategory,Tax category,string,Lookup,Tax Category Master,No,,,No,Save customer profile,Controlled commercial setup.
+Customer,currencyCode,Currency,string,Lookup,Currency Master,No,,,No,Save customer profile,Controlled commercial setup.
+Customer,paymentTermsCode,Payment terms,string,Lookup,Payment Terms Master,Yes,,,No,Save customer,Controlled commercial setup.
+Customer,creditDays,Credit days,int,ErpNumberField,,No,,days,No,Save customer,Whole number.
+Customer,siteType,Site type,string,Lookup,Customer site type list,No,,,No,Save customer site,Controlled site usage.
+Customer,contactRole,Contact role,string,Lookup,Contact role list,No,,,No,Save contact point,Controlled contact role.
+Supplier,code,Supplier code,string,Text,,Yes,,,Yes,Save supplier,Identifier text.
+Supplier,name,Supplier name,string,Text,,Yes,,,Yes,Save supplier,Narrative master name.
+Supplier,supplierType,Supplier type/category,string,Lookup,Supplier type list,Yes,,,No,Save supplier,Controlled supplier category.
+Supplier,status,Lifecycle status,string,Lookup,Status rule master,Yes,,,No,Save supplier,Controlled status.
+Supplier,taxCategory,Tax category,string,Lookup,Tax Category Master,No,,,No,Save supplier profile,Controlled commercial setup.
+Supplier,currencyCode,Currency,string,Lookup,Currency Master,No,,,No,Save supplier profile,Controlled commercial setup.
+Supplier,paymentTermsCode,Payment terms,string,Lookup,Payment Terms Master,Yes,,,No,Save supplier,Controlled commercial setup.
+Supplier,complianceStatus,Compliance status,string,Lookup,Compliance status list,No,,,No,Save supplier profile,Controlled compliance state.
+Price List,priceListCode,Price list code,string,Text,,Yes,,,Yes,Save price list,Identifier text.
+Price List,currencyId,Currency,int,Lookup,Currency Master,Yes,,,No,Save price list,Must preserve ID.
+Price List,priceListType,Price list type,string,Lookup,Price list type list,Yes,,,No,Save price list,Controlled type.
+Price List,lineNo,Line number,int,ErpNumberField,,Yes,,,No,Save price list,Whole number.
+Price List,itemId,Item,int,Lookup,Item Master,No,,,No,Save price list line,Controlled item source.
+Price List,uomId,UOM,int,Lookup,UOM Master,Yes,,,No,Save price list line,No free-text UOM.
+Price List,minQuantity,Minimum quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save price list line,Decimal quantity.
+Price List,unitPrice,Unit price,money,ErpMoneyField,Currency Master,Yes,"18,2",currency,No,Save price list line,Money field.
+Discount Scheme,schemeCode,Scheme code,string,Text,,Yes,,,Yes,Save discount scheme,Identifier text.
+Discount Scheme,discountType,Discount type,string,Lookup,Discount type list,Yes,,,No,Save discount scheme,Controlled scheme type.
+Discount Scheme,currencyId,Currency,int,Lookup,Currency Master,No,,,No,Save discount scheme,Controlled currency.
+Discount Scheme,applicabilityType,Applicability,string,Lookup,Applicability list,Yes,,,No,Save discount rule,Controlled applicability.
+Discount Scheme,minQuantity,Minimum quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save discount rule,Decimal quantity.
+Discount Scheme,discountPercent,Discount percent,decimal,ErpDecimalField,,No,"5,2",percent,No,Save discount rule,Decimal percent.
+Discount Scheme,discountAmount,Discount amount,money,ErpMoneyField,Currency Master,No,"18,2",currency,No,Save discount rule,Money field.
+Tax/Currency/Terms,currencyCode,Currency code,string,Text,,Yes,,,Yes,Save currency,Identifier text.
+Tax/Currency/Terms,decimalPrecision,Decimal precision,int,ErpNumberField,,Yes,,,No,Save currency,Whole number.
+Tax/Currency/Terms,manualRate,Manual exchange rate,decimal,ErpDecimalField,,No,"18,6",rate,No,Save exchange rate,Decimal rate.
+Tax/Currency/Terms,taxCategoryCode,Tax category code,string,Text,,Yes,,,Yes,Save tax category,Identifier text.
+Tax/Currency/Terms,defaultRatePercent,Default rate percent,decimal,ErpDecimalField,,Yes,"5,2",percent,No,Save tax category,Decimal percent.
+Tax/Currency/Terms,paymentTermsCode,Payment terms code,string,Text,,Yes,,,Yes,Save payment terms,Identifier text.
+Tax/Currency/Terms,netDays,Net days,int,ErpNumberField,,Yes,,days,No,Save payment terms,Whole number.
+BOM,parentItemId,Parent item,int,Lookup,Item Master,Yes,,,No,Create/save BOM,Controlled item.
+BOM,componentItemId,Component item,int,Lookup,Item Master,Yes,,,No,Save BOM line,Controlled item.
+BOM,issueUomId,Issue UOM,int,Lookup,UOM Master,Yes,,,No,Save BOM line,No free-text UOM.
+BOM,quantityPer,Quantity per,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save BOM line,Decimal quantity.
+BOM,scrapPercent,Scrap percent,decimal,ErpDecimalField,,No,"5,2",percent,No,Save BOM line,Decimal percent.
+BOM,operationId,Operation standard,int,Lookup,Operation Standard,No,,,No,Save BOM operation,Controlled operation.
+Routing,outputItemId,Output item,int,Lookup,Item Master,Yes,,,No,Save routing,Controlled item.
+Routing,operationId,Operation standard,int,Lookup,Operation Standard,Yes,,,No,Save routing step,Controlled operation.
+Routing,workCenterId,Work center,int,Lookup,Work Center Master,No,,,No,Save routing step,Controlled resource.
+Routing,machineId,Machine,int,Lookup,Machine Master,No,,,No,Save routing step,Disabled where source/workflow missing.
+Routing,setupMinutes,Setup minutes,decimal,ErpDecimalField,,No,"9,2",minutes,No,Save routing step,Decimal time.
+Routing,runMinutesPerUnit,Run minutes per unit,decimal,ErpDecimalField,,No,"9,2",minutes,No,Save routing step,Decimal time.
+Routing,teardownMinutes,Teardown minutes,decimal,ErpDecimalField,,No,"9,2",minutes,No,Save routing step,Decimal time.
+Routing,overlapPercent,Overlap percent,decimal,ErpDecimalField,,No,"5,2",percent,No,Save routing step,Decimal percent.
+Work Order,workOrderNo,Work order number,string,ReadOnly,,Yes,,,No,Release work order,Generated/controlled by workflow.
+Work Order,itemId,Item,int,Lookup,Item Master,Yes,,,No,Create work order,Controlled item.
+Work Order,bomId,BOM,int,Lookup,BOM Library,Yes,,,No,Create work order,Controlled BOM.
+Work Order,routingId,Routing,int,Lookup,Routing Library,Yes,,,No,Create work order,Controlled routing.
+Work Order,plannedQuantity,Planned quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Create work order,Decimal quantity.
+Job Card,jobCardNo,Job card number,string,ReadOnly,,Yes,,,No,Create job card,Generated/controlled by workflow.
+Job Card,machineId,Machine,int,Lookup,Machine Master,No,,,No,Assign job card,Controlled machine.
+Job Card,operatorId,Operator,int,Lookup,Authorized user registry,No,,,No,Assign job card,Controlled operator.
+Job Card,goodQuantity,Good quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Complete job card,Decimal quantity.
+Production Receipt,workOrderId,Work order,int,Lookup,Work Order,Yes,,,No,Post receipt,Controlled source.
+Production Receipt,jobCardId,Job card,int,Lookup,Job Card,No,,,No,Post receipt,Controlled source.
+Production Receipt,warehouseId,Warehouse,int,Lookup,Warehouse Master,Yes,,,No,Post receipt,Controlled warehouse.
+Production Receipt,binId,Bin,int,Lookup,Bin Master,No,,,No,Post receipt,Controlled bin.
+Production Receipt,receivedQuantity,Received quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Post receipt,Decimal quantity.
+QC/NCR,inspectionPlanId,QC plan,int,Lookup,QC Plan Setup,Yes,,,No,Create inspection,Controlled QC plan.
+QC/NCR,sourceDocument,Source document,string,Lookup,Receipt/Job/Dispatch context,Yes,,,No,Create NCR,Controlled source.
+QC/NCR,traceId,Lot/serial trace,string,Lookup,Traceability registry,No,,,No,Create NCR,Controlled trace.
+QC/NCR,disposition,Disposition,string,Lookup,Disposition list,No,,,No,Release disposition,Controlled quality state.
+QC/NCR,actualValue,Actual value,decimal,ErpDecimalField,,No,"18,3",measurement,No,Save inspection,Decimal result where numeric.
+Dispatch,salesOrderId,Sales order,int,Lookup,Sales Order,Yes,,,No,Plan dispatch,Controlled source.
+Dispatch,customerId,Customer,int,Lookup,Customer Master,Yes,,,No,Plan dispatch,Controlled customer.
+Dispatch,packListId,Pack list,int,Lookup,Pack List,No,,,No,Prepare shipment,Controlled source.
+Dispatch,vehicleRef,Vehicle,string,Lookup,Vehicle/dispatch resource,No,,,No,Prepare shipment,Controlled when source exists.
+Dispatch,shippedQuantity,Shipped quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save shipment,Decimal quantity.
+Organization,companyId,Company,int,Lookup,Company Master,Yes,,,No,Save organization setup,Company-scoped records must not use free text.
+Organization,branchId,Branch,int,Lookup,Branch Master,No,,,No,Save branch setup,Branch selectors must remain governed.
+Organization,departmentId,Department,int,Lookup,Department Master,No,,,No,Save department setup,Department/manager mappings need governed source.
+Organization,warehouseId,Warehouse,int,Lookup,Warehouse Master,No,,,No,Save warehouse/bin setup,Warehouse and bin screens must preserve controlled source.
+Organization,binId,Bin,int,Lookup,Bin Master,No,,,No,Save warehouse/bin setup,Bin hierarchy must use controlled parent source.
+Organization,shiftId,Shift,int,Lookup,Shift Master,No,,,No,Save shift setup,Shift assignments must use controlled setup.
+MPS,planningHorizon,Planning horizon,string,Lookup,Planning calendar,Yes,,,No,Create MPS draft,Review-only horizon values render as governed controls until edit workflow exists.
+MPS,itemId,Item,int,Lookup,Item Master,Yes,,,No,Create MPS draft,MPS item source must be governed.
+MRP,runCode,Run code,string,Text,,Yes,,,Yes,Run MRP,Generated or business-entered identifier.
+MRP,branchId,Branch,int,Lookup,Branch Master,Yes,,,No,Run MRP,MRP branch must be selected from controlled branch source.
+MRP,warehouseId,Warehouse,int,Lookup,Warehouse Master,No,,,No,Run MRP,Warehouse filter must not be free text.
+MRP,demandSource,Demand source,string,Lookup,Demand source list,Yes,,,No,Run MRP,Controlled planning source.
+MRP,planningHorizon,Planning horizon,string,Lookup,Planning calendar,Yes,,,No,Run MRP,Review-only selected run horizon must render as governed control.
+BOQ,sourceDocument,Source document,string,Lookup,Demand/MPS/Sales source,Yes,,,No,Convert BOQ,Controlled source document.
+BOQ,itemId,Item,int,Lookup,Item Master,Yes,,,No,Convert BOQ,Controlled item.
+BOQ,requiredQuantity,Required quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Approve BOQ line,Decimal requirement.
+Platform Admin,userRole,User role,string,Lookup,Role Matrix,Yes,,,No,Save user lifecycle,User assignment must use controlled role source.
+Platform Admin,tenantCode,Tenant,string,Lookup,Tenant Registry,Yes,,,No,Save tenant setting,Tenant settings must use governed tenant selection.
+Platform Admin,workflowRuleId,Workflow rule,int,Lookup,Workflow Rule Registry,No,,,No,Save workflow rule,Workflow references must remain governed.
+Platform Admin,auditEventId,Audit event,string,ReadOnly,,Yes,,,No,Open audit event,Audit events are review-only and must not appear editable.

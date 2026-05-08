@@ -1,5 +1,6 @@
 import type { AuditTrailItemDto, AuthSessionResponse, RoleCode } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 import { translationRecords } from "../api/mockData";
 import type { FeatureFlags } from "../featureFlags/FeatureFlagProvider";
 
@@ -330,7 +331,7 @@ export async function listUserDirectory(_session: AuthSessionResponse | null | u
     try {
       return await apiClient.platform.users();
     } catch {
-      // Preserve seeded administration records when the SQL runtime pack is not deployed yet.
+      throw liveDataUnavailable("User directory");
     }
   }
 
@@ -342,7 +343,7 @@ export async function listRoleMatrix(_session: AuthSessionResponse | null | unde
     try {
       return await apiClient.platform.roles();
     } catch {
-      // Preserve seeded role matrix when the SQL runtime pack is not deployed yet.
+      throw liveDataUnavailable("Role matrix");
     }
   }
 
@@ -354,7 +355,7 @@ export async function listWorkflowRules(_session: AuthSessionResponse | null | u
     try {
       return await apiClient.platform.workflowRules();
     } catch {
-      // Preserve seeded workflow rules when the SQL runtime pack is not deployed yet.
+      throw liveDataUnavailable("Workflow rules");
     }
   }
 
@@ -373,7 +374,7 @@ export async function listTenantSettings(
         key: setting.key as TenantSettingItem["key"]
       }));
     } catch {
-      // Preserve seeded tenant settings when the SQL runtime pack is not deployed yet.
+      throw liveDataUnavailable("Tenant settings");
     }
   }
 
@@ -424,7 +425,7 @@ export async function listAuditTrail(
       });
       return page.items;
     } catch {
-      // Keep the audit viewer available when the runtime audit table is not deployed yet.
+      throw liveDataUnavailable("Audit trail");
     }
   }
 
@@ -501,10 +502,6 @@ export async function listTranslationRegistry(
         };
       });
   } catch {
-    return filterSeed().map((record) => ({
-      ...record,
-      status: (record.status === "Synced" ? "Synced" : "Pending Review") as "Synced" | "Pending Review",
-      source: "Seeded" as const
-    }));
+    throw liveDataUnavailable("Translation registry");
   }
 }

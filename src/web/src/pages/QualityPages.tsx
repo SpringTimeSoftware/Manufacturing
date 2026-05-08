@@ -22,7 +22,7 @@ import { KpiStrip } from "../ui/boards";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
-  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Reference view"}</Badge>;
+  return <Badge tone={tone}>{source === "Live" ? "Live records" : "Review mode"}</Badge>;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -208,7 +208,7 @@ export function NcrDeviationPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.ncrNo ?? "NCR"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="NCR controls" description={selected.remarks}><label><span>Root cause</span><input defaultValue={selected.rootCause} /></label><ErpLookupField disabled disabledReason="Disposition is controlled by quality disposition rules." label="Disposition" onChange={() => undefined} options={[{ label: selected.disposition, value: selected.disposition }]} value={selected.disposition} /><ErpLookupField disabled disabledReason="Rework link is controlled by the rework order workflow." label="Rework link" onChange={() => undefined} options={[{ label: selected.reworkLink, value: selected.reworkLink }]} value={selected.reworkLink} /></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="NCR controls" description={selected.remarks}><label><span>Root cause</span><input disabled defaultValue={selected.rootCause} /></label><ErpLookupField disabled disabledReason="Disposition is controlled by quality disposition rules." label="Disposition" onChange={() => undefined} options={[{ label: selected.disposition, value: selected.disposition }]} value={selected.disposition} /><ErpLookupField disabled disabledReason="Rework link is controlled by the rework order workflow." label="Rework link" onChange={() => undefined} options={[{ label: selected.reworkLink, value: selected.reworkLink }]} value={selected.reworkLink} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

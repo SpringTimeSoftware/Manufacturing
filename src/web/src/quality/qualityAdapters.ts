@@ -7,6 +7,7 @@ import type {
   QueryFilter
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface QualityPlanItem {
@@ -61,10 +62,6 @@ export interface NonConformanceItem {
   reworkLink: string;
   remarks: string;
   source: MasterDataSource;
-}
-
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
 }
 
 function matchesFilter(value: string, filter: QueryFilter) {
@@ -315,7 +312,7 @@ export async function listQualityPlans(session: AuthSessionResponse | null | und
     const response = await apiClient.quality.inspectionPlans(filter);
     return response.items.map((item) => mapPlan(item, "Live"));
   } catch {
-    return filterSeeded(seededPlans, filter, (item) => `${item.planCode} ${item.planName} ${item.inspectionType} ${item.status}`);
+    throw liveDataUnavailable("QC plan");
   }
 }
 
@@ -328,7 +325,7 @@ export async function listInspections(session: AuthSessionResponse | null | unde
     const response = await apiClient.quality.inspections(filter);
     return response.items.map((item) => mapInspection(item, "Live"));
   } catch {
-    return filterSeeded(seededInspections, filter, (item) => `${item.inspectionNo} ${item.inspectionType} ${item.sourceDocument} ${item.status}`);
+    throw liveDataUnavailable("Inspection");
   }
 }
 
@@ -341,6 +338,6 @@ export async function listNonConformances(session: AuthSessionResponse | null | 
     const response = await apiClient.quality.nonConformances(filter);
     return response.items.map((item) => mapNcr(item, "Live"));
   } catch {
-    return filterSeeded(seededNcrs, filter, (item) => `${item.ncrNo} ${item.sourceDocument} ${item.disposition} ${item.status}`);
+    throw liveDataUnavailable("NCR");
   }
 }

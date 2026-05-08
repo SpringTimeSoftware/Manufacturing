@@ -17,6 +17,7 @@ import type {
   WorkOrderSummaryDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
 import type { MasterDataSource } from "../masters/masterDataAdapters";
 import type { Lane, OccupancyRow } from "../ui/boards";
 
@@ -156,10 +157,6 @@ export interface DowntimeRegisterItem {
   status: string;
   remarks: string;
   source: MasterDataSource;
-}
-
-function hasLiveSession(session: AuthSessionResponse | null | undefined) {
-  return Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
 }
 
 function matchesFilter(value: string, filter: QueryFilter) {
@@ -918,7 +915,7 @@ export async function listCycleCountSetup(
     const response = await apiClient.inventory.cycleCounts(filter);
     return response.items.map((item) => mapCycleCount(item, "Live"));
   } catch {
-    return filterSeeded(seededCycleCounts, filter, (item) => `${item.countNo} ${item.warehouseLabel} ${item.status}`);
+    throw liveDataUnavailable("Cycle count");
   }
 }
 
@@ -934,7 +931,7 @@ export async function listWorkOrderSetup(
     const response = await apiClient.production.workOrders(filter);
     return response.items.map((item) => mapWorkOrderSummary(item, "Live"));
   } catch {
-    return filterSeeded(seededWorkOrders, filter, (item) => `${item.workOrderNo} ${item.salesOrderLabel} ${item.itemLabel} ${item.status}`);
+    throw liveDataUnavailable("Work order");
   }
 }
 
@@ -953,7 +950,7 @@ export async function getWorkOrderDetailSetup(
     ]);
     return mapWorkOrderDetail(detail, "Live", readiness);
   } catch {
-    return fallback;
+    throw liveDataUnavailable("Work order detail");
   }
 }
 
@@ -969,7 +966,7 @@ export async function listJobCardSetup(
     const response = await apiClient.production.jobCards(filter);
     return response.items.map((item) => mapJobCardSummary(item, "Live"));
   } catch {
-    return filterSeeded(seededJobCards, filter, (item) => `${item.jobCardNo} ${item.workOrderLabel} ${item.machineLabel} ${item.status}`);
+    throw liveDataUnavailable("Job card");
   }
 }
 
@@ -985,7 +982,7 @@ export async function getJobCardDetailSetup(
     const response = await apiClient.production.jobCard(fallback.jobCardId);
     return mapJobCardDetail(response, "Live");
   } catch {
-    return fallback;
+    throw liveDataUnavailable("Job card detail");
   }
 }
 
@@ -1015,12 +1012,7 @@ export async function getMachineBoardSetup(
       occupancyRows: buildOccupancyRows(lanes, dateFrom, 7)
     };
   } catch {
-    return {
-      source: "Seeded",
-      lanes: seededLanes,
-      occupancyColumns: seededOccupancyColumns,
-      occupancyRows: seededOccupancyRows
-    };
+    throw liveDataUnavailable("Machine board");
   }
 }
 
@@ -1050,7 +1042,7 @@ export async function listShiftProductionSetup(
       source: "Live" as MasterDataSource
     }));
   } catch {
-    return filterSeeded(seededShiftProduction, filter, (item) => `${item.shiftLabel} ${item.workOrderLabel} ${item.jobCardLabel} ${item.status}`);
+    throw liveDataUnavailable("Shift production");
   }
 }
 
@@ -1066,6 +1058,6 @@ export async function listDowntimeSetup(
     const response = await apiClient.production.downtime(filter);
     return response.items.map((item) => mapDowntime(item, "Live"));
   } catch {
-    return filterSeeded(seededDowntime, filter, (item) => `${item.jobCardLabel} ${item.machineLabel} ${item.reasonCode} ${item.status}`);
+    throw liveDataUnavailable("Downtime");
   }
 }

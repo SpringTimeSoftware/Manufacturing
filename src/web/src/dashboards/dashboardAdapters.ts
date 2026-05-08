@@ -8,6 +8,7 @@ import type {
   StageWiseDashboardItem
 } from "../api/contracts";
 import { apiClient } from "../api/http";
+import { liveDataUnavailable } from "../api/liveData";
 import {
   homeColumns,
   homeKpis,
@@ -327,11 +328,7 @@ export async function loadOrderDeliveryDashboard(
   try {
     return await fetchOrderRiskItems(filter);
   } catch {
-    return {
-      kpis: orderDeliveryKpis,
-      records: orderDeliveryRecords,
-      source: "Seeded"
-    };
+    throw liveDataUnavailable("Order delivery dashboard");
   }
 }
 
@@ -350,11 +347,7 @@ export async function loadStageWiseDashboard(
   try {
     return await fetchStageWiseItems(filter);
   } catch {
-    return {
-      columns: stageWiseColumns,
-      kpis: stageWiseKpis,
-      source: "Seeded"
-    };
+    throw liveDataUnavailable("Stage-wise dashboard");
   }
 }
 
@@ -396,21 +389,7 @@ export async function loadExecutiveCockpit(
       source: "Live"
     };
   } catch {
-    return {
-      summary: {
-        openOrders: 28,
-        overdueOrders: 6,
-        criticalShortages: 11,
-        delayedSuppliers: 4,
-        machineDowntimeMinutesToday: 92,
-        dispatchReadyToday: 3,
-        qcPending: 5
-      },
-      topRisks: orderDeliveryRecords.slice(0, 3),
-      stageColumns: stageWiseColumns,
-      interventionItems: buildAttentionItems(orderDeliveryRecords, notifications),
-      source: "Seeded"
-    };
+    throw liveDataUnavailable("Executive cockpit");
   }
 }
 
