@@ -22,7 +22,7 @@ internal sealed class ResourceService(
     public async Task<PagedResult<CustomerDto>> ListCustomersAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default)
     {
         var scope = GetScope();
-        var query = DbContext.Customers.AsNoTracking().ApplyActiveOrganizationScope(scope);
+        var query = ApplyCustomerOrganizationScope(DbContext.Customers.AsNoTracking(), scope);
 
         if (filter.CompanyId.HasValue)
         {
@@ -31,7 +31,7 @@ internal sealed class ResourceService(
 
         if (filter.BranchId.HasValue)
         {
-            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+            query = query.Where(entity => entity.DefaultBranchId == filter.BranchId.Value);
         }
 
         query = ApplyCustomerFilters(query, filter);
@@ -72,7 +72,7 @@ internal sealed class ResourceService(
         ValidateCustomer(request);
 
         var scope = GetScope();
-        var entity = await DbContext.Customers.ApplyActiveOrganizationScope(scope)
+        var entity = await ApplyCustomerOrganizationScope(DbContext.Customers, scope)
             .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
 
         entity = EnsureFound(entity, "Customer was not found in the active scope.", "partners.customer_not_found");
@@ -262,7 +262,7 @@ internal sealed class ResourceService(
     public async Task<PagedResult<SupplierDto>> ListSuppliersAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default)
     {
         var scope = GetScope();
-        var query = DbContext.Suppliers.AsNoTracking().ApplyActiveOrganizationScope(scope);
+        var query = ApplySupplierOrganizationScope(DbContext.Suppliers.AsNoTracking(), scope);
 
         if (filter.CompanyId.HasValue)
         {
@@ -271,7 +271,7 @@ internal sealed class ResourceService(
 
         if (filter.BranchId.HasValue)
         {
-            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+            query = query.Where(entity => entity.DefaultBranchId == filter.BranchId.Value);
         }
 
         query = ApplySupplierFilters(query, filter);
@@ -311,7 +311,7 @@ internal sealed class ResourceService(
         ValidateSupplier(request);
 
         var scope = GetScope();
-        var entity = await DbContext.Suppliers.ApplyActiveOrganizationScope(scope)
+        var entity = await ApplySupplierOrganizationScope(DbContext.Suppliers, scope)
             .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
 
         entity = EnsureFound(entity, "Supplier was not found in the active scope.", "partners.supplier_not_found");
@@ -862,8 +862,7 @@ internal sealed class ResourceService(
     private async Task<Customer> RequireCustomerAsync(long customerId, CancellationToken cancellationToken)
     {
         var scope = GetScope();
-        var entity = await DbContext.Customers.AsNoTracking()
-            .ApplyActiveOrganizationScope(scope)
+        var entity = await ApplyCustomerOrganizationScope(DbContext.Customers.AsNoTracking(), scope)
             .FirstOrDefaultAsync(record => record.Id == customerId, cancellationToken);
 
         return EnsureFound(entity, "Parent customer was not found in the active scope.", "partners.customer_not_found");
@@ -872,11 +871,40 @@ internal sealed class ResourceService(
     private async Task<Supplier> RequireSupplierAsync(long supplierId, CancellationToken cancellationToken)
     {
         var scope = GetScope();
-        var entity = await DbContext.Suppliers.AsNoTracking()
-            .ApplyActiveOrganizationScope(scope)
+        var entity = await ApplySupplierOrganizationScope(DbContext.Suppliers.AsNoTracking(), scope)
             .FirstOrDefaultAsync(record => record.Id == supplierId, cancellationToken);
 
         return EnsureFound(entity, "Parent supplier was not found in the active scope.", "partners.supplier_not_found");
+    }
+
+    private static IQueryable<Customer> ApplyCustomerOrganizationScope(IQueryable<Customer> query, DataScopeContext scope)
+    {
+        if (scope.ActiveCompanyId.HasValue)
+        {
+            query = query.Where(record => !record.CompanyId.HasValue || record.CompanyId.Value == scope.ActiveCompanyId.Value);
+        }
+
+        if (scope.ActiveBranchId.HasValue)
+        {
+            query = query.Where(record => !record.DefaultBranchId.HasValue || record.DefaultBranchId.Value == scope.ActiveBranchId.Value);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<Supplier> ApplySupplierOrganizationScope(IQueryable<Supplier> query, DataScopeContext scope)
+    {
+        if (scope.ActiveCompanyId.HasValue)
+        {
+            query = query.Where(record => !record.CompanyId.HasValue || record.CompanyId.Value == scope.ActiveCompanyId.Value);
+        }
+
+        if (scope.ActiveBranchId.HasValue)
+        {
+            query = query.Where(record => !record.DefaultBranchId.HasValue || record.DefaultBranchId.Value == scope.ActiveBranchId.Value);
+        }
+
+        return query;
     }
 
     private static IQueryable<Customer> ApplyCustomerFilters(IQueryable<Customer> query, CompanyScopedFilter filter)

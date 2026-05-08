@@ -27,10 +27,12 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 9. `ddl/00-foundation/009_production_execution_tables.sql`
 10. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
 11. `ddl/00-foundation/020_integration_ai_tables.sql`
-12. `seed/001_minimum_platform_seed.sql`
-13. `seed/002_minimum_org_seed.sql`
-14. `seed/003_minimum_masters_seed.sql`
-15. future backfill, seed, and procedure packs in numeric order
+12. `procedures/production/001_machine_board.sql`
+13. `seed/001_minimum_platform_seed.sql`
+14. `seed/002_minimum_org_seed.sql`
+15. `seed/003_minimum_masters_seed.sql`
+16. `seed/005_uat_runtime_seed.sql`
+17. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 
@@ -45,9 +47,11 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 - customer/supplier partner profiles, controlled contact points, item/vendor references, document metadata, and audit-linked partner master extension tables;
 - commercial master setup for currencies, exchange-rate setup, tax categories/codes, payment terms, trade terms, price lists, price list lines, price assignments, discount schemes, and discount rules;
 - resources, routings, BOM, and ECO;
-- sales, planning, procurement, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry.
+- sales, planning, procurement, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
+- machine-board stored procedure coverage for the production occupancy read model;
+- UAT runtime seed proof for SalesCoordinator, PurchaseManager, PlantHead, MPS/MRP/BOQ, work order/job card/downtime, lot traceability, and dispatch pack-list/print flows.
 
-Authentication still validates against the bootstrap identity directory, but user/role administration now has a SQL-backed visibility mirror aligned to those bootstrap users. The minimum platform seed includes the deliberate `super.admin` / `SuperAdmin` visibility mirror for controlled full-menu administration and UAT support. Web adapters for screens beyond `P083` remain intentionally demo-backed or blocked until their backend contracts or normal prompt-chain work exist.
+Authentication still validates against the bootstrap identity directory, but user/role administration now has a SQL-backed visibility mirror aligned to those bootstrap users. The minimum platform seed includes the deliberate `super.admin` / `SuperAdmin` visibility mirror for controlled full-menu administration and UAT support, plus live UAT role identities for SalesCoordinator, PurchaseManager, and PlantHead. Web adapters for screens beyond `P083` remain intentionally demo-backed or blocked until their backend contracts or normal prompt-chain work exist.
 
 ## Rules
 

@@ -375,9 +375,9 @@ internal sealed class OrganizationService(
     public async Task<PagedResult<WarehouseDto>> ListWarehousesAsync(OrganizationFilter filter, CancellationToken cancellationToken = default)
     {
         var scope = GetScope();
-        var query = DbContext.Warehouses.AsNoTracking()
-            .ApplyActiveOrganizationScope(scope)
-            .ApplyWarehouseScope(scope);
+        var query = ApplyWarehouseRecordScope(
+            DbContext.Warehouses.AsNoTracking().ApplyActiveOrganizationScope(scope),
+            scope);
 
         if (filter.CompanyId.HasValue)
         {
@@ -398,9 +398,9 @@ internal sealed class OrganizationService(
     public async Task<WarehouseDto> GetWarehouseAsync(long id, CancellationToken cancellationToken = default)
     {
         var scope = GetScope();
-        var entity = await DbContext.Warehouses.AsNoTracking()
-            .ApplyActiveOrganizationScope(scope)
-            .ApplyWarehouseScope(scope)
+        var entity = await ApplyWarehouseRecordScope(
+                DbContext.Warehouses.AsNoTracking().ApplyActiveOrganizationScope(scope),
+                scope)
             .FirstOrDefaultAsync(warehouse => warehouse.Id == id, cancellationToken);
 
         return MapWarehouse(EnsureFound(entity, "Warehouse was not found in the active scope.", "organization.warehouse_not_found"));
@@ -438,8 +438,9 @@ internal sealed class OrganizationService(
         ValidateWarehouse(request);
 
         var scope = GetScope();
-        var entity = await DbContext.Warehouses.ApplyActiveOrganizationScope(scope)
-            .ApplyWarehouseScope(scope)
+        var entity = await ApplyWarehouseRecordScope(
+                DbContext.Warehouses.ApplyActiveOrganizationScope(scope),
+                scope)
             .FirstOrDefaultAsync(warehouse => warehouse.Id == id, cancellationToken);
 
         entity = EnsureFound(entity, "Warehouse was not found in the active scope.", "organization.warehouse_not_found");
@@ -581,6 +582,16 @@ internal sealed class OrganizationService(
         }
 
         return query;
+    }
+
+    private static IQueryable<Warehouse> ApplyWarehouseRecordScope(IQueryable<Warehouse> query, DataScopeContext scope)
+    {
+        if (scope.AllowedWarehouseIds.Count == 0)
+        {
+            return query;
+        }
+
+        return query.Where(warehouse => scope.AllowedWarehouseIds.Contains(warehouse.Id));
     }
 
     private static IQueryable<Branch> ApplyBranchRootScope(IQueryable<Branch> query, DataScopeContext scope)

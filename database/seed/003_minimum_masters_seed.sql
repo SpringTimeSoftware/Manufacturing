@@ -339,7 +339,7 @@ IF OBJECT_ID(N'[sales].[PriceListLines]', N'U') IS NOT NULL
         WHERE list.CompanyId = 1 AND list.PriceListCode = N'STD-INR-2026' AND line.ItemId = 10002)
 BEGIN
     INSERT INTO [sales].[PriceListLines]
-        (PriceListId, LineNo, ItemId, ItemGroupId, UomId, MinQuantity, UnitPrice, DiscountEligible, TaxCategoryId, EffectiveFrom, EffectiveTo, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        (PriceListId, [LineNo], ItemId, ItemGroupId, UomId, MinQuantity, UnitPrice, DiscountEligible, TaxCategoryId, EffectiveFrom, EffectiveTo, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
     SELECT
         list.Id, 10, 10002, NULL, 1, 1, 875.000000, 1, tax.Id, CONVERT(date, @now), NULL, N'Active', @now, NULL, @now, NULL
     FROM [sales].[PriceLists] list
@@ -379,9 +379,9 @@ IF OBJECT_ID(N'[sales].[DiscountRules]', N'U') IS NOT NULL
    AND OBJECT_ID(N'[sales].[DiscountSchemes]', N'U') IS NOT NULL
    AND NOT EXISTS (
         SELECT 1
-        FROM [sales].[DiscountRules] rule
-        INNER JOIN [sales].[DiscountSchemes] scheme ON scheme.Id = rule.DiscountSchemeId
-        WHERE scheme.CompanyId = 1 AND scheme.SchemeCode = N'VOL-STD-2026' AND rule.RuleNo = 10)
+        FROM [sales].[DiscountRules] discountRule
+        INNER JOIN [sales].[DiscountSchemes] scheme ON scheme.Id = discountRule.DiscountSchemeId
+        WHERE scheme.CompanyId = 1 AND scheme.SchemeCode = N'VOL-STD-2026' AND discountRule.RuleNo = 10)
 BEGIN
     INSERT INTO [sales].[DiscountRules]
         (DiscountSchemeId, RuleNo, RuleName, ApplicabilityType, CustomerId, CustomerGroupCode, ItemId, ItemGroupId, MinQuantity, DiscountPercent, DiscountAmount, PriceListId, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)

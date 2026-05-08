@@ -77,6 +77,24 @@ internal sealed class BootstrapIdentityDirectory : IBootstrapIdentityDirectory
                 new[] { AppRoles.PlanningManager },
                 new[] { acmeNorth, acmeSouth }),
             new BootstrapUserRecord(
+                1008,
+                "sales.coordinator",
+                "Sales Coordinator",
+                "sales.coordinator@sts.local",
+                "en-IN",
+                BootstrapPasswordHasher.Hash("Sales@123"),
+                new[] { AppRoles.SalesCoordinator },
+                new[] { acmeNorth, acmeSouth }),
+            new BootstrapUserRecord(
+                1009,
+                "purchase.manager",
+                "Purchase Manager",
+                "purchase.manager@sts.local",
+                "en-IN",
+                BootstrapPasswordHasher.Hash("Purchase@123"),
+                new[] { AppRoles.PurchaseManager },
+                new[] { acmeNorth, acmeSouth }),
+            new BootstrapUserRecord(
                 1003,
                 "stores.keeper",
                 "Stores Keeper",
@@ -120,7 +138,16 @@ internal sealed class BootstrapIdentityDirectory : IBootstrapIdentityDirectory
                 "en-IN",
                 BootstrapPasswordHasher.Hash("Dispatch@123"),
                 new[] { AppRoles.DispatchManager },
-                new[] { acmeSouth with { AllowedWarehouseIds = new long[] { 201 }, AllowedDepartmentIds = Array.Empty<long>() } })
+                new[] { acmeSouth with { AllowedWarehouseIds = new long[] { 201 }, AllowedDepartmentIds = Array.Empty<long>() } }),
+            new BootstrapUserRecord(
+                1010,
+                "plant.head",
+                "Plant Head",
+                "plant.head@sts.local",
+                "en-IN",
+                BootstrapPasswordHasher.Hash("Plant@123"),
+                new[] { AppRoles.PlantHead },
+                new[] { acmeNorth, acmeSouth })
         };
     }
 }

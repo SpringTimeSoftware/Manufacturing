@@ -28,10 +28,11 @@ internal sealed class JobCardService(
             from jobCard in DbContext.JobCards.AsNoTracking().ApplyActiveOrganizationScope(scope)
             join workOrder in DbContext.WorkOrders.AsNoTracking() on jobCard.WorkOrderId equals workOrder.Id
             join operation in DbContext.WorkOrderOperations.AsNoTracking() on jobCard.WorkOrderOperationId equals operation.Id
-            select new JobCardListRow(
+            select new
+            {
                 jobCard.Id,
-                jobCard.CompanyId ?? 0,
-                jobCard.BranchId ?? 0,
+                CompanyId = jobCard.CompanyId ?? 0,
+                BranchId = jobCard.BranchId ?? 0,
                 jobCard.JobCardNo,
                 jobCard.WorkOrderId,
                 workOrder.WorkOrderNo,
@@ -46,7 +47,8 @@ internal sealed class JobCardService(
                 jobCard.CompletedRejectQty,
                 jobCard.CompletedScrapQty,
                 jobCard.Status,
-                jobCard.CreatedOn);
+                jobCard.CreatedOn
+            };
 
         if (filter.CompanyId.HasValue)
         {
@@ -111,7 +113,25 @@ internal sealed class JobCardService(
             .ThenBy(entity => entity.JobCardNo)
             .ToPagedResultAsync(filter, cancellationToken);
 
-        return MapPage(page, MapSummary);
+        return MapPage(page, entity => MapSummary(new JobCardListRow(
+            entity.Id,
+            entity.CompanyId,
+            entity.BranchId,
+            entity.JobCardNo,
+            entity.WorkOrderId,
+            entity.WorkOrderNo,
+            entity.WorkOrderOperationId,
+            entity.OperationId,
+            entity.SplitSequenceNo,
+            entity.AssignedMachineId,
+            entity.AssignedOperatorUserId,
+            entity.ShiftId,
+            entity.PlannedQuantity,
+            entity.CompletedGoodQty,
+            entity.CompletedRejectQty,
+            entity.CompletedScrapQty,
+            entity.Status,
+            entity.CreatedOn)));
     }
 
     public async Task<JobCardDto> GetJobCardAsync(long id, CancellationToken cancellationToken = default)
@@ -598,10 +618,11 @@ internal sealed class JobCardService(
             from downtime in DbContext.DowntimeEvents.AsNoTracking()
             join jobCard in DbContext.JobCards.AsNoTracking().ApplyActiveOrganizationScope(scope) on downtime.JobCardId equals jobCard.Id
             join workOrder in DbContext.WorkOrders.AsNoTracking() on jobCard.WorkOrderId equals workOrder.Id
-            select new DowntimeListRow(
+            select new
+            {
                 downtime.Id,
-                jobCard.CompanyId ?? 0,
-                jobCard.BranchId ?? 0,
+                CompanyId = jobCard.CompanyId ?? 0,
+                BranchId = jobCard.BranchId ?? 0,
                 downtime.JobCardId,
                 jobCard.JobCardNo,
                 workOrder.WorkOrderNo,
@@ -610,7 +631,8 @@ internal sealed class JobCardService(
                 downtime.StartOn,
                 downtime.EndOn,
                 downtime.DurationMinutes,
-                downtime.Remarks);
+                downtime.Remarks
+            };
 
         if (filter.CompanyId.HasValue)
         {
@@ -655,7 +677,19 @@ internal sealed class JobCardService(
             .ThenByDescending(entity => entity.Id)
             .ToPagedResultAsync(filter, cancellationToken);
 
-        return MapPage(page, MapDowntime);
+        return MapPage(page, entity => MapDowntime(new DowntimeListRow(
+            entity.Id,
+            entity.CompanyId,
+            entity.BranchId,
+            entity.JobCardId,
+            entity.JobCardNo,
+            entity.WorkOrderNo,
+            entity.MachineId,
+            entity.ReasonCode,
+            entity.StartOn,
+            entity.EndOn,
+            entity.DurationMinutes,
+            entity.Remarks)));
     }
 
     public async Task<JobCardReplayResult> ReplayMobileActionsAsync(JobCardReplayRequest request, CancellationToken cancellationToken = default)

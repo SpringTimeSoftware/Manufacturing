@@ -1,49 +1,50 @@
 # Localhost Role-Wise UAT Results
 
+Date: 2026-05-08
+
 ## Scope
 
-This report records a practical role-wise UAT pass against the current localhost deployment at `http://127.0.0.1:5088`. It uses `/docs/uat/role-wise-uat-and-acceptance-matrix.md` as the acceptance source and covers only the completed scope through P149.
+This report records the LONG-RUN-01 role-wise UAT rerun against the published localhost host at `http://127.0.0.1:5088`. It uses `docs/uat/role-wise-uat-and-acceptance-matrix.md` as the acceptance source and covers completed web/runtime scope only.
 
-This was not a full production UAT pass. No new product features, schema changes, or data reset scripts were applied.
+This is not a full production UAT signoff. It confirms that the previous runtime blockers no longer block role probing, while keeping acceptance honest where workflow depth, mobile live execution, irreversible transaction posting, audit, and pilot controls remain incomplete.
 
 ## Method
 
 - Confirmed the published host was running from `C:\StsPackages\Manufacturing_ERP\artifacts\iis-publish`.
-- Confirmed `/api/health/live` and `/api/health/ready` returned healthy responses.
-- Verified live backend login for available bootstrap identities.
-- Used authenticated browser route checks from the smoke rerun for completed web surfaces.
-- Used direct authenticated API probes for representative role-specific completed-scope endpoints.
-- Classified each role against the repo UAT acceptance matrix as `PASS`, `PARTIAL`, `FAIL`, or `NOT-IN-SCOPE`.
+- Confirmed `/api/health/live` and `/api/health/ready` returned HTTP `200`.
+- Verified live backend login for every UAT role identity listed below.
+- Used authenticated direct API probes for representative role-specific completed-scope endpoints.
+- Classified each role as `PASS`, `PARTIAL`, `FAIL`, or `NOT-IN-SCOPE`.
 
 ## Seeded Role Coverage
 
 | UAT role | Live bootstrap identity available | Verification impact |
 | --- | --- | --- |
-| SalesCoordinator | No | Role-level live login could not be executed; sales-order and order-delivery APIs were checked through available seeded roles only. |
-| PlanningManager | Yes | Role login and planning/engineering APIs were executed. |
-| PurchaseManager | No | Role-level live login could not be executed; procurement APIs were checked through available seeded roles only. |
-| StoreKeeper | Yes | Role login and inventory/store APIs were executed. |
-| ProductionSupervisor | Yes | Role login and production APIs were executed. |
-| MachineOperator | Yes | Role login and limited execution API checks were executed; mobile action UAT was not executable through localhost web deployment. |
-| QCInspector | Yes | Role login and quality APIs were executed. |
-| DispatchManager | Yes | Role login and dispatch APIs were executed. |
-| PlantHead | No | Role-level live login could not be executed; dashboard proof was checked through available seeded roles only. |
-| PlatformAdmin | Yes | Role login, admin APIs, health, users, roles, and settings APIs were executed. |
+| SalesCoordinator | Yes | Login passed; sales-order, customer, and order-delivery APIs returned HTTP `200`. |
+| PlanningManager | Yes | Login passed; engineering/planning APIs returned HTTP `200`. |
+| PurchaseManager | Yes | Login passed; procurement APIs returned HTTP `200`. |
+| StoreKeeper | Yes | Login passed; inventory, warehouse, traceability, bin, cycle-count, and receipt APIs returned HTTP `200`. |
+| ProductionSupervisor | Yes | Login passed; work-order, job-card, downtime, machine-board, receipt, scrap, and rework APIs returned HTTP `200`. |
+| MachineOperator | Yes | Login passed; job-card and downtime APIs returned HTTP `200`. |
+| QCInspector | Yes | Login passed; quality and traceability APIs returned HTTP `200`. |
+| DispatchManager | Yes | Login passed; dispatch, dashboard, shipment, and pack-list print APIs returned HTTP `200`. |
+| PlantHead | Yes | Login passed; stage-wise and order-delivery dashboards returned HTTP `200`. |
+| PlatformAdmin | Yes | Login passed; admin, integration, and AI provider read APIs returned HTTP `200`. |
 
 ## Role-Wise Results
 
-| Role | Result | Evidence | Gap classification |
+| Role | Result | Evidence | Remaining gap classification |
 | --- | --- | --- | --- |
-| SalesCoordinator | PARTIAL | `/api/sales-orders` and `/api/dashboards/order-delivery` returned HTTP `200`, but no live SalesCoordinator bootstrap identity exists. | Missing role seed; limited transactional UAT data. |
-| PlanningManager | PARTIAL | Login passed. `/api/boms`, `/api/routings`, `/api/engineering-changes`, `/api/mps`, `/api/mrp`, `/api/boq-requirements`, `/api/work-orders`, `/api/dashboards/order-delivery`, and `/api/dashboards/stage-wise` returned HTTP `200`. End-to-end conversion proof remains limited by seed depth. | Data/seed issue. |
-| PurchaseManager | PARTIAL | `/api/purchase-requisitions`, `/api/purchase-orders`, `/api/subcontract-orders`, and `/api/supplier-lead-times` returned HTTP `200`, but no live PurchaseManager bootstrap identity exists. | Missing role seed; limited transactional UAT data. |
-| StoreKeeper | PARTIAL | Login passed. `/api/inventory`, `/api/inventory/transactions`, `/api/cycle-counts`, `/api/bins`, and `/api/production-receipts` returned HTTP `200`; `/api/warehouses` returned HTTP `500`. | Backend endpoint issue; limited transactional UAT data. |
-| ProductionSupervisor | PARTIAL | Login passed. `/api/work-orders`, `/api/production-receipts`, `/api/scrap-rework/scrap`, and `/api/scrap-rework/rework-orders` returned HTTP `200`; `/api/job-cards`, `/api/machine-board`, and `/api/downtime` returned HTTP `500`. | Backend endpoint issue; limited transactional UAT data. |
-| MachineOperator | PARTIAL | Login passed and `/api/auth/me` returned HTTP `200`; `/api/job-cards`, `/api/machine-board`, and `/api/downtime` returned HTTP `500`. Mobile start/pause/resume quantity-capture flow was not executable through localhost web deployment. | Backend endpoint issue; mobile deployment not in this localhost web UAT. |
-| QCInspector | PARTIAL | Login passed. `/api/quality/plans`, `/api/quality/inspections`, and `/api/quality/ncrs` returned HTTP `200`; `/api/traceability/lots/DEMO-LOT-001` returned HTTP `404`. | Missing traceability proof data. |
-| DispatchManager | PARTIAL | Login passed. `/api/dispatch/pack-lists`, `/api/dispatch/shipments`, `/api/dispatch/planning`, and `/api/dashboards/order-delivery` returned HTTP `200`; `/api/reports/pack-lists/1/print` returned HTTP `404`. | Missing dispatch/print proof data. |
-| PlantHead | PARTIAL | Stage-wise and order-delivery dashboard APIs returned HTTP `200`, but no live PlantHead bootstrap identity exists. AI daily-summary draft was not posted because this UAT pass avoided write actions. | Missing role seed; AI write proof not executed. |
-| PlatformAdmin | PARTIAL | Login passed. `/api/auth/me`, `/api/companies`, `/api/branches`, `/api/users`, `/api/roles`, and `/api/settings/tenant-settings` returned HTTP `200`; `/api/integrations/providers`, `/api/ai/providers`, `/api/ai/provider-health`, and `/api/ai/execution-policy` returned HTTP `403`. | Backend authorization issue for integration/AI provider administration. |
+| SalesCoordinator | PARTIAL | Login passed. `/api/sales-orders`, `/api/customers`, and `/api/dashboards/order-delivery` returned HTTP `200`. | Sales order create/review, pricing/credit linkage, and downstream demand conversion are not fully UAT-proven. |
+| PlanningManager | PARTIAL | Login passed. `/api/boms`, `/api/routings`, `/api/engineering-changes`, `/api/mps`, `/api/mrp`, `/api/boq-requirements`, and machine board returned HTTP `200`. | MRP versioning, exception ownership, BOQ conversion, capacity reschedule, and approval/audit depth remain incomplete. |
+| PurchaseManager | PARTIAL | Login passed. `/api/purchase-requisitions`, `/api/purchase-orders`, `/api/subcontract-orders`, and `/api/supplier-lead-times` returned HTTP `200`. | PR/PO approval, outside-processing execution, supplier commitment, and commercial enforcement are not fully UAT-proven. |
+| StoreKeeper | PARTIAL | Login passed. `/api/warehouses`, `/api/inventory/balances`, `/api/traceability/lots/DEMO-LOT-001`, `/api/bins`, `/api/cycle-counts`, and `/api/production-receipts` returned HTTP `200`. | Ledger reconciliation, reservation, lot/serial/catch-weight, transfer/putaway, and mobile scan validation remain incomplete. |
+| ProductionSupervisor | PARTIAL | Login passed. `/api/work-orders`, `/api/job-cards`, `/api/downtime`, machine board, receipts, scrap, and rework APIs returned HTTP `200`. | Work-order release, job-card state transitions, quantity reconciliation, downtime escalation, and output posting are not fully UAT-proven. |
+| MachineOperator | PARTIAL | Login passed. `/api/auth/me`, `/api/job-cards`, and `/api/downtime` returned HTTP `200`. | Mobile start/pause/resume, scan validation, offline replay, and duplicate-post protection are not executable in this localhost web UAT. |
+| QCInspector | PARTIAL | Login passed. `/api/quality/plans`, `/api/quality/inspections`, `/api/quality/ncrs`, and `/api/traceability/lots/DEMO-LOT-001` returned HTTP `200`. | QC parameter capture, hold/release, NCR disposition/root cause, evidence, and rework/scrap linkage remain incomplete. |
+| DispatchManager | PARTIAL | Login passed. `/api/dispatch/pack-lists`, `/api/dispatch/shipments`, `/api/dispatch/planning`, `/api/reports/pack-lists/95001/print`, and `/api/dashboards/order-delivery` returned HTTP `200`. | Pack hierarchy, labels, loading/delivery proof, held-stock blocking, customer proof, and document templates remain incomplete. |
+| PlantHead | PARTIAL | Login passed. `/api/dashboards/stage-wise` and `/api/dashboards/order-delivery` returned HTTP `200`. | Executive summaries, AI daily summary review, escalation actions, and real KPI drilldown remain incomplete. |
+| PlatformAdmin | PARTIAL | Login passed. `/api/auth/me`, org APIs, users, roles, tenant settings, integration providers, AI providers, AI provider health, and AI execution policy returned HTTP `200`. | Audit viewer, rate limiting, attachment authorization tests, provider secret rotation, and full admin lifecycle proof remain incomplete. |
 
 ## Pass Counts
 
@@ -60,62 +61,53 @@ Supporting verification count:
 
 | Verification type | Pass | Gap |
 | --- | ---: | ---: |
-| Live bootstrap role login checks | 7 | 3 missing role identities |
-| Smoke browser route checks | 13 | 0 |
-| Representative live API probes | 47 | 13 |
+| Live bootstrap role login checks | 10 | 0 |
+| Published smoke route checks | 11 | 0 |
+| Representative live API probes | 55 | 0 |
 
 ## Screen And Module Summary
 
 | Module | Result | Notes |
 | --- | --- | --- |
-| Published host and health | PASS | Host stayed running and ready health remained healthy. |
-| Auth/session/context | PARTIAL | Available bootstrap users can log in; SalesCoordinator, PurchaseManager, and PlantHead are missing live role identities. |
-| Organization/company/branch | PASS | Company and branch APIs now return HTTP `200`; department API also returns HTTP `200`. |
-| Organization/warehouse/bin/shift | PARTIAL | Bin and shift APIs return HTTP `200`; warehouse API returns HTTP `500`. |
-| Commercial demand | PARTIAL | Sales-order and order-delivery APIs respond; customer API returns HTTP `500`; UAT proof data remains shallow. |
-| Planning and engineering | PARTIAL | Engineering and planning APIs respond; end-to-end recommendation conversion proof remains limited by seed depth. |
-| Procurement and outside processing | PARTIAL | PR, PO, subcontract, and supplier lead-time APIs respond; PurchaseManager identity is missing. |
-| Inventory and stores | PARTIAL | Storekeeper login and core inventory reads work; warehouse API still fails and transactional proof data is limited. |
-| Production execution | PARTIAL | Work orders and production output APIs respond; job-card, machine-board, and downtime APIs fail. |
-| Quality | PARTIAL | Quality APIs respond; traceability proof lot is missing. |
-| Dispatch and print pack | PARTIAL | Dispatch APIs respond; direct print-pack proof record is missing. |
-| Platform admin | PARTIAL | Users, roles, tenant settings, health, company, and branch pass; integration and AI provider APIs return HTTP `403`. |
-| Mobile execution | PARTIAL | MachineOperator role exists, but mobile action UAT is outside this localhost web deployment. |
+| Published host and health | PASS | Host stayed running from `artifacts\iis-publish`; live and ready health returned HTTP `200`. |
+| Auth/session/context | PARTIAL | All UAT role identities now log in; stale-session, MFA/device trust, and mobile device binding remain incomplete. |
+| Organization/company/branch/warehouse | PARTIAL | Company, branch, department, warehouse, bin, and shift reads pass; policy and lifecycle depth remain incomplete. |
+| Commercial demand | PARTIAL | Sales-order, customer, and order-delivery reads pass; transactional demand/pricing/credit proof remains incomplete. |
+| Planning and engineering | PARTIAL | Engineering, planning, BOQ, MRP, and machine-board reads pass; conversion and approval depth remain incomplete. |
+| Procurement and outside processing | PARTIAL | PR, PO, subcontract, and supplier lead-time reads pass; outside-processing transaction proof remains incomplete. |
+| Inventory and stores | PARTIAL | Warehouse, balances, traceability, bin, cycle-count, and receipt reads pass; ledger and scan validation depth remain incomplete. |
+| Production execution | PARTIAL | Work orders, job cards, downtime, machine board, receipts, scrap, and rework reads pass; transition/posting proof remains incomplete. |
+| Quality | PARTIAL | Quality and traceability proof reads pass; hold/release and NCR lifecycle remain incomplete. |
+| Dispatch and print pack | PARTIAL | Dispatch and print proof reads pass; proof, labels, templates, and held-stock blocking remain incomplete. |
+| Platform admin | PARTIAL | Users, roles, tenant settings, integration, and AI provider reads pass; audit/security hardening remains incomplete. |
+| Mobile execution | PARTIAL | Role identity and supporting APIs pass; mobile live execution is not UAT-proven in the localhost web deployment. |
 
 ## Demo Scenario Coverage
 
 | Scenario | Result | Reason |
 | --- | --- | --- |
-| Make-to-order fabricated assembly | PARTIAL | Web proof surfaces open and major APIs respond, but live role seeds and transactional data are not sufficient for a full order-to-dispatch proof. |
-| Mixed UOM sheet / weight item | PARTIAL | Measurement and inventory surfaces exist; live inventory/traceability proof rows are limited. |
-| Outside-processing flow | PARTIAL | Procurement/subcontract APIs respond, but PurchaseManager identity and full transactional proof are missing. |
-| Overdue order from supplier and machine blockage | PARTIAL | Dashboard APIs respond, but downtime API fails and live blocker data is shallow. |
+| Make-to-order fabricated assembly | PARTIAL | Seeded demand, planning, work-order, job-card, traceability, QC, and dispatch proof reads now exist, but full write lifecycle is incomplete. |
+| Mixed UOM sheet / weight item | PARTIAL | Measurement and inventory surfaces exist; item tracking, catch-weight, and posting validation remain incomplete. |
+| Outside-processing flow | PARTIAL | Purchase/subcontract APIs respond under `PurchaseManager`; full supplier commitment, issue/receipt, and QC loop remain incomplete. |
+| Overdue order from supplier and machine blockage | PARTIAL | Dashboards, supplier lead times, machine board, and downtime reads respond; escalation and reschedule actions remain incomplete. |
 
-## Major Remaining Gaps
+## Blockers Fixed In LONG-RUN-01
 
-- Missing live bootstrap identities for `SalesCoordinator`, `PurchaseManager`, and `PlantHead`.
-- `/api/warehouses`, `/api/customers`, `/api/suppliers`, `/api/job-cards`, `/api/machine-board`, and `/api/downtime` return HTTP `500`.
-- Integration and AI provider administration endpoints return HTTP `403` for `platform.admin`.
-- Minimum SQL seed is structurally runnable but does not contain enough transactional data to prove sales order, BOQ, WO, job card, QC, dispatch, outside-processing, or overdue-risk flows end-to-end.
-- Mobile operator flows cannot be validated from the localhost IIS web deployment.
+- Added live bootstrap identities for `SalesCoordinator`, `PurchaseManager`, and `PlantHead`.
+- Repaired `/api/warehouses`, `/api/customers`, `/api/suppliers`, `/api/job-cards`, `/api/machine-board`, and `/api/downtime` runtime failures.
+- Repaired PlatformAdmin provider-read access for integration and AI provider endpoints.
+- Added `DEMO-LOT-001` traceability proof data.
+- Added seeded pack-list print proof at `/api/reports/pack-lists/95001/print`.
 
-## Demo Readiness Recommendation
+## Remaining Major Gaps
 
-Recommendation: internal-only until the runtime and seed gaps above are closed.
+- Full role-wise UAT still has 10 `PARTIAL` roles because acceptance criteria require workflow completion, not only route/API availability.
+- Transactional write flows are not end-to-end UAT-proven for sales demand, MRP/BOQ conversion, PR/PO/subcontract, work-order release, job-card execution, inventory movement, QC hold/release, NCR, dispatch proof, and print/template governance.
+- Mobile execution is not live UAT-proven for device trust, scan validation, media upload, offline replay, idempotency, and conflict handling.
+- Audit viewer, rate limiting, attachment authorization tests, provider secret governance, and pilot-grade admin controls remain incomplete.
 
-Demo-ready for internal walkthroughs:
+## Readiness Recommendation
 
-- Published localhost host, health, login shell, and web navigation.
-- Company, branch, department, user, role, tenant-setting, planning, engineering, production-output, quality, and dispatch read surfaces that return HTTP `200`.
-- Reference UI pages for planning, engineering, inventory, production, quality, dispatch, dashboards, and platform admin.
+Recommendation: controlled web demo-ready, not role-wise UAT-ready or pilot-ready.
 
-Not ready for customer-facing role-wise UAT:
-
-- Full live role-by-role acceptance with all matrix roles.
-- End-to-end make-to-order, mixed-UOM, outside-processing, and overdue-risk proof from SQL data.
-- Warehouse, customer, supplier, job-card, machine-board, downtime, integration/AI provider administration, and mobile execution UAT.
-
-## Next Recommended Step
-
-Run a targeted runtime repair and UAT seed-depth wave for the remaining endpoint failures, missing role identities, PlatformAdministration authorization, and transactional proof data; then rerun localhost smoke and role-wise UAT.
-
+The product is no longer blocked by the highest-value runtime read failures from the previous UAT report. It still needs workflow-depth waves before any role can receive full UAT acceptance.

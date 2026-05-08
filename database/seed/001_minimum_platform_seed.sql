@@ -109,7 +109,9 @@ VALUES
     (N'Audit.Read.Tenant', N'Audit', N'Read', N'Tenant'),
     (N'Masters.Manage.Company', N'Masters', N'Manage', N'Company'),
     (N'Commercial.Manage.Company', N'Commercial', N'Manage', N'Company'),
+    (N'Sales.Manage.Branch', N'Sales', N'Manage', N'Branch'),
     (N'Planning.Manage.Branch', N'Planning', N'Manage', N'Branch'),
+    (N'Procurement.Manage.Branch', N'Procurement', N'Manage', N'Branch'),
     (N'Production.Approve.Branch', N'Production', N'Approve', N'Branch'),
     (N'Dashboards.Read.Company', N'Dashboards', N'Read', N'Company'),
     (N'Inventory.Manage.Warehouse', N'Inventory', N'Manage', N'Warehouse'),
@@ -131,9 +133,13 @@ VALUES
     (N'CompanyAdmin', N'Platform.Manage.Company'),
     (N'CompanyAdmin', N'Masters.Manage.Company'),
     (N'CompanyAdmin', N'Commercial.Manage.Company'),
+    (N'SalesCoordinator', N'Sales.Manage.Branch'),
+    (N'SalesCoordinator', N'Dashboards.Read.Company'),
     (N'PlanningManager', N'Planning.Manage.Branch'),
     (N'PlanningManager', N'Production.Approve.Branch'),
     (N'PlanningManager', N'Dashboards.Read.Company'),
+    (N'PurchaseManager', N'Procurement.Manage.Branch'),
+    (N'PurchaseManager', N'Dashboards.Read.Company'),
     (N'PlantHead', N'Production.Approve.Branch'),
     (N'PlantHead', N'Dashboards.Read.Company'),
     (N'ManagementViewer', N'Dashboards.Read.Company'),
@@ -178,11 +184,14 @@ VALUES
     (1000, N'platform.admin', N'Platform Admin', N'platform.admin@sts.local', N'en-IN', 1, 11, N'Active', N'MFA required', N'Bootstrap identity', N'2 registered devices'),
     (1001, N'company.admin', N'Company Admin', N'company.admin@sts.local', N'en-IN', 1, 11, N'Active', N'Password + OTP', N'Bootstrap identity', N'1 registered device'),
     (1002, N'planning.manager', N'Planning Manager', N'planning.manager@sts.local', N'en-IN', 1, 11, N'Active', N'MFA required', N'Bootstrap identity', N'2 registered devices'),
+    (1008, N'sales.coordinator', N'Sales Coordinator', N'sales.coordinator@sts.local', N'en-IN', 1, 11, N'Active', N'Password + OTP', N'Bootstrap identity', N'1 registered device'),
+    (1009, N'purchase.manager', N'Purchase Manager', N'purchase.manager@sts.local', N'en-IN', 1, 11, N'Active', N'Password + OTP', N'Bootstrap identity', N'1 registered device'),
     (1003, N'stores.keeper', N'Stores Keeper', N'stores.keeper@sts.local', N'en-IN', 1, 11, N'Active', N'Password + OTP', N'Bootstrap identity', N'1 registered device'),
     (1004, N'prod.supervisor', N'Production Supervisor', N'prod.supervisor@sts.local', N'en-IN', 1, 11, N'Active', N'MFA required', N'Bootstrap identity', N'1 registered device'),
     (1005, N'machine.operator', N'Machine Operator', N'machine.operator@sts.local', N'en-IN', 1, 11, N'Active', N'Device binding required', N'Bootstrap identity', N'Assigned mobile device'),
     (1006, N'qc.inspector', N'QC Inspector', N'qc.inspector@sts.local', N'en-IN', 1, 12, N'Active', N'MFA required', N'Bootstrap identity', N'1 registered device'),
-    (1007, N'dispatch.manager', N'Dispatch Manager', N'dispatch.manager@sts.local', N'en-IN', 1, 12, N'Active', N'Password + OTP', N'Bootstrap identity', N'1 registered device');
+    (1007, N'dispatch.manager', N'Dispatch Manager', N'dispatch.manager@sts.local', N'en-IN', 1, 12, N'Active', N'Password + OTP', N'Bootstrap identity', N'1 registered device'),
+    (1010, N'plant.head', N'Plant Head', N'plant.head@sts.local', N'en-IN', 1, 11, N'Active', N'MFA required', N'Bootstrap identity', N'2 registered devices');
 
 SET IDENTITY_INSERT platform.AppUsers ON;
 INSERT INTO platform.AppUsers
@@ -203,11 +212,17 @@ VALUES
     (1001, N'CompanyAdmin', 1, 12),
     (1002, N'PlanningManager', 1, 11),
     (1002, N'PlanningManager', 1, 12),
+    (1008, N'SalesCoordinator', 1, 11),
+    (1008, N'SalesCoordinator', 1, 12),
+    (1009, N'PurchaseManager', 1, 11),
+    (1009, N'PurchaseManager', 1, 12),
     (1003, N'StoreKeeper', 1, 11),
     (1004, N'ProductionSupervisor', 1, 11),
     (1005, N'MachineOperator', 1, 11),
     (1006, N'QCInspector', 1, 12),
-    (1007, N'DispatchManager', 1, 12);
+    (1007, N'DispatchManager', 1, 12),
+    (1010, N'PlantHead', 1, 11),
+    (1010, N'PlantHead', 1, 12);
 
 INSERT INTO platform.UserRoles (UserId, RoleId, CompanyId, BranchId, CreatedOn, CreatedByUserId)
 SELECT ur.UserId, r.Id, ur.CompanyId, ur.BranchId, @now, NULL
