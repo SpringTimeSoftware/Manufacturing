@@ -271,6 +271,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - STRICT-FINAL-ENFORCEMENT-01 completed on 2026-05-09. Output: `/docs/codex-progress/STRICT-FINAL-ENFORCEMENT-01-output.md`
 - WAVE02-platform-admin-security completed on 2026-05-09. Output: `/docs/codex-progress/WAVE02-platform-admin-security-output.md`
 - RECOVERY-RESUME-01 completed on 2026-05-09. Output: `/docs/codex-progress/RECOVERY-RESUME-01-output.md`
+- RESET-01 core master data truth slice completed on 2026-05-09. Output: `/docs/codex-progress/RESET-01-core-master-data-truth-output.md`
 
 ## Remediation Log
 

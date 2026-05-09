@@ -7,9 +7,32 @@ Item,stockUomId,Stock UOM,int,Lookup,UOM Master,Yes,,,No,Save item draft,No free
 Item,purchaseUomId,Purchase UOM,int,Lookup,UOM Master,No,,,No,Save item draft,Used by vendor references.
 Item,salesUomId,Sales UOM,int,Lookup,UOM Master,No,,,No,Save item draft,Used by sales/commercial.
 Item,defaultWarehouse,Default warehouse,string,Lookup,Warehouse Master,No,,,No,Save item draft,Disabled when warehouse source missing.
+Item,defaultBin,Default bin,string,Lookup,Bin Master,No,,,No,Save item draft,Disabled until bin source is available for selected warehouse.
 Item,leadTimeDays,Lead time days,int,ErpNumberField,,No,,days,No,Save item draft,Whole number.
+Item,innerPack,Inner pack quantity,decimal,ErpDecimalField,,No,"18,3",stock/pack UOM,No,Save item draft,Pack quantity is numeric.
+Item,cartonQty,Carton quantity,decimal,ErpDecimalField,,No,"18,3",stock/pack UOM,No,Save item draft,Carton quantity is numeric.
+Item,palletQty,Pallet quantity,decimal,ErpDecimalField,,No,"18,3",stock/pack UOM,No,Save item draft,Pallet quantity is numeric.
+Item,packagingUom,Packaging UOM,string,Lookup,UOM Master,No,,,No,Save item draft,No free-text packaging UOM.
 Item,netWeight,Net weight,decimal,ErpDecimalField,,No,"18,3",kg,No,Save item draft,Remaining model stores string; must migrate to decimal.
 Item,grossWeight,Gross weight,decimal,ErpDecimalField,,No,"18,3",kg,No,Save item draft,Remaining model stores string; must migrate to decimal.
+Item,packageLength,Package length,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Replaces free-text package dimensions.
+Item,packageWidth,Package width,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Replaces free-text package dimensions.
+Item,packageHeight,Package height,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Replaces free-text package dimensions.
+Item,labelCount,Label count,int,ErpNumberField,,No,,labels,No,Save item draft,Whole number label count.
+Item,length,Physical length,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
+Item,width,Physical width,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
+Item,height,Physical height,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
+Item,thickness,Physical thickness,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
+Item,shelfLife,Shelf life,int,ErpNumberField,,No,,days,No,Save item draft,Whole-number day field.
+Item,scrapAllowance,Scrap allowance,decimal,ErpDecimalField,,No,"5,2",percent,No,Save item draft,Manufacturing policy percent field.
+Item,mrpEnabled,MRP enabled,string,Lookup,Planning policy list,No,,,No,Save item draft,Controlled planning policy value.
+Item,safetyStock,Safety stock,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning quantity field.
+Item,reorderPoint,Reorder point,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning quantity field.
+Item,minQuantity,Minimum quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning min/max field.
+Item,maxQuantity,Maximum quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning min/max field.
+Item,lotSize,Lot size,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning lot-size field.
+Item,purchaseLeadTime,Purchase lead time,int,ErpNumberField,,No,,days,No,Save item draft,Purchase policy lead-time field.
+Item,moq,Minimum order quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Purchase policy quantity field.
 Item,customerId,Customer reference,int,Lookup,Customer Master,No,,,No,Save customer reference,Customer reference row must not use free text.
 Item,supplierId,Supplier reference,int,Lookup,Supplier Master,No,,,No,Save vendor reference,Supplier reference row must not use free text.
 Customer,code,Customer code,string,Text,,Yes,,,Yes,Save customer,Identifier text.

@@ -1121,6 +1121,53 @@ function TextField({
   );
 }
 
+function DecimalTextField({
+  label,
+  onChange,
+  scale = 3,
+  unit,
+  value
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  scale?: number;
+  unit?: string;
+  value: string | number;
+}) {
+  return (
+    <ErpDecimalField
+      label={label}
+      min={0}
+      onChange={(nextValue) => onChange(nextValue === null ? "" : String(nextValue))}
+      scale={scale}
+      unit={unit}
+      value={numericValue(value)}
+    />
+  );
+}
+
+function IntegerTextField({
+  label,
+  onChange,
+  unit,
+  value
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  unit?: string;
+  value: string | number;
+}) {
+  return (
+    <ErpNumberField
+      label={label}
+      min={0}
+      onChange={(nextValue) => onChange(nextValue === null ? "" : String(nextValue))}
+      unit={unit}
+      value={integerValue(value)}
+    />
+  );
+}
+
 function TextAreaField({ label, onChange, value }: { label: string; onChange: (value: string) => void; value: string }) {
   return (
     <label className="item-master__editor-field item-master__editor-field--wide">
@@ -1162,15 +1209,95 @@ function CheckField({ checked, label, onChange }: { checked: boolean; label: str
 
 function PolicyEditorGrid({
   fields,
+  lookupOptions = {},
   onChange
 }: {
   fields: Record<string, string>;
+  lookupOptions?: Record<string, Array<{ label: string; value: string }>>;
   onChange: (key: string, value: string) => void;
 }) {
+  const disabledLookupReason = "This controlled setup source is not available for selection yet.";
+  const controlledPolicyKeys = new Set([
+    "Approved supplier list",
+    "BOM policy",
+    "Certificate requirement",
+    "Default bin",
+    "Expiry policy",
+    "Hold rules",
+    "Inspection plan",
+    "Operation linkage",
+    "Preferred supplier",
+    "Routing policy",
+    "Supplier compliance requirement"
+  ]);
+
+  const renderPolicyField = (key: string, value: string) => {
+    if (key === "Min / max") {
+      const [minimumValue, maximumValue] = value.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+      const updateRange = (index: 0 | 1, nextValue: number | null) => {
+        const nextRange: Array<number | null> = [minimumValue ?? null, maximumValue ?? null];
+        nextRange[index] = nextValue;
+        onChange(
+          key,
+          nextRange.some((entry) => entry !== null)
+            ? `${nextRange[0] ?? ""} / ${nextRange[1] ?? ""}`.trim()
+            : ""
+        );
+      };
+
+      return (
+        <>
+          <ErpDecimalField label="Minimum quantity" min={0} onChange={(nextValue) => updateRange(0, nextValue)} scale={3} unit="qty" value={minimumValue ?? null} />
+          <ErpDecimalField label="Maximum quantity" min={0} onChange={(nextValue) => updateRange(1, nextValue)} scale={3} unit="qty" value={maximumValue ?? null} />
+        </>
+      );
+    }
+
+    if (key === "Lead time" || key === "Purchase lead time") {
+      return (
+        <ErpNumberField
+          label={key}
+          min={0}
+          onChange={(nextValue) => onChange(key, nextValue === null ? "" : `${nextValue} days`)}
+          unit="days"
+          value={integerValue(value)}
+        />
+      );
+    }
+
+    if (key === "Safety stock" || key === "Reorder point" || key === "Lot size" || key === "MOQ") {
+      return <DecimalTextField label={key} onChange={(nextValue) => onChange(key, nextValue)} unit="qty" value={value} />;
+    }
+
+    if (key === "Scrap allowance") {
+      return <DecimalTextField label={key} onChange={(nextValue) => onChange(key, nextValue ? `${nextValue}%` : "")} unit="%" value={value} />;
+    }
+
+    const options = lookupOptions[key];
+    if (options) {
+      return <ErpLookupField label={key} onChange={(nextValue) => onChange(key, nextValue)} options={options} value={value} />;
+    }
+
+    if (controlledPolicyKeys.has(key)) {
+      return (
+        <ErpLookupField
+          disabled
+          disabledReason={disabledLookupReason}
+          label={key}
+          onChange={() => undefined}
+          options={value ? [{ label: value, value }] : []}
+          value={value}
+        />
+      );
+    }
+
+    return <TextField label={key} onChange={(nextValue) => onChange(key, nextValue)} value={value} />;
+  };
+
   return (
     <div className="item-master__editor-grid">
       {Object.entries(fields).map(([key, value]) => (
-        <TextField key={key} label={key} onChange={(nextValue) => onChange(key, nextValue)} value={value} />
+        <div key={key}>{renderPolicyField(key, value)}</div>
       ))}
     </div>
   );
@@ -1269,7 +1396,7 @@ function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
             ))}
           </div>
         ) : (
-          <EmptyPanel title="No media uploaded" description="Media upload support is prepared by the Item Master data model." />
+          <EmptyPanel title="No media uploaded" description="Media records will appear after approved item media storage is enabled." />
         )}
       </Card>
       <Card title="Drawing, spec, and photo slots" description="Required media categories for catalog release and receiving checks.">
@@ -1380,6 +1507,22 @@ function ItemDetailEditor({
       ...current,
       vendorReferences: current.vendorReferences.filter((_, referenceIndex) => referenceIndex !== index)
     }));
+  const packagingQuantityUnit = item.packaging.packagingUom || item.stockUom || "units";
+  const packageDimensions = item.packaging.dimensions.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  const patchPackagingDimension = (index: 0 | 1 | 2, value: number | null) => {
+    const nextDimensions: Array<number | null> = [
+      packageDimensions[0] ?? null,
+      packageDimensions[1] ?? null,
+      packageDimensions[2] ?? null
+    ];
+    nextDimensions[index] = value;
+    const hasDimension = nextDimensions.some((dimension) => dimension !== null);
+    patchPackaging({
+      dimensions: hasDimension
+        ? `${nextDimensions[0] ?? "-"} x ${nextDimensions[1] ?? "-"} x ${nextDimensions[2] ?? "-"} mm`
+        : ""
+    });
+  };
 
   const documentRows = item.documents.map((document) => ({
     id: document.id,
@@ -1648,19 +1791,42 @@ function ItemDetailEditor({
         {activeTab === "Packaging" ? (
           <Card title="Packaging hierarchy" description="Pack quantities, carton and pallet rules, labels, and packing instructions.">
             <div className="item-master__editor-grid">
-              <TextField label="Inner pack" onChange={(value) => patchPackaging({ innerPack: value })} value={item.packaging.innerPack} />
-              <TextField label="Carton" onChange={(value) => patchPackaging({ carton: value })} value={item.packaging.carton} />
-              <TextField label="Pallet" onChange={(value) => patchPackaging({ pallet: value })} value={item.packaging.pallet} />
+              <DecimalTextField label="Inner pack" onChange={(value) => patchPackaging({ innerPack: value })} unit={packagingQuantityUnit} value={item.packaging.innerPack} />
+              <DecimalTextField label="Carton" onChange={(value) => patchPackaging({ carton: value })} unit={packagingQuantityUnit} value={item.packaging.carton} />
+              <DecimalTextField label="Pallet" onChange={(value) => patchPackaging({ pallet: value })} unit={packagingQuantityUnit} value={item.packaging.pallet} />
               <ErpLookupField
                 label="Packaging UOM"
                 onChange={(value) => patchPackaging({ packagingUom: value })}
                 options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
                 value={item.packaging.packagingUom}
               />
-              <TextField label="Net weight" onChange={(value) => patchPackaging({ netWeight: value })} value={item.packaging.netWeight} />
-              <TextField label="Gross weight" onChange={(value) => patchPackaging({ grossWeight: value })} value={item.packaging.grossWeight} />
-              <TextField label="Dimensions" onChange={(value) => patchPackaging({ dimensions: value })} value={item.packaging.dimensions} />
-              <TextField label="Label count" onChange={(value) => patchPackaging({ labelCount: value })} value={item.packaging.labelCount} />
+              <DecimalTextField label="Net weight" onChange={(value) => patchPackaging({ netWeight: value })} unit="kg" value={item.packaging.netWeight} />
+              <DecimalTextField label="Gross weight" onChange={(value) => patchPackaging({ grossWeight: value })} unit="kg" value={item.packaging.grossWeight} />
+              <ErpDecimalField
+                label="Package length"
+                min={0}
+                onChange={(value) => patchPackagingDimension(0, value)}
+                scale={2}
+                unit="mm"
+                value={packageDimensions[0] ?? null}
+              />
+              <ErpDecimalField
+                label="Package width"
+                min={0}
+                onChange={(value) => patchPackagingDimension(1, value)}
+                scale={2}
+                unit="mm"
+                value={packageDimensions[1] ?? null}
+              />
+              <ErpDecimalField
+                label="Package height"
+                min={0}
+                onChange={(value) => patchPackagingDimension(2, value)}
+                scale={2}
+                unit="mm"
+                value={packageDimensions[2] ?? null}
+              />
+              <IntegerTextField label="Label count" onChange={(value) => patchPackaging({ labelCount: value })} unit="labels" value={item.packaging.labelCount} />
               <TextAreaField
                 label="Packing instructions"
                 onChange={(value) => patchPackaging({ packingInstructions: value })}
@@ -1673,14 +1839,14 @@ function ItemDetailEditor({
         {activeTab === "Physical Specs" ? (
           <Card title="Physical specs" description="Dimensional, material, finish, storage, and shelf-life fields.">
             <div className="item-master__editor-grid">
-              <TextField label="Length" onChange={(value) => patchPhysicalSpecs({ length: value })} value={item.physicalSpecs.length} />
-              <TextField label="Width" onChange={(value) => patchPhysicalSpecs({ width: value })} value={item.physicalSpecs.width} />
-              <TextField label="Height" onChange={(value) => patchPhysicalSpecs({ height: value })} value={item.physicalSpecs.height} />
-              <TextField label="Thickness" onChange={(value) => patchPhysicalSpecs({ thickness: value })} value={item.physicalSpecs.thickness} />
+              <DecimalTextField label="Length" onChange={(value) => patchPhysicalSpecs({ length: value })} scale={2} unit="mm" value={item.physicalSpecs.length} />
+              <DecimalTextField label="Width" onChange={(value) => patchPhysicalSpecs({ width: value })} scale={2} unit="mm" value={item.physicalSpecs.width} />
+              <DecimalTextField label="Height" onChange={(value) => patchPhysicalSpecs({ height: value })} scale={2} unit="mm" value={item.physicalSpecs.height} />
+              <DecimalTextField label="Thickness" onChange={(value) => patchPhysicalSpecs({ thickness: value })} scale={2} unit="mm" value={item.physicalSpecs.thickness} />
               <TextField label="Grade" onChange={(value) => patchPhysicalSpecs({ grade: value })} value={item.physicalSpecs.grade} />
               <TextField label="Material" onChange={(value) => patchPhysicalSpecs({ material: value })} value={item.physicalSpecs.material} />
               <TextField label="Color / finish" onChange={(value) => patchPhysicalSpecs({ colorFinish: value })} value={item.physicalSpecs.colorFinish} />
-              <TextField label="Shelf life" onChange={(value) => patchPhysicalSpecs({ shelfLife: value })} value={item.physicalSpecs.shelfLife} />
+              <IntegerTextField label="Shelf life" onChange={(value) => patchPhysicalSpecs({ shelfLife: value ? `${value} days` : "" })} unit="days" value={item.physicalSpecs.shelfLife} />
               <TextAreaField
                 label="Storage condition"
                 onChange={(value) => patchPhysicalSpecs({ storageCondition: value })}
@@ -1710,25 +1876,55 @@ function ItemDetailEditor({
 
         {activeTab === "Manufacturing" ? (
           <Card title="Manufacturing controls" description="BOM, routing, issue method, scrap, and operation linkage.">
-            <PolicyEditorGrid fields={item.manufacturing} onChange={(key, value) => patchPolicy("manufacturing", key, value)} />
+            <PolicyEditorGrid
+              fields={item.manufacturing}
+              lookupOptions={{
+                "Issue method": ["Manual", "Backflush", "Pick list"].map((value) => ({ label: value, value }))
+              }}
+              onChange={(key, value) => patchPolicy("manufacturing", key, value)}
+            />
           </Card>
         ) : null}
 
         {activeTab === "Planning/Replenishment" ? (
           <Card title="Planning and replenishment" description="MRP, safety stock, min/max, lead time, and lot sizing.">
-            <PolicyEditorGrid fields={item.planning} onChange={(key, value) => patchPolicy("planning", key, value)} />
+            <PolicyEditorGrid
+              fields={item.planning}
+              lookupOptions={{
+                "ABC class": ["A", "B", "C"].map((value) => ({ label: value, value })),
+                "MRP enabled": ["Yes", "No"].map((value) => ({ label: value, value }))
+              }}
+              onChange={(key, value) => patchPolicy("planning", key, value)}
+            />
           </Card>
         ) : null}
 
         {activeTab === "Inventory/Warehouse Policy" ? (
           <Card title="Inventory and warehouse policy" description="Warehouse, bin, lot, serial, catch-weight, stock, and expiry controls.">
-            <PolicyEditorGrid fields={item.inventory} onChange={(key, value) => patchPolicy("inventory", key, value)} />
+            <PolicyEditorGrid
+              fields={item.inventory}
+              lookupOptions={{
+                "Catch weight": ["Yes", "No"].map((value) => ({ label: value, value })),
+                "Default warehouse": warehouseOptions,
+                "Lot tracking": ["Yes", "No"].map((value) => ({ label: value, value })),
+                "Negative stock": ["Blocked", "Warn", "Allowed"].map((value) => ({ label: value, value })),
+                "Serial tracking": ["Yes", "No"].map((value) => ({ label: value, value }))
+              }}
+              onChange={(key, value) => patchPolicy("inventory", key, value)}
+            />
           </Card>
         ) : null}
 
         {activeTab === "Quality/Traceability" ? (
           <Card title="Quality and traceability" description="Inspection, certificate, hold, lot, and release policy.">
-            <PolicyEditorGrid fields={item.quality} onChange={(key, value) => patchPolicy("quality", key, value)} />
+            <PolicyEditorGrid
+              fields={item.quality}
+              lookupOptions={{
+                "QC required": ["Yes", "No"].map((value) => ({ label: value, value })),
+                "Traceability depth": ["Item level", "Lot level", "Serial level"].map((value) => ({ label: value, value }))
+              }}
+              onChange={(key, value) => patchPolicy("quality", key, value)}
+            />
           </Card>
         ) : null}
 
@@ -1741,7 +1937,13 @@ function ItemDetailEditor({
         {activeTab === "Purchase/Vendor" ? (
           <div className="item-master__panel-grid">
             <Card title="Purchase controls" description="Buy enablement, approved supplier policy, lead time, and MOQ.">
-              <PolicyEditorGrid fields={item.purchase} onChange={(key, value) => patchPolicy("purchase", key, value)} />
+              <PolicyEditorGrid
+                fields={item.purchase}
+                lookupOptions={{
+                  "Buy enabled": ["Yes", "No"].map((value) => ({ label: value, value }))
+                }}
+                onChange={(key, value) => patchPolicy("purchase", key, value)}
+              />
             </Card>
             <Card
               actions={
@@ -1953,6 +2155,11 @@ export function ItemListPage() {
   const buyCount = records.filter((record) => record.defaultMakeType === "Buy").length;
   const subcontractCount = records.filter((record) => record.defaultMakeType === "Subcontract").length;
   const persistenceReady = canPersistMasterData(session);
+  const saveDisabledReason = !persistenceReady
+    ? "Sign in with item master write access to save this record."
+    : isSaving
+      ? "Item draft is being saved."
+      : undefined;
 
   const closeEditor = () => {
     setEditorMode("closed");
@@ -2188,10 +2395,10 @@ export function ItemListPage() {
               <ErpStatusChip tone={editorItem?.status === "Active" ? "success" : "warn"}>{editorItem?.status ?? "Draft"}</ErpStatusChip>
             </div>
             <ErpActionBar
-              primary={[{ disabled: isSaving, label: "Save & Continue", onClick: () => void saveEditor("continue") }]}
+              primary={[{ disabled: !persistenceReady || isSaving, label: "Save & Continue", onClick: () => void saveEditor("continue"), reason: saveDisabledReason }]}
               secondary={[
                 { label: "Review audit", onClick: () => setActiveTab("Audit/History") },
-                { disabled: isSaving, label: isSaving ? "Saving..." : "Save Draft", onClick: () => void saveEditor("draft") }
+                { disabled: !persistenceReady || isSaving, label: isSaving ? "Saving..." : "Save Draft", onClick: () => void saveEditor("draft"), reason: saveDisabledReason }
               ]}
               utility={[{ label: "Close", onClick: closeEditor, variant: "quiet" }]}
             />

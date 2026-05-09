@@ -98,9 +98,8 @@ describe("Wave 04A Item Master deep rework", () => {
     expect(within(dialog).getByLabelText("Stock UOM").tagName).toBe("SELECT");
     expect(within(dialog).getByLabelText("Default warehouse").tagName).toBe("SELECT");
     expect(within(dialog).getByRole("button", { name: "Save Draft" })).toBeInTheDocument();
-
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save Draft" }));
-    expect((await within(dialog).findAllByText(/Item code is required/)).length).toBeGreaterThan(0);
+    expect(within(dialog).getByRole("button", { name: "Save Draft" })).toBeDisabled();
+    expect(within(dialog).getAllByText("Sign in with item master write access to save this record.").length).toBeGreaterThan(0);
   });
 
   it("renders media, catalog, packaging, specs, and reference support", async () => {
@@ -137,10 +136,32 @@ describe("Wave 04A Item Master deep rework", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Packaging" }));
     expect(screen.getByText("Inner pack")).toBeInTheDocument();
     expect(screen.getByText("Packing instructions")).toBeInTheDocument();
+    ["Inner pack", "Carton", "Pallet", "Net weight", "Gross weight", "Package length", "Package width", "Package height", "Label count"].forEach(
+      (label) => expect(within(dialog).getByLabelText(label)).toHaveAttribute("type", "number")
+    );
 
     fireEvent.click(screen.getByRole("tab", { name: "Physical Specs" }));
     expect(screen.getByText("Material")).toBeInTheDocument();
     expect(screen.getByText("Color / finish")).toBeInTheDocument();
+    ["Length", "Width", "Height", "Thickness", "Shelf life"].forEach((label) =>
+      expect(within(dialog).getByLabelText(label)).toHaveAttribute("type", "number")
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Planning/Replenishment" }));
+    ["Safety stock", "Reorder point", "Minimum quantity", "Maximum quantity", "Lead time", "Lot size"].forEach((label) =>
+      expect(within(dialog).getByLabelText(label)).toHaveAttribute("type", "number")
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Inventory/Warehouse Policy" }));
+    expect(within(dialog).getByLabelText("Default warehouse").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Default bin").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Default bin")).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Purchase/Vendor" }));
+    expect(within(dialog).getByLabelText("Purchase lead time")).toHaveAttribute("type", "number");
+    expect(within(dialog).getByLabelText("MOQ")).toHaveAttribute("type", "number");
+    expect(within(dialog).getByLabelText("Preferred supplier").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Preferred supplier")).toBeDisabled();
 
     fireEvent.click(screen.getByRole("tab", { name: "Customer References" }));
     expect(screen.getByText("Customer item code")).toBeInTheDocument();

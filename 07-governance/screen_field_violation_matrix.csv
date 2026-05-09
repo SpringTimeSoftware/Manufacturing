@@ -2,6 +2,11 @@ Route,Field,ViolationType,Severity,FixApplied,RemainingDependency
 /platform/notifications,Live notification rows,seeded/live data issue,High,Live authenticated sessions no longer render seeded notifications on API failure,Notification delivery/audit depth remains partial
 /platform/approvals,Live approval rows,seeded/live data issue,High,Live authenticated sessions no longer render seeded approvals or record local success on API failure,Approval comments/delegation/history remain partial
 /masters/items,Lead time days,numeric as text,High,Replaced with ErpNumberField,Full item extension persistence remains partial
+/masters/items,Packaging quantities and label count,numeric as text,High,Replaced inner pack/carton/pallet with ErpDecimalField and label count with ErpNumberField,Profile persistence still normalizes legacy string values
+/masters/items,Packaging weights and dimensions,numeric as text,High,Replaced net/gross weight and package length/width/height with ErpDecimalField,Dimension UOM lookup remains pending
+/masters/items,Physical dimensions and shelf life,numeric as text,High,Replaced length/width/height/thickness with ErpDecimalField and shelf life with ErpNumberField,Physical spec storage still maps through item profile fields
+/masters/items,Item planning and purchase policy quantities,numeric as text,High,Replaced safety stock/reorder point/min/max/lead time/lot size/purchase lead time/MOQ with governed number or decimal controls,Policy persistence remains mapped through item profile fields
+/masters/items,Item inventory and sourcing policies,free text instead of lookup,High,Replaced warehouse/bin/tracking/supplier policy fields with governed lookup controls; missing sources are disabled with reason,Full bin/supplier/BOM/routing policy lookup sources remain partial
 /masters/items,Upload media,upload action not truthful,High,Replaced disabled upload button with ErpFileActionState disabled reason,Media storage workflow not enabled
 /masters/items,Supplier ID / Customer ID,numeric as text,High,Replaced editable ID cells with ErpNumberField,Reference rows still need full customer/supplier lookup source
 /masters/items,Supplier / Customer reference,free text instead of lookup,High,Replaced touched reference name cells with ErpLookupField,Lookup source should use full partner APIs instead of current row values
