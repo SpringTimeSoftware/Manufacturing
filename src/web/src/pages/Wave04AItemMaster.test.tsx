@@ -112,7 +112,7 @@ describe("Wave 04A Item Master deep rework", () => {
     expect(screen.getByText("Gallery and media")).toBeInTheDocument();
     expect(screen.getByText("Drawing, spec, and photo slots")).toBeInTheDocument();
     expect(screen.getByText("Media actions")).toBeInTheDocument();
-    expect(screen.getByText("Media storage is not enabled for this workspace, so upload actions are unavailable.")).toBeInTheDocument();
+    expect(screen.getByText("Media storage is not enabled for item records, so upload actions are unavailable.")).toBeInTheDocument();
     const dialog = screen.getByRole("dialog", { name: "Fabricated Mounting Bracket" });
     expect(within(dialog).getByRole("button", { name: "Upload media" })).toBeDisabled();
 

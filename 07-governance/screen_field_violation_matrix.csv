@@ -129,3 +129,13 @@ Route,Field,ViolationType,Severity,FixApplied,RemainingDependency
 /organization/companies,Workspace records copy,layout violation,Low,Replaced generic workspace record label with organization-record wording,Continue domain wording scan during UAT
 /partners/customers,Commercial workspace guidance copy,layout violation,Low,Replaced generic workspace wording with commercial guidance,Continue domain wording scan during UAT
 /platform/context-switch,Workspace guidance and preview copy,layout violation,Low,Replaced generic workspace labels with context guidance and context preview,Continue domain wording scan during UAT
+/sales/orders,Promise date,layout violation,Medium,Rendered the review-only promise date as a disabled date control with sales order workflow dependency,Sales order edit workflow remains partial
+/procurement/requisitions,Source document,free text instead of lookup,High,Replaced raw review input with a disabled governed source-document selector,Source document drill-down/search remains partial
+/procurement/requisitions,Next need by,layout violation,Medium,Rendered the review-only need-by date as a disabled date control with requisition workflow dependency,Purchase requisition edit workflow remains partial
+/procurement/purchase-orders,Expected receipt,layout violation,Medium,Rendered the review-only expected receipt date as a disabled date control with purchase order workflow dependency,Purchase order follow-up workflow remains partial
+/procurement/purchase-orders,Follow-up signal,free text instead of lookup,High,Replaced raw follow-up input with a disabled governed supplier-commitment selector,Supplier commitment status source remains partial
+/engineering/*,Read-only reference reasons,layout violation,Low,Replaced production-facing seeded terminology with reference-record wording,Continue manual engineering copy scan during UAT
+/masters/items,Media upload disabled reason,upload action not truthful,Medium,Kept upload disabled and replaced internal workspace reason with item-record storage reason,Binary item media storage remains partial
+/organization/companies,Company modal disabled reasons,layout violation,Low,Replaced internal workspace wording with company setup workflow reasons,Company save and audit workflows remain partial
+/platform/notifications,Notification unavailable state,seeded/live data issue,Medium,Replaced workspace wording with verified-alert unavailable state,Notification delivery depth remains partial
+/platform/approvals,Approval unavailable state,seeded/live data issue,Medium,Replaced workspace wording with verified-approval unavailable state,Approval workflow depth remains partial

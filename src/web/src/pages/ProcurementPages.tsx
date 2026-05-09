@@ -40,6 +40,10 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
+function dateControlValue(value: string | null | undefined) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+}
+
 function useProcurementFilter(search: string, status: string) {
   const { user } = useAuth();
   const deferredSearch = useDeferredValue(search);
@@ -111,7 +115,7 @@ export function PurchaseRequisitionPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.purchaseRequisitionNo ?? "Purchase requisition"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Purchase requisition controls"><label><span>Source document</span><input defaultValue={selected.sourceDocument} /></label><ErpLookupField disabled disabledReason="Status changes require procurement approval workflow." label="Status" onChange={() => undefined} options={[{ label: selected.status, value: selected.status }]} value={selected.status} /><label><span>Next need by</span><input defaultValue={selected.nextNeedBy} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Purchase requisition controls"><ErpLookupField disabled disabledReason="Source document is controlled by the originating demand or planning record." label="Source document" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Status changes require procurement approval workflow." label="Status" onChange={() => undefined} options={[{ label: selected.status, value: selected.status }]} value={selected.status} /><label><span>Next need by</span><input disabled readOnly title="Need-by date changes require the requisition workflow." type="date" value={dateControlValue(selected.nextNeedBy)} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -167,7 +171,7 @@ export function PurchaseOrderPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.purchaseOrderNo ?? "Purchase order"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Purchase order follow-up"><ErpLookupField disabled disabledReason="Supplier selection is controlled from Supplier Master." label="Supplier" onChange={() => undefined} options={[{ label: selected.supplierLabel, value: selected.supplierLabel }]} value={selected.supplierLabel} /><label><span>Expected receipt</span><input defaultValue={selected.expectedReceiptDate} /></label><label><span>Follow-up signal</span><input defaultValue={selected.overdueSignal} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Purchase order follow-up"><ErpLookupField disabled disabledReason="Supplier selection is controlled from Supplier Master." label="Supplier" onChange={() => undefined} options={[{ label: selected.supplierLabel, value: selected.supplierLabel }]} value={selected.supplierLabel} /><label><span>Expected receipt</span><input disabled readOnly title="Receipt date changes require the purchase order workflow." type="date" value={dateControlValue(selected.expectedReceiptDate)} /></label><ErpLookupField disabled disabledReason="Follow-up signals are controlled by supplier commitment status." label="Follow-up signal" onChange={() => undefined} options={[{ label: selected.overdueSignal, value: selected.overdueSignal }]} value={selected.overdueSignal} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

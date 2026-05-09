@@ -488,12 +488,12 @@ export function NotificationInboxPage() {
         {!flags.enableNotificationCenter ? (
           <EmptyState
             description="The shared notification toggle is off, so the inbox is paused."
-            hint="Re-enable notifications from Platform Settings to restore this workspace."
+            hint="Re-enable notifications from Platform Settings to restore the inbox."
             title="Notification center is paused"
           />
         ) : loadError ? (
           <EmptyState
-            description="Live notification data is unavailable for this workspace. Only verified alerts are shown in this session."
+            description="Live notification data is unavailable. Only verified alerts are shown in this session."
             hint={loadError}
             title="Notification inbox unavailable"
           />
@@ -802,7 +802,7 @@ export function ApprovalWorkbenchPage() {
       >
         {loadError ? (
           <EmptyState
-            description="Live approval data is unavailable for this workspace. Only verified approvals are shown in this session."
+            description="Live approval data is unavailable. Only verified approvals are shown in this session."
             hint={loadError}
             title="Approval queue unavailable"
           />

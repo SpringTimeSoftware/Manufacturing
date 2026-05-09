@@ -1283,10 +1283,10 @@ function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
       </Card>
       <Card title="Media actions" description="Administrative media controls remain disabled until file storage is enabled.">
         <p className="muted" id="item-media-action-reason">
-          Media storage is not enabled for this workspace, so upload actions are unavailable.
+          Media storage is not enabled for item records, so upload actions are unavailable.
         </p>
         <div className="context-chip-row">
-          <ErpFileActionState disabledReason="Media storage is not enabled for this workspace." enabled={false} label="Upload media" />
+          <ErpFileActionState disabledReason="Media storage is not enabled for item records." enabled={false} label="Upload media" />
           <Button disabled title="Select a stored media record before changing the primary image." variant="secondary">Set primary</Button>
           <Button disabled title="Select a stored media record before retiring media." variant="secondary">Retire media</Button>
         </div>
@@ -2026,7 +2026,7 @@ export function ItemListPage() {
                 {
                   disabled: true,
                   label: "Upload media",
-                  reason: "Media storage is not enabled for this workspace."
+                  reason: "Media storage is not enabled for item records."
                 }
               ]}
               testId="item-master-action-bar"

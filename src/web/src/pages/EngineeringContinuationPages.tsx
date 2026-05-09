@@ -544,7 +544,7 @@ export function BomDetailEditorPage() {
     : !canWrite
       ? "BOM authoring requires a live signed-in engineering session."
       : !isLiveEngineeringRecord(selected)
-        ? "Seeded BOM structures are read-only. Sign in to the live engineering register to edit lines."
+        ? "Reference BOM structures are read-only. Sign in to the live engineering register to edit lines."
         : selected.status !== "Draft"
           ? "Clone an approved revision before saving line changes."
           : draftValidation[0];
@@ -940,14 +940,14 @@ export function RoutingLibraryPage() {
     : !canWrite
       ? "Routing authoring requires a live signed-in engineering session."
       : !isLiveEngineeringRecord(selected)
-        ? "Seeded routing references are read-only. Sign in to the live engineering register to clone a routing."
+        ? "Reference routing records are read-only. Sign in to the live engineering register to clone a routing."
         : undefined;
   const saveReason = !draft
     ? "Open a routing workspace before saving."
     : !canWrite
       ? "Routing authoring requires a live signed-in engineering session."
       : mode === "edit" && draft.source !== "Live"
-        ? "Seeded routing references are read-only. Create a new routing draft instead."
+        ? "Reference routing records are read-only. Create a new routing draft instead."
         : undefined;
   const canEditRouting = Boolean(draft && canWrite && (mode !== "edit" || draft.source === "Live"));
   const validation = draft
@@ -1179,7 +1179,7 @@ export function OperationStandardPage() {
     : !canWrite
       ? "Operation authoring requires a live signed-in engineering session."
       : mode === "edit" && draft.source !== "Live"
-        ? "Seeded operation standards are read-only. Create a new operation draft to continue."
+        ? "Reference operation standards are read-only. Create a new operation draft to continue."
         : undefined;
   const canEditOperation = Boolean(draft && canWrite && (mode !== "edit" || draft.source === "Live"));
   const validation = draft
@@ -1388,7 +1388,7 @@ export function AlternateItemRulesPage() {
     : !canWrite
       ? "Alternate-item authoring requires a live signed-in engineering session."
       : mode === "edit" && draft.source !== "Live"
-        ? "Seeded alternate-item rules are read-only. Create a new live rule to continue."
+        ? "Reference alternate-item rules are read-only. Create a new live rule to continue."
         : undefined;
   const canEditRule = Boolean(draft && canWrite && (draft.source === "Live" || draft.source === "Draft"));
 

@@ -65,6 +65,10 @@ function StatusBadge({ status }: { status: string }) {
   return <ErpStatusChip tone={tone}>{status}</ErpStatusChip>;
 }
 
+function dateControlValue(value: string | null | undefined) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+}
+
 function WorkbenchAside({
   description,
   source
@@ -584,7 +588,7 @@ export function QuoteEstimateListPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Quote queue records are review-only here; use New quote draft to author a governed commercial quote."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save quote draft", reason: "Selected queue records are review-only in this workspace. Use New quote draft to create and save a live quote draft." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save quote draft", reason: "Selected queue records are review-only in this planning queue. Use New quote draft to create and save a live quote draft." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.quoteNo ?? "Quote detail"}
@@ -687,7 +691,7 @@ export function SalesOrderListPage() {
         onClose={() => setSelectedId(null)}
         title={selected?.salesOrderNo ?? "Sales order detail"}
       >
-        {selected ? <><div className="utility-grid"><Tile eyebrow={selected.priorityCode} label="Promise" meta={selected.status}>{selected.promisedDate}</Tile><Tile eyebrow={selected.sourceQuoteLabel} label="Total quantity" meta={`${selected.lineCount} lines`}>{selected.totalQuantity}</Tile></div><FormShell initialFingerprint={selected.id} title="Sales order detail"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><label><span>Promise date</span><input defaultValue={selected.promisedDate} /></label></FormShell></> : null}
+        {selected ? <><div className="utility-grid"><Tile eyebrow={selected.priorityCode} label="Promise" meta={selected.status}>{selected.promisedDate}</Tile><Tile eyebrow={selected.sourceQuoteLabel} label="Total quantity" meta={`${selected.lineCount} lines`}>{selected.totalQuantity}</Tile></div><FormShell initialFingerprint={selected.id} title="Sales order detail"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><label><span>Promise date</span><input disabled readOnly title="Promise date changes require the sales order workflow." type="date" value={dateControlValue(selected.promisedDate)} /></label></FormShell></> : null}
       </ErpModalWorkspace>
     </>
   );

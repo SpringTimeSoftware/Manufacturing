@@ -268,6 +268,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - RUN-ALL-PROJECTS-2026-05-08 completed on 2026-05-08. Output: `/docs/codex-progress/RUN-ALL-PROJECTS-2026-05-08-output.md`
 - OVERNIGHT-FOUNDATION-FIX-01 completed on 2026-05-08. Output: `/docs/codex-progress/OVERNIGHT-FOUNDATION-FIX-01-output.md`
 - OVERNIGHT-CORRECTION-01 completed on 2026-05-08. Output: `/docs/codex-progress/OVERNIGHT-CORRECTION-01-output.md`
+- STRICT-FINAL-ENFORCEMENT-01 completed on 2026-05-09. Output: `/docs/codex-progress/STRICT-FINAL-ENFORCEMENT-01-output.md`
 
 ## Remediation Log
 

@@ -322,8 +322,8 @@ export function CompanyMasterPage() {
       </ListPageShell>
 
       <ErpModalWorkspace
-        description="Company details stay in-context so setup review does not leave the admin workspace."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save company draft", reason: "Company save workflow is not enabled for this workspace." }]} secondary={[{ disabled: true, label: "Review audit", reason: "Company audit workflow is not enabled for this workspace." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        description="Company details stay in-context so setup review does not leave administration."
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save company draft", reason: "Company save workflow is not enabled for company setup." }]} secondary={[{ disabled: true, label: "Review audit", reason: "Company audit workflow is not enabled for company setup." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.name ?? "Company detail"}

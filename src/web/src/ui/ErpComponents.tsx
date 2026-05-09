@@ -324,7 +324,7 @@ interface ErpFileActionStateProps {
 
 export function ErpFileActionState({
   accept,
-  disabledReason = "File storage is not enabled for this workspace.",
+  disabledReason = "File storage is not enabled for this record.",
   enabled,
   fileName,
   label,

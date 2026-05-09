@@ -115,3 +115,8 @@ Attachment,relatedRecord,Related record,string,Lookup,Linked ERP Record,Yes,,,No
 Attachment,fileName,File name,string,ReadOnly,,Yes,,,No,Upload file,Binary upload storage controls the file name after a real upload.
 Notification,templateId,Notification template,int,Lookup,Notification Template,No,,,No,Send notification,Notification templates are governed by platform setup.
 Approval,workflowId,Approval workflow,int,Lookup,Approval Workflow,Yes,,,No,Approve or reject,Approval work items must reference a governed workflow definition.
+Sales Order,promisedDate,Promise date,date,Date,,No,,,No,Save sales order,Review-only promise dates must render as disabled date controls until sales order edit workflow is enabled.
+Purchase Requisition,sourceDocument,Source document,string,Lookup,Demand/MRP/BOQ source,Yes,,,No,Save requisition,Source document is controlled by originating demand or planning record and must not be free text.
+Purchase Requisition,nextNeedBy,Need-by date,date,Date,,No,,,No,Save requisition,Review-only need-by dates must render as disabled date controls until requisition edit workflow is enabled.
+Purchase Order,expectedReceiptDate,Expected receipt,date,Date,,No,,,No,Save purchase order,Review-only expected receipt dates must render as disabled date controls until purchase order workflow is enabled.
+Purchase Order,followUpSignal,Follow-up signal,string,Lookup,Supplier commitment status,No,,,No,Approve purchase order,Follow-up signals are controlled by supplier commitment status and must not be free text.

@@ -79,3 +79,12 @@ OVERNIGHT-CORRECTION-01 extends these rules project-wide:
 - Action-truth evidence must be updated when a previously disabled workflow is wired, including create/save draft paths.
 - Business-facing pages must avoid internal implementation words such as adapter, fallback, mock, seeded, source status, workspace data, governed setup, reference UI, React, TypeScript, prompt IDs, backend reachable, and guarded demo shell.
 - Generic visible labels such as workspace guidance, workspace records, workspace ready, and workspace preview must be replaced with business-specific labels such as planning guidance, master records, organization records, account controls, and context preview.
+
+## Strict Final Enforcement Addendum
+
+STRICT-FINAL-ENFORCEMENT-01 tightens the same rules for all implemented screens:
+
+- Review-only source references must render as disabled governed selectors when the value is controlled by demand, planning, supplier commitment, or another ERP workflow.
+- Review-only date fields must render as disabled date controls with business-safe workflow reasons; narrative text such as Open or Unpromised may be shown in nearby summaries but must not be stored in the date control.
+- Upload actions must keep using `ErpFileActionState` or a disabled `ErpActionBar` item until binary storage and authorization are enabled. The disabled reason must name the business record or workflow, not an internal workspace.
+- Business copy must not expose seeded/demo terminology. Reference/demo records may be described as read-only reference records or review data, depending on the page context.
