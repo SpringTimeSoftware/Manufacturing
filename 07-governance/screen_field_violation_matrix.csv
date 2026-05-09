@@ -137,5 +137,9 @@ Route,Field,ViolationType,Severity,FixApplied,RemainingDependency
 /engineering/*,Read-only reference reasons,layout violation,Low,Replaced production-facing seeded terminology with reference-record wording,Continue manual engineering copy scan during UAT
 /masters/items,Media upload disabled reason,upload action not truthful,Medium,Kept upload disabled and replaced internal workspace reason with item-record storage reason,Binary item media storage remains partial
 /organization/companies,Company modal disabled reasons,layout violation,Low,Replaced internal workspace wording with company setup workflow reasons,Company save and audit workflows remain partial
-/platform/notifications,Notification unavailable state,seeded/live data issue,Medium,Replaced workspace wording with verified-alert unavailable state,Notification delivery depth remains partial
-/platform/approvals,Approval unavailable state,seeded/live data issue,Medium,Replaced workspace wording with verified-approval unavailable state,Approval workflow depth remains partial
+/platform/notifications,Notification unavailable state,seeded/live data issue,Medium,Replaced workspace wording with business-safe live-data unavailable state,Notification delivery depth remains partial
+/platform/approvals,Approval unavailable state,seeded/live data issue,Medium,Replaced workspace wording with business-safe live-data unavailable state,Approval workflow depth remains partial
+/platform/approvals,Approval decision actions,dead action,High,Gated Approve/Request changes/Reject by approval status and submission state,Delegation/comment/history workflow depth remains partial
+/platform/attachments,Live attachment rows,seeded/live data issue,High,Live authenticated sessions now load the attachment API or show unavailable state instead of deferred document rows,Document-control versioning/download depth remains partial
+/platform/translations,Translation detail fields,layout violation,Medium,Changed translation module and phrase fields to read-only/disabled controls while localization workflow is disabled,Translation publish/review workflow remains partial
+/platform/workflow-numbering,Approval chain,free text instead of lookup,Medium,Changed approval chain review value to a disabled governed selector and normalized displayed chain text,Workflow versioning and approval-chain editing remain partial

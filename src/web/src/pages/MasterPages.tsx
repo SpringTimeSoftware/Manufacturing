@@ -20,7 +20,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpFilterBar, ErpGrid, ErpModalWorkspace, ErpStatusChip } from "../ui/ErpComponents";
+import { ErpActionBar, ErpFilterBar, ErpGrid, ErpLookupField, ErpModalWorkspace, ErpStatusChip } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -29,6 +29,12 @@ import { KpiStrip } from "../ui/boards";
 
 function AdapterBadge({ label = "Review mode" }: { label?: string }) {
   return <Badge tone="info">{label}</Badge>;
+}
+
+const platformReviewReason = "Changes require the approved platform workflow.";
+
+function normalizeApprovalChain(value: string) {
+  return value.replace("â†’", "→").replace(/\s*->\s*/g, " → ");
 }
 
 function buildDirectoryColumns(): DataGridColumn<DirectoryRecord>[] {
@@ -141,15 +147,15 @@ function DirectoryPage({
           <FormShell initialFingerprint={selected.id} title={`${title} editor`}>
             <label>
               <span>Code</span>
-              <input defaultValue={selected.code} />
+              <input disabled readOnly title={platformReviewReason} value={selected.code} />
             </label>
             <label>
               <span>Name</span>
-              <input defaultValue={selected.name} />
+              <input disabled readOnly title={platformReviewReason} value={selected.name} />
             </label>
             <label>
               <span>Owner</span>
-              <input defaultValue={selected.owner} />
+              <input disabled readOnly title={platformReviewReason} value={selected.owner} />
             </label>
           </FormShell>
         ) : null}
@@ -193,7 +199,7 @@ const workflowColumns: DataGridColumn<WorkflowNumberingItem>[] = [
     )
   },
   { key: "workflowOwner", header: "Owner", width: "16%", render: (record) => record.workflowOwner },
-  { key: "approvalChain", header: "Approval chain", render: (record) => record.approvalChain },
+  { key: "approvalChain", header: "Approval chain", render: (record) => normalizeApprovalChain(record.approvalChain) },
   {
     key: "status",
     header: "Status",
@@ -351,21 +357,25 @@ export function TranslationSetupPage() {
       >
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="Translation editor">
-            <label>
-              <span>Module</span>
-              <input defaultValue={selected.module} />
-            </label>
+            <ErpLookupField
+              disabled
+              disabledReason="Module selection requires localization approval workflow."
+              label="Module"
+              onChange={() => undefined}
+              options={[{ label: selected.module, value: selected.module }]}
+              value={selected.module}
+            />
             <label>
               <span>Key</span>
-              <input defaultValue={selected.key} />
+              <input disabled readOnly title={platformReviewReason} value={selected.key} />
             </label>
             <label>
               <span>English (India)</span>
-              <textarea defaultValue={selected.enIn} rows={3} />
+              <textarea disabled readOnly rows={3} title={platformReviewReason} value={selected.enIn} />
             </label>
             <label>
               <span>Hindi</span>
-              <textarea defaultValue={selected.hiIn} rows={3} />
+              <textarea disabled readOnly rows={3} title={platformReviewReason} value={selected.hiIn} />
             </label>
           </FormShell>
         ) : null}
@@ -471,19 +481,23 @@ export function WorkflowNumberingPage() {
             <FormShell initialFingerprint={selected.id} title="Workflow template">
               <label>
                 <span>Document type</span>
-                <input defaultValue={selected.documentType} />
+                <input disabled readOnly title={platformReviewReason} value={selected.documentType} />
               </label>
               <label>
                 <span>Series pattern</span>
-                <input defaultValue={selected.seriesPattern} />
+                <input disabled readOnly title={platformReviewReason} value={selected.seriesPattern} />
               </label>
-              <label>
-                <span>Approval chain</span>
-                <input defaultValue={selected.approvalChain} />
-              </label>
+              <ErpLookupField
+                disabled
+                disabledReason="Approval-chain changes require platform approval workflow."
+                label="Approval chain"
+                onChange={() => undefined}
+                options={[{ label: normalizeApprovalChain(selected.approvalChain), value: normalizeApprovalChain(selected.approvalChain) }]}
+                value={normalizeApprovalChain(selected.approvalChain)}
+              />
               <label>
                 <span>Notes</span>
-                <textarea defaultValue={selected.notes} rows={4} />
+                <textarea disabled readOnly rows={4} title={platformReviewReason} value={selected.notes} />
               </label>
             </FormShell>
           </>

@@ -458,7 +458,7 @@ export function NotificationInboxPage() {
             Mark all as read
           </Button>
         }
-        description="System alerts, approvals, and reminder inbox for the current workspace."
+        description="System alerts, approvals, and reminder inbox for the current operating context."
         filters={
           <FilterBar>
             <input
@@ -499,7 +499,7 @@ export function NotificationInboxPage() {
           />
         ) : isLoading ? (
           <EmptyState
-            description="Live notification data is being loaded for the current workspace."
+            description="Live notification data is being loaded for the current operating context."
             title="Loading notifications"
           />
         ) : (
@@ -522,7 +522,7 @@ export function NotificationInboxPage() {
                 emptyState={{
                   title: "No notifications match the current filters",
                   description: "Adjust the search, status, or module filter to restore the inbox.",
-                  hint: "Reminder flow is available for review in the current workspace."
+                  hint: "Reminder flow is available for review in the current operating context."
                 }}
                 getRowId={(record) => record.id}
                 onRowSelect={setSelected}
@@ -646,6 +646,10 @@ const approvalColumns: DataGridColumn<ApprovalWorkItem>[] = [
   }
 ];
 
+function isApprovalDecisionAllowed(status: ApprovalWorkItem["status"]) {
+  return status === "Pending" || status === "Escalated";
+}
+
 export function ApprovalWorkbenchPage() {
   const navigate = useNavigate();
   const { markAsRead } = useNotifications();
@@ -710,9 +714,15 @@ export function ApprovalWorkbenchPage() {
 
   const pendingCount = approvals.filter((approval) => approval.status === "Pending").length;
   const escalatedCount = approvals.filter((approval) => approval.status === "Escalated").length;
+  const selectedCanReceiveDecision = selected ? isApprovalDecisionAllowed(selected.status) : false;
+  const decisionDisabledReason = !selectedCanReceiveDecision
+    ? "Only pending or escalated approvals can receive a decision."
+    : isSubmitting
+      ? "Approval decision is being recorded."
+      : undefined;
 
   const applyDecision = async (decision: "Approve" | "Reject" | "RequestChanges") => {
-    if (!selected) {
+    if (!selected || !isApprovalDecisionAllowed(selected.status)) {
       return;
     }
 
@@ -831,7 +841,7 @@ export function ApprovalWorkbenchPage() {
                 emptyState={{
                   title: "No approvals match the current filter",
                   description: "Adjust the module or status filters to restore the review queue.",
-                  hint: "Approval work items are available for review in the current workspace."
+                  hint: "Approval work items are available for review in the current operating context."
                 }}
                 getRowId={(record) => record.id}
                 isLoading={isLoading}
@@ -849,10 +859,28 @@ export function ApprovalWorkbenchPage() {
         footer={
           selected ? (
             <ErpActionBar
-              primary={[{ disabled: isSubmitting, label: "Approve", onClick: () => void applyDecision("Approve") }]}
+              primary={[
+                {
+                  disabled: isSubmitting || !selectedCanReceiveDecision,
+                  label: "Approve",
+                  onClick: () => void applyDecision("Approve"),
+                  reason: decisionDisabledReason
+                }
+              ]}
               secondary={[
-                { disabled: isSubmitting, label: "Request changes", onClick: () => void applyDecision("RequestChanges") },
-                { disabled: isSubmitting, label: "Reject", onClick: () => void applyDecision("Reject"), variant: "ghost" }
+                {
+                  disabled: isSubmitting || !selectedCanReceiveDecision,
+                  label: "Request changes",
+                  onClick: () => void applyDecision("RequestChanges"),
+                  reason: decisionDisabledReason
+                },
+                {
+                  disabled: isSubmitting || !selectedCanReceiveDecision,
+                  label: "Reject",
+                  onClick: () => void applyDecision("Reject"),
+                  reason: decisionDisabledReason,
+                  variant: "ghost"
+                }
               ]}
               utility={[{ label: "Close", onClick: () => setSelected(null), variant: "quiet" }]}
             />

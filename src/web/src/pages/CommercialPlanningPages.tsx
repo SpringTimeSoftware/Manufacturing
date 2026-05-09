@@ -30,6 +30,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
+import { EmptyState } from "../ui/EmptyState";
 import {
   ErpActionBar,
   ErpDecimalField,
@@ -402,7 +403,7 @@ export function SupplierLeadTimeMatrixPage() {
 }
 
 export function AttachmentViewerPage() {
-  const { user } = useAuth();
+  const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -413,17 +414,18 @@ export function AttachmentViewerPage() {
   );
   const query = useApiQuery(
     queryKeys.platform.attachments(user?.activeContext.companyId, deferredSearch, status),
-    () => listAttachmentViewerSetup(filter),
+    () => listAttachmentViewerSetup(session, filter),
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? records[0] ?? null;
+  const source: MasterDataSource = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Deferred");
 
   return (
     <ListPageShell
       actions={
         <>
-          <SourceBadge source="Deferred" />
+          <SourceBadge source={source} />
           <ErpActionBar
             primary={[{ disabled: true, label: "Upload document", reason: "Document upload requires approved storage configuration." }]}
             secondary={[{ disabled: true, label: "Open download audit", reason: "Download audit is pending document-control enablement." }]}
@@ -446,29 +448,37 @@ export function AttachmentViewerPage() {
       }
       title="Attachment / Document Viewer"
     >
-      <div className="split-panels">
-        <Card title="Document list" description="Document references prepared for commercial review and release tracking.">
-          <DataGrid
-            ariaLabel="Attachment document list"
-            columns={attachmentColumns}
-            getRowId={(record) => record.id}
-            isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
-            records={records}
-            rowLabel={(record) => `${record.documentNo} attachment`}
-            virtualization={{ enabled: true }}
-          />
-        </Card>
-        <Card title="Attachment preview" description={selected ? selected.linkedDocument : "Select an attachment to preview metadata."}>
-          {selected ? (
-            <div className="notification-item">
-              <strong>{selected.fileName}</strong>
-              <p>{selected.fileType} / {selected.fileSize} / uploaded by {selected.uploadedBy}</p>
-              <div className="context-chip-row"><StatusBadge status={selected.status} /><Badge tone="info">{selected.uploadedOn}</Badge></div>
-            </div>
-          ) : null}
-        </Card>
-      </div>
+      {query.isError ? (
+        <EmptyState
+          description="Live attachment data could not be loaded. No document rows are shown until the service is available."
+          hint={query.error instanceof Error ? query.error.message : undefined}
+          title="Attachment viewer unavailable"
+        />
+      ) : (
+        <div className="split-panels">
+          <Card title="Document list" description="Document references prepared for commercial review and release tracking.">
+            <DataGrid
+              ariaLabel="Attachment document list"
+              columns={attachmentColumns}
+              getRowId={(record) => record.id}
+              isLoading={query.isLoading}
+              onRowSelect={(record) => setSelectedId(record.id)}
+              records={records}
+              rowLabel={(record) => `${record.documentNo} attachment`}
+              virtualization={{ enabled: true }}
+            />
+          </Card>
+          <Card title="Attachment preview" description={selected ? selected.linkedDocument : "Select an attachment to preview metadata."}>
+            {selected ? (
+              <div className="notification-item">
+                <strong>{selected.fileName}</strong>
+                <p>{selected.fileType} / {selected.fileSize} / uploaded by {selected.uploadedBy}</p>
+                <div className="context-chip-row"><StatusBadge status={selected.status} /><Badge tone="info">{selected.uploadedOn}</Badge></div>
+              </div>
+            ) : null}
+          </Card>
+        </div>
+      )}
     </ListPageShell>
   );
 }

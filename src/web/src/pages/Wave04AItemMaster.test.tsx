@@ -107,6 +107,19 @@ describe("Wave 04A Item Master deep rework", () => {
     renderItemMaster();
 
     fireEvent.click(await screen.findByRole("row", { name: "FG-BRACKET-001 item master" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "Classification" }));
+    const classificationDialog = await screen.findByRole("dialog", { name: "Fabricated Mounting Bracket" });
+    expect(within(classificationDialog).getByLabelText("Category").tagName).toBe("SELECT");
+    expect(within(classificationDialog).getByLabelText("Subcategory").tagName).toBe("SELECT");
+    expect(within(classificationDialog).getByLabelText("Subcategory")).toBeDisabled();
+    expect(within(classificationDialog).getByLabelText("Product family").tagName).toBe("SELECT");
+    expect(within(classificationDialog).getByLabelText("Product family")).toBeDisabled();
+    expect(within(classificationDialog).getByLabelText("Business segment").tagName).toBe("SELECT");
+    expect(within(classificationDialog).getByLabelText("Business segment")).toBeDisabled();
+    expect(
+      within(classificationDialog).getAllByText("Dedicated item taxonomy setup is required before this value can be selected.").length
+    ).toBeGreaterThan(0);
+
     fireEvent.click(await screen.findByRole("tab", { name: "Images & Media" }));
     expect(await screen.findByText("Primary image")).toBeInTheDocument();
     expect(screen.getByText("Gallery and media")).toBeInTheDocument();

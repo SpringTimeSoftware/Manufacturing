@@ -42,6 +42,8 @@ describe("PlatformPages", () => {
     await waitFor(() => {
       expect(screen.getByText(/recorded for BOM-FG-OZ-50 \/ R4/i)).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
+    expect(screen.getAllByText("Only pending or escalated approvals can receive a decision.").length).toBeGreaterThan(0);
   });
 
   it("renders forgot-password recovery options for anonymous users", async () => {

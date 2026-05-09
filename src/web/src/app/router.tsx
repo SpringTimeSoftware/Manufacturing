@@ -206,6 +206,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("sales/available-to-promise", <AvailableToPromisePage />),
       guardedRoute("platform/users", <UserManagementPage />),
       guardedRoute("platform/roles", <RolePermissionMatrixPage />),
+      guardedRoute("platform/audit", <AuditTrailPage />),
       guardedRoute("platform/audit-trail", <AuditTrailPage />),
       guardedRoute("platform/translations", <TranslationSetupPage />),
       guardedRoute("platform/workflow-numbering", <WorkflowNumberingPage />),

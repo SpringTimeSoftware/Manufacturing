@@ -1,4 +1,5 @@
 import type {
+  AttachmentDto,
   AuthSessionResponse,
   BlanketOrderDto,
   DemandForecastDto,
@@ -145,6 +146,33 @@ const seededAttachments: AttachmentViewerItem[] = [
     source: "Deferred"
   }
 ];
+
+function formatFileSize(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 KB";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function mapAttachment(item: AttachmentDto): AttachmentViewerItem {
+  return {
+    id: String(item.id),
+    documentNo: `${item.relatedDocumentType}-${item.relatedDocumentId}`,
+    linkedDocument: `${item.relatedDocumentType} #${item.relatedDocumentId}`,
+    fileName: item.fileName,
+    fileType: item.contentType,
+    fileSize: formatFileSize(item.fileSizeBytes),
+    uploadedBy: item.uploadedByUserId ? `User ${item.uploadedByUserId}` : "System",
+    uploadedOn: item.createdOn.slice(0, 10),
+    status: item.status,
+    source: "Live"
+  };
+}
 
 const seededQuotes: QuoteSetupItem[] = [
   {
@@ -422,8 +450,20 @@ function mapMps(dto: MasterProductionScheduleDto, source: MasterDataSource): Mps
   };
 }
 
-export async function listAttachmentViewerSetup(filter: QueryFilter): Promise<AttachmentViewerItem[]> {
-  return filterSeeded(seededAttachments, filter, (item) => `${item.documentNo} ${item.linkedDocument} ${item.fileName}`);
+export async function listAttachmentViewerSetup(
+  session: AuthSessionResponse | null | undefined,
+  filter: QueryFilter
+): Promise<AttachmentViewerItem[]> {
+  if (!hasLiveSession(session)) {
+    return filterSeeded(seededAttachments, filter, (item) => `${item.documentNo} ${item.linkedDocument} ${item.fileName}`);
+  }
+
+  try {
+    const response = await apiClient.platform.attachments(filter);
+    return response.items.map(mapAttachment);
+  } catch {
+    throw liveDataUnavailable("Attachment viewer");
+  }
 }
 
 export async function listQuoteSetup(

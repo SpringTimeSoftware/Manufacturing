@@ -1319,6 +1319,7 @@ function ItemDetailEditor({
         .filter((entry, index, source) => entry.label && source.findIndex((candidate) => candidate.label === entry.label) === index),
     [records]
   );
+  const categoryOptions = useMemo(() => groupOptions.map((option) => ({ label: option.label, value: option.label })), [groupOptions]);
   const uomOptions = useMemo(
     () =>
       records
@@ -1341,6 +1342,7 @@ function ItemDetailEditor({
     [records]
   );
   const blockers = validationBlockers(item);
+  const taxonomyUnavailableReason = "Dedicated item taxonomy setup is required before this value can be selected.";
 
   const patch = (changes: Partial<ItemMasterSetupItem>) => updateItem((current) => ({ ...current, ...changes }));
   const patchCatalog = (changes: Partial<ItemMasterSetupItem["catalog"]>) =>
@@ -1520,10 +1522,43 @@ function ItemDetailEditor({
         {activeTab === "Classification" ? (
           <Card title="Classification" description="Grouping, product family, segment, and reporting controls.">
             <div className="item-master__editor-grid">
-              <TextField label="Category" onChange={(value) => patch({ category: value })} value={item.category} />
-              <TextField label="Subcategory" onChange={(value) => patch({ subCategory: value })} value={item.subCategory} />
-              <TextField label="Product family" onChange={(value) => patch({ productFamily: value })} value={item.productFamily} />
-              <TextField label="Business segment" onChange={(value) => patch({ businessSegment: value })} value={item.businessSegment} />
+              <ErpLookupField
+                label="Category"
+                onChange={(value) => {
+                  const selectedGroup = groupOptions.find((option) => option.label === value);
+                  patch({
+                    category: value,
+                    groupLabel: value || item.groupLabel,
+                    itemGroupId: selectedGroup?.id ?? item.itemGroupId
+                  });
+                }}
+                options={categoryOptions}
+                value={item.category || item.groupLabel}
+              />
+              <ErpLookupField
+                disabled
+                disabledReason={taxonomyUnavailableReason}
+                label="Subcategory"
+                onChange={() => undefined}
+                options={[]}
+                value={item.subCategory}
+              />
+              <ErpLookupField
+                disabled
+                disabledReason={taxonomyUnavailableReason}
+                label="Product family"
+                onChange={() => undefined}
+                options={[]}
+                value={item.productFamily}
+              />
+              <ErpLookupField
+                disabled
+                disabledReason={taxonomyUnavailableReason}
+                label="Business segment"
+                onChange={() => undefined}
+                options={[]}
+                value={item.businessSegment}
+              />
               <TextField label="Reporting bucket" onChange={(value) => patch({ reportingBucket: value })} value={item.reportingBucket} />
               <TextAreaField label="Attributes" onChange={(value) => patch({ attributeSummary: value })} value={item.attributeSummary} />
               <TextAreaField

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AuthSessionResponse, DashboardFilter, QueryFilter } from "./contracts";
 import { buildDemoSession } from "../auth/AuthContext";
 import { listPriceLists } from "../commercial/commercialMasterAdapters";
-import { listQuoteSetup } from "../commercial/commercialPlanningAdapters";
+import { listAttachmentViewerSetup, listQuoteSetup } from "../commercial/commercialPlanningAdapters";
 import { loadOrderDeliveryDashboard } from "../dashboards/dashboardAdapters";
 import { listPackLists } from "../dispatch/dispatchAdapters";
 import { listBomLibrarySetup } from "../engineering/engineeringAdapters";
@@ -55,6 +55,7 @@ describe("FOUNDATION-ENFORCEMENT-01 live data governance", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network unavailable")));
 
     await expect(listPriceLists(liveSession(), filter)).rejects.toThrow("Commercial setup live data could not be loaded");
+    await expect(listAttachmentViewerSetup(liveSession(), filter)).rejects.toThrow("Attachment viewer live data could not be loaded");
     await expect(listQuoteSetup(liveSession(), filter)).rejects.toThrow("Quote live data could not be loaded");
   });
 
