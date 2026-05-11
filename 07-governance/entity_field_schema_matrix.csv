@@ -143,3 +143,29 @@ Purchase Requisition,sourceDocument,Source document,string,Lookup,Demand/MRP/BOQ
 Purchase Requisition,nextNeedBy,Need-by date,date,Date,,No,,,No,Save requisition,Review-only need-by dates must render as disabled date controls until requisition edit workflow is enabled.
 Purchase Order,expectedReceiptDate,Expected receipt,date,Date,,No,,,No,Save purchase order,Review-only expected receipt dates must render as disabled date controls until purchase order workflow is enabled.
 Purchase Order,followUpSignal,Follow-up signal,string,Lookup,Supplier commitment status,No,,,No,Approve purchase order,Follow-up signals are controlled by supplier commitment status and must not be free text.
+Item Group,parentGroupId,Parent group,int,Lookup,Item Group,No,,,No,Save group draft,Hierarchy values must be selected from existing item groups.
+Item Group,defaultProfile,Default profile,string,Lookup,Measurement Profile,No,,,No,Save group draft,Default measurement profile must not be free text.
+Item Group,reportingBucket,Reporting bucket,string,Lookup,Reporting Bucket,No,,,No,Save group draft,Reporting bucket is a governed classification.
+Item Attribute,dataType,Data type,string,Lookup,Attribute Type List,Yes,,,No,Save attribute draft,Attribute value behavior must use controlled data type.
+Classification,classificationType,Classification type,string,Lookup,Classification Type List,Yes,,,No,Save classification draft,Product family business segment and reporting bucket are controlled classification types.
+UOM Conversion,conversionFactor,Conversion factor,decimal,ErpDecimalField,,Yes,"18,6",factor,No,Save conversion draft,Conversion factors must use decimal controls.
+UOM Conversion,decimalPlaces,Decimal places,int,ErpNumberField,,No,,places,No,Save conversion draft,Decimal-place setup must use numeric controls.
+Measurement Profile,dimensionUomClass,Dimension UOM class,string,Lookup,UOM Class,No,,,No,Save profile draft,Dimension UOM class must be selected from UOM setup.
+Measurement Profile,weightUomClass,Weight UOM class,string,Lookup,UOM Class,No,,,No,Save profile draft,Weight UOM class must be selected from UOM setup.
+Measurement Profile,precision,Precision,int,ErpNumberField,,No,,places,No,Save profile draft,Profile precision must use numeric controls.
+Work Center,departmentId,Department,int,Lookup,Department Master,No,,,No,Save work center,Resource department assignment must be controlled.
+Work Center,capacityUomId,Capacity UOM,int,Lookup,UOM Master,No,,,No,Save work center,Capacity unit must be selected from UOM setup.
+Work Center,parallelCapacityUnits,Parallel capacity units,int,ErpNumberField,,Yes,,units,No,Save work center,Capacity units must be numeric.
+Machine,workCenterId,Work center,int,Lookup,Work Center,Yes,,,No,Save machine,Machines must be assigned through work center lookup.
+Machine,machineType,Machine type,string,Lookup,Machine Type Master,No,,,No,Save machine,Machine type must not fall back to free text while setup is partial.
+Machine,capacityPerHour,Capacity per hour,decimal,ErpDecimalField,,Yes,"18,3",per hour,No,Save machine,Machine capacity must use decimal controls.
+Tool,toolType,Tool type,string,Lookup,Tool Type List,Yes,,,No,Save tool/resource,Tool type must use a controlled selector.
+Tool,compatibleMachineGroup,Compatible machine group,string,Lookup,Machine Group,No,,,No,Save tool/resource,Compatibility must be selected from machine grouping when available.
+Price List,lineNo,Line number,int,ErpNumberField,,Yes,,line,No,Save price list,Price line numbers must use numeric controls.
+Price List,minQuantity,Minimum quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save price list,Price break minimum quantity must use decimal controls.
+Price List,unitPrice,Unit price,money,ErpMoneyField,Currency,Yes,"18,2",currency,No,Save price list,Price amount must use money control.
+Discount Scheme,discountPercent,Discount percent,decimal,ErpDecimalField,,No,"9,3",%,No,Save discount scheme,Discount percentage must use decimal controls.
+Discount Scheme,discountAmount,Discount amount,money,ErpMoneyField,Currency,No,"18,2",currency,No,Save discount scheme,Discount amount must use money control.
+Currency,decimalPrecision,Decimal precision,int,ErpNumberField,,Yes,,places,No,Save commercial setup,Currency precision must use numeric control.
+Tax Category,defaultRatePercent,Default tax rate,decimal,ErpDecimalField,,Yes,"9,3",%,No,Save commercial setup,Tax rates must use decimal controls.
+Payment Term,netDays,Net days,int,ErpNumberField,,Yes,,days,No,Save commercial setup,Payment days must use numeric controls.

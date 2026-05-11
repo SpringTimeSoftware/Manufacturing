@@ -166,6 +166,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["CompanyAdmin", "PlanningManager", "StoreKeeper"]
   },
   {
+    label: "Classifications",
+    path: "/masters/classifications",
+    section: "Masters",
+    roles: ["CompanyAdmin", "PlanningManager", "StoreKeeper"]
+  },
+  {
     label: "Reason Codes",
     path: "/masters/reason-codes",
     section: "Masters",

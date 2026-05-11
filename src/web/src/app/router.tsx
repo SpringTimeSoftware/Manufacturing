@@ -53,6 +53,7 @@ import {
 } from "../pages/MasterPages";
 import {
   BarcodeLabelSetupPage,
+  ClassificationSetupPage,
   ItemAttributeMasterPage,
   ItemGroupMasterPage,
   ItemListPage,
@@ -167,6 +168,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("measurements/profiles", <MeasurementProfileMasterPage />),
       guardedRoute("masters/item-groups", <ItemGroupMasterPage />),
       guardedRoute("masters/item-attributes", <ItemAttributeMasterPage />),
+      guardedRoute("masters/classifications", <ClassificationSetupPage />),
       guardedRoute("masters/reason-codes", <ReasonCodeRulesPage />),
       guardedRoute("masters/items", <ItemListPage />),
       guardedRoute("masters/item-variants", <ItemVariantMatrixPage />),

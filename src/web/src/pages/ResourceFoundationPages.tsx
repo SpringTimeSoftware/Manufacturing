@@ -227,7 +227,7 @@ export function WorkCenterMasterPage() {
         <Card title="Resource control" description="Work centers provide the controlled capacity source for routing, planning, and shop-floor execution.">
           <div className="compact-stack">
             <ErpStatusChip tone="success">Live resource source</ErpStatusChip>
-            <ErpStatusChip tone="info">Capacity governed</ErpStatusChip>
+            <ErpStatusChip tone="info">Capacity controlled</ErpStatusChip>
           </div>
         </Card>
       }
@@ -257,6 +257,10 @@ export function WorkCenterMasterPage() {
         footer={
           <ErpActionBar
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save work center", onClick: save, reason: !canSave ? saveAccessReason : validation[0] }]}
+            secondary={[
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require resource dependency checks." },
+              { disabled: true, label: "View audit", reason: "Resource audit view is pending rollout." }
+            ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
         }
@@ -278,6 +282,8 @@ export function WorkCenterMasterPage() {
                   <span>Work center name</span>
                   <input aria-label="Work center name" onChange={(event) => updateDraft({ workCenterName: event.target.value })} value={draft.values.workCenterName} />
                 </label>
+                {readonlyLookup("Company", draft.values.companyId, "Company is controlled by the active session.")}
+                {readonlyLookup("Branch", draft.values.branchId, "Branch is controlled by the active session.")}
                 {readonlyLookup("Department", draft.values.departmentId, departmentLookupReason)}
                 {readonlyLookup("Capacity UOM", draft.values.capacityUomId, capacityUomLookupReason)}
                 {readonlyLookup("Default shift pattern", draft.values.defaultShiftPatternCode, shiftLookupReason)}
@@ -397,7 +403,7 @@ export function MachineMasterPage() {
       aside={
         <Card title="Machine control" description="Machines use controlled work center assignment for scheduling, occupancy, and execution proof.">
           <div className="compact-stack">
-            <ErpStatusChip tone="success">Work center governed</ErpStatusChip>
+            <ErpStatusChip tone="success">Work center controlled</ErpStatusChip>
             <ErpStatusChip tone="info">Capacity numeric</ErpStatusChip>
           </div>
         </Card>
@@ -428,6 +434,10 @@ export function MachineMasterPage() {
         footer={
           <ErpActionBar
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save machine", onClick: save, reason: !canSave ? saveAccessReason : validation[0] }]}
+            secondary={[
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require resource dependency checks." },
+              { disabled: true, label: "View audit", reason: "Resource audit view is pending rollout." }
+            ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
         }
@@ -449,7 +459,17 @@ export function MachineMasterPage() {
                   <span>Machine name</span>
                   <input aria-label="Machine name" onChange={(event) => updateDraft({ machineName: event.target.value })} value={draft.values.machineName} />
                 </label>
+                {readonlyLookup("Company", draft.values.companyId, "Company is controlled by the active session.")}
+                {readonlyLookup("Branch", draft.values.branchId, "Branch is controlled by the active session.")}
                 <ErpLookupField label="Work center" onChange={(value) => updateDraft({ workCenterId: Number(value) })} options={workCenterOptions} required value={String(draft.values.workCenterId || "")} />
+                <ErpLookupField
+                  disabled
+                  disabledReason="Machine type setup is required before this value can be selected."
+                  label="Machine type"
+                  onChange={() => undefined}
+                  options={[]}
+                  value=""
+                />
                 <ErpDecimalField label="Capacity per hour" min={0} onChange={(value) => updateDraft({ capacityPerHour: value ?? 0 })} scale={3} value={numericValue(draft.values.capacityPerHour)} />
                 <ErpLookupField label="Current status" onChange={(value) => updateDraft({ currentStatus: value })} options={machineStatusOptions} value={draft.values.currentStatus} />
                 {readonlyLookup("Default shift", draft.values.defaultShiftId, shiftLookupReason)}
@@ -555,7 +575,7 @@ export function ToolResourceMasterPage() {
       aside={
         <Card title="Tool control" description="Tools, dies, moulds, fixtures, and gauges stay controlled before routing or machine assignment.">
           <div className="compact-stack">
-            <ErpStatusChip tone="success">Tool type governed</ErpStatusChip>
+            <ErpStatusChip tone="success">Tool type controlled</ErpStatusChip>
             <ErpStatusChip tone="info">Machine compatibility controlled</ErpStatusChip>
           </div>
         </Card>
@@ -587,6 +607,10 @@ export function ToolResourceMasterPage() {
         footer={
           <ErpActionBar
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save tool/resource", onClick: save, reason: !canSave ? saveAccessReason : validation[0] }]}
+            secondary={[
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require resource dependency checks." },
+              { disabled: true, label: "View audit", reason: "Resource audit view is pending rollout." }
+            ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
         }
@@ -608,6 +632,8 @@ export function ToolResourceMasterPage() {
                   <span>Tool name</span>
                   <input aria-label="Tool name" onChange={(event) => updateDraft({ toolName: event.target.value })} value={draft.values.toolName} />
                 </label>
+                {readonlyLookup("Company", draft.values.companyId, "Company is controlled by the active session.")}
+                {readonlyLookup("Branch", draft.values.branchId, "Branch is controlled by the active session.")}
                 <ErpLookupField label="Tool type" onChange={(value) => updateDraft({ toolType: value })} options={toolTypeOptions} value={draft.values.toolType} />
                 {readonlyLookup("Compatible machine group", draft.values.compatibleMachineGroup, machineGroupLookupReason)}
                 <ErpLookupField label="Status" onChange={(value) => updateDraft({ status: value })} options={statusOptions} value={draft.values.status} />

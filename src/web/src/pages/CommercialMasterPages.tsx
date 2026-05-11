@@ -308,7 +308,7 @@ function toDiscountRequest(row: DiscountSchemeDto): DiscountSchemeUpsertRequest 
 
 function SidebarGuidance({ children }: { children: ReactNode }) {
   return (
-      <Card title="Commercial control" description="Use controlled commercial data before quoting, ordering, purchasing, and customer dispatch.">
+    <Card title="Commercial control" description="Use controlled commercial data before quoting, ordering, purchasing, and customer dispatch.">
       {children}
     </Card>
   );
@@ -435,7 +435,10 @@ export function PriceListMasterPage() {
       actions={
         <ErpActionBar
           primary={[{ label: "New price list", onClick: openNew }]}
-          secondary={[{ disabled: true, label: "Request approval", reason: "Approval routing is controlled from the approval workbench." }]}
+          secondary={[
+            { disabled: true, label: "Request approval", reason: "Approval routing is controlled from the approval workbench." },
+            { disabled: true, label: "Export price lists", reason: "Export will be enabled after controlled export approvals are active." }
+          ]}
           testId="price-list-action-bar"
         />
       }
@@ -448,7 +451,7 @@ export function PriceListMasterPage() {
           </div>
         </SidebarGuidance>
       }
-      description="Maintain governed price headers, UOM-aware price lines, tax category linkage, and customer applicability."
+      description="Maintain controlled price headers, UOM-aware price lines, tax category linkage, and customer applicability."
       filters={
         <ErpFilterBar onClear={() => { setSearch(""); setStatus("all"); }} testId="price-list-filter-bar">
           <input aria-label="Search price lists" onChange={(event) => setSearch(event.target.value)} placeholder="Search price lists" value={search} />
@@ -478,7 +481,14 @@ export function PriceListMasterPage() {
         footer={
           <ErpActionBar
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save Draft", onClick: handleSave, reason: !canSave ? saveReason : validation[0] }]}
-            secondary={[{ label: "Close", onClick: () => setDraft(null), variant: "secondary" }]}
+            secondary={[
+              { disabled: true, label: "Add line", reason: "Multi-line price maintenance is pending price-line workflow rollout." },
+              { disabled: true, label: "Remove line", reason: "Line removal requires price-line dependency checks." },
+              { disabled: true, label: "Clone", reason: "Price-list cloning is pending controlled copy workflow." },
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require transaction dependency checks." },
+              { disabled: true, label: "View audit", reason: "Commercial audit view is pending rollout." }
+            ]}
+            utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
         }
         isOpen={Boolean(draft)}
@@ -638,7 +648,13 @@ export function DiscountSchemeMasterPage() {
 
   return (
     <ListPageShell
-      actions={<ErpActionBar primary={[{ label: "New discount scheme", onClick: () => { setSelectedId(null); setDraft(buildDiscountRequest(companyId, currencies, priceLists)); } }]} testId="discount-action-bar" />}
+      actions={
+        <ErpActionBar
+          primary={[{ label: "New discount scheme", onClick: () => { setSelectedId(null); setDraft(buildDiscountRequest(companyId, currencies, priceLists)); } }]}
+          secondary={[{ disabled: true, label: "Export discount schemes", reason: "Export will be enabled after controlled export approvals are active." }]}
+          testId="discount-action-bar"
+        />
+      }
       aside={
         <SidebarGuidance>
           <div className="compact-stack">
@@ -648,7 +664,7 @@ export function DiscountSchemeMasterPage() {
           </div>
         </SidebarGuidance>
       }
-      description="Maintain governed discount schemes, quantity breaks, applicability rules, and price-list references."
+      description="Maintain controlled discount schemes, quantity breaks, applicability rules, and price-list references."
       filters={
         <ErpFilterBar onClear={() => { setSearch(""); setStatus("all"); }} testId="discount-filter-bar">
           <input aria-label="Search discount schemes" onChange={(event) => setSearch(event.target.value)} placeholder="Search discount schemes" value={search} />
@@ -680,7 +696,18 @@ export function DiscountSchemeMasterPage() {
         testId="discount-grid"
       />
       <ErpModalWorkspace
-        footer={<ErpActionBar primary={[{ disabled: !canSave || validation.length > 0, label: "Save Draft", onClick: handleSave, reason: !canSave ? saveReason : validation[0] }]} secondary={[{ label: "Close", onClick: () => setDraft(null) }]} />}
+        footer={
+          <ErpActionBar
+            primary={[{ disabled: !canSave || validation.length > 0, label: "Save Draft", onClick: handleSave, reason: !canSave ? saveReason : validation[0] }]}
+            secondary={[
+              { disabled: true, label: "Add break", reason: "Additional break rows require the discount-rule workflow." },
+              { disabled: true, label: "Remove break", reason: "Break removal requires discount dependency checks." },
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require transaction dependency checks." },
+              { disabled: true, label: "View audit", reason: "Commercial audit view is pending rollout." }
+            ]}
+            utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
+          />
+        }
         isOpen={Boolean(draft)}
         onClose={() => setDraft(null)}
         statusMeta={<ErpStatusChip tone={statusTone(draft?.approvalStatus ?? "Draft")}>{draft?.approvalStatus ?? "Draft"}</ErpStatusChip>}
@@ -794,7 +821,44 @@ export function TaxCurrencyTermsPage() {
     }
   };
 
+  const setupValidation =
+    activeKind === "currency" && currencyDraft
+      ? [
+          !currencyDraft.currencyCode ? "Currency code is required." : "",
+          !currencyDraft.currencyName ? "Currency name is required." : "",
+          currencyDraft.decimalPrecision < 0 ? "Decimal precision cannot be negative." : ""
+        ].filter(Boolean)
+      : activeKind === "rate" && rateDraft
+        ? [
+            !rateDraft.currencyId ? "Currency is required before saving a rate setup." : "",
+            !rateDraft.effectiveFrom ? "Effective from date is required." : "",
+            rateDraft.manualRate !== null && rateDraft.manualRate < 0 ? "Manual rate cannot be negative." : ""
+          ].filter(Boolean)
+        : activeKind === "tax" && taxDraft
+          ? [
+              !taxDraft.taxCategoryCode ? "Tax category code is required." : "",
+              !taxDraft.taxCategoryName ? "Tax category name is required." : "",
+              taxDraft.defaultRatePercent < 0 ? "Default tax rate cannot be negative." : "",
+              taxDraft.taxCodes.some((code) => !code.taxCode || !code.taxCodeName) ? "Primary tax code and name are required." : ""
+            ].filter(Boolean)
+          : activeKind === "payment" && paymentDraft
+            ? [
+                !paymentDraft.paymentTermsCode ? "Payment terms code is required." : "",
+                !paymentDraft.paymentTermsName ? "Payment terms name is required." : "",
+                paymentDraft.netDays < 0 ? "Net days cannot be negative." : ""
+              ].filter(Boolean)
+            : activeKind === "trade" && tradeDraft
+              ? [
+                  !tradeDraft.tradeTermsCode ? "Trade terms code is required." : "",
+                  !tradeDraft.tradeTermsName ? "Trade terms name is required." : ""
+                ].filter(Boolean)
+              : [];
+
   const handleSave = async () => {
+    if (!canSave || setupValidation.length > 0) {
+      return;
+    }
+
     if (activeKind === "currency" && currencyDraft) {
       await saveCurrency(session, selectedId, currencyDraft);
     } else if (activeKind === "rate" && rateDraft) {
@@ -857,7 +921,7 @@ export function TaxCurrencyTermsPage() {
           { label: "Tax categories", value: String(taxes.length), hint: "Tax calculation controls" },
           { label: "Payment terms", value: String(payments.length), hint: "Customer and supplier terms" },
           { label: "Trade terms", value: String(trades.length), hint: "Delivery responsibility setup" },
-          { label: "Rate setups", value: String(rates.length), hint: "Manual or governed exchange rates" }
+          { label: "Rate setups", value: String(rates.length), hint: "Manual or controlled exchange rates" }
         ]}
       />
       <div className="modal-form-grid">
@@ -886,7 +950,7 @@ export function TaxCurrencyTermsPage() {
             {payments.length === 0 && trades.length === 0 ? <ErpEmptyState description="No payment or trade terms match the current search." title="No terms" /> : null}
           </div>
         </Card>
-        <Card title="Exchange-rate setup" description="Manual or governed exchange-rate source settings.">
+        <Card title="Exchange-rate setup" description="Manual or controlled exchange-rate settings.">
           <div className="compact-list">
             {rates.map((rate) => (
               <button className="compact-list__row" key={rate.id} onClick={() => { setSelectedId(rate.id); setActiveKind("rate"); setRateDraft({ ...rate }); }} type="button">
@@ -900,7 +964,16 @@ export function TaxCurrencyTermsPage() {
         </Card>
       </div>
       <ErpModalWorkspace
-        footer={<ErpActionBar primary={[{ disabled: !canSave, label: "Save Setup", onClick: handleSave, reason: !canSave ? saveReason : undefined }]} secondary={[{ label: "Close", onClick: closeModal }]} />}
+        footer={
+          <ErpActionBar
+            primary={[{ disabled: !canSave || setupValidation.length > 0, label: "Save Setup", onClick: handleSave, reason: !canSave ? saveReason : setupValidation[0] }]}
+            secondary={[
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require commercial dependency checks." },
+              { disabled: true, label: "View audit", reason: "Commercial audit view is pending rollout." }
+            ]}
+            utility={[{ label: "Close", onClick: closeModal, variant: "quiet" }]}
+          />
+        }
         isOpen={Boolean(activeKind)}
         onClose={closeModal}
         title={activeKind ? `Commercial ${activeKind} setup` : "Commercial setup"}

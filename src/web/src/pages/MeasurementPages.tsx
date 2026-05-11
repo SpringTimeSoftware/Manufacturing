@@ -23,6 +23,7 @@ import {
   ErpGrid,
   ErpLookupField,
   ErpModalWorkspace,
+  ErpNumberField,
   ErpStatusChip
 } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
@@ -184,7 +185,7 @@ function MeasurementActionBar({
   return (
     <ErpActionBar
       primary={[{ disabled: true, label: primaryLabel, reason: "Draft creation is controlled by the measurement setup workflow." }]}
-      secondary={[{ disabled: true, label: exportLabel, reason: "Export is pending the governed export workflow." }]}
+      secondary={[{ disabled: true, label: exportLabel, reason: "Export is pending the controlled export workflow." }]}
       testId={testId}
     />
   );
@@ -194,7 +195,10 @@ function MeasurementModalFooter({ onClose, saveLabel }: { onClose: () => void; s
   return (
     <ErpActionBar
       primary={[{ disabled: true, label: saveLabel, reason: "Save is disabled until the measurement setup workflow is enabled." }]}
-      secondary={[{ disabled: true, label: "Review audit", reason: "Audit review is pending rollout." }]}
+      secondary={[
+        { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require measurement dependency checks." },
+        { disabled: true, label: "Review audit", reason: "Audit review is pending rollout." }
+      ]}
       utility={[{ label: "Close", onClick: onClose, variant: "quiet" }]}
     />
   );
@@ -310,6 +314,13 @@ export function UomClassMasterPage() {
               options={Array.from(new Set(records.map((record) => record.baseUom))).map((option) => ({ label: option, value: option }))}
               value={selected.baseUom}
             />
+            <ErpLookupField
+              label="Status"
+              onChange={() => undefined}
+              options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+              value={selected.status}
+            />
+            <ErpActionBar secondary={[{ disabled: true, label: "Add unit", reason: "Unit maintenance requires UOM setup workflow enablement." }]} />
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
@@ -425,6 +436,12 @@ export function UomConversionMasterPage() {
               options={Array.from(new Set(records.flatMap((record) => [record.fromUom, record.toUom]))).map((option) => ({ label: option, value: option }))}
               value={selected.toUom}
             />
+            <ErpLookupField
+              label="Conversion mode"
+              onChange={() => undefined}
+              options={["Fixed", "Formula"].map((value) => ({ label: value, value }))}
+              value={selected.conversionMode}
+            />
             <ErpDecimalField
               disabled
               disabledReason="Conversion factor changes require the measurement setup workflow."
@@ -433,6 +450,26 @@ export function UomConversionMasterPage() {
               onChange={() => undefined}
               scale={6}
               value={parseFirstDecimal(selected.factorLabel)}
+            />
+            <ErpLookupField
+              label="Rounding rule"
+              onChange={() => undefined}
+              options={["HalfUp", "Bankers", "Floor", "Ceiling"].map((value) => ({ label: value, value }))}
+              value={selected.roundMode}
+            />
+            <ErpNumberField
+              disabled
+              disabledReason="Precision is controlled by the conversion setup record."
+              label="Decimal places"
+              min={0}
+              onChange={() => undefined}
+              value={selected.precisionScale}
+            />
+            <ErpLookupField
+              label="Status"
+              onChange={() => undefined}
+              options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+              value={selected.status}
             />
             <label>
               <span>Formula tokens</span>
@@ -588,6 +625,35 @@ export function MeasurementProfileMasterPage() {
                 options={Array.from(new Set(profiles.map((record) => record.stockUomClass))).map((option) => ({ label: option, value: option }))}
                 value={selected.stockUomClass}
               />
+              <ErpLookupField
+                label="Profile type"
+                onChange={() => undefined}
+                options={Array.from(new Set(profiles.map((record) => record.profileType))).map((option) => ({ label: option, value: option }))}
+                value={selected.profileType}
+              />
+              <ErpLookupField
+                label="Dimension UOM class"
+                onChange={() => undefined}
+                options={Array.from(new Set(profiles.map((record) => record.stockUomClass))).map((option) => ({ label: option, value: option }))}
+                value={selected.stockUomClass}
+              />
+              <ErpLookupField
+                label="Weight UOM class"
+                onChange={() => undefined}
+                options={Array.from(new Set(profiles.map((record) => record.stockUomClass))).map((option) => ({ label: option, value: option }))}
+                value={selected.stockUomClass}
+              />
+              <ErpNumberField disabled disabledReason="Precision is controlled by formula rules." label="Precision" min={0} onChange={() => undefined} value={selected.requiresDimensions ? 3 : 0} />
+              <ErpLookupField
+                label="Status"
+                onChange={() => undefined}
+                options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+                value={selected.status}
+              />
+              <label className="form-checkbox">
+                <input checked={selected.allowsCatchWeight} disabled readOnly type="checkbox" />
+                <span>Catch weight enabled</span>
+              </label>
             </FormShell>
           </>
         ) : null}

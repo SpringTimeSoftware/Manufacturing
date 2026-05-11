@@ -309,7 +309,7 @@ function MasterPageActionBar({
   return (
     <ErpActionBar
       primary={[{ disabled: true, label: primaryLabel, reason: "Draft creation is controlled by the master-data rollout." }]}
-      secondary={[{ disabled: true, label: exportLabel, reason: "Export is pending the governed export workflow." }]}
+      secondary={[{ disabled: true, label: exportLabel, reason: "Export is pending the controlled export workflow." }]}
       testId={testId}
     />
   );
@@ -329,7 +329,10 @@ function MasterModalFooter({
   return (
     <ErpActionBar
       primary={[{ disabled: true, label: saveLabel, reason: "Save is not enabled for this setup workflow yet." }]}
-      secondary={[{ disabled: true, label: reviewLabel, reason: "Review workflow is pending rollout." }]}
+      secondary={[
+        { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require dependency checks before rollout." },
+        { disabled: true, label: reviewLabel, reason: "Audit history is pending setup workflow rollout." }
+      ]}
       utility={[{ label: closeLabel, onClick: onClose, variant: "quiet" }]}
     />
   );
@@ -347,6 +350,9 @@ export function ItemGroupMasterPage() {
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const defaultProfileOptions = uniqueOptions(records, (record) => record.defaultProfile).map((option) => ({ label: option, value: option }));
   const reportingBucketOptions = uniqueOptions(records, (record) => record.reportingBucket).map((option) => ({ label: option, value: option }));
+  const parentGroupOptions = records
+    .filter((record) => record.id !== selectedId)
+    .map((record) => ({ label: `${record.code} - ${record.name}`, value: record.id }));
 
   return (
     <>
@@ -415,6 +421,18 @@ export function ItemGroupMasterPage() {
               <span>Group code</span>
               <input defaultValue={selected.code} />
             </label>
+            <label>
+              <span>Group name</span>
+              <input defaultValue={selected.name} />
+            </label>
+            <ErpLookupField
+              disabled
+              disabledReason="Parent hierarchy changes require item taxonomy approval."
+              label="Parent group"
+              onChange={() => undefined}
+              options={parentGroupOptions}
+              value=""
+            />
             <ErpLookupField
               label="Default profile"
               onChange={() => undefined}
@@ -427,6 +445,22 @@ export function ItemGroupMasterPage() {
               options={reportingBucketOptions}
               value={selected.reportingBucket}
             />
+            <ErpLookupField
+              label="Default traceability"
+              onChange={() => undefined}
+              options={["None", "Lot", "Serial"].map((value) => ({ label: value, value }))}
+              value={selected.defaultTraceability}
+            />
+            <ErpLookupField
+              label="Status"
+              onChange={() => undefined}
+              options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+              value={selected.status}
+            />
+            <label className="form-checkbox">
+              <input checked={Boolean(selected.parent)} disabled readOnly type="checkbox" />
+              <span>Hierarchy linked</span>
+            </label>
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
@@ -500,23 +534,43 @@ export function ItemAttributeMasterPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Attribute detail keeps variant-driving values governed by the master-data process."
+        description="Attribute detail keeps variant-driving values controlled by the master-data process."
         footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save attribute draft" />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.name ?? "Attribute detail"}
       >
         {selected ? (
-          <FormShell initialFingerprint={selected.id} title="Attribute setup">
-            <label>
-              <span>Attribute code</span>
-              <input defaultValue={selected.code} />
-            </label>
-            <label>
-              <span>Sample values</span>
-              <textarea defaultValue={selected.sampleValues} rows={3} />
-            </label>
-          </FormShell>
+          <>
+            <ErpActionBar secondary={[{ disabled: true, label: "Add allowed value", reason: "Allowed-value maintenance requires the attribute setup workflow." }]} />
+            <FormShell initialFingerprint={selected.id} title="Attribute setup">
+              <label>
+                <span>Attribute code</span>
+                <input defaultValue={selected.code} />
+              </label>
+              <label>
+                <span>Attribute name</span>
+                <input defaultValue={selected.name} />
+              </label>
+              <ErpLookupField
+                label="Data type"
+                onChange={() => undefined}
+                options={["Text", "Number", "Decimal", "Date", "Boolean", "Lookup"].map((value) => ({ label: value, value }))}
+                value="Text"
+              />
+              <ErpLookupField
+                label="Status"
+                onChange={() => undefined}
+                options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+                value={selected.status}
+              />
+              <ErpNumberField disabled disabledReason="Allowed-value count is calculated from the attribute registry." label="Allowed values" onChange={() => undefined} value={selected.valueCount} />
+              <label>
+                <span>Sample values</span>
+                <textarea defaultValue={selected.sampleValues} rows={3} />
+              </label>
+            </FormShell>
+          </>
         ) : null}
       </ErpModalWorkspace>
     </>
@@ -610,6 +664,198 @@ export function ReasonCodeRulesPage() {
               onChange={() => undefined}
               options={uniqueOptions(records, (record) => record.module).map((option) => ({ label: option, value: option }))}
               value={selected.module}
+            />
+          </FormShell>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
+  );
+}
+
+interface ClassificationSetupRecord {
+  id: string;
+  code: string;
+  name: string;
+  type: "Product family" | "Business segment" | "Reporting bucket";
+  itemCount: number;
+  status: string;
+}
+
+const classificationColumns: DataGridColumn<ClassificationSetupRecord>[] = [
+  { key: "code", header: "Code", width: "18%", render: (record) => <strong>{record.code}</strong> },
+  { key: "name", header: "Name", render: (record) => record.name },
+  { key: "type", header: "Classification", width: "20%", render: (record) => record.type },
+  { key: "count", header: "Items", width: "12%", render: (record) => record.itemCount },
+  {
+    key: "status",
+    header: "Status",
+    width: "12%",
+    render: (record) => <ErpStatusChip tone={record.status === "Active" ? "success" : "warn"}>{record.status}</ErpStatusChip>
+  }
+];
+
+function buildClassificationRecords(records: ItemMasterSetupItem[]): ClassificationSetupRecord[] {
+  const buckets = new Map<string, ClassificationSetupRecord>();
+  const addRecord = (type: ClassificationSetupRecord["type"], value: string | null | undefined) => {
+    const name = value?.trim();
+    if (!name) {
+      return;
+    }
+
+    const id = `${type}-${name}`;
+    const existing = buckets.get(id);
+    if (existing) {
+      existing.itemCount += 1;
+      return;
+    }
+
+    buckets.set(id, {
+      code: name.toUpperCase().replace(/[^A-Z0-9]+/g, "-"),
+      id,
+      itemCount: 1,
+      name,
+      status: "Active",
+      type
+    });
+  };
+
+  records.forEach((record) => {
+    addRecord("Product family", record.productFamily);
+    addRecord("Business segment", record.businessSegment);
+    addRecord("Reporting bucket", record.reportingBucket);
+  });
+
+  return Array.from(buckets.values()).sort((left, right) => `${left.type}-${left.name}`.localeCompare(`${right.type}-${right.name}`));
+}
+
+export function ClassificationSetupPage() {
+  const { session } = useAuth();
+  const { deferredSearch, filter, search, setSearch, setStatus, status, user } = useCommonFilter();
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const query = useApiQuery(
+    queryKeys.masters.items(user?.activeContext.companyId, deferredSearch, status),
+    () => listItemMasterSetup(session, filter),
+    { staleTime: 60_000 }
+  );
+  const source = (query.data ?? [])[0]?.source ?? "Deferred";
+  const records = useMemo(() => buildClassificationRecords(query.data ?? []), [query.data]);
+  const filteredRecords = records.filter((record) => typeFilter === "all" || record.type === typeFilter);
+  const selected = records.find((record) => record.id === selectedId) ?? null;
+
+  return (
+    <>
+      <ListPageShell
+        actions={
+          <>
+            <SourceBadge source={source} />
+            <ErpActionBar
+              primary={[{ disabled: true, label: "New classification", reason: "Classification creation requires taxonomy setup enablement." }]}
+              secondary={[{ disabled: true, label: "Export classifications", reason: "Export is pending the controlled export workflow." }]}
+              testId="classification-action-bar"
+            />
+          </>
+        }
+        aside={
+          <MasterAside
+            description="Product family, business segment, and reporting bucket values are controlled before item records consume them."
+            endpoint="/api/items"
+            source={source}
+          />
+        }
+        description="Product-family, business-segment, and reporting-bucket values used by item master and commercial reporting."
+        filters={
+          <ErpFilterBar
+            ariaLabel="Classification filters"
+            onClear={() => {
+              setSearch("");
+              setStatus("all");
+              setTypeFilter("all");
+            }}
+            testId="classification-filter-bar"
+          >
+            <input
+              aria-label="Search classifications"
+              onChange={(event) => startTransition(() => setSearch(event.target.value))}
+              placeholder="Search family, segment, or reporting bucket"
+              value={search}
+            />
+            <select aria-label="Classification type" onChange={(event) => setTypeFilter(event.target.value)} value={typeFilter}>
+              <option value="all">Classification: Any</option>
+              <option value="Product family">Product family</option>
+              <option value="Business segment">Business segment</option>
+              <option value="Reporting bucket">Reporting bucket</option>
+            </select>
+            <select aria-label="Classification status" onChange={(event) => setStatus(event.target.value)} value={status}>
+              <option value="all">Status: Any</option>
+              <option value="Active">Active</option>
+              <option value="Draft">Draft</option>
+            </select>
+          </ErpFilterBar>
+        }
+        title="Product Family / Segment / Reporting"
+      >
+        <KpiStrip
+          items={[
+            { label: "Classifications", value: String(records.length) },
+            { label: "Families", value: String(records.filter((record) => record.type === "Product family").length) },
+            { label: "Segments", value: String(records.filter((record) => record.type === "Business segment").length) },
+            { label: "Reporting buckets", value: String(records.filter((record) => record.type === "Reporting bucket").length) }
+          ]}
+        />
+        <Card title="Classification registry" description="Controlled classification values used by item master and commercial reporting.">
+          <ErpGrid
+            ariaLabel="Classification registry"
+            columns={classificationColumns}
+            emptyState={{
+              title: "No classifications match the current filters",
+              description: "Adjust the filters to review item classification values."
+            }}
+            getRowId={(record) => record.id}
+            isLoading={query.isLoading}
+            onRowSelect={(record) => setSelectedId(record.id)}
+            records={filteredRecords}
+            rowLabel={(record) => `${record.type} ${record.name}`}
+            testId="classification-grid"
+          />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace
+        description="Classification detail remains controlled before item records can consume new values."
+        footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save classification" />}
+        isOpen={Boolean(selected)}
+        onClose={() => setSelectedId(null)}
+        title={selected?.name ?? "Classification detail"}
+      >
+        {selected ? (
+          <FormShell initialFingerprint={selected.id} title="Classification setup">
+            <label>
+              <span>Code</span>
+              <input defaultValue={selected.code} />
+            </label>
+            <label>
+              <span>Name</span>
+              <input defaultValue={selected.name} />
+            </label>
+            <ErpLookupField
+              label="Classification type"
+              onChange={() => undefined}
+              options={["Product family", "Business segment", "Reporting bucket"].map((value) => ({ label: value, value }))}
+              value={selected.type}
+            />
+            <ErpLookupField
+              disabled
+              disabledReason="Parent mapping requires classification hierarchy enablement."
+              label="Parent mapping"
+              onChange={() => undefined}
+              options={[]}
+              value=""
+            />
+            <ErpLookupField
+              label="Status"
+              onChange={() => undefined}
+              options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+              value={selected.status}
             />
           </FormShell>
         ) : null}
@@ -2636,7 +2882,7 @@ export function BarcodeLabelSetupPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Barcode detail keeps item and scan-purpose linkage governed by item master setup."
+        description="Barcode detail keeps item and scan-purpose linkage controlled by item master setup."
         footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save barcode draft" />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
