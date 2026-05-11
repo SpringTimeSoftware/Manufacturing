@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { seededJobCards, seededQuantityPresets } from "../mobileSeedData";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -10,18 +12,21 @@ import {
 
 export function ExecutionCaptureScreen() {
   const activeJob = seededJobCards[0];
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueAction = (label: string) => () => setActionMessage(`${label} queued for ${activeJob.jobCardNo}.`);
 
   return (
     <View style={styles.stack}>
       <MobileCard title="Execution Action Sheet" subtitle="Start, pause, resume, and complete actions with explicit reasons.">
+        <MobileActionNotice message={actionMessage} tone="success" />
         <MobileListItem>
           <Text style={styles.title}>{`${activeJob.jobCardNo} / ${activeJob.operationName}`}</Text>
           <Text style={styles.copy}>{`${activeJob.machineLabel} / ${activeJob.status}`}</Text>
           <View style={styles.buttonGrid}>
-            <MobileButton label="Start" tone="success" />
-            <MobileButton label="Pause" tone="warn" />
-            <MobileButton label="Resume" tone="info" />
-            <MobileButton label="Complete" tone="success" />
+            <MobileButton label="Start" onPress={queueAction("Start")} tone="success" />
+            <MobileButton label="Pause" onPress={queueAction("Pause")} tone="warn" />
+            <MobileButton label="Resume" onPress={queueAction("Resume")} tone="info" />
+            <MobileButton disabled disabledReason="Completion requires supervisor close confirmation after quantity and QC checks." label="Complete" tone="success" />
           </View>
           <MobileField label="Reason" value="POWER_FLUCTUATION or OPERATOR_BREAK when pause/down is selected" />
         </MobileListItem>
@@ -40,7 +45,7 @@ export function ExecutionCaptureScreen() {
           </MobileListItem>
         ))}
         <TextInput accessibilityLabel="Quantity notes" multiline placeholder="Add operator note or photo reference" style={styles.input} />
-        <MobileButton label="Queue quantity posting" tone="success" />
+        <MobileButton label="Queue quantity posting" onPress={queueAction("Quantity posting")} tone="success" />
       </MobileCard>
     </View>
   );

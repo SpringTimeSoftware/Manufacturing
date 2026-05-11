@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { seededDeviceUtilities, seededMediaUploads } from "../mobileSeedData";
-import { MobileBadge, MobileButton, MobileCard, MobileListItem } from "../ui/mobileComponents";
+import { MobileActionNotice, MobileBadge, MobileButton, MobileCard, MobileListItem } from "../ui/mobileComponents";
 
 function capabilityTone(status: "Available" | "NeedsPermission" | "OfflineQueued" | "Unavailable") {
   if (status === "Available") {
@@ -15,13 +16,17 @@ function capabilityTone(status: "Available" | "NeedsPermission" | "OfflineQueued
 }
 
 export function DeviceUtilitiesScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const runUtility = (label: string) => () => setActionMessage(`${label} captured in the device queue.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard
-        action={<MobileBadge label="M023" tone="info" />}
-        subtitle="Device utility placeholders keep scanner, camera, attachment, and voice capture flows explicit without binding to a native SDK yet."
+        action={<MobileBadge label="Device ready" tone="info" />}
+        subtitle="Scanner, camera, attachment, and voice capture availability is shown with clear device-state handling."
         title="Barcode / QR / Camera Utilities"
       >
+        <MobileActionNotice message={actionMessage} tone="info" />
         {seededDeviceUtilities.map((utility) => (
           <MobileListItem key={utility.id}>
             <View style={styles.row}>
@@ -31,7 +36,13 @@ export function DeviceUtilitiesScreen() {
               </View>
               <MobileBadge label={utility.capabilityStatus} tone={capabilityTone(utility.capabilityStatus)} />
             </View>
-            <MobileButton label={utility.actionLabel} tone={utility.tone} />
+            <MobileButton
+              disabled={utility.capabilityStatus === "NeedsPermission" || utility.capabilityStatus === "Unavailable"}
+              disabledReason={utility.capabilityStatus === "NeedsPermission" ? "Camera permission must be granted by the native device adapter." : "This device capability is not available."}
+              label={utility.actionLabel}
+              onPress={runUtility(utility.utilityName)}
+              tone={utility.tone}
+            />
           </MobileListItem>
         ))}
       </MobileCard>

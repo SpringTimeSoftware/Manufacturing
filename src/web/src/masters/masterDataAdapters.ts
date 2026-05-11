@@ -37,6 +37,7 @@ export interface UomClassSetupItem {
   uomClassId: number;
   code: string;
   name: string;
+  baseUomId: number | null;
   baseUom: string;
   supportsFormulaConversion: boolean;
   status: string;
@@ -46,9 +47,13 @@ export interface UomClassSetupItem {
 export interface UomConversionSetupItem {
   id: string;
   conversionId: number;
+  fromUomId: number;
   fromUom: string;
+  toUomId: number;
   toUom: string;
   conversionMode: string;
+  factorNumerator: number;
+  factorDenominator: number;
   factorLabel: string;
   formulaTokenSet: string;
   roundMode: string;
@@ -63,11 +68,13 @@ export interface MeasurementProfileSetupItem {
   code: string;
   name: string;
   profileType: string;
+  stockUomClassId: number;
   stockUomClass: string;
   allowsCatchWeight: boolean;
   requiresDimensions: boolean;
   requiresDensity: boolean;
   requiresThickness: boolean;
+  requiresPackSize: boolean;
   supportsCommercialProductionSplit: boolean;
   status: string;
   source: MasterDataSource;
@@ -334,14 +341,18 @@ type ItemMasterCoreFields = Omit<ItemMasterSetupItem, keyof ItemMasterProfileFie
 export interface ItemVariantSetupItem {
   id: string;
   variantId: number;
+  companyId: number;
   itemId: number;
   itemLabel: string;
   code: string;
   name: string;
   variantKey: string;
   attributeSummary: string;
+  overrideMeasurementProfileId: number | null;
   overrideMeasurementProfile: string;
+  overrideStockUomId: number | null;
   overrideStockUom: string;
+  overrideWeightPerUnitValue: number | null;
   overrideWeightPerUnit: string;
   status: string;
   source: MasterDataSource;
@@ -350,9 +361,12 @@ export interface ItemVariantSetupItem {
 export interface BarcodeSetupItem {
   id: string;
   barcodeId: number;
+  companyId: number;
   itemId: number;
   itemLabel: string;
+  itemVariantId: number | null;
   variantLabel: string;
+  uomId: number | null;
   uomLabel: string;
   barcodeValue: string;
   barcodeType: string;
@@ -439,9 +453,16 @@ export interface SupplierAddressSetupItem {
 
 export interface SupplierLeadTimeSetupItem {
   id: string;
+  leadTimeId: number;
+  companyId: number;
   supplierId: number;
+  branchId: number | null;
+  itemId: number | null;
+  itemGroupId: number | null;
   itemLabel: string;
   leadTimeDays: number;
+  minOrderQty: number | null;
+  orderMultipleQty: number | null;
   orderPolicy: string;
   isSubcontractLeadTime: boolean;
   priorityRank: number;
@@ -494,6 +515,7 @@ export interface PartnerDocumentSetupItem {
   documentNo: string;
   revisionCode: string;
   fileName: string;
+  storageUri: string;
   approvalStatus: string;
   visibilityScope: string;
   effectiveFrom: string;
@@ -552,6 +574,7 @@ const seededUomClasses: UomClassSetupItem[] = [
     uomClassId: 1,
     code: "COUNT",
     name: "Count",
+    baseUomId: 1,
     baseUom: "PCS",
     supportsFormulaConversion: false,
     status: "Active",
@@ -562,6 +585,7 @@ const seededUomClasses: UomClassSetupItem[] = [
     uomClassId: 2,
     code: "WEIGHT",
     name: "Weight",
+    baseUomId: 2,
     baseUom: "KG",
     supportsFormulaConversion: false,
     status: "Active",
@@ -572,6 +596,7 @@ const seededUomClasses: UomClassSetupItem[] = [
     uomClassId: 3,
     code: "AREA",
     name: "Area",
+    baseUomId: 4,
     baseUom: "SQM",
     supportsFormulaConversion: true,
     status: "Draft",
@@ -583,9 +608,13 @@ const seededUomConversions: UomConversionSetupItem[] = [
   {
     id: "conversion-sheet-area",
     conversionId: 101,
+    fromUomId: 3,
     fromUom: "SHEET",
+    toUomId: 4,
     toUom: "SQM",
     conversionMode: "Formula",
+    factorNumerator: 1,
+    factorDenominator: 1,
     factorLabel: "length x width",
     formulaTokenSet: "LENGTH_MM, WIDTH_MM",
     roundMode: "Commercial",
@@ -596,9 +625,13 @@ const seededUomConversions: UomConversionSetupItem[] = [
   {
     id: "conversion-kg-ton",
     conversionId: 102,
+    fromUomId: 5,
     fromUom: "MT",
+    toUomId: 2,
     toUom: "KG",
     conversionMode: "Fixed",
+    factorNumerator: 1000,
+    factorDenominator: 1,
     factorLabel: "1000 / 1",
     formulaTokenSet: "None",
     roundMode: "Standard",
@@ -615,11 +648,13 @@ const seededProfiles: MeasurementProfileSetupItem[] = [
     code: "STD-COUNT",
     name: "Standard Count Item",
     profileType: "CountOnly",
+    stockUomClassId: 1,
     stockUomClass: "COUNT",
     allowsCatchWeight: false,
     requiresDimensions: false,
     requiresDensity: false,
     requiresThickness: false,
+    requiresPackSize: false,
     supportsCommercialProductionSplit: false,
     status: "Active",
     source: "Seeded"
@@ -630,11 +665,13 @@ const seededProfiles: MeasurementProfileSetupItem[] = [
     code: "DIM-SHEET",
     name: "Dimensional Sheet Profile",
     profileType: "DimensionalFormula",
+    stockUomClassId: 3,
     stockUomClass: "AREA",
     allowsCatchWeight: true,
     requiresDimensions: true,
     requiresDensity: true,
     requiresThickness: true,
+    requiresPackSize: true,
     supportsCommercialProductionSplit: true,
     status: "Draft",
     source: "Seeded"
@@ -1449,14 +1486,18 @@ const seededVariants: ItemVariantSetupItem[] = [
   {
     id: "variant-ss-6mm",
     variantId: 501,
+    companyId: 1,
     itemId: 10003,
     itemLabel: "RM-SS-SHEET",
     code: "SS-304-6MM",
     name: "SS304 6mm sheet",
     variantKey: "GRADE=SS304;THICKNESS=6MM",
     attributeSummary: "Grade SS304, thickness 6mm",
+    overrideMeasurementProfileId: 2,
     overrideMeasurementProfile: "DIM-SHEET",
+    overrideStockUomId: 3,
     overrideStockUom: "SHEET",
+    overrideWeightPerUnitValue: 47.1,
     overrideWeightPerUnit: "47.1 kg",
     status: "Draft",
     source: "Seeded"
@@ -1464,14 +1505,18 @@ const seededVariants: ItemVariantSetupItem[] = [
   {
     id: "variant-bracket-painted",
     variantId: 502,
+    companyId: 1,
     itemId: 10002,
     itemLabel: "FG-BRACKET-001",
     code: "BRACKET-PAINTED",
     name: "Painted bracket",
     variantKey: "FINISH=PAINTED",
     attributeSummary: "Painted finish",
+    overrideMeasurementProfileId: 1,
     overrideMeasurementProfile: "STD-COUNT",
+    overrideStockUomId: 1,
     overrideStockUom: "PCS",
+    overrideWeightPerUnitValue: 1.2,
     overrideWeightPerUnit: "1.2 kg",
     status: "Active",
     source: "Seeded"
@@ -1482,9 +1527,12 @@ const seededBarcodes: BarcodeSetupItem[] = [
   {
     id: "barcode-fg-bracket",
     barcodeId: 701,
+    companyId: 1,
     itemId: 10002,
     itemLabel: "FG-BRACKET-001",
+    itemVariantId: null,
     variantLabel: "Base item",
+    uomId: 1,
     uomLabel: "PCS",
     barcodeValue: "FG-BRACKET-001",
     barcodeType: "Code128",
@@ -1497,9 +1545,12 @@ const seededBarcodes: BarcodeSetupItem[] = [
   {
     id: "barcode-ss-sheet",
     barcodeId: 702,
+    companyId: 1,
     itemId: 10003,
     itemLabel: "RM-SS-SHEET",
+    itemVariantId: 501,
     variantLabel: "SS-304-6MM",
+    uomId: 3,
     uomLabel: "SHEET",
     barcodeValue: "SS304-6MM-SHEET",
     barcodeType: "QR",
@@ -1666,9 +1717,16 @@ const seededSupplierAddresses: SupplierAddressSetupItem[] = [
 const seededSupplierLeadTimes: SupplierLeadTimeSetupItem[] = [
   {
     id: "leadtime-1",
+    leadTimeId: 1,
+    companyId: 1,
     supplierId: 30001,
+    branchId: null,
+    itemId: 10001,
+    itemGroupId: null,
     itemLabel: "RM-PLATE-001",
     leadTimeDays: 7,
+    minOrderQty: null,
+    orderMultipleQty: null,
     orderPolicy: "Priority 1",
     isSubcontractLeadTime: false,
     priorityRank: 1,
@@ -1677,9 +1735,16 @@ const seededSupplierLeadTimes: SupplierLeadTimeSetupItem[] = [
   },
   {
     id: "leadtime-2",
+    leadTimeId: 2,
+    companyId: 1,
     supplierId: 30002,
+    branchId: null,
+    itemId: 10003,
+    itemGroupId: null,
     itemLabel: "RM-SS-SHEET",
     leadTimeDays: 9,
+    minOrderQty: 500,
+    orderMultipleQty: null,
     orderPolicy: "Minimum 500 kg",
     isSubcontractLeadTime: false,
     priorityRank: 1,
@@ -1973,6 +2038,7 @@ function mapUomClass(dto: UomClassDto, uoms: UomDto[], source: MasterDataSource)
     uomClassId: dto.id,
     code: dto.classCode,
     name: dto.className,
+    baseUomId: dto.baseUomId,
     baseUom: mapUomLabel(uoms, dto.baseUomId),
     supportsFormulaConversion: dto.supportsFormulaConversion,
     status: dto.status,
@@ -1984,9 +2050,13 @@ function mapUomConversion(dto: UomConversionDto, uoms: UomDto[], source: MasterD
   return {
     id: `uom-conversion-${dto.id}`,
     conversionId: dto.id,
+    fromUomId: dto.fromUomId,
     fromUom: mapUomLabel(uoms, dto.fromUomId),
+    toUomId: dto.toUomId,
     toUom: mapUomLabel(uoms, dto.toUomId),
     conversionMode: dto.conversionMode,
+    factorNumerator: dto.factorNumerator,
+    factorDenominator: dto.factorDenominator,
     factorLabel: `${dto.factorNumerator} / ${dto.factorDenominator}`,
     formulaTokenSet: dto.formulaTokenSet ?? "None",
     roundMode: dto.roundMode,
@@ -2007,11 +2077,13 @@ function mapMeasurementProfile(
     code: dto.profileCode,
     name: dto.profileName,
     profileType: dto.profileType,
+    stockUomClassId: dto.stockUomClassId,
     stockUomClass: mapUomClassLabel(classes, dto.stockUomClassId),
     allowsCatchWeight: dto.allowsCatchWeight,
     requiresDimensions: dto.requiresDimensions,
     requiresDensity: dto.requiresDensity,
     requiresThickness: dto.requiresThickness,
+    requiresPackSize: dto.requiresPackSize,
     supportsCommercialProductionSplit: dto.supportsCommercialProductionSplit,
     status: dto.status,
     source
@@ -2079,16 +2151,20 @@ function mapItemVariant(
   return {
     id: `item-variant-${dto.id}`,
     variantId: dto.id,
+    companyId: dto.companyId,
     itemId: dto.itemId,
     itemLabel: mapItemLabel(items, dto.itemId),
     code: dto.variantCode,
     name: dto.variantName,
     variantKey: dto.variantKey,
     attributeSummary: dto.variantAttributeSummary ?? dto.variantAttributeMapJson,
+    overrideMeasurementProfileId: dto.overrideMeasurementProfileId,
     overrideMeasurementProfile: dto.overrideMeasurementProfileId
       ? profiles.find((profile) => profile.profileId === dto.overrideMeasurementProfileId)?.code ?? `Profile ${dto.overrideMeasurementProfileId}`
       : "Base item",
+    overrideStockUomId: dto.overrideStockUomId,
     overrideStockUom: mapUomLabel(uoms, dto.overrideStockUomId),
+    overrideWeightPerUnitValue: dto.overrideWeightPerUnit,
     overrideWeightPerUnit: dto.overrideWeightPerUnit ? `${dto.overrideWeightPerUnit}` : "Base item",
     status: dto.status,
     source
@@ -2105,9 +2181,12 @@ function mapBarcode(
   return {
     id: `item-barcode-${dto.id}`,
     barcodeId: dto.id,
+    companyId: dto.companyId,
     itemId: dto.itemId,
     itemLabel: mapItemLabel(items, dto.itemId),
+    itemVariantId: dto.itemVariantId,
     variantLabel: mapVariantLabel(variants, dto.itemVariantId),
+    uomId: dto.uomId,
     uomLabel: mapUomLabel(uoms, dto.uomId),
     barcodeValue: dto.barcodeValue,
     barcodeType: dto.barcodeType,
@@ -2204,9 +2283,16 @@ function mapSupplierAddress(dto: SupplierAddressDto, source: MasterDataSource): 
 function mapSupplierLeadTime(dto: SupplierLeadTimeDto, items: ItemMasterSetupItem[], source: MasterDataSource): SupplierLeadTimeSetupItem {
   return {
     id: `supplier-lead-time-${dto.id}`,
+    leadTimeId: dto.id,
+    companyId: dto.companyId,
     supplierId: dto.supplierId,
+    branchId: dto.branchId,
+    itemId: dto.itemId,
+    itemGroupId: dto.itemGroupId,
     itemLabel: dto.itemId ? mapItemLabel(items, dto.itemId) : dto.itemGroupId ? `Group ${dto.itemGroupId}` : "Any item",
     leadTimeDays: dto.leadTimeDays,
+    minOrderQty: dto.minOrderQty,
+    orderMultipleQty: dto.orderMultipleQty,
     orderPolicy: `${dto.minOrderQty ?? "No min"} / ${dto.orderMultipleQty ?? "No multiple"}`,
     isSubcontractLeadTime: dto.isSubcontractLeadTime,
     priorityRank: dto.priorityRank,
@@ -2259,6 +2345,7 @@ function buildCustomerPartnerWorkspace(customer: CustomerSetupItem, addresses: C
             documentNo: customer.taxRegistrationNo,
             revisionCode: "Current",
             fileName: "",
+            storageUri: "",
             approvalStatus: "Ready",
             visibilityScope: "Internal",
             effectiveFrom: "",
@@ -2314,6 +2401,7 @@ function buildSupplierPartnerWorkspace(supplier: SupplierSetupItem, addresses: S
             documentNo: supplier.taxRegistrationNo,
             revisionCode: "Current",
             fileName: "",
+            storageUri: "",
             approvalStatus: "Ready",
             visibilityScope: "Internal",
             effectiveFrom: "",
@@ -2423,7 +2511,7 @@ function mapSupplierPartnerWorkspace(dto: SupplierPartnerWorkspaceDto, source: M
   };
 }
 
-function mapPartnerDocument(document: { id: number; documentType: string; title: string; documentNo: string | null; revisionCode: string | null; fileName: string | null; approvalStatus: string; visibilityScope: string; effectiveFrom: string | null; effectiveTo: string | null; expiresOn: string | null; status: string }): PartnerDocumentSetupItem {
+function mapPartnerDocument(document: { id: number; documentType: string; title: string; documentNo: string | null; revisionCode: string | null; fileName: string | null; storageUri?: string | null; approvalStatus: string; visibilityScope: string; effectiveFrom: string | null; effectiveTo: string | null; expiresOn: string | null; status: string }): PartnerDocumentSetupItem {
   return {
     id: `partner-document-${document.id}`,
     documentId: document.id,
@@ -2432,6 +2520,7 @@ function mapPartnerDocument(document: { id: number; documentType: string; title:
     documentNo: document.documentNo ?? "",
     revisionCode: document.revisionCode ?? "",
     fileName: document.fileName ?? "",
+    storageUri: document.storageUri ?? "",
     approvalStatus: document.approvalStatus,
     visibilityScope: document.visibilityScope,
     effectiveFrom: document.effectiveFrom ?? "",
@@ -2502,7 +2591,7 @@ function toCustomerProfileRequest(workspace: CustomerPartnerWorkspaceSetup): Cus
       documentNo: document.documentNo || null,
       revisionCode: document.revisionCode || null,
       fileName: document.fileName || null,
-      storageUri: null,
+      storageUri: document.storageUri || null,
       approvalStatus: document.approvalStatus,
       visibilityScope: document.visibilityScope,
       effectiveFrom: document.effectiveFrom || null,
@@ -2559,7 +2648,7 @@ function toSupplierProfileRequest(workspace: SupplierPartnerWorkspaceSetup): Sup
       documentNo: document.documentNo || null,
       revisionCode: document.revisionCode || null,
       fileName: document.fileName || null,
-      storageUri: null,
+      storageUri: document.storageUri || null,
       approvalStatus: document.approvalStatus,
       visibilityScope: document.visibilityScope,
       effectiveFrom: document.effectiveFrom || null,

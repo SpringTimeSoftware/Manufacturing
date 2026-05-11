@@ -50,11 +50,11 @@ export function PrintPackPage() {
 
   return (
     <ListPageShell
-      description="Shared print/export abstraction for travelers, labels, CSV snapshots, and Excel-compatible handoff files."
+      description="Traveler, label, CSV, and Excel-compatible output for production and dispatch document packs."
       title="Print Pack / Traveler / Labels"
     >
       <div className="split-panels">
-        <Card title="Available templates" description="Modules can register report actions without writing custom export code on every screen.">
+        <Card title="Available templates" description="Approved print and export templates for production, inventory, and dispatch handoff documents.">
           {reportTemplates.map((template) => (
             <div className="notification-item" key={template.id}>
               <strong>{template.label}</strong>
@@ -65,7 +65,7 @@ export function PrintPackPage() {
             </div>
           ))}
         </Card>
-        <Card title="Run sample actions" description="Foundation actions cover PDF/print, CSV, Excel-compatible, and label layouts.">
+        <Card title="Print and export" description="Run traveler, label, CSV, and Excel-compatible outputs for the selected production pack.">
           {flags.enablePrintAndExport ? (
             <div className="utility-grid">
               {actions.map((action) => (

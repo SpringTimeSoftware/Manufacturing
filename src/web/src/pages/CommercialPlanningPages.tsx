@@ -1,5 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import type { QuoteDto, QuoteUpsertRequest } from "../api/contracts";
+import { useNavigate } from "react-router-dom";
+import type { QuoteDto, QuoteUpsertRequest, SupplierLeadTimeUpsertRequest } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { hasLiveSession } from "../api/liveData";
@@ -34,6 +35,7 @@ import { EmptyState } from "../ui/EmptyState";
 import {
   ErpActionBar,
   ErpDecimalField,
+  ErpFileActionState,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
@@ -282,7 +284,10 @@ export function SupplierLeadTimeMatrixPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<(SupplierLeadTimeUpsertRequest & { id: number | null; orderPolicy: string }) | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<"success" | "danger" | "info">("info");
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(
     () => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
@@ -294,8 +299,129 @@ export function SupplierLeadTimeMatrixPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const canSave = hasLiveSession(session);
+  const itemOptions = [
+    { label: "Any item", value: "" },
+    ...Array.from(new Map(records.filter((record) => record.itemId).map((record) => [record.itemId ?? 0, record.itemLabel])).entries()).map(
+      ([value, label]) => ({ label, value: String(value) })
+    )
+  ];
+  const supplierOptions = Array.from(new Set(records.map((record) => record.supplierId))).map((value) => ({ label: `Supplier ${value}`, value: String(value) }));
+  const orderPolicyOptions = Array.from(
+    new Set([
+      "Priority 1",
+      "Minimum order quantity",
+      "Order multiple quantity",
+      "Minimum and multiple quantity",
+      ...records.map((record) => record.orderPolicy)
+    ])
+  ).map((value) => ({ label: value, value }));
+  const openDraft = (record: SupplierLeadTimeSetupItem) => {
+    setDraft({
+      id: record.leadTimeId,
+      companyId: record.companyId,
+      supplierId: record.supplierId,
+      branchId: record.branchId,
+      itemId: record.itemId,
+      itemGroupId: record.itemGroupId,
+      leadTimeDays: record.leadTimeDays,
+      minOrderQty: record.minOrderQty,
+      orderMultipleQty: record.orderMultipleQty,
+      orderPolicy: record.orderPolicy,
+      isSubcontractLeadTime: record.isSubcontractLeadTime,
+      priorityRank: record.priorityRank,
+      status: record.status
+    });
+    setSaveMessage(null);
+  };
+  const openCreate = () => {
+    const first = records[0];
+    setDraft({
+      id: null,
+      companyId: user?.activeContext.companyId ?? first?.companyId ?? 1,
+      supplierId: first?.supplierId ?? 0,
+      branchId: user?.activeContext.branchId ?? null,
+      itemId: first?.itemId ?? null,
+      itemGroupId: null,
+      leadTimeDays: 1,
+      minOrderQty: null,
+      orderMultipleQty: null,
+      orderPolicy: "Priority 1",
+      isSubcontractLeadTime: false,
+      priorityRank: 1,
+      status: "Draft"
+    });
+    setSaveMessage(null);
+  };
+  const closeDraft = () => {
+    setDraft(null);
+    setSaveMessage(null);
+  };
+  const updateDraft = (changes: Partial<SupplierLeadTimeUpsertRequest>) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  const updateOrderPolicy = (orderPolicy: string) => {
+    setDraft((current) => {
+      if (!current) {
+        return current;
+      }
+
+      if (orderPolicy === "Priority 1") {
+        return { ...current, orderPolicy, minOrderQty: null, orderMultipleQty: null, priorityRank: 1 };
+      }
+
+      if (orderPolicy === "Minimum order quantity") {
+        return { ...current, orderPolicy, minOrderQty: current.minOrderQty ?? 1, orderMultipleQty: null };
+      }
+
+      if (orderPolicy === "Order multiple quantity") {
+        return { ...current, orderPolicy, minOrderQty: null, orderMultipleQty: current.orderMultipleQty ?? 1 };
+      }
+
+      if (orderPolicy === "Minimum and multiple quantity") {
+        return { ...current, orderPolicy, minOrderQty: current.minOrderQty ?? 1, orderMultipleQty: current.orderMultipleQty ?? 1 };
+      }
+
+      return { ...current, orderPolicy };
+    });
+  };
+  const saveDraft = async () => {
+    if (!draft || !canSave || isSaving) {
+      return;
+    }
+
+    if (!draft.supplierId || draft.leadTimeDays <= 0) {
+      setSaveTone("danger");
+      setSaveMessage("Supplier and lead time days are required.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const request: SupplierLeadTimeUpsertRequest = {
+        companyId: draft.companyId,
+        supplierId: draft.supplierId,
+        branchId: draft.branchId,
+        itemId: draft.itemId,
+        itemGroupId: draft.itemGroupId,
+        leadTimeDays: draft.leadTimeDays,
+        minOrderQty: draft.minOrderQty,
+        orderMultipleQty: draft.orderMultipleQty,
+        isSubcontractLeadTime: draft.isSubcontractLeadTime,
+        priorityRank: draft.priorityRank,
+        status: draft.status
+      };
+      const saved = draft.id ? await apiClient.partners.updateSupplierLeadTime(draft.id, request) : await apiClient.partners.createSupplierLeadTime(request);
+      setDraft((current) => current ? { ...current, id: saved.id } : current);
+      await query.refetch();
+      setSaveTone("success");
+      setSaveMessage("Supplier lead-time row saved.");
+    } catch (error) {
+      setSaveTone("danger");
+      setSaveMessage(error instanceof Error ? error.message : "Supplier lead-time row could not be saved.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
@@ -304,8 +430,8 @@ export function SupplierLeadTimeMatrixPage() {
           <>
             <SourceBadge source={source} />
             <ErpActionBar
-              primary={[{ disabled: true, label: "New lead-time row", reason: "Lead-time row creation is controlled by the supplier master workflow." }]}
-              secondary={[{ disabled: true, label: "Export matrix", reason: "Export is pending the governed export workflow." }]}
+              primary={[{ disabled: !canSave, label: "New lead-time row", onClick: canSave ? openCreate : undefined, reason: canSave ? undefined : "Sign in with supplier master write access to create lead-time rows." }]}
+              secondary={[{ disabled: true, label: "Export matrix", reason: "Export requires the governed supplier lead-time export workflow." }]}
               testId="supplier-lead-time-action-bar"
             />
           </>
@@ -345,7 +471,7 @@ export function SupplierLeadTimeMatrixPage() {
             columns={leadTimeColumns}
             getRowId={(record) => record.id}
             isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
+            onRowSelect={openDraft}
             records={records}
             rowLabel={(record) => `${record.itemLabel} supplier lead-time matrix`}
             testId="supplier-lead-time-grid"
@@ -357,44 +483,46 @@ export function SupplierLeadTimeMatrixPage() {
         description="Supplier lead-time detail keeps item, supplier, and policy selection controlled by existing matrix values."
         footer={
           <ErpActionBar
-            primary={[{ disabled: true, label: "Save lead-time row", reason: "Save is disabled until the supplier lead-time workflow is enabled." }]}
-            secondary={[{ disabled: true, label: "Review audit", reason: "Audit review is pending rollout." }]}
-            utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]}
+            primary={[{ disabled: !canSave || isSaving, label: isSaving ? "Saving..." : "Save lead-time row", onClick: canSave && !isSaving ? saveDraft : undefined, reason: canSave ? undefined : "Sign in with supplier master write access to save lead-time rows." }]}
+            secondary={[{ disabled: true, label: "Review audit", reason: "Supplier lead-time audit history requires recorded live changes." }]}
+            utility={[{ label: "Close", onClick: closeDraft, variant: "quiet" }]}
           />
         }
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.itemLabel ?? "Lead-time detail"}
+        isOpen={Boolean(draft)}
+        onClose={closeDraft}
+        title={draft?.itemId ? itemOptions.find((option) => option.value === String(draft.itemId))?.label ?? "Lead-time detail" : "Lead-time detail"}
       >
-        {selected ? (
-          <FormShell initialFingerprint={selected.id} title="Lead-time setup">
+        {draft ? (
+          <FormShell initialFingerprint={`${draft.id ?? "new"}-${saveMessage ?? ""}`} title="Lead-time setup">
+            {saveMessage ? <ErpStatusChip tone={saveTone}>{saveMessage}</ErpStatusChip> : null}
             <ErpLookupField
               label="Supplier lead-time item selector"
-              onChange={() => undefined}
-              options={Array.from(new Set(records.map((record) => record.itemLabel))).map((option) => ({ label: option, value: option }))}
-              value={selected.itemLabel}
+              onChange={(value) => updateDraft({ itemId: value ? Number(value) : null, itemGroupId: null })}
+              options={itemOptions}
+              value={draft.itemId ? String(draft.itemId) : ""}
             />
             <ErpLookupField
               label="Supplier"
-              onChange={() => undefined}
-              options={Array.from(new Set(records.map((record) => String(record.supplierId)))).map((option) => ({ label: `Supplier ${option}`, value: option }))}
-              value={String(selected.supplierId)}
+              onChange={(value) => updateDraft({ supplierId: Number(value) })}
+              options={supplierOptions}
+              value={String(draft.supplierId)}
             />
+            <ErpLookupField label="Order policy" onChange={updateOrderPolicy} options={orderPolicyOptions} value={draft.orderPolicy} />
             <ErpNumberField
-              disabled
-              disabledReason="Lead time is controlled by the supplier lead-time workflow."
               label="Lead time days"
-              min={0}
-              onChange={() => undefined}
+              min={1}
+              onChange={(value) => updateDraft({ leadTimeDays: value ?? 1 })}
               unit="days"
-              value={selected.leadTimeDays}
+              value={draft.leadTimeDays}
             />
-            <ErpLookupField
-              label="Order policy"
-              onChange={() => undefined}
-              options={Array.from(new Set(records.map((record) => record.orderPolicy))).map((option) => ({ label: option, value: option }))}
-              value={selected.orderPolicy}
-            />
+            <ErpNumberField label="Minimum order quantity" min={0} onChange={(value) => updateDraft({ minOrderQty: value })} value={draft.minOrderQty} />
+            <ErpNumberField label="Order multiple quantity" min={0} onChange={(value) => updateDraft({ orderMultipleQty: value })} value={draft.orderMultipleQty} />
+            <ErpNumberField label="Priority rank" min={1} onChange={(value) => updateDraft({ priorityRank: value ?? 1 })} value={draft.priorityRank} />
+            <label className="form-checkbox">
+              <input checked={draft.isSubcontractLeadTime} onChange={(event) => updateDraft({ isSubcontractLeadTime: event.target.checked })} type="checkbox" />
+              <span>Subcontract lead time</span>
+            </label>
+            <ErpLookupField label="Status" onChange={(value) => updateDraft({ status: value })} options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))} value={draft.status} />
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
@@ -402,12 +530,61 @@ export function SupplierLeadTimeMatrixPage() {
   );
 }
 
+function getAttachmentRecordRoute(record: AttachmentViewerItem) {
+  const type = record.relatedDocumentType.toLowerCase();
+
+  if (type.includes("bom")) {
+    return "/engineering/boms";
+  }
+
+  if (type.includes("sales") || type.includes("order")) {
+    return "/sales/orders";
+  }
+
+  if (type.includes("work")) {
+    return "/production/work-orders";
+  }
+
+  if (type.includes("job")) {
+    return "/production/job-cards";
+  }
+
+  if (type.includes("quality") || type.includes("hold") || type.includes("ncr")) {
+    return "/quality/ncr";
+  }
+
+  return "/platform/attachments";
+}
+
+function saveBlob(blob: Blob, fileName: string, openPreview = false) {
+  const url = window.URL.createObjectURL(blob);
+
+  if (openPreview) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 30_000);
+    return;
+  }
+
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export function AttachmentViewerPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | undefined>();
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
+  const isLive = hasLiveSession(session);
   const filter = useMemo(
     () => buildMasterFilter(user?.activeContext.companyId, undefined, deferredSearch, status),
     [deferredSearch, status, user?.activeContext.companyId]
@@ -419,30 +596,131 @@ export function AttachmentViewerPage() {
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? records[0] ?? null;
-  const source: MasterDataSource = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Deferred");
+  const source: MasterDataSource = records[0]?.source ?? (isLive ? "Live" : "Deferred");
+  const attachmentActionDisabledReason = !isLive
+    ? "Attachment actions require a live signed-in session."
+    : !selected
+      ? "Select a document before using attachment actions."
+      : !selected.attachmentId
+        ? "This document reference does not have downloadable content."
+        : undefined;
+  const uploadMutation = useApiMutation(
+    (file: File) => {
+      if (!selected) {
+        throw new Error("Select a document before uploading a linked file.");
+      }
+
+      return apiClient.platform.uploadAttachment({
+        companyId: user?.activeContext.companyId,
+        branchId: user?.activeContext.branchId,
+        relatedDocumentType: selected.relatedDocumentType,
+        relatedDocumentId: selected.relatedDocumentId,
+        file
+      });
+    },
+    {
+      onSuccess: async (attachment) => {
+        setUploadMessage(`${attachment.fileName} was linked to ${attachment.relatedDocumentType} ${attachment.relatedDocumentId}.`);
+        setSelectedId(String(attachment.id));
+        setActionError(null);
+        await query.refetch();
+      },
+      onError: (error) => {
+        setActionError(error.message);
+      }
+    }
+  );
+
+  const downloadSelected = async (openPreview = false) => {
+    if (!selected?.attachmentId) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.platform.downloadAttachment(selected.attachmentId);
+      saveBlob(response.blob, selected.fileName, openPreview);
+      setActionError(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Attachment content could not be opened.");
+    }
+  };
 
   return (
     <ListPageShell
       actions={
         <>
           <SourceBadge source={source} />
+          <ErpFileActionState
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx"
+            disabledReason={
+              isLive && selected
+                ? "Attachment upload is being linked to the selected business record."
+                : "Select a live document record before uploading."
+            }
+            enabled={isLive && Boolean(selected) && !uploadMutation.isPending}
+            fileName={selectedFileName}
+            label={uploadMutation.isPending ? "Uploading document" : "Upload document"}
+            onFileSelect={(file) => {
+              if (!file) {
+                return;
+              }
+
+              setSelectedFileName(file.name);
+              setUploadMessage(null);
+              setActionError(null);
+              uploadMutation.mutate(file);
+            }}
+          />
           <ErpActionBar
-            primary={[{ disabled: true, label: "Upload document", reason: "Document upload requires approved storage configuration." }]}
-            secondary={[{ disabled: true, label: "Open download audit", reason: "Download audit is pending document-control enablement." }]}
+            primary={[
+              {
+                disabled: Boolean(attachmentActionDisabledReason),
+                label: "Preview",
+                onClick: () => void downloadSelected(true),
+                reason: attachmentActionDisabledReason
+              }
+            ]}
+            secondary={[
+              {
+                disabled: Boolean(attachmentActionDisabledReason),
+                label: "Download",
+                onClick: () => void downloadSelected(false),
+                reason: attachmentActionDisabledReason
+              },
+              {
+                disabled: !selected,
+                label: "Open linked record",
+                onClick: () => {
+                  if (selected) {
+                    navigate(getAttachmentRecordRoute(selected));
+                  }
+                },
+                reason: "Select a document before opening the linked record."
+              }
+            ]}
             testId="attachment-viewer-action-bar"
           />
         </>
       }
-      aside={<WorkbenchAside description="Review commercial documents and attachment references for the selected company." endpoint="/api/attachments pending controller" source="Deferred" />}
+      aside={
+        <Card title="Document access guidance" description="Review linked document references and attachment access for the selected company.">
+          <div className="notification-item">
+            <strong>Authorized document records</strong>
+            <p>Preview, download, and upload actions stay tied to the selected business record and current operating scope.</p>
+            <div className="context-chip-row">
+              <SourceBadge source={source} />
+              <Badge tone="info">Access scoped</Badge>
+            </div>
+          </div>
+        </Card>
+      }
       description="Drawings, PDFs, photos, and customer documents linked to manufacturing records."
       filters={
         <FilterBar>
           <input aria-label="Search attachments" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search document, filename, linked record" value={search} />
           <select aria-label="Attachment status" onChange={(event) => setStatus(event.target.value)} value={status}>
             <option value="all">Status: Any</option>
-            <option value="Approved">Approved</option>
             <option value="Linked">Linked</option>
-            <option value="Review">Review</option>
           </select>
         </FilterBar>
       }
@@ -474,6 +752,8 @@ export function AttachmentViewerPage() {
                 <strong>{selected.fileName}</strong>
                 <p>{selected.fileType} / {selected.fileSize} / uploaded by {selected.uploadedBy}</p>
                 <div className="context-chip-row"><StatusBadge status={selected.status} /><Badge tone="info">{selected.uploadedOn}</Badge></div>
+                {uploadMessage ? <p className="ui-validation-summary">{uploadMessage}</p> : null}
+                {actionError ? <p className="login-form__error">{actionError}</p> : null}
               </div>
             ) : null}
           </Card>
@@ -516,8 +796,8 @@ export function QuoteEstimateListPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const selected = records.find((record) => record.id === selectedId) ?? null;
   const customerOptions = (customersQuery.data ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
   const itemOptions = (itemsQuery.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
   const uomOptions = (uomsQuery.data ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));

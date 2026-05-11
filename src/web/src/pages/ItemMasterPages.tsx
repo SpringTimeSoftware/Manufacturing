@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import type { ItemMasterProfileUpsertRequest, ItemUpsertRequest } from "../api/contracts";
-import { ApiError } from "../api/http";
+import type { ItemBarcodeUpsertRequest, ItemMasterProfileUpsertRequest, ItemUpsertRequest, ItemVariantUpsertRequest } from "../api/contracts";
+import { ApiError, apiClient } from "../api/http";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -308,8 +308,8 @@ function MasterPageActionBar({
 }) {
   return (
     <ErpActionBar
-      primary={[{ disabled: true, label: primaryLabel, reason: "Draft creation is controlled by the master-data rollout." }]}
-      secondary={[{ disabled: true, label: exportLabel, reason: "Export is pending the controlled export workflow." }]}
+      primary={[{ disabled: true, label: primaryLabel, reason: "Draft creation requires the governed master-data maintenance workflow." }]}
+      secondary={[{ disabled: true, label: exportLabel, reason: "Export requires the governed master-data export workflow." }]}
       testId={testId}
     />
   );
@@ -330,8 +330,8 @@ function MasterModalFooter({
     <ErpActionBar
       primary={[{ disabled: true, label: saveLabel, reason: "Save is not enabled for this setup workflow yet." }]}
       secondary={[
-        { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require dependency checks before rollout." },
-        { disabled: true, label: reviewLabel, reason: "Audit history is pending setup workflow rollout." }
+        { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require dependency checks before activation." },
+        { disabled: true, label: reviewLabel, reason: "Audit history requires recorded live changes." }
       ]}
       utility={[{ label: closeLabel, onClick: onClose, variant: "quiet" }]}
     />
@@ -1608,10 +1608,19 @@ function ReferenceTable({
   );
 }
 
-function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
+function ItemMediaPanel({
+  item,
+  mediaDisabledReason,
+  onUploadMedia
+}: {
+  item: ItemMasterSetupItem;
+  mediaDisabledReason?: string;
+  onUploadMedia?: (file: File | null) => void;
+}) {
   const primary = item.media.find((media) => media.isPrimary);
   const drawing = item.media.find((media) => /drawing|specification/i.test(media.mediaType));
   const photo = item.media.find((media) => /photo|image/i.test(media.mediaType));
+  const canUploadMedia = Boolean(onUploadMedia);
 
   return (
     <div className="item-master__panel-grid">
@@ -1648,7 +1657,7 @@ function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
             ))}
           </div>
         ) : (
-          <EmptyPanel title="No media uploaded" description="Media records will appear after approved item media storage is enabled." />
+          <EmptyPanel title="No media uploaded" description="Uploaded item media will appear here after a saved item record receives a file." />
         )}
       </Card>
       <Card title="Drawing, spec, and photo slots" description="Required media categories for catalog release and receiving checks.">
@@ -1660,12 +1669,18 @@ function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
           ]}
         />
       </Card>
-      <Card title="Media actions" description="Administrative media controls remain disabled until file storage is enabled.">
+      <Card title="Media actions" description="Attach item photos, drawings, and receiving references to the saved item record.">
         <p className="muted" id="item-media-action-reason">
-          Media storage is not enabled for item records, so upload actions are unavailable.
+          {canUploadMedia ? "Upload item media to store the file with record metadata." : mediaDisabledReason}
         </p>
         <div className="context-chip-row">
-          <ErpFileActionState disabledReason="Media storage is not enabled for item records." enabled={false} label="Upload media" />
+          <ErpFileActionState
+            accept="image/*,.pdf,.dwg,.dxf"
+            disabledReason={mediaDisabledReason}
+            enabled={canUploadMedia}
+            label="Upload media"
+            onFileSelect={onUploadMedia}
+          />
           <Button disabled title="Select a stored media record before changing the primary image." variant="secondary">Set primary</Button>
           <Button disabled title="Select a stored media record before retiring media." variant="secondary">Retire media</Button>
         </div>
@@ -1677,6 +1692,8 @@ function ItemMediaPanel({ item }: { item: ItemMasterSetupItem }) {
 function ItemDetailEditor({
   activeTab,
   item,
+  mediaDisabledReason,
+  onUploadMedia,
   records,
   saveMessage,
   saveTone,
@@ -1685,6 +1702,8 @@ function ItemDetailEditor({
 }: {
   activeTab: ItemDetailTab;
   item: ItemMasterSetupItem;
+  mediaDisabledReason?: string;
+  onUploadMedia?: (file: File | null) => void;
   records: ItemMasterSetupItem[];
   saveMessage: string | null;
   saveTone: "success" | "error" | "info";
@@ -1988,7 +2007,7 @@ function ItemDetailEditor({
           </Card>
         ) : null}
 
-        {activeTab === "Images & Media" ? <ItemMediaPanel item={item} /> : null}
+        {activeTab === "Images & Media" ? <ItemMediaPanel item={item} mediaDisabledReason={mediaDisabledReason} onUploadMedia={onUploadMedia} /> : null}
 
         {activeTab === "Catalog" ? (
           <div className="item-master__panel-grid">
@@ -2435,6 +2454,13 @@ export function ItemListPage() {
     : isSaving
       ? "Item draft is being saved."
       : undefined;
+  const mediaDisabledReason = !persistenceReady
+    ? "Sign in with item master write access to attach media."
+    : !editorItem || editorItem.itemId <= 0 || editorMode === "create"
+      ? "Save the item draft before attaching media."
+      : isSaving
+        ? "Item media upload is in progress."
+        : undefined;
 
   const closeEditor = () => {
     setEditorMode("closed");
@@ -2521,6 +2547,59 @@ export function ItemListPage() {
     }
   };
 
+  const uploadItemMedia = async (file: File | null) => {
+    if (!file || !editorItem || !persistenceReady || editorItem.itemId <= 0 || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveTone("info");
+    setSaveMessage("Uploading item media...");
+
+    try {
+      const attachment = await apiClient.platform.uploadAttachment({
+        companyId: editorItem.companyId || user?.activeContext.companyId || undefined,
+        branchId: user?.activeContext.branchId || undefined,
+        relatedDocumentType: "ItemMedia",
+        relatedDocumentId: editorItem.itemId,
+        file
+      });
+      setEditorDraft((current) =>
+        current
+          ? {
+              ...current,
+              media: [
+                ...current.media,
+                {
+                  id: `item-media-attachment-${attachment.id}`,
+                  mediaType: attachment.contentType.startsWith("image/") ? "Product photo" : "Document",
+                  title: attachment.fileName,
+                  fileName: attachment.fileName,
+                  approvalStatus: "Draft",
+                  visibilityScope: "Internal",
+                  isPrimary: current.media.length === 0,
+                  status: attachment.status
+                }
+              ]
+            }
+          : current
+      );
+      setSaveTone("success");
+      setSaveMessage(`${attachment.fileName} uploaded and linked to this item.`);
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? [error.message, ...error.details.filter((detail) => detail !== error.message)].join(" ")
+          : error instanceof Error
+            ? error.message
+            : "Item media upload failed.";
+      setSaveTone("error");
+      setSaveMessage(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <>
       <ListPageShell
@@ -2533,7 +2612,7 @@ export function ItemListPage() {
                 {
                   disabled: true,
                   label: "Import / export",
-                  reason: "Import and export workflow is pending rollout."
+                  reason: "Import and export require the governed item data exchange workflow."
                 },
                 {
                   disabled: true,
@@ -2543,7 +2622,7 @@ export function ItemListPage() {
                 {
                   disabled: true,
                   label: "Upload media",
-                  reason: "Media storage is not enabled for item records."
+                  reason: mediaDisabledReason ?? "Open the Images & Media tab to upload media to the saved item."
                 }
               ]}
               testId="item-master-action-bar"
@@ -2704,6 +2783,8 @@ export function ItemListPage() {
             <ItemDetailEditor
               activeTab={activeTab}
               item={editorItem}
+              mediaDisabledReason={mediaDisabledReason}
+              onUploadMedia={mediaDisabledReason ? undefined : uploadItemMedia}
               records={records}
               saveMessage={saveMessage}
               saveTone={saveTone}
@@ -2717,18 +2798,109 @@ export function ItemListPage() {
   );
 }
 
+interface ItemVariantDraft extends ItemVariantUpsertRequest {
+  id: number | null;
+}
+
+interface ItemBarcodeDraft extends ItemBarcodeUpsertRequest {
+  id: number | null;
+}
+
 export function ItemVariantMatrixPage() {
   const { session } = useAuth();
   const { deferredSearch, filter, search, setSearch, setStatus, status, user } = useCommonFilter();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ItemVariantDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<"success" | "error" | "info">("info");
   const query = useApiQuery(
     queryKeys.masters.itemVariants(user?.activeContext.companyId, deferredSearch, status),
     () => listItemVariantSetup(session, filter),
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const canSave = canPersistMasterData(session);
+  const itemOptions = Array.from(new Map(records.map((record) => [record.itemId, record.itemLabel])).entries()).map(([value, label]) => ({ label, value: String(value) }));
+  const profileOptions = Array.from(new Map(records.map((record) => [record.overrideMeasurementProfileId ?? 0, record.overrideMeasurementProfile])).entries())
+    .filter(([value]) => value > 0)
+    .map(([value, label]) => ({ label, value: String(value) }));
+  const uomOptions = Array.from(new Map(records.map((record) => [record.overrideStockUomId ?? 0, record.overrideStockUom])).entries())
+    .filter(([value]) => value > 0)
+    .map(([value, label]) => ({ label, value: String(value) }));
+  const closeDraft = () => {
+    setDraft(null);
+    setSaveMessage(null);
+  };
+  const openDraft = (record: ItemVariantSetupItem) => {
+    setDraft({
+      id: record.variantId,
+      companyId: record.companyId,
+      itemId: record.itemId,
+      variantCode: record.code,
+      variantName: record.name,
+      variantKey: record.variantKey,
+      variantAttributeSummary: record.attributeSummary,
+      variantAttributeMapJson: record.variantKey,
+      overrideMeasurementProfileId: record.overrideMeasurementProfileId,
+      overrideStockUomId: record.overrideStockUomId,
+      overrideWeightPerUnit: record.overrideWeightPerUnitValue,
+      status: record.status
+    });
+    setSaveMessage(null);
+  };
+  const openCreate = () => {
+    const first = records[0];
+    setDraft({
+      id: null,
+      companyId: user?.activeContext.companyId ?? first?.companyId ?? 1,
+      itemId: first?.itemId ?? 0,
+      variantCode: "",
+      variantName: "",
+      variantKey: "",
+      variantAttributeSummary: "",
+      variantAttributeMapJson: "{}",
+      overrideMeasurementProfileId: first?.overrideMeasurementProfileId ?? null,
+      overrideStockUomId: first?.overrideStockUomId ?? null,
+      overrideWeightPerUnit: null,
+      status: "Draft"
+    });
+    setSaveMessage(null);
+  };
+  const updateDraft = (changes: Partial<ItemVariantDraft>) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  const saveDraft = async () => {
+    if (!draft || !canSave || isSaving) {
+      return;
+    }
+
+    if (!draft.itemId || !draft.variantCode.trim() || !draft.variantName.trim() || !draft.variantKey.trim()) {
+      setSaveTone("error");
+      setSaveMessage("Item, variant code, variant name, and variant key are required.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const request: ItemVariantUpsertRequest = {
+        ...draft,
+        variantCode: draft.variantCode.trim(),
+        variantName: draft.variantName.trim(),
+        variantKey: draft.variantKey.trim(),
+        variantAttributeSummary: draft.variantAttributeSummary?.trim() || null,
+        variantAttributeMapJson: draft.variantAttributeMapJson?.trim() || draft.variantKey.trim()
+      };
+      const saved = draft.id ? await apiClient.masters.updateItemVariant(draft.id, request) : await apiClient.masters.createItemVariant(request);
+      setDraft((current) => current ? { ...current, id: saved.id } : current);
+      await query.refetch();
+      setSaveTone("success");
+      setSaveMessage("Variant draft saved.");
+    } catch (error) {
+      setSaveTone("error");
+      setSaveMessage(error instanceof Error ? error.message : "Variant draft could not be saved.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
@@ -2736,7 +2908,11 @@ export function ItemVariantMatrixPage() {
         actions={
           <>
             <SourceBadge source={source} />
-            <MasterPageActionBar exportLabel="Export variants" primaryLabel="New variant draft" testId="item-variant-action-bar" />
+            <ErpActionBar
+              primary={[{ disabled: !canSave, label: "New variant draft", onClick: canSave ? openCreate : undefined, reason: canSave ? undefined : "Sign in with item master write access to create variants." }]}
+              secondary={[{ disabled: true, label: "Export variants", reason: "Variant export requires the governed master-data export workflow." }]}
+              testId="item-variant-action-bar"
+            />
           </>
         }
         aside={
@@ -2777,7 +2953,7 @@ export function ItemVariantMatrixPage() {
             columns={variantColumns}
             getRowId={(record) => record.id}
             isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
+            onRowSelect={openDraft}
             records={records}
             rowLabel={(record) => `${record.code} item variant`}
             testId="item-variant-grid"
@@ -2786,27 +2962,45 @@ export function ItemVariantMatrixPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Variant detail keeps item linkage and attribute key visible without introducing a separate variant workflow."
-        footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save variant draft" />}
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "Variant detail"}
+        footer={
+          <ErpActionBar
+            primary={[{ disabled: !canSave || isSaving, label: isSaving ? "Saving..." : "Save variant draft", onClick: canSave && !isSaving ? saveDraft : undefined, reason: canSave ? undefined : "Sign in with item master write access to save variants." }]}
+            secondary={[{ disabled: true, label: "Inactivate / activate", reason: "Variant lifecycle changes require dependency checks." }]}
+            utility={[{ label: "Close", onClick: closeDraft, variant: "quiet" }]}
+          />
+        }
+        isOpen={Boolean(draft)}
+        onClose={closeDraft}
+        title={draft?.variantName || "Variant detail"}
       >
-        {selected ? (
-          <FormShell initialFingerprint={selected.id} title="Variant setup">
+        {draft ? (
+          <FormShell initialFingerprint={`${draft.id ?? "new"}-${saveMessage ?? ""}`} title="Variant setup">
+            {saveMessage ? <ErpStatusChip tone={saveTone === "error" ? "danger" : saveTone}>{saveMessage}</ErpStatusChip> : null}
             <ErpLookupField
               label="Variant item/template selector"
-              onChange={() => undefined}
-              options={uniqueOptions(records, (record) => record.itemLabel).map((option) => ({ label: option, value: option }))}
-              value={selected.itemLabel}
+              onChange={(value) => updateDraft({ itemId: Number(value) })}
+              options={itemOptions}
+              value={String(draft.itemId)}
             />
             <label>
               <span>Variant code</span>
-              <input defaultValue={selected.code} />
+              <input onChange={(event) => updateDraft({ variantCode: event.target.value })} value={draft.variantCode} />
+            </label>
+            <label>
+              <span>Variant name</span>
+              <input onChange={(event) => updateDraft({ variantName: event.target.value })} value={draft.variantName} />
             </label>
             <label>
               <span>Variant key</span>
-              <textarea defaultValue={selected.variantKey} rows={3} />
+              <textarea onChange={(event) => updateDraft({ variantKey: event.target.value, variantAttributeMapJson: event.target.value })} rows={3} value={draft.variantKey} />
             </label>
+            <label>
+              <span>Attribute summary</span>
+              <textarea onChange={(event) => updateDraft({ variantAttributeSummary: event.target.value })} rows={3} value={draft.variantAttributeSummary ?? ""} />
+            </label>
+            <ErpLookupField label="Override measurement profile" onChange={(value) => updateDraft({ overrideMeasurementProfileId: value ? Number(value) : null })} options={profileOptions} value={draft.overrideMeasurementProfileId ? String(draft.overrideMeasurementProfileId) : ""} />
+            <ErpLookupField label="Override stock UOM" onChange={(value) => updateDraft({ overrideStockUomId: value ? Number(value) : null })} options={uomOptions} value={draft.overrideStockUomId ? String(draft.overrideStockUomId) : ""} />
+            <ErpDecimalField label="Override weight per unit" min={0} onChange={(value) => updateDraft({ overrideWeightPerUnit: value })} scale={3} value={draft.overrideWeightPerUnit} />
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
@@ -2817,15 +3011,93 @@ export function ItemVariantMatrixPage() {
 export function BarcodeLabelSetupPage() {
   const { session } = useAuth();
   const { deferredSearch, filter, search, setSearch, setStatus, status, user } = useCommonFilter();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<ItemBarcodeDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<"success" | "error" | "info">("info");
   const query = useApiQuery(
     queryKeys.masters.barcodes(user?.activeContext.companyId, deferredSearch, status),
     () => listBarcodeSetup(session, filter),
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const canSave = canPersistMasterData(session);
+  const itemOptions = Array.from(new Map(records.map((record) => [record.itemId, record.itemLabel])).entries()).map(([value, label]) => ({ label, value: String(value) }));
+  const variantOptions = [{ label: "Base item", value: "" }, ...Array.from(new Map(records.filter((record) => record.itemVariantId).map((record) => [record.itemVariantId ?? 0, record.variantLabel])).entries()).map(([value, label]) => ({ label, value: String(value) }))];
+  const uomOptions = Array.from(new Map(records.map((record) => [record.uomId ?? 0, record.uomLabel])).entries())
+    .filter(([value]) => value > 0)
+    .map(([value, label]) => ({ label, value: String(value) }));
+  const closeDraft = () => {
+    setDraft(null);
+    setSaveMessage(null);
+  };
+  const openDraft = (record: BarcodeSetupItem) => {
+    setDraft({
+      id: record.barcodeId,
+      companyId: record.companyId,
+      itemId: record.itemId,
+      itemVariantId: record.itemVariantId,
+      uomId: record.uomId,
+      barcodeValue: record.barcodeValue,
+      barcodeType: record.barcodeType,
+      scanPurpose: record.scanPurpose,
+      preferenceRank: record.preferenceRank,
+      isPrimary: record.isPrimary,
+      status: record.status
+    });
+    setSaveMessage(null);
+  };
+  const openCreate = () => {
+    const first = records[0];
+    setDraft({
+      id: null,
+      companyId: user?.activeContext.companyId ?? first?.companyId ?? 1,
+      itemId: first?.itemId ?? 0,
+      itemVariantId: null,
+      uomId: first?.uomId ?? null,
+      barcodeValue: "",
+      barcodeType: "Code128",
+      scanPurpose: "Inventory",
+      preferenceRank: 1,
+      isPrimary: false,
+      status: "Draft"
+    });
+    setSaveMessage(null);
+  };
+  const updateDraft = (changes: Partial<ItemBarcodeDraft>) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  const saveDraft = async () => {
+    if (!draft || !canSave || isSaving) {
+      return;
+    }
+
+    if (!draft.itemId || !draft.barcodeValue.trim() || !draft.barcodeType || !draft.scanPurpose) {
+      setSaveTone("error");
+      setSaveMessage("Item, barcode value, barcode type, and scan purpose are required.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const request: ItemBarcodeUpsertRequest = {
+        ...draft,
+        barcodeValue: draft.barcodeValue.trim(),
+        barcodeType: draft.barcodeType,
+        scanPurpose: draft.scanPurpose,
+        preferenceRank: draft.preferenceRank || 1
+      };
+      const saved = draft.id ? await apiClient.masters.updateItemBarcode(draft.id, request) : await apiClient.masters.createItemBarcode(request);
+      setDraft((current) => current ? { ...current, id: saved.id } : current);
+      await query.refetch();
+      setSaveTone("success");
+      setSaveMessage("Barcode draft saved.");
+    } catch (error) {
+      setSaveTone("error");
+      setSaveMessage(error instanceof Error ? error.message : "Barcode draft could not be saved.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
@@ -2833,12 +3105,19 @@ export function BarcodeLabelSetupPage() {
         actions={
           <>
             <SourceBadge source={source} />
-            <MasterPageActionBar exportLabel="Export barcode rules" primaryLabel="New barcode draft" testId="barcode-action-bar" />
+            <ErpActionBar
+              primary={[{ disabled: !canSave, label: "New barcode draft", onClick: canSave ? openCreate : undefined, reason: canSave ? undefined : "Sign in with item master write access to create barcodes." }]}
+              secondary={[
+                { disabled: true, label: "Export barcode rules", reason: "Barcode export requires the governed master-data export workflow." },
+                { disabled: true, label: "Print label", reason: "Label printing requires the approved print-template service." }
+              ]}
+              testId="barcode-action-bar"
+            />
           </>
         }
         aside={
           <MasterAside
-            description="Review barcode assignments while label-template printing remains controlled by the approved rollout."
+            description="Review barcode assignments while label-template printing remains controlled by the approved print-template service."
             endpoint="/api/item-barcodes"
             source={source}
           />
@@ -2874,7 +3153,7 @@ export function BarcodeLabelSetupPage() {
             columns={barcodeColumns}
             getRowId={(record) => record.id}
             isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
+            onRowSelect={openDraft}
             records={records}
             rowLabel={(record) => `${record.barcodeValue} barcode`}
             testId="barcode-grid"
@@ -2883,26 +3162,51 @@ export function BarcodeLabelSetupPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Barcode detail keeps item and scan-purpose linkage controlled by item master setup."
-        footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save barcode draft" />}
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.barcodeValue ?? "Barcode detail"}
+        footer={
+          <ErpActionBar
+            primary={[{ disabled: !canSave || isSaving, label: isSaving ? "Saving..." : "Save barcode draft", onClick: canSave && !isSaving ? saveDraft : undefined, reason: canSave ? undefined : "Sign in with item master write access to save barcodes." }]}
+            secondary={[
+              { disabled: true, label: "Print label", reason: "Label printing requires the approved print-template service." },
+              { disabled: true, label: "Retire", reason: "Barcode retirement requires scan-history dependency checks." }
+            ]}
+            utility={[{ label: "Close", onClick: closeDraft, variant: "quiet" }]}
+          />
+        }
+        isOpen={Boolean(draft)}
+        onClose={closeDraft}
+        title={draft?.barcodeValue || "Barcode detail"}
       >
-        {selected ? (
-          <FormShell initialFingerprint={selected.id} title="Barcode setup">
+        {draft ? (
+          <FormShell initialFingerprint={`${draft.id ?? "new"}-${saveMessage ?? ""}`} title="Barcode setup">
+            {saveMessage ? <ErpStatusChip tone={saveTone === "error" ? "danger" : saveTone}>{saveMessage}</ErpStatusChip> : null}
             <ErpLookupField
               label="Barcode item selector"
-              onChange={() => undefined}
-              options={uniqueOptions(records, (record) => record.itemLabel).map((option) => ({ label: option, value: option }))}
-              value={selected.itemLabel}
+              onChange={(value) => updateDraft({ itemId: Number(value) })}
+              options={itemOptions}
+              value={String(draft.itemId)}
+            />
+            <ErpLookupField
+              label="Item variant"
+              onChange={(value) => updateDraft({ itemVariantId: value ? Number(value) : null })}
+              options={variantOptions}
+              value={draft.itemVariantId ? String(draft.itemVariantId) : ""}
+            />
+            <ErpLookupField
+              label="Barcode UOM"
+              onChange={(value) => updateDraft({ uomId: value ? Number(value) : null })}
+              options={uomOptions}
+              value={draft.uomId ? String(draft.uomId) : ""}
             />
             <label>
               <span>Barcode value</span>
-              <input defaultValue={selected.barcodeValue} />
+              <input onChange={(event) => updateDraft({ barcodeValue: event.target.value })} value={draft.barcodeValue} />
             </label>
-            <label>
-              <span>Scan purpose</span>
-              <input defaultValue={selected.scanPurpose} />
+            <ErpLookupField label="Barcode type" onChange={(value) => updateDraft({ barcodeType: value })} options={["Code128", "QR", "EAN13", "DataMatrix"].map((value) => ({ label: value, value }))} value={draft.barcodeType} />
+            <ErpLookupField label="Scan purpose" onChange={(value) => updateDraft({ scanPurpose: value })} options={["Inventory", "Receiving", "Production", "Dispatch", "QC"].map((value) => ({ label: value, value }))} value={draft.scanPurpose} />
+            <ErpNumberField label="Preference rank" min={1} onChange={(value) => updateDraft({ preferenceRank: value ?? 1 })} value={draft.preferenceRank} />
+            <label className="form-checkbox">
+              <input checked={draft.isPrimary} onChange={(event) => updateDraft({ isPrimary: event.target.checked })} type="checkbox" />
+              <span>Primary barcode</span>
             </label>
           </FormShell>
         ) : null}

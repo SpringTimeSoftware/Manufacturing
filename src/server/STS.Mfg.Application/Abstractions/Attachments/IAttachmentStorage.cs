@@ -22,4 +22,8 @@ public interface IAttachmentService
         AttachmentSaveRequest request,
         Stream content,
         CancellationToken cancellationToken = default);
+
+    Task<AttachmentContentResult> OpenContentAsync(
+        long attachmentId,
+        CancellationToken cancellationToken = default);
 }

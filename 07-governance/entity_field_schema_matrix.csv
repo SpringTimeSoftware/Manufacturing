@@ -1,171 +1,215 @@
-Entity,FieldName,BusinessLabel,DataType,ControlType,LookupSource,Required,Precision/Scale,Unit,AllowFreeText,ActionTruthDependency,Notes
-Item,code,Item code,string,Text,,Yes,,,Yes,Save item draft,Identifier text is business-entered.
-Item,name,Item name,string,Text,,Yes,,,Yes,Save item draft,Narrative master name.
-Item,itemType,Item type,string,Lookup,Item type status list,Yes,,,No,Save item draft,Controlled setup value.
-Item,itemGroupId,Item group/category,int,Lookup,Item Group / Category Master,Yes,,,No,Save item draft,Must preserve ID where available.
-Item,stockUomId,Stock UOM,int,Lookup,UOM Master,Yes,,,No,Save item draft,No free-text UOM.
-Item,purchaseUomId,Purchase UOM,int,Lookup,UOM Master,No,,,No,Save item draft,Used by vendor references.
-Item,salesUomId,Sales UOM,int,Lookup,UOM Master,No,,,No,Save item draft,Used by sales/commercial.
-Item,defaultWarehouse,Default warehouse,string,Lookup,Warehouse Master,No,,,No,Save item draft,Disabled when warehouse source missing.
-Item,defaultBin,Default bin,string,Lookup,Bin Master,No,,,No,Save item draft,Disabled until bin source is available for selected warehouse.
-Item,leadTimeDays,Lead time days,int,ErpNumberField,,No,,days,No,Save item draft,Whole number.
-Item,innerPack,Inner pack quantity,decimal,ErpDecimalField,,No,"18,3",stock/pack UOM,No,Save item draft,Pack quantity is numeric.
-Item,cartonQty,Carton quantity,decimal,ErpDecimalField,,No,"18,3",stock/pack UOM,No,Save item draft,Carton quantity is numeric.
-Item,palletQty,Pallet quantity,decimal,ErpDecimalField,,No,"18,3",stock/pack UOM,No,Save item draft,Pallet quantity is numeric.
-Item,packagingUom,Packaging UOM,string,Lookup,UOM Master,No,,,No,Save item draft,No free-text packaging UOM.
-Item,netWeight,Net weight,decimal,ErpDecimalField,,No,"18,3",kg,No,Save item draft,Remaining model stores string; must migrate to decimal.
-Item,grossWeight,Gross weight,decimal,ErpDecimalField,,No,"18,3",kg,No,Save item draft,Remaining model stores string; must migrate to decimal.
-Item,packageLength,Package length,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Replaces free-text package dimensions.
-Item,packageWidth,Package width,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Replaces free-text package dimensions.
-Item,packageHeight,Package height,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Replaces free-text package dimensions.
-Item,labelCount,Label count,int,ErpNumberField,,No,,labels,No,Save item draft,Whole number label count.
-Item,length,Physical length,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
-Item,width,Physical width,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
-Item,height,Physical height,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
-Item,thickness,Physical thickness,decimal,ErpDecimalField,,No,"18,2",mm,No,Save item draft,Physical dimension is numeric.
-Item,shelfLife,Shelf life,int,ErpNumberField,,No,,days,No,Save item draft,Whole-number day field.
-Item,scrapAllowance,Scrap allowance,decimal,ErpDecimalField,,No,"5,2",percent,No,Save item draft,Manufacturing policy percent field.
-Item,mrpEnabled,MRP enabled,string,Lookup,Planning policy list,No,,,No,Save item draft,Controlled planning policy value.
-Item,safetyStock,Safety stock,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning quantity field.
-Item,reorderPoint,Reorder point,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning quantity field.
-Item,minQuantity,Minimum quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning min/max field.
-Item,maxQuantity,Maximum quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning min/max field.
-Item,lotSize,Lot size,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Planning lot-size field.
-Item,purchaseLeadTime,Purchase lead time,int,ErpNumberField,,No,,days,No,Save item draft,Purchase policy lead-time field.
-Item,moq,Minimum order quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save item draft,Purchase policy quantity field.
-Item,customerId,Customer reference,int,Lookup,Customer Master,No,,,No,Save customer reference,Customer reference row must not use free text.
-Item,supplierId,Supplier reference,int,Lookup,Supplier Master,No,,,No,Save vendor reference,Supplier reference row must not use free text.
-Customer,code,Customer code,string,Text,,Yes,,,Yes,Save customer,Identifier text.
-Customer,name,Customer name,string,Text,,Yes,,,Yes,Save customer,Narrative master name.
-Customer,customerType,Customer type,string,Lookup,Customer type list,Yes,,,No,Save customer,Controlled value.
-Customer,status,Lifecycle status,string,Lookup,Status rule master,Yes,,,No,Save customer,Controlled status.
-Customer,taxCategory,Tax category,string,Lookup,Tax Category Master,No,,,No,Save customer profile,Controlled commercial setup.
-Customer,currencyCode,Currency,string,Lookup,Currency Master,No,,,No,Save customer profile,Controlled commercial setup.
-Customer,paymentTermsCode,Payment terms,string,Lookup,Payment Terms Master,Yes,,,No,Save customer,Controlled commercial setup.
-Customer,creditDays,Credit days,int,ErpNumberField,,No,,days,No,Save customer,Whole number.
-Customer,siteType,Site type,string,Lookup,Customer site type list,No,,,No,Save customer site,Controlled site usage.
-Customer,contactRole,Contact role,string,Lookup,Contact role list,No,,,No,Save contact point,Controlled contact role.
-Supplier,code,Supplier code,string,Text,,Yes,,,Yes,Save supplier,Identifier text.
-Supplier,name,Supplier name,string,Text,,Yes,,,Yes,Save supplier,Narrative master name.
-Supplier,supplierType,Supplier type/category,string,Lookup,Supplier type list,Yes,,,No,Save supplier,Controlled supplier category.
-Supplier,status,Lifecycle status,string,Lookup,Status rule master,Yes,,,No,Save supplier,Controlled status.
-Supplier,taxCategory,Tax category,string,Lookup,Tax Category Master,No,,,No,Save supplier profile,Controlled commercial setup.
-Supplier,currencyCode,Currency,string,Lookup,Currency Master,No,,,No,Save supplier profile,Controlled commercial setup.
-Supplier,paymentTermsCode,Payment terms,string,Lookup,Payment Terms Master,Yes,,,No,Save supplier,Controlled commercial setup.
-Supplier,complianceStatus,Compliance status,string,Lookup,Compliance status list,No,,,No,Save supplier profile,Controlled compliance state.
-Price List,priceListCode,Price list code,string,Text,,Yes,,,Yes,Save price list,Identifier text.
-Price List,currencyId,Currency,int,Lookup,Currency Master,Yes,,,No,Save price list,Must preserve ID.
-Price List,priceListType,Price list type,string,Lookup,Price list type list,Yes,,,No,Save price list,Controlled type.
-Price List,lineNo,Line number,int,ErpNumberField,,Yes,,,No,Save price list,Whole number.
-Price List,itemId,Item,int,Lookup,Item Master,No,,,No,Save price list line,Controlled item source.
-Price List,uomId,UOM,int,Lookup,UOM Master,Yes,,,No,Save price list line,No free-text UOM.
-Price List,minQuantity,Minimum quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save price list line,Decimal quantity.
-Price List,unitPrice,Unit price,money,ErpMoneyField,Currency Master,Yes,"18,2",currency,No,Save price list line,Money field.
-Discount Scheme,schemeCode,Scheme code,string,Text,,Yes,,,Yes,Save discount scheme,Identifier text.
-Discount Scheme,discountType,Discount type,string,Lookup,Discount type list,Yes,,,No,Save discount scheme,Controlled scheme type.
-Discount Scheme,currencyId,Currency,int,Lookup,Currency Master,No,,,No,Save discount scheme,Controlled currency.
-Discount Scheme,applicabilityType,Applicability,string,Lookup,Applicability list,Yes,,,No,Save discount rule,Controlled applicability.
-Discount Scheme,minQuantity,Minimum quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Save discount rule,Decimal quantity.
-Discount Scheme,discountPercent,Discount percent,decimal,ErpDecimalField,,No,"5,2",percent,No,Save discount rule,Decimal percent.
-Discount Scheme,discountAmount,Discount amount,money,ErpMoneyField,Currency Master,No,"18,2",currency,No,Save discount rule,Money field.
-Tax/Currency/Terms,currencyCode,Currency code,string,Text,,Yes,,,Yes,Save currency,Identifier text.
-Tax/Currency/Terms,decimalPrecision,Decimal precision,int,ErpNumberField,,Yes,,,No,Save currency,Whole number.
-Tax/Currency/Terms,manualRate,Manual exchange rate,decimal,ErpDecimalField,,No,"18,6",rate,No,Save exchange rate,Decimal rate.
-Tax/Currency/Terms,taxCategoryCode,Tax category code,string,Text,,Yes,,,Yes,Save tax category,Identifier text.
-Tax/Currency/Terms,defaultRatePercent,Default rate percent,decimal,ErpDecimalField,,Yes,"5,2",percent,No,Save tax category,Decimal percent.
-Tax/Currency/Terms,paymentTermsCode,Payment terms code,string,Text,,Yes,,,Yes,Save payment terms,Identifier text.
-Tax/Currency/Terms,netDays,Net days,int,ErpNumberField,,Yes,,days,No,Save payment terms,Whole number.
-BOM,parentItemId,Parent item,int,Lookup,Item Master,Yes,,,No,Create/save BOM,Controlled item.
-BOM,componentItemId,Component item,int,Lookup,Item Master,Yes,,,No,Save BOM line,Controlled item.
-BOM,issueUomId,Issue UOM,int,Lookup,UOM Master,Yes,,,No,Save BOM line,No free-text UOM.
-BOM,quantityPer,Quantity per,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save BOM line,Decimal quantity.
-BOM,scrapPercent,Scrap percent,decimal,ErpDecimalField,,No,"5,2",percent,No,Save BOM line,Decimal percent.
-BOM,operationId,Operation standard,int,Lookup,Operation Standard,No,,,No,Save BOM operation,Controlled operation.
-Routing,outputItemId,Output item,int,Lookup,Item Master,Yes,,,No,Save routing,Controlled item.
-Routing,operationId,Operation standard,int,Lookup,Operation Standard,Yes,,,No,Save routing step,Controlled operation.
-Routing,workCenterId,Work center,int,Lookup,Work Center Master,No,,,No,Save routing step,Controlled resource.
-Routing,machineId,Machine,int,Lookup,Machine Master,No,,,No,Save routing step,Disabled where source/workflow missing.
-Routing,setupMinutes,Setup minutes,decimal,ErpDecimalField,,No,"9,2",minutes,No,Save routing step,Decimal time.
-Routing,runMinutesPerUnit,Run minutes per unit,decimal,ErpDecimalField,,No,"9,2",minutes,No,Save routing step,Decimal time.
-Routing,teardownMinutes,Teardown minutes,decimal,ErpDecimalField,,No,"9,2",minutes,No,Save routing step,Decimal time.
-Routing,overlapPercent,Overlap percent,decimal,ErpDecimalField,,No,"5,2",percent,No,Save routing step,Decimal percent.
-Work Order,workOrderNo,Work order number,string,ReadOnly,,Yes,,,No,Release work order,Generated/controlled by workflow.
-Work Order,itemId,Item,int,Lookup,Item Master,Yes,,,No,Create work order,Controlled item.
-Work Order,bomId,BOM,int,Lookup,BOM Library,Yes,,,No,Create work order,Controlled BOM.
-Work Order,routingId,Routing,int,Lookup,Routing Library,Yes,,,No,Create work order,Controlled routing.
-Work Order,plannedQuantity,Planned quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Create work order,Decimal quantity.
-Job Card,jobCardNo,Job card number,string,ReadOnly,,Yes,,,No,Create job card,Generated/controlled by workflow.
-Job Card,machineId,Machine,int,Lookup,Machine Master,No,,,No,Assign job card,Controlled machine.
-Job Card,operatorId,Operator,int,Lookup,Authorized user registry,No,,,No,Assign job card,Controlled operator.
-Job Card,goodQuantity,Good quantity,decimal,ErpDecimalField,,No,"18,3",qty,No,Complete job card,Decimal quantity.
-Production Receipt,workOrderId,Work order,int,Lookup,Work Order,Yes,,,No,Post receipt,Controlled source.
-Production Receipt,jobCardId,Job card,int,Lookup,Job Card,No,,,No,Post receipt,Controlled source.
-Production Receipt,warehouseId,Warehouse,int,Lookup,Warehouse Master,Yes,,,No,Post receipt,Controlled warehouse.
-Production Receipt,binId,Bin,int,Lookup,Bin Master,No,,,No,Post receipt,Controlled bin.
-Production Receipt,receivedQuantity,Received quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Post receipt,Decimal quantity.
-QC/NCR,inspectionPlanId,QC plan,int,Lookup,QC Plan Setup,Yes,,,No,Create inspection,Controlled QC plan.
-QC/NCR,sourceDocument,Source document,string,Lookup,Receipt/Job/Dispatch context,Yes,,,No,Create NCR,Controlled source.
-QC/NCR,traceId,Lot/serial trace,string,Lookup,Traceability registry,No,,,No,Create NCR,Controlled trace.
-QC/NCR,disposition,Disposition,string,Lookup,Disposition list,No,,,No,Release disposition,Controlled quality state.
-QC/NCR,actualValue,Actual value,decimal,ErpDecimalField,,No,"18,3",measurement,No,Save inspection,Decimal result where numeric.
-Dispatch,salesOrderId,Sales order,int,Lookup,Sales Order,Yes,,,No,Plan dispatch,Controlled source.
-Dispatch,customerId,Customer,int,Lookup,Customer Master,Yes,,,No,Plan dispatch,Controlled customer.
-Dispatch,packListId,Pack list,int,Lookup,Pack List,No,,,No,Prepare shipment,Controlled source.
-Dispatch,vehicleRef,Vehicle,string,Lookup,Vehicle/dispatch resource,No,,,No,Prepare shipment,Controlled when source exists.
-Dispatch,shippedQuantity,Shipped quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save shipment,Decimal quantity.
-Organization,companyId,Company,int,Lookup,Company Master,Yes,,,No,Save organization setup,Company-scoped records must not use free text.
-Organization,branchId,Branch,int,Lookup,Branch Master,No,,,No,Save branch setup,Branch selectors must remain governed.
-Organization,departmentId,Department,int,Lookup,Department Master,No,,,No,Save department setup,Department/manager mappings need governed source.
-Organization,warehouseId,Warehouse,int,Lookup,Warehouse Master,No,,,No,Save warehouse/bin setup,Warehouse and bin screens must preserve controlled source.
-Organization,binId,Bin,int,Lookup,Bin Master,No,,,No,Save warehouse/bin setup,Bin hierarchy must use controlled parent source.
-Organization,shiftId,Shift,int,Lookup,Shift Master,No,,,No,Save shift setup,Shift assignments must use controlled setup.
-MPS,planningHorizon,Planning horizon,string,Lookup,Planning calendar,Yes,,,No,Create MPS draft,Review-only horizon values render as governed controls until edit workflow exists.
-MPS,itemId,Item,int,Lookup,Item Master,Yes,,,No,Create MPS draft,MPS item source must be governed.
-MRP,runCode,Run code,string,Text,,Yes,,,Yes,Run MRP,Generated or business-entered identifier.
-MRP,branchId,Branch,int,Lookup,Branch Master,Yes,,,No,Run MRP,MRP branch must be selected from controlled branch source.
-MRP,warehouseId,Warehouse,int,Lookup,Warehouse Master,No,,,No,Run MRP,Warehouse filter must not be free text.
-MRP,demandSource,Demand source,string,Lookup,Demand source list,Yes,,,No,Run MRP,Controlled planning source.
-MRP,planningHorizon,Planning horizon,string,Lookup,Planning calendar,Yes,,,No,Run MRP,Review-only selected run horizon must render as governed control.
-BOQ,sourceDocument,Source document,string,Lookup,Demand/MPS/Sales source,Yes,,,No,Convert BOQ,Controlled source document.
-BOQ,itemId,Item,int,Lookup,Item Master,Yes,,,No,Convert BOQ,Controlled item.
-BOQ,requiredQuantity,Required quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Approve BOQ line,Decimal requirement.
-Platform Admin,userRole,User role,string,Lookup,Role Matrix,Yes,,,No,Save user lifecycle,User assignment must use controlled role source.
-Platform Admin,tenantCode,Tenant,string,Lookup,Tenant Registry,Yes,,,No,Save tenant setting,Tenant settings must use governed tenant selection.
-Platform Admin,workflowRuleId,Workflow rule,int,Lookup,Workflow Rule Registry,No,,,No,Save workflow rule,Workflow references must remain governed.
-Platform Admin,auditEventId,Audit event,string,ReadOnly,,Yes,,,No,Open audit event,Audit events are review-only and must not appear editable.
-Attachment,documentType,Document type,string,Lookup,Document Type Registry,Yes,,,No,Save document metadata,Document type is governed and must not be entered as free text.
-Attachment,relatedRecord,Related record,string,Lookup,Linked ERP Record,Yes,,,No,Open linked record,Related entity references must resolve through governed record selectors.
-Attachment,fileName,File name,string,ReadOnly,,Yes,,,No,Upload file,Binary upload storage controls the file name after a real upload.
-Notification,templateId,Notification template,int,Lookup,Notification Template,No,,,No,Send notification,Notification templates are governed by platform setup.
-Approval,workflowId,Approval workflow,int,Lookup,Approval Workflow,Yes,,,No,Approve or reject,Approval work items must reference a governed workflow definition.
-Sales Order,promisedDate,Promise date,date,Date,,No,,,No,Save sales order,Review-only promise dates must render as disabled date controls until sales order edit workflow is enabled.
-Purchase Requisition,sourceDocument,Source document,string,Lookup,Demand/MRP/BOQ source,Yes,,,No,Save requisition,Source document is controlled by originating demand or planning record and must not be free text.
-Purchase Requisition,nextNeedBy,Need-by date,date,Date,,No,,,No,Save requisition,Review-only need-by dates must render as disabled date controls until requisition edit workflow is enabled.
-Purchase Order,expectedReceiptDate,Expected receipt,date,Date,,No,,,No,Save purchase order,Review-only expected receipt dates must render as disabled date controls until purchase order workflow is enabled.
-Purchase Order,followUpSignal,Follow-up signal,string,Lookup,Supplier commitment status,No,,,No,Approve purchase order,Follow-up signals are controlled by supplier commitment status and must not be free text.
-Item Group,parentGroupId,Parent group,int,Lookup,Item Group,No,,,No,Save group draft,Hierarchy values must be selected from existing item groups.
-Item Group,defaultProfile,Default profile,string,Lookup,Measurement Profile,No,,,No,Save group draft,Default measurement profile must not be free text.
-Item Group,reportingBucket,Reporting bucket,string,Lookup,Reporting Bucket,No,,,No,Save group draft,Reporting bucket is a governed classification.
-Item Attribute,dataType,Data type,string,Lookup,Attribute Type List,Yes,,,No,Save attribute draft,Attribute value behavior must use controlled data type.
-Classification,classificationType,Classification type,string,Lookup,Classification Type List,Yes,,,No,Save classification draft,Product family business segment and reporting bucket are controlled classification types.
-UOM Conversion,conversionFactor,Conversion factor,decimal,ErpDecimalField,,Yes,"18,6",factor,No,Save conversion draft,Conversion factors must use decimal controls.
-UOM Conversion,decimalPlaces,Decimal places,int,ErpNumberField,,No,,places,No,Save conversion draft,Decimal-place setup must use numeric controls.
-Measurement Profile,dimensionUomClass,Dimension UOM class,string,Lookup,UOM Class,No,,,No,Save profile draft,Dimension UOM class must be selected from UOM setup.
-Measurement Profile,weightUomClass,Weight UOM class,string,Lookup,UOM Class,No,,,No,Save profile draft,Weight UOM class must be selected from UOM setup.
-Measurement Profile,precision,Precision,int,ErpNumberField,,No,,places,No,Save profile draft,Profile precision must use numeric controls.
-Work Center,departmentId,Department,int,Lookup,Department Master,No,,,No,Save work center,Resource department assignment must be controlled.
-Work Center,capacityUomId,Capacity UOM,int,Lookup,UOM Master,No,,,No,Save work center,Capacity unit must be selected from UOM setup.
-Work Center,parallelCapacityUnits,Parallel capacity units,int,ErpNumberField,,Yes,,units,No,Save work center,Capacity units must be numeric.
-Machine,workCenterId,Work center,int,Lookup,Work Center,Yes,,,No,Save machine,Machines must be assigned through work center lookup.
-Machine,machineType,Machine type,string,Lookup,Machine Type Master,No,,,No,Save machine,Machine type must not fall back to free text while setup is partial.
-Machine,capacityPerHour,Capacity per hour,decimal,ErpDecimalField,,Yes,"18,3",per hour,No,Save machine,Machine capacity must use decimal controls.
-Tool,toolType,Tool type,string,Lookup,Tool Type List,Yes,,,No,Save tool/resource,Tool type must use a controlled selector.
-Tool,compatibleMachineGroup,Compatible machine group,string,Lookup,Machine Group,No,,,No,Save tool/resource,Compatibility must be selected from machine grouping when available.
-Price List,lineNo,Line number,int,ErpNumberField,,Yes,,line,No,Save price list,Price line numbers must use numeric controls.
-Price List,minQuantity,Minimum quantity,decimal,ErpDecimalField,,Yes,"18,3",qty,No,Save price list,Price break minimum quantity must use decimal controls.
-Price List,unitPrice,Unit price,money,ErpMoneyField,Currency,Yes,"18,2",currency,No,Save price list,Price amount must use money control.
-Discount Scheme,discountPercent,Discount percent,decimal,ErpDecimalField,,No,"9,3",%,No,Save discount scheme,Discount percentage must use decimal controls.
-Discount Scheme,discountAmount,Discount amount,money,ErpMoneyField,Currency,No,"18,2",currency,No,Save discount scheme,Discount amount must use money control.
-Currency,decimalPrecision,Decimal precision,int,ErpNumberField,,Yes,,places,No,Save commercial setup,Currency precision must use numeric control.
-Tax Category,defaultRatePercent,Default tax rate,decimal,ErpDecimalField,,Yes,"9,3",%,No,Save commercial setup,Tax rates must use decimal controls.
-Payment Term,netDays,Net days,int,ErpNumberField,,Yes,,days,No,Save commercial setup,Payment days must use numeric controls.
+"Entity","FieldName","BusinessLabel","DataType","ControlType","LookupSource","Required","Precision/Scale","Unit","AllowFreeText","ActionTruthDependency","Notes"
+"Item","code","Item code","string","Text","","Yes","","","Yes","Save item draft","Identifier text is business-entered."
+"Item","name","Item name","string","Text","","Yes","","","Yes","Save item draft","Narrative master name."
+"Item","itemType","Item type","string","Lookup","Item type status list","Yes","","","No","Save item draft","Controlled setup value."
+"Item","itemGroupId","Item group/category","int","Lookup","Item Group / Category Master","Yes","","","No","Save item draft","Must preserve ID where available."
+"Item","stockUomId","Stock UOM","int","Lookup","UOM Master","Yes","","","No","Save item draft","No free-text UOM."
+"Item","purchaseUomId","Purchase UOM","int","Lookup","UOM Master","No","","","No","Save item draft","Used by vendor references."
+"Item","salesUomId","Sales UOM","int","Lookup","UOM Master","No","","","No","Save item draft","Used by sales/commercial."
+"Item","defaultWarehouse","Default warehouse","string","Lookup","Warehouse Master","No","","","No","Save item draft","Disabled when warehouse source missing."
+"Item","defaultBin","Default bin","string","Lookup","Bin Master","No","","","No","Save item draft","Disabled until bin source is available for selected warehouse."
+"Item","leadTimeDays","Lead time days","int","ErpNumberField","","No","","days","No","Save item draft","Whole number."
+"Item","innerPack","Inner pack quantity","decimal","ErpDecimalField","","No","18,3","stock/pack UOM","No","Save item draft","Pack quantity is numeric."
+"Item","cartonQty","Carton quantity","decimal","ErpDecimalField","","No","18,3","stock/pack UOM","No","Save item draft","Carton quantity is numeric."
+"Item","palletQty","Pallet quantity","decimal","ErpDecimalField","","No","18,3","stock/pack UOM","No","Save item draft","Pallet quantity is numeric."
+"Item","packagingUom","Packaging UOM","string","Lookup","UOM Master","No","","","No","Save item draft","No free-text packaging UOM."
+"Item","netWeight","Net weight","decimal","ErpDecimalField","","No","18,3","kg","No","Save item draft","Remaining model stores string; must migrate to decimal."
+"Item","grossWeight","Gross weight","decimal","ErpDecimalField","","No","18,3","kg","No","Save item draft","Remaining model stores string; must migrate to decimal."
+"Item","packageLength","Package length","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Replaces free-text package dimensions."
+"Item","packageWidth","Package width","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Replaces free-text package dimensions."
+"Item","packageHeight","Package height","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Replaces free-text package dimensions."
+"Item","labelCount","Label count","int","ErpNumberField","","No","","labels","No","Save item draft","Whole number label count."
+"Item","length","Physical length","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Physical dimension is numeric."
+"Item","width","Physical width","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Physical dimension is numeric."
+"Item","height","Physical height","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Physical dimension is numeric."
+"Item","thickness","Physical thickness","decimal","ErpDecimalField","","No","18,2","mm","No","Save item draft","Physical dimension is numeric."
+"Item","shelfLife","Shelf life","int","ErpNumberField","","No","","days","No","Save item draft","Whole-number day field."
+"Item","scrapAllowance","Scrap allowance","decimal","ErpDecimalField","","No","5,2","percent","No","Save item draft","Manufacturing policy percent field."
+"Item","mrpEnabled","MRP enabled","string","Lookup","Planning policy list","No","","","No","Save item draft","Controlled planning policy value."
+"Item","safetyStock","Safety stock","decimal","ErpDecimalField","","No","18,3","qty","No","Save item draft","Planning quantity field."
+"Item","reorderPoint","Reorder point","decimal","ErpDecimalField","","No","18,3","qty","No","Save item draft","Planning quantity field."
+"Item","minQuantity","Minimum quantity","decimal","ErpDecimalField","","No","18,3","qty","No","Save item draft","Planning min/max field."
+"Item","maxQuantity","Maximum quantity","decimal","ErpDecimalField","","No","18,3","qty","No","Save item draft","Planning min/max field."
+"Item","lotSize","Lot size","decimal","ErpDecimalField","","No","18,3","qty","No","Save item draft","Planning lot-size field."
+"Item","purchaseLeadTime","Purchase lead time","int","ErpNumberField","","No","","days","No","Save item draft","Purchase policy lead-time field."
+"Item","moq","Minimum order quantity","decimal","ErpDecimalField","","No","18,3","qty","No","Save item draft","Purchase policy quantity field."
+"Item","customerId","Customer reference","int","Lookup","Customer Master","No","","","No","Save customer reference","Customer reference row must not use free text."
+"Item","supplierId","Supplier reference","int","Lookup","Supplier Master","No","","","No","Save vendor reference","Supplier reference row must not use free text."
+"Customer","code","Customer code","string","Text","","Yes","","","Yes","Save customer","Identifier text."
+"Customer","name","Customer name","string","Text","","Yes","","","Yes","Save customer","Narrative master name."
+"Customer","customerType","Customer type","string","Lookup","Customer type list","Yes","","","No","Save customer","Controlled value."
+"Customer","status","Lifecycle status","string","Lookup","Status rule master","Yes","","","No","Save customer","Controlled status."
+"Customer","taxCategory","Tax category","string","Lookup","Tax Category Master","No","","","No","Save customer profile","Controlled commercial setup."
+"Customer","currencyCode","Currency","string","Lookup","Currency Master","No","","","No","Save customer profile","Controlled commercial setup."
+"Customer","paymentTermsCode","Payment terms","string","Lookup","Payment Terms Master","Yes","","","No","Save customer","Controlled commercial setup."
+"Customer","creditDays","Credit days","int","ErpNumberField","","No","","days","No","Save customer","Whole number."
+"Customer","siteType","Site type","string","Lookup","Customer site type list","No","","","No","Save customer site","Controlled site usage."
+"Customer","contactRole","Contact role","string","Lookup","Contact role list","No","","","No","Save contact point","Controlled contact role."
+"Supplier","code","Supplier code","string","Text","","Yes","","","Yes","Save supplier","Identifier text."
+"Supplier","name","Supplier name","string","Text","","Yes","","","Yes","Save supplier","Narrative master name."
+"Supplier","supplierType","Supplier type/category","string","Lookup","Supplier type list","Yes","","","No","Save supplier","Controlled supplier category."
+"Supplier","status","Lifecycle status","string","Lookup","Status rule master","Yes","","","No","Save supplier","Controlled status."
+"Supplier","taxCategory","Tax category","string","Lookup","Tax Category Master","No","","","No","Save supplier profile","Controlled commercial setup."
+"Supplier","currencyCode","Currency","string","Lookup","Currency Master","No","","","No","Save supplier profile","Controlled commercial setup."
+"Supplier","paymentTermsCode","Payment terms","string","Lookup","Payment Terms Master","Yes","","","No","Save supplier","Controlled commercial setup."
+"Supplier","complianceStatus","Compliance status","string","Lookup","Compliance status list","No","","","No","Save supplier profile","Controlled compliance state."
+"Price List","priceListCode","Price list code","string","Text","","Yes","","","Yes","Save price list","Identifier text."
+"Price List","currencyId","Currency","int","Lookup","Currency Master","Yes","","","No","Save price list","Must preserve ID."
+"Price List","priceListType","Price list type","string","Lookup","Price list type list","Yes","","","No","Save price list","Controlled type."
+"Price List","lineNo","Line number","int","ErpNumberField","","Yes","","","No","Save price list","Whole number."
+"Price List","itemId","Item","int","Lookup","Item Master","No","","","No","Save price list line","Controlled item source."
+"Price List","uomId","UOM","int","Lookup","UOM Master","Yes","","","No","Save price list line","No free-text UOM."
+"Price List","minQuantity","Minimum quantity","decimal","ErpDecimalField","","Yes","18,3","qty","No","Save price list line","Decimal quantity."
+"Price List","unitPrice","Unit price","money","ErpMoneyField","Currency Master","Yes","18,2","currency","No","Save price list line","Money field."
+"Discount Scheme","schemeCode","Scheme code","string","Text","","Yes","","","Yes","Save discount scheme","Identifier text."
+"Discount Scheme","discountType","Discount type","string","Lookup","Discount type list","Yes","","","No","Save discount scheme","Controlled scheme type."
+"Discount Scheme","currencyId","Currency","int","Lookup","Currency Master","No","","","No","Save discount scheme","Controlled currency."
+"Discount Scheme","applicabilityType","Applicability","string","Lookup","Applicability list","Yes","","","No","Save discount rule","Controlled applicability."
+"Discount Scheme","minQuantity","Minimum quantity","decimal","ErpDecimalField","","No","18,3","qty","No","Save discount rule","Decimal quantity."
+"Discount Scheme","discountPercent","Discount percent","decimal","ErpDecimalField","","No","5,2","percent","No","Save discount rule","Decimal percent."
+"Discount Scheme","discountAmount","Discount amount","money","ErpMoneyField","Currency Master","No","18,2","currency","No","Save discount rule","Money field."
+"Tax/Currency/Terms","currencyCode","Currency code","string","Text","","Yes","","","Yes","Save currency","Identifier text."
+"Tax/Currency/Terms","decimalPrecision","Decimal precision","int","ErpNumberField","","Yes","","","No","Save currency","Whole number."
+"Tax/Currency/Terms","manualRate","Manual exchange rate","decimal","ErpDecimalField","","No","18,6","rate","No","Save exchange rate","Decimal rate."
+"Tax/Currency/Terms","taxCategoryCode","Tax category code","string","Text","","Yes","","","Yes","Save tax category","Identifier text."
+"Tax/Currency/Terms","defaultRatePercent","Default rate percent","decimal","ErpDecimalField","","Yes","5,2","percent","No","Save tax category","Decimal percent."
+"Tax/Currency/Terms","paymentTermsCode","Payment terms code","string","Text","","Yes","","","Yes","Save payment terms","Identifier text."
+"Tax/Currency/Terms","netDays","Net days","int","ErpNumberField","","Yes","","days","No","Save payment terms","Whole number."
+"BOM","parentItemId","Parent item","int","Lookup","Item Master","Yes","","","No","Create/save BOM","Controlled item."
+"BOM","componentItemId","Component item","int","Lookup","Item Master","Yes","","","No","Save BOM line","Controlled item."
+"BOM","issueUomId","Issue UOM","int","Lookup","UOM Master","Yes","","","No","Save BOM line","No free-text UOM."
+"BOM","quantityPer","Quantity per","decimal","ErpDecimalField","","Yes","18,3","qty","No","Save BOM line","Decimal quantity."
+"BOM","scrapPercent","Scrap percent","decimal","ErpDecimalField","","No","5,2","percent","No","Save BOM line","Decimal percent."
+"BOM","operationId","Operation standard","int","Lookup","Operation Standard","No","","","No","Save BOM operation","Controlled operation."
+"Routing","outputItemId","Output item","int","Lookup","Item Master","Yes","","","No","Save routing","Controlled item."
+"Routing","operationId","Operation standard","int","Lookup","Operation Standard","Yes","","","No","Save routing step","Controlled operation."
+"Routing","workCenterId","Work center","int","Lookup","Work Center Master","No","","","No","Save routing step","Controlled resource."
+"Routing","machineId","Machine","int","Lookup","Machine Master","No","","","No","Save routing step","Disabled where source/workflow missing."
+"Routing","setupMinutes","Setup minutes","decimal","ErpDecimalField","","No","9,2","minutes","No","Save routing step","Decimal time."
+"Routing","runMinutesPerUnit","Run minutes per unit","decimal","ErpDecimalField","","No","9,2","minutes","No","Save routing step","Decimal time."
+"Routing","teardownMinutes","Teardown minutes","decimal","ErpDecimalField","","No","9,2","minutes","No","Save routing step","Decimal time."
+"Routing","overlapPercent","Overlap percent","decimal","ErpDecimalField","","No","5,2","percent","No","Save routing step","Decimal percent."
+"Work Order","workOrderNo","Work order number","string","ReadOnly","","Yes","","","No","Release work order","Generated/controlled by workflow."
+"Work Order","itemId","Item","int","Lookup","Item Master","Yes","","","No","Create work order","Controlled item."
+"Work Order","bomId","BOM","int","Lookup","BOM Library","Yes","","","No","Create work order","Controlled BOM."
+"Work Order","routingId","Routing","int","Lookup","Routing Library","Yes","","","No","Create work order","Controlled routing."
+"Work Order","plannedQuantity","Planned quantity","decimal","ErpDecimalField","","Yes","18,3","qty","No","Create work order","Decimal quantity."
+"Job Card","jobCardNo","Job card number","string","ReadOnly","","Yes","","","No","Create job card","Generated/controlled by workflow."
+"Job Card","machineId","Machine","int","Lookup","Machine Master","No","","","No","Assign job card","Controlled machine."
+"Job Card","operatorId","Operator","int","Lookup","Authorized user registry","No","","","No","Assign job card","Controlled operator."
+"Job Card","goodQuantity","Good quantity","decimal","ErpDecimalField","","No","18,3","qty","No","Complete job card","Decimal quantity."
+"Production Receipt","workOrderId","Work order","int","Lookup","Work Order","Yes","","","No","Post receipt","Controlled source."
+"Production Receipt","jobCardId","Job card","int","Lookup","Job Card","No","","","No","Post receipt","Controlled source."
+"Production Receipt","warehouseId","Warehouse","int","Lookup","Warehouse Master","Yes","","","No","Post receipt","Controlled warehouse."
+"Production Receipt","binId","Bin","int","Lookup","Bin Master","No","","","No","Post receipt","Controlled bin."
+"Production Receipt","receivedQuantity","Received quantity","decimal","ErpDecimalField","","Yes","18,3","qty","No","Post receipt","Decimal quantity."
+"QC/NCR","inspectionPlanId","QC plan","int","Lookup","QC Plan Setup","Yes","","","No","Create inspection","Controlled QC plan."
+"QC/NCR","sourceDocument","Source document","string","Lookup","Receipt/Job/Dispatch context","Yes","","","No","Create NCR","Controlled source."
+"QC/NCR","traceId","Lot/serial trace","string","Lookup","Traceability registry","No","","","No","Create NCR","Controlled trace."
+"QC/NCR","disposition","Disposition","string","Lookup","Disposition list","No","","","No","Release disposition","Controlled quality state."
+"QC/NCR","actualValue","Actual value","decimal","ErpDecimalField","","No","18,3","measurement","No","Save inspection","Decimal result where numeric."
+"Dispatch","salesOrderId","Sales order","int","Lookup","Sales Order","Yes","","","No","Plan dispatch","Controlled source."
+"Dispatch","customerId","Customer","int","Lookup","Customer Master","Yes","","","No","Plan dispatch","Controlled customer."
+"Dispatch","packListId","Pack list","int","Lookup","Pack List","No","","","No","Prepare shipment","Controlled source."
+"Dispatch","vehicleRef","Vehicle","string","Lookup","Vehicle/dispatch resource","No","","","No","Prepare shipment","Controlled when source exists."
+"Dispatch","shippedQuantity","Shipped quantity","decimal","ErpDecimalField","","Yes","18,3","qty","No","Save shipment","Decimal quantity."
+"Organization","companyId","Company","int","Lookup","Company Master","Yes","","","No","Save organization setup","Company-scoped records must not use free text."
+"Organization","branchId","Branch","int","Lookup","Branch Master","No","","","No","Save branch setup","Branch selectors must remain governed."
+"Organization","departmentId","Department","int","Lookup","Department Master","No","","","No","Save department setup","Department/manager mappings need governed source."
+"Organization","warehouseId","Warehouse","int","Lookup","Warehouse Master","No","","","No","Save warehouse/bin setup","Warehouse and bin screens must preserve controlled source."
+"Organization","binId","Bin","int","Lookup","Bin Master","No","","","No","Save warehouse/bin setup","Bin hierarchy must use controlled parent source."
+"Organization","shiftId","Shift","int","Lookup","Shift Master","No","","","No","Save shift setup","Shift assignments must use controlled setup."
+"MPS","planningHorizon","Planning horizon","string","Lookup","Planning calendar","Yes","","","No","Create MPS draft","Review-only horizon values render as governed controls until edit workflow exists."
+"MPS","itemId","Item","int","Lookup","Item Master","Yes","","","No","Create MPS draft","MPS item source must be governed."
+"MRP","runCode","Run code","string","Text","","Yes","","","Yes","Run MRP","Generated or business-entered identifier."
+"MRP","branchId","Branch","int","Lookup","Branch Master","Yes","","","No","Run MRP","MRP branch must be selected from controlled branch source."
+"MRP","warehouseId","Warehouse","int","Lookup","Warehouse Master","No","","","No","Run MRP","Warehouse filter must not be free text."
+"MRP","demandSource","Demand source","string","Lookup","Demand source list","Yes","","","No","Run MRP","Controlled planning source."
+"MRP","planningHorizon","Planning horizon","string","Lookup","Planning calendar","Yes","","","No","Run MRP","Review-only selected run horizon must render as governed control."
+"BOQ","sourceDocument","Source document","string","Lookup","Demand/MPS/Sales source","Yes","","","No","Convert BOQ","Controlled source document."
+"BOQ","itemId","Item","int","Lookup","Item Master","Yes","","","No","Convert BOQ","Controlled item."
+"BOQ","requiredQuantity","Required quantity","decimal","ErpDecimalField","","Yes","18,3","qty","No","Approve BOQ line","Decimal requirement."
+"Platform Admin","userRole","User role","string","Lookup","Role Matrix","Yes","","","No","Save user lifecycle","User assignment must use controlled role source."
+"Platform Admin","tenantCode","Tenant","string","Lookup","Tenant Registry","Yes","","","No","Save tenant setting","Tenant settings must use governed tenant selection."
+"Platform Admin","workflowRuleId","Workflow rule","int","Lookup","Workflow Rule Registry","No","","","No","Save workflow rule","Workflow references must remain governed."
+"Platform Admin","auditEventId","Audit event","string","ReadOnly","","Yes","","","No","Open audit event","Audit events are review-only and must not appear editable."
+"Attachment","documentType","Document type","string","Lookup","Document Type Registry","Yes","","","No","Save document metadata","Document type is governed and must not be entered as free text."
+"Attachment","relatedRecord","Related record","string","Lookup","Linked ERP Record","Yes","","","No","Open linked record","Related entity references must resolve through governed record selectors."
+"Attachment","fileName","File name","string","ReadOnly","","Yes","","","No","Upload file","Binary upload storage controls the file name after a real upload."
+"Notification","templateId","Notification template","int","Lookup","Notification Template","No","","","No","Send notification","Notification templates are governed by platform setup."
+"Approval","workflowId","Approval workflow","int","Lookup","Approval Workflow","Yes","","","No","Approve or reject","Approval work items must reference a governed workflow definition."
+"Sales Order","promisedDate","Promise date","date","Date","","No","","","No","Save sales order","Review-only promise dates must render as disabled date controls until sales order edit workflow is enabled."
+"Purchase Requisition","sourceDocument","Source document","string","Lookup","Demand/MRP/BOQ source","Yes","","","No","Save requisition","Source document is controlled by originating demand or planning record and must not be free text."
+"Purchase Requisition","nextNeedBy","Need-by date","date","Date","","No","","","No","Save requisition","Review-only need-by dates must render as disabled date controls until requisition edit workflow is enabled."
+"Purchase Order","expectedReceiptDate","Expected receipt","date","Date","","No","","","No","Save purchase order","Review-only expected receipt dates must render as disabled date controls until purchase order workflow is enabled."
+"Purchase Order","followUpSignal","Follow-up signal","string","Lookup","Supplier commitment status","No","","","No","Approve purchase order","Follow-up signals are controlled by supplier commitment status and must not be free text."
+"Item Group","parentGroupId","Parent group","int","Lookup","Item Group","No","","","No","Save group draft","Hierarchy values must be selected from existing item groups."
+"Item Group","defaultProfile","Default profile","string","Lookup","Measurement Profile","No","","","No","Save group draft","Default measurement profile must not be free text."
+"Item Group","reportingBucket","Reporting bucket","string","Lookup","Reporting Bucket","No","","","No","Save group draft","Reporting bucket is a governed classification."
+"Item Attribute","dataType","Data type","string","Lookup","Attribute Type List","Yes","","","No","Save attribute draft","Attribute value behavior must use controlled data type."
+"Classification","classificationType","Classification type","string","Lookup","Classification Type List","Yes","","","No","Save classification draft","Product family business segment and reporting bucket are controlled classification types."
+"UOM Conversion","conversionFactor","Conversion factor","decimal","ErpDecimalField","","Yes","18,6","factor","No","Save conversion draft","Conversion factors must use decimal controls."
+"UOM Conversion","decimalPlaces","Decimal places","int","ErpNumberField","","No","","places","No","Save conversion draft","Decimal-place setup must use numeric controls."
+"Measurement Profile","dimensionUomClass","Dimension UOM class","string","Lookup","UOM Class","No","","","No","Save profile draft","Dimension UOM class must be selected from UOM setup."
+"Measurement Profile","weightUomClass","Weight UOM class","string","Lookup","UOM Class","No","","","No","Save profile draft","Weight UOM class must be selected from UOM setup."
+"Measurement Profile","precision","Precision","int","ErpNumberField","","No","","places","No","Save profile draft","Profile precision must use numeric controls."
+"Work Center","departmentId","Department","int","Lookup","Department Master","No","","","No","Save work center","Resource department assignment must be controlled."
+"Work Center","capacityUomId","Capacity UOM","int","Lookup","UOM Master","No","","","No","Save work center","Capacity unit must be selected from UOM setup."
+"Work Center","parallelCapacityUnits","Parallel capacity units","int","ErpNumberField","","Yes","","units","No","Save work center","Capacity units must be numeric."
+"Machine","workCenterId","Work center","int","Lookup","Work Center","Yes","","","No","Save machine","Machines must be assigned through work center lookup."
+"Machine","machineType","Machine type","string","Lookup","Machine Type Master","No","","","No","Save machine","Machine type must not fall back to free text while setup is partial."
+"Machine","capacityPerHour","Capacity per hour","decimal","ErpDecimalField","","Yes","18,3","per hour","No","Save machine","Machine capacity must use decimal controls."
+"Tool","toolType","Tool type","string","Lookup","Tool Type List","Yes","","","No","Save tool/resource","Tool type must use a controlled selector."
+"Tool","compatibleMachineGroup","Compatible machine group","string","Lookup","Machine Group","No","","","No","Save tool/resource","Compatibility must be selected from machine grouping when available."
+"Price List","lineNo","Line number","int","ErpNumberField","","Yes","","line","No","Save price list","Price line numbers must use numeric controls."
+"Price List","minQuantity","Minimum quantity","decimal","ErpDecimalField","","Yes","18,3","qty","No","Save price list","Price break minimum quantity must use decimal controls."
+"Price List","unitPrice","Unit price","money","ErpMoneyField","Currency","Yes","18,2","currency","No","Save price list","Price amount must use money control."
+"Discount Scheme","discountPercent","Discount percent","decimal","ErpDecimalField","","No","9,3","%","No","Save discount scheme","Discount percentage must use decimal controls."
+"Discount Scheme","discountAmount","Discount amount","money","ErpMoneyField","Currency","No","18,2","currency","No","Save discount scheme","Discount amount must use money control."
+"Currency","decimalPrecision","Decimal precision","int","ErpNumberField","","Yes","","places","No","Save commercial setup","Currency precision must use numeric control."
+"Tax Category","defaultRatePercent","Default tax rate","decimal","ErpDecimalField","","Yes","9,3","%","No","Save commercial setup","Tax rates must use decimal controls."
+"Payment Term","netDays","Net days","int","ErpNumberField","","Yes","","days","No","Save commercial setup","Payment days must use numeric controls."
+"Company","timeZoneId","Timezone","string","Lookup","Timezone list","Yes","","","No","Save company draft","Company timezone must be selected from controlled setup values."
+"Company","baseCurrencyCode","Base currency","string","Lookup","Currency Master","Yes","","","No","Save company draft","Company base currency must not be free text."
+"Company","defaultCalendarCode","Calendar profile","string","Lookup","Calendar Profile","Yes","","","No","Save company draft","Company calendar must be selected from approved calendar profiles."
+"Branch","branchType","Branch type","string","Lookup","Branch Type List","Yes","","","No","Save branch draft","Branch classification is a governed setup value."
+"Branch","defaultWarehouseId","Default warehouse","int","Lookup","Warehouse Master","No","","","No","Save branch draft","Default warehouse remains disabled until approved warehouse source exists."
+"Department","departmentType","Department type","string","Lookup","Department Type List","Yes","","","No","Save department draft","Department type must be controlled."
+"Warehouse","warehouseType","Warehouse type","string","Lookup","Warehouse Type List","Yes","","","No","Save warehouse draft","Warehouse classification must be controlled."
+"Bin","capacityValue","Capacity","decimal","ErpDecimalField","","No","18,3","capacity","No","Save bin draft","Bin capacity must use a decimal field."
+"Bin","countCycleDays","Cycle-count days","int","ErpNumberField","","No","","days","No","Save bin draft","Cycle-count interval must use a numeric field."
+"Bin","blockReasonCode","Block reason","string","Lookup","Bin Block Reason List","No","","","No","Save bin draft","Bin block reason must be controlled when blocked."
+"Shift","breakMinutes","Break minutes","int","ErpNumberField","","Yes","","minutes","No","Save shift draft","Shift break duration must use numeric control."
+"Shift","sequenceNo","Sequence","int","ErpNumberField","","Yes","","sequence","No","Save shift draft","Shift ordering must use numeric control."
+"UOM Class","baseUomId","Base UOM","int","Lookup","UOM Master","No","","","No","Save class draft","MASTER-COMPLETION-CLUSTER-RUNNER-01 persisted class setup through measurement API."
+"UOM Conversion","factorNumerator","Factor numerator","decimal","ErpDecimalField","","Yes","18,6","factor","No","Save conversion draft","MASTER-COMPLETION-CLUSTER-RUNNER-01 replaced review-only factor display with editable decimal control."
+"UOM Conversion","factorDenominator","Factor denominator","decimal","ErpDecimalField","","Yes","18,6","factor","No","Save conversion draft","Denominator must be positive before save."
+"Item Variant","overrideWeightPerUnit","Override weight per unit","decimal","ErpDecimalField","","No","18,3","stock UOM","No","Save variant draft","MASTER-COMPLETION-CLUSTER-RUNNER-01 wired variant save."
+"Item Barcode","barcodeType","Barcode type","string","Lookup","Barcode type rules","Yes","","","No","Save barcode draft","MASTER-COMPLETION-CLUSTER-RUNNER-01 made barcode setup API-backed."
+"Supplier Lead Time","leadTimeDays","Lead time days","int","ErpNumberField","","Yes","","days","No","Save lead-time row","MASTER-COMPLETION-CLUSTER-RUNNER-01 wired supplier lead-time save."
+"Attachment","file","Uploaded file","binary","ErpFileActionState","Core attachment storage","Yes","","","No","Upload media/document","Saved item/customer/supplier files use shared attachment upload with metadata."
+"Capacity Board","constraintSignal","Constraint signal","string","Lookup","Capacity constraint state","No","","","No","Review overloads","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 renders constraint signal as governed read-only selector."
+"MRP Exception","exceptionType","Exception type","string","Lookup","MRP exception type rules","Yes","","","No","Open exception","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 exception detail uses governed selector."
+"MRP Exception","severity","Severity","string","Lookup","MRP severity rules","Yes","","","No","Open exception","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 severity is not free text."
+"MRP Exception","recommendedAction","Recommended action","string","Lookup","MRP action rules","No","","","No","Create shortage actions","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 recommended action is governed while conversion remains disabled."
+"MRP Exception","grossRequirement","Gross requirement","decimal","ErpNumberField","","Yes","18,3","quantity","No","Open exception","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 renders quantity as numeric control."
+"MRP Exception","availableQuantity","Available quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Open exception","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 renders available quantity as numeric control."
+"MRP Exception","netRequirement","Net requirement","decimal","ErpNumberField","","Yes","18,3","quantity","No","Open exception","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 renders net quantity as numeric control."
+"Machine Board Slot","machine","Machine","string","Lookup","Machine schedule lane","Yes","","","No","Open machine card","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 slot detail uses governed machine field."
+"Machine Board Slot","jobCard","Job card","string","Lookup","Job card schedule","Yes","","","No","Open job cards","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 slot detail uses governed job-card field."
+"Inventory Balance","onHandQty","On hand","decimal","ErpNumberField","","Yes","18,3","quantity","No","Open traceability","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 5 inventory balance modal uses numeric stock controls."
+"Inventory Balance","lotSerialLabel","Lot / serial","string","Lookup","Inventory traceability","No","","","No","Open traceability","Cluster 5 renders trace values as governed read-only selectors."
+"Material Issue","quantity","Issue quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Post issue","Cluster 5 removes unrestricted numeric text from issue detail."
+"Material Return","quantity","Return quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Post return","Cluster 5 removes unrestricted numeric text from return detail."
+"Stock Transfer","quantity","Movement quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Post transfer","Cluster 5 removes unrestricted numeric text from stock movement detail."
+"Scrap Entry","quantity","Quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Post scrap","Cluster 5 uses numeric control for scrap and by-product quantity."
+"Rework Order","quantity","Quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Release rework","Cluster 5 uses numeric control for rework quantity."
+"Inspection","traceLabel","Trace","string","Lookup","Lot / Serial Traceability","No","","","No","Save inspection","Cluster 5 renders inspection trace as governed selector."
+"NCR","disposition","Disposition","string","Lookup","Quality disposition rules","Yes","","","No","Release disposition","Cluster 5 renders disposition as governed selector."
+"Pack List","packedQuantity","Packed quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Save pack list","Cluster 5 uses numeric packed quantity control in pack detail."
+"Shipment","shippedQuantity","Shipped quantity","decimal","ErpNumberField","","Yes","18,3","quantity","No","Save shipment","Cluster 5 uses numeric shipped quantity control in shipment detail."
+"Shipment","proofFile","Load proof","binary","ErpFileActionState","Core attachment storage","No","","","No","Load proof","Cluster 5 shipment proof upload uses shared attachment storage for live records."
+"Mobile Offline Queue","actionLabel","Queued action","string","MobileButton","Mobile action vocabulary","Yes","","","No","Queue mobile action","MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 6 transactional mobile buttons produce visible queued/review state."
+"Mobile Inventory Movement","quantity","Count quantity","decimal","TextInput numeric keyboard","","Yes","18,3","quantity","No","Queue count","Cluster 6 prevents unrestricted text keyboard for count quantity."
+"Mobile Media Upload","captureType","Capture type","string","Badge / disabled native capture action","Mobile capture type vocabulary","Yes","","","No","Queue media / Retry proof upload","Cluster 6 keeps photo/voice/attachment capture truthful with queue or disabled native-adapter reason."
+"Mobile Context","branchId","Operating branch","int","Context selection card","Available mobile contexts","Yes","","","No","Switch context","Cluster 6 context switching uses governed context options."

@@ -86,6 +86,7 @@ describe("partner profile adapters", () => {
           documentNo: "GST-1",
           revisionCode: "A",
           fileName: "",
+          storageUri: "",
           approvalStatus: "Draft",
           visibilityScope: "Internal",
           effectiveFrom: "",

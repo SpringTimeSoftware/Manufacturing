@@ -11,6 +11,7 @@ import type {
   AuthSessionResponse,
   BlanketOrderDto,
   BinDto,
+  BinUpsertRequest,
   BomDto,
   BomRevisionDto,
   BomUpsertRequest,
@@ -18,7 +19,9 @@ import type {
   BoqRequirementDto,
   BoqRequirementLineDto,
   BranchDto,
+  BranchUpsertRequest,
   CompanyDto,
+  CompanyUpsertRequest,
   CurrentUserResponse,
   CurrencyDto,
   CurrencyUpsertRequest,
@@ -31,6 +34,7 @@ import type {
   CycleCountDto,
   DashboardFilter,
   DepartmentDto,
+  DepartmentUpsertRequest,
   DiscountSchemeDto,
   DiscountSchemeUpsertRequest,
   DispatchPlanningItemDto,
@@ -42,6 +46,7 @@ import type {
   ExchangeRateSetupUpsertRequest,
   ExecutiveCockpitSummary,
   ItemBarcodeDto,
+  ItemBarcodeUpsertRequest,
   ItemDto,
   ItemLookupDto,
   ItemMasterProfileDto,
@@ -49,6 +54,7 @@ import type {
   ItemUpsertRequest,
   ItemUomDto,
   ItemVariantDto,
+  ItemVariantUpsertRequest,
   LoginRequest,
   LogoutRequest,
   DowntimeEventDto,
@@ -61,6 +67,7 @@ import type {
   MachineUpsertRequest,
   MeasurementFormulaDto,
   MeasurementProfileDto,
+  MeasurementProfileUpsertRequest,
   MrpRunDto,
   MrpRunStartRequest,
   NonConformanceDto,
@@ -88,11 +95,13 @@ import type {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   ShiftDto,
+  ShiftUpsertRequest,
   StageWiseDashboardItem,
   SalesOrderDto,
   SwitchOperatingContextRequest,
   SystemContextResponse,
   WarehouseDto,
+  WarehouseUpsertRequest,
   TranslationBundleResponse,
   UserDirectoryItemDto,
   WorkCenterDto,
@@ -120,7 +129,9 @@ import type {
   ToolDto,
   ToolUpsertRequest,
   UomClassDto,
+  UomClassUpsertRequest,
   UomConversionDto,
+  UomConversionUpsertRequest,
   UomDto,
   DemandForecastDto,
   MasterProductionScheduleDto,
@@ -183,6 +194,36 @@ async function request<T>(path: string, { skipAuth = false, ...init }: ApiReques
   }
 
   return payload.data;
+}
+
+async function requestBlob(path: string, { skipAuth = false, ...init }: ApiRequestInit = {}) {
+  const stored = readStoredSession();
+  const headers = new Headers(init.headers);
+
+  if (!skipAuth && stored?.accessToken) {
+    headers.set("Authorization", `Bearer ${stored.accessToken}`);
+  }
+
+  const response = await fetch(path, {
+    ...init,
+    headers
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => undefined)) as ApiEnvelope<unknown> | undefined;
+    const first = payload?.errors?.[0];
+    throw new ApiError(
+      payload?.message ?? first?.message ?? "Download failed.",
+      response.status,
+      first?.code,
+      payload?.errors?.map((entry) => entry.message) ?? []
+    );
+  }
+
+  return {
+    blob: await response.blob(),
+    contentDisposition: response.headers.get("content-disposition")
+  };
 }
 
 export const apiClient = {
@@ -250,32 +291,102 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<CompanyDto>>(`/api/companies?${query}`);
     },
+    createCompany: (body: CompanyUpsertRequest) =>
+      request<CompanyDto>("/api/companies", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateCompany: (id: number, body: CompanyUpsertRequest) =>
+      request<CompanyDto>(`/api/companies/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     branches: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<BranchDto>>(`/api/branches?${query}`);
     },
+    createBranch: (body: BranchUpsertRequest) =>
+      request<BranchDto>("/api/branches", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateBranch: (id: number, body: BranchUpsertRequest) =>
+      request<BranchDto>(`/api/branches/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     departments: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<DepartmentDto>>(`/api/departments?${query}`);
     },
+    createDepartment: (body: DepartmentUpsertRequest) =>
+      request<DepartmentDto>("/api/departments", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateDepartment: (id: number, body: DepartmentUpsertRequest) =>
+      request<DepartmentDto>(`/api/departments/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     warehouses: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<WarehouseDto>>(`/api/warehouses?${query}`);
     },
+    createWarehouse: (body: WarehouseUpsertRequest) =>
+      request<WarehouseDto>("/api/warehouses", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateWarehouse: (id: number, body: WarehouseUpsertRequest) =>
+      request<WarehouseDto>(`/api/warehouses/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     bins: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<BinDto>>(`/api/bins?${query}`);
     },
+    createBin: (body: BinUpsertRequest) =>
+      request<BinDto>("/api/bins", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateBin: (id: number, body: BinUpsertRequest) =>
+      request<BinDto>(`/api/bins/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     shifts: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ShiftDto>>(`/api/shifts?${query}`);
-    }
+    },
+    createShift: (body: ShiftUpsertRequest) =>
+      request<ShiftDto>("/api/shifts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateShift: (id: number, body: ShiftUpsertRequest) =>
+      request<ShiftDto>(`/api/shifts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      })
   },
   measurements: {
     uomClasses: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<UomClassDto>>(`/api/uom/classes?${query}`);
     },
+    createUomClass: (body: UomClassUpsertRequest) =>
+      request<UomClassDto>("/api/uom/classes", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateUomClass: (id: number, body: UomClassUpsertRequest) =>
+      request<UomClassDto>(`/api/uom/classes/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     uoms: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<UomDto>>(`/api/uom?${query}`);
@@ -284,10 +395,30 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<UomConversionDto>>(`/api/uom/conversions?${query}`);
     },
+    createUomConversion: (body: UomConversionUpsertRequest) =>
+      request<UomConversionDto>("/api/uom/conversions", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateUomConversion: (id: number, body: UomConversionUpsertRequest) =>
+      request<UomConversionDto>(`/api/uom/conversions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     profiles: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<MeasurementProfileDto>>(`/api/measurement-profiles?${query}`);
     },
+    createProfile: (body: MeasurementProfileUpsertRequest) =>
+      request<MeasurementProfileDto>("/api/measurement-profiles", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateProfile: (id: number, body: MeasurementProfileUpsertRequest) =>
+      request<MeasurementProfileDto>(`/api/measurement-profiles/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     formulas: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<MeasurementFormulaDto>>(`/api/measurement-formulas?${query}`);
@@ -325,6 +456,16 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<ItemVariantDto>>(`/api/item-variants?${query}`);
     },
+    createItemVariant: (body: ItemVariantUpsertRequest) =>
+      request<ItemVariantDto>("/api/item-variants", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateItemVariant: (variantId: number, body: ItemVariantUpsertRequest) =>
+      request<ItemVariantDto>(`/api/item-variants/${variantId}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     itemUoms: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ItemUomDto>>(`/api/item-uoms?${query}`);
@@ -332,7 +473,17 @@ export const apiClient = {
     itemBarcodes: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ItemBarcodeDto>>(`/api/item-barcodes?${query}`);
-    }
+    },
+    createItemBarcode: (body: ItemBarcodeUpsertRequest) =>
+      request<ItemBarcodeDto>("/api/item-barcodes", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateItemBarcode: (barcodeId: number, body: ItemBarcodeUpsertRequest) =>
+      request<ItemBarcodeDto>(`/api/item-barcodes/${barcodeId}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      })
   },
   partners: {
     customers: (filter: QueryFilter = {}) => {
@@ -876,6 +1027,8 @@ export const apiClient = {
         body: formData
       });
     },
+    downloadAttachment: (attachmentId: number) =>
+      requestBlob(`/api/attachments/${attachmentId}/content`),
     createExportJob: (body: ExportJobCreateRequest) =>
       request<ExportJobDto>("/api/exports", {
         method: "POST",

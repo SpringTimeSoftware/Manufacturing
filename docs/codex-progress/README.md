@@ -274,6 +274,12 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - RECOVERY-RESUME-01 completed on 2026-05-09. Output: `/docs/codex-progress/RECOVERY-RESUME-01-output.md`
 - RESET-01 core master data truth slice completed on 2026-05-09. Output: `/docs/codex-progress/RESET-01-core-master-data-truth-output.md`
 - MASTER-COMPLETION-WAVE-01 completed on 2026-05-11. Output: `/docs/codex-progress/MASTER-COMPLETION-WAVE-01-output.md`
+- MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 1 completed on 2026-05-11 for Platform/Admin/Auth/Shared. Output: `/docs/codex-progress/cluster-1-platform-admin-auth-shared-output.md`
+- MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 2 completed on 2026-05-11 for Organization/Setup/Resource Basics. Output: `/docs/codex-progress/cluster-2-organization-setup-resource-basics-output.md`
+- MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 3 completed on 2026-05-11 for Master Data/Commercial Foundation. Output: `/docs/codex-progress/cluster-3-master-data-commercial-foundation-output.md`
+- MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 4 completed on 2026-05-11 for Engineering/Planning. Output: `/docs/codex-progress/cluster-4-engineering-planning-output.md`
+- MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 5 completed on 2026-05-11 for Production/Inventory/Quality/Dispatch. Output: `/docs/codex-progress/cluster-5-production-inventory-quality-dispatch-output.md`
+- MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 6 blocked on 2026-05-11 at mobile screenshot evidence after code/action/field gates passed for Mobile/Device/Sync. Output: `/docs/codex-progress/cluster-6-mobile-device-sync-output.md`
 
 ## Remediation Log
 

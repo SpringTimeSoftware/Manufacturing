@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { seededMaterialTasks } from "../mobileSeedData";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -9,9 +11,13 @@ import {
 } from "../ui/mobileComponents";
 
 export function MaterialScanScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueTask = (action: string, reference: string) => () => setActionMessage(`${action} queued for ${reference}.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard title="Material Issue Scan" subtitle="Scan bin/barcode and issue material to work order or job card.">
+        <MobileActionNotice message={actionMessage} tone="success" />
         <TextInput accessibilityLabel="Issue barcode" placeholder="Scan or enter material barcode" style={styles.input} />
         {seededMaterialTasks.filter((task) => task.mode === "Issue").map((task) => (
           <MobileListItem key={task.id}>
@@ -23,7 +29,7 @@ export function MaterialScanScreen() {
               <MobileBadge label={task.quantity} tone="info" />
             </View>
             <MobileField label="Scan" value={task.barcodeValue} />
-            <MobileButton label="Queue issue" tone="success" />
+            <MobileButton label="Queue issue" onPress={queueTask("Material issue", task.targetDocument)} tone="success" />
           </MobileListItem>
         ))}
       </MobileCard>
@@ -40,7 +46,7 @@ export function MaterialScanScreen() {
               <MobileBadge label={task.status} tone="warn" />
             </View>
             <MobileField label="Quantity" value={task.quantity} />
-            <MobileButton label="Queue return" tone="warn" />
+            <MobileButton label="Queue return" onPress={queueTask("Material return", task.targetDocument)} tone="warn" />
           </MobileListItem>
         ))}
       </MobileCard>

@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -18,7 +19,7 @@ import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataA
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
+import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -75,6 +76,7 @@ const balanceColumns: DataGridColumn<StockBalanceItem>[] = [
 ];
 
 export function InventoryBalancePage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -93,8 +95,8 @@ export function InventoryBalancePage() {
           <DataGrid ariaLabel="Inventory balance list" columns={balanceColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.itemLabel} inventory balance`} virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Inventory balance detail is review-only; stock changes remain controlled by inventory transactions." footer={<ErpActionBar primary={[{ disabled: true, label: "Save balance", reason: "Balance quantities are controlled by inventory postings." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.itemLabel ?? "Inventory balance"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Balance review"><ErpLookupField disabled disabledReason="Warehouse and bin are controlled by inventory location master." label="Location" onChange={() => undefined} options={[{ label: `${selected.warehouseLabel} / ${selected.binLabel}`, value: `${selected.warehouseLabel} / ${selected.binLabel}` }]} value={`${selected.warehouseLabel} / ${selected.binLabel}`} /><ErpLookupField disabled disabledReason="Lot and serial values are controlled by inventory postings." label="Lot / serial" onChange={() => undefined} options={[{ label: selected.lotSerialLabel, value: selected.lotSerialLabel }]} value={selected.lotSerialLabel} /><ErpLookupField disabled disabledReason="Catch-weight basis is controlled by item and inventory posting rules." label="Catch-weight basis" onChange={() => undefined} options={[{ label: selected.catchWeightLabel, value: selected.catchWeightLabel }]} value={selected.catchWeightLabel} /></FormShell> : null}
+      <ErpModalWorkspace description="Inventory balance detail is review-only; stock changes remain controlled by inventory transactions." footer={<ErpActionBar primary={[{ disabled: true, label: "Save balance", reason: "Balance quantities are controlled by inventory postings." }]} secondary={[{ label: "Open traceability", onClick: () => navigate(`/inventory/traceability?trace=${encodeURIComponent(selected?.lotSerialLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.itemLabel ?? "Inventory balance"}>
+        {selected ? <FormShell initialFingerprint={selected.id} title="Balance review"><ErpLookupField disabled disabledReason="Warehouse and bin are controlled by inventory location master." label="Location" onChange={() => undefined} options={[{ label: `${selected.warehouseLabel} / ${selected.binLabel}`, value: `${selected.warehouseLabel} / ${selected.binLabel}` }]} value={`${selected.warehouseLabel} / ${selected.binLabel}`} /><ErpLookupField disabled disabledReason="Lot and serial values are controlled by inventory postings." label="Lot / serial" onChange={() => undefined} options={[{ label: selected.lotSerialLabel, value: selected.lotSerialLabel }]} value={selected.lotSerialLabel} /><ErpNumberField disabled disabledReason="On-hand quantity is controlled by inventory postings." label="On hand" onChange={() => undefined} value={selected.onHandQty} /><ErpNumberField disabled disabledReason="Reserved quantity is controlled by reservations." label="Reserved" onChange={() => undefined} value={selected.reservedQty} /><ErpNumberField disabled disabledReason="Available quantity is calculated from inventory postings." label="Available" onChange={() => undefined} value={selected.availableQty} /><ErpLookupField disabled disabledReason="Catch-weight basis is controlled by item and inventory posting rules." label="Catch-weight basis" onChange={() => undefined} options={[{ label: selected.catchWeightLabel, value: selected.catchWeightLabel }]} value={selected.catchWeightLabel} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -153,6 +155,7 @@ const issueColumns: DataGridColumn<MaterialIssueItem>[] = [
 ];
 
 export function MaterialIssuePage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -171,8 +174,8 @@ export function MaterialIssuePage() {
           <DataGrid ariaLabel="Material issue list" columns={issueColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.transactionNo} material issue`} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Material issue detail is review-only until issue posting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save issue draft", reason: "Material issue save requires inventory posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post issue", reason: "Posting requires controlled inventory workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material issue"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Material issue controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From location" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpLookupField disabled disabledReason="Issue mode is controlled by inventory posting policy." label="Issue mode" onChange={() => undefined} options={[{ label: selected.issueMode, value: selected.issueMode }]} value={selected.issueMode} /></FormShell> : null}
+      <ErpModalWorkspace description="Material issue detail is review-only until issue posting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save issue draft", reason: "Material issue save requires inventory posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post issue", reason: "Posting requires controlled inventory workflow." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material issue"}>
+        {selected ? <FormShell initialFingerprint={selected.id} title="Material issue controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From location" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpNumberField disabled disabledReason="Issued quantity is controlled by inventory posting." label="Issue quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Issue mode is controlled by inventory posting policy." label="Issue mode" onChange={() => undefined} options={[{ label: selected.issueMode, value: selected.issueMode }]} value={selected.issueMode} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -188,6 +191,7 @@ const returnColumns: DataGridColumn<MaterialReturnItem>[] = [
 ];
 
 export function MaterialReturnPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -206,8 +210,8 @@ export function MaterialReturnPage() {
           <DataGrid ariaLabel="Material return list" columns={returnColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.transactionNo} material return`} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Material return detail is review-only until return posting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save return draft", reason: "Material return save requires inventory posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post return", reason: "Posting requires controlled inventory workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material return"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Material return controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Return location is controlled by warehouse and bin master." label="Return location" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpLookupField disabled disabledReason="Return reason is controlled by reason-code master." label="Return reason" onChange={() => undefined} options={[{ label: selected.returnReason, value: selected.returnReason }]} value={selected.returnReason} /></FormShell> : null}
+      <ErpModalWorkspace description="Material return detail is review-only until return posting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save return draft", reason: "Material return save requires inventory posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post return", reason: "Posting requires controlled inventory workflow." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material return"}>
+        {selected ? <FormShell initialFingerprint={selected.id} title="Material return controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Return location is controlled by warehouse and bin master." label="Return location" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpNumberField disabled disabledReason="Returned quantity is controlled by inventory posting." label="Return quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Return reason is controlled by reason-code master." label="Return reason" onChange={() => undefined} options={[{ label: selected.returnReason, value: selected.returnReason }]} value={selected.returnReason} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -223,6 +227,7 @@ const transferColumns: DataGridColumn<StockTransferPutawayItem>[] = [
 ];
 
 export function StockTransferPutawayPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -241,8 +246,8 @@ export function StockTransferPutawayPage() {
           <DataGrid ariaLabel="Stock transfer putaway list" columns={transferColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.transactionNo} stock transfer`} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Stock movement detail is review-only until transfer posting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save transfer draft", reason: "Stock transfer save requires inventory posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post transfer", reason: "Posting requires controlled inventory workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Stock movement"}>
-        {selected ? <FormShell initialFingerprint={selected.id} title="Stock transfer controls"><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpLookupField disabled disabledReason="Destination location is controlled by warehouse and bin master." label="To" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpLookupField disabled disabledReason="Movement type is controlled by inventory posting policy." label="Movement type" onChange={() => undefined} options={[{ label: selected.movementType, value: selected.movementType }]} value={selected.movementType} /></FormShell> : null}
+      <ErpModalWorkspace description="Stock movement detail is review-only until transfer posting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save transfer draft", reason: "Stock transfer save requires inventory posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post transfer", reason: "Posting requires controlled inventory workflow." }, { label: "Open balances", onClick: () => navigate(`/inventory/balances?item=${encodeURIComponent(selected?.itemLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Stock movement"}>
+        {selected ? <FormShell initialFingerprint={selected.id} title="Stock transfer controls"><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpLookupField disabled disabledReason="Destination location is controlled by warehouse and bin master." label="To" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpNumberField disabled disabledReason="Movement quantity is controlled by inventory posting." label="Movement quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Movement type is controlled by inventory posting policy." label="Movement type" onChange={() => undefined} options={[{ label: selected.movementType, value: selected.movementType }]} value={selected.movementType} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

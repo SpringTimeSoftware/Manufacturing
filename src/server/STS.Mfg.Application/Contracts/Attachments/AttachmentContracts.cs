@@ -24,3 +24,8 @@ public sealed record AttachmentRecordDto(
     long? UploadedByUserId,
     DateTimeOffset CreatedOn,
     string Status);
+
+public sealed record AttachmentContentResult(
+    string FileName,
+    string ContentType,
+    Stream Content);

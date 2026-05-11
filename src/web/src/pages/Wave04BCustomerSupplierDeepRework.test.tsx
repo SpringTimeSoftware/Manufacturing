@@ -70,7 +70,7 @@ describe("Wave 4B customer and supplier deep business rework", () => {
     expect(within(dialog).getByLabelText("Communication channel").tagName).toBe("SELECT");
     expect(within(dialog).getByRole("button", { name: "Upload customer document" })).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Add document metadata" })).toBeInTheDocument();
-    expect(within(dialog).getAllByText("Binary upload storage is not enabled. Document metadata can be saved now.").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Sign in with partner master write access to attach documents.").length).toBeGreaterThan(0);
     expect(within(dialog).getByRole("button", { name: "Save Draft" })).toBeDisabled();
   });
 
@@ -118,7 +118,7 @@ describe("Wave 4B customer and supplier deep business rework", () => {
     expect(within(dialog).getByLabelText("Communication channel").tagName).toBe("SELECT");
     expect(within(dialog).getByRole("button", { name: "Upload compliance document" })).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Add compliance metadata" })).toBeInTheDocument();
-    expect(within(dialog).getAllByText("Binary upload storage is not enabled. Document metadata can be saved now.").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("Sign in with partner master write access to attach documents.").length).toBeGreaterThan(0);
     expect(within(dialog).getByRole("button", { name: "Save Draft" })).toBeDisabled();
   });
 });

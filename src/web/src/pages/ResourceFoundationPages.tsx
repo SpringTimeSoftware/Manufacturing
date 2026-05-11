@@ -226,7 +226,7 @@ export function WorkCenterMasterPage() {
       aside={
         <Card title="Resource control" description="Work centers provide the controlled capacity source for routing, planning, and shop-floor execution.">
           <div className="compact-stack">
-            <ErpStatusChip tone="success">Live resource source</ErpStatusChip>
+            <ErpStatusChip tone="success">API-backed setup</ErpStatusChip>
             <ErpStatusChip tone="info">Capacity controlled</ErpStatusChip>
           </div>
         </Card>
@@ -242,6 +242,12 @@ export function WorkCenterMasterPage() {
           { label: "Parallel units", value: String(rows.reduce((sum, row) => sum + row.parallelCapacityUnits, 0)) }
         ]}
       />
+      {query.isError ? (
+        <ErpEmptyState
+          description={query.error instanceof Error ? query.error.message : "Work center setup could not be loaded."}
+          title="Work center setup unavailable"
+        />
+      ) : null}
       <ErpGrid
         ariaLabel="Work centers"
         columns={columns}
@@ -259,7 +265,7 @@ export function WorkCenterMasterPage() {
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save work center", onClick: save, reason: !canSave ? saveAccessReason : validation[0] }]}
             secondary={[
               { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require resource dependency checks." },
-              { disabled: true, label: "View audit", reason: "Resource audit view is pending rollout." }
+              { disabled: true, label: "View audit", reason: "Resource audit view requires audit trail workflow enablement." }
             ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
@@ -419,6 +425,18 @@ export function MachineMasterPage() {
           { label: "Maintenance", value: String(rows.filter((row) => row.isUnderMaintenance).length) }
         ]}
       />
+      {machinesQuery.isError ? (
+        <ErpEmptyState
+          description={machinesQuery.error instanceof Error ? machinesQuery.error.message : "Machine setup could not be loaded."}
+          title="Machine setup unavailable"
+        />
+      ) : null}
+      {workCentersQuery.isError ? (
+        <ErpEmptyState
+          description={workCentersQuery.error instanceof Error ? workCentersQuery.error.message : "Work center lookup could not be loaded."}
+          title="Work center lookup unavailable"
+        />
+      ) : null}
       <ErpGrid
         ariaLabel="Machines"
         columns={columns}
@@ -436,7 +454,7 @@ export function MachineMasterPage() {
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save machine", onClick: save, reason: !canSave ? saveAccessReason : validation[0] }]}
             secondary={[
               { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require resource dependency checks." },
-              { disabled: true, label: "View audit", reason: "Resource audit view is pending rollout." }
+              { disabled: true, label: "View audit", reason: "Resource audit view requires audit trail workflow enablement." }
             ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
@@ -591,7 +609,9 @@ export function ToolResourceMasterPage() {
           { label: "Types", value: String(new Set(rows.map((row) => row.toolType)).size) }
         ]}
       />
-      {query.isError ? <ErpEmptyState description="Tool setup is temporarily unavailable." title="Unable to load tools" /> : null}
+      {query.isError ? (
+        <ErpEmptyState description={query.error instanceof Error ? query.error.message : "Tool setup could not be loaded."} title="Tool setup unavailable" />
+      ) : null}
       <ErpGrid
         ariaLabel="Tools and resources"
         columns={columns}
@@ -609,7 +629,7 @@ export function ToolResourceMasterPage() {
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save tool/resource", onClick: save, reason: !canSave ? saveAccessReason : validation[0] }]}
             secondary={[
               { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require resource dependency checks." },
-              { disabled: true, label: "View audit", reason: "Resource audit view is pending rollout." }
+              { disabled: true, label: "View audit", reason: "Resource audit view requires audit trail workflow enablement." }
             ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />

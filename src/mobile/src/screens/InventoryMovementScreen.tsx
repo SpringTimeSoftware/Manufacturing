@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { seededInventoryTasks } from "../mobileSeedData";
 import type { InventoryMovementTask, MobileTone } from "../mobileTypes";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -22,9 +24,13 @@ function statusTone(task: InventoryMovementTask): MobileTone {
 }
 
 export function InventoryMovementScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueTask = (task: InventoryMovementTask) => () => setActionMessage(`${task.mode} queued for ${task.itemLabel}.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard title="Bin Transfer / Putaway" subtitle="Move stock between bins or warehouses with scan-first confirmation.">
+        <MobileActionNotice message={actionMessage} tone="success" />
         <TextInput accessibilityLabel="Transfer scan" placeholder="Scan item, bin, lot, or serial" style={styles.input} />
         {seededInventoryTasks.filter((task) => task.mode !== "CycleCount").map((task) => (
           <MobileListItem key={task.id}>
@@ -37,7 +43,7 @@ export function InventoryMovementScreen() {
             </View>
             <MobileField label="Scan" value={task.scanValue} />
             <MobileField label="Quantity" value={task.quantity} />
-            <MobileButton label={`Queue ${task.mode.toLowerCase()}`} tone="success" />
+            <MobileButton label={`Queue ${task.mode.toLowerCase()}`} onPress={queueTask(task)} tone="success" />
           </MobileListItem>
         ))}
       </MobileCard>
@@ -52,8 +58,8 @@ export function InventoryMovementScreen() {
               </View>
               <MobileBadge label={task.status} tone={statusTone(task)} />
             </View>
-            <TextInput accessibilityLabel="Count quantity" defaultValue={task.quantity} style={styles.input} />
-            <MobileButton label="Queue count" tone="warn" />
+            <TextInput accessibilityLabel="Count quantity" defaultValue={task.quantity} keyboardType="numeric" style={styles.input} />
+            <MobileButton label="Queue count" onPress={queueTask(task)} tone="warn" />
           </MobileListItem>
         ))}
       </MobileCard>

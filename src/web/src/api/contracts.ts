@@ -388,8 +388,34 @@ export interface CompanyDto {
   status: string;
 }
 
+export interface CompanyUpsertRequest {
+  companyCode: string;
+  companyName: string;
+  legalName: string;
+  taxRegistrationNo: string | null;
+  timeZoneId: string;
+  defaultLanguageId: number | null;
+  baseCurrencyCode: string | null;
+  defaultCalendarCode: string | null;
+  status: string;
+}
+
 export interface BranchDto {
   id: number;
+  companyId: number;
+  branchCode: string;
+  branchName: string;
+  branchType: string;
+  timeZoneId: string;
+  defaultLanguageId: number | null;
+  defaultCalendarCode: string | null;
+  defaultShiftId: number | null;
+  defaultWarehouseId: number | null;
+  contactEmail: string | null;
+  status: string;
+}
+
+export interface BranchUpsertRequest {
   companyId: number;
   branchCode: string;
   branchName: string;
@@ -415,8 +441,33 @@ export interface DepartmentDto {
   status: string;
 }
 
+export interface DepartmentUpsertRequest {
+  companyId: number;
+  branchId: number | null;
+  departmentCode: string;
+  departmentName: string;
+  parentDepartmentId: number | null;
+  managerUserId: number | null;
+  departmentType: string;
+  status: string;
+}
+
 export interface WarehouseDto {
   id: number;
+  companyId: number;
+  branchId: number;
+  warehouseCode: string;
+  warehouseName: string;
+  warehouseType: string;
+  isDefaultReceivingWarehouse: boolean;
+  isDefaultIssueWarehouse: boolean;
+  isDispatchEnabled: boolean;
+  allowsMixedLots: boolean;
+  allowsNegativeStock: boolean;
+  status: string;
+}
+
+export interface WarehouseUpsertRequest {
   companyId: number;
   branchId: number;
   warehouseCode: string;
@@ -450,6 +501,25 @@ export interface BinDto {
   status: string;
 }
 
+export interface BinUpsertRequest {
+  companyId: number;
+  branchId: number;
+  warehouseId: number;
+  parentBinId: number | null;
+  binCode: string;
+  binName: string;
+  binType: string;
+  capacityValue: number | null;
+  capacityUomId: number | null;
+  isDefaultReceiveBin: boolean;
+  isDefaultIssueBin: boolean;
+  isCountCycleRequired: boolean;
+  countCycleDays: number | null;
+  isBlocked: boolean;
+  blockReasonCode: string | null;
+  status: string;
+}
+
 export interface ShiftDto {
   id: number;
   companyId: number;
@@ -465,8 +535,30 @@ export interface ShiftDto {
   status: string;
 }
 
+export interface ShiftUpsertRequest {
+  companyId: number;
+  branchId: number | null;
+  shiftCode: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  crossesMidnight: boolean;
+  breakMinutes: number;
+  sequenceNo: number;
+  calendarProfileCode: string | null;
+  status: string;
+}
+
 export interface UomClassDto {
   id: number;
+  classCode: string;
+  className: string;
+  baseUomId: number | null;
+  supportsFormulaConversion: boolean;
+  status: string;
+}
+
+export interface UomClassUpsertRequest {
   classCode: string;
   className: string;
   baseUomId: number | null;
@@ -498,8 +590,34 @@ export interface UomConversionDto {
   status: string;
 }
 
+export interface UomConversionUpsertRequest {
+  fromUomId: number;
+  toUomId: number;
+  conversionMode: string;
+  factorNumerator: number;
+  factorDenominator: number;
+  formulaTokenSet: string | null;
+  roundMode: string;
+  precisionScale: number;
+  status: string;
+}
+
 export interface MeasurementProfileDto {
   id: number;
+  profileCode: string;
+  profileName: string;
+  profileType: string;
+  stockUomClassId: number;
+  allowsCatchWeight: boolean;
+  requiresDimensions: boolean;
+  requiresDensity: boolean;
+  requiresThickness: boolean;
+  requiresPackSize: boolean;
+  supportsCommercialProductionSplit: boolean;
+  status: string;
+}
+
+export interface MeasurementProfileUpsertRequest {
   profileCode: string;
   profileName: string;
   profileType: string;
@@ -601,6 +719,20 @@ export interface ItemVariantDto {
   status: string;
 }
 
+export interface ItemVariantUpsertRequest {
+  companyId: number;
+  itemId: number;
+  variantCode: string;
+  variantName: string;
+  variantKey: string;
+  variantAttributeSummary: string | null;
+  variantAttributeMapJson: string;
+  overrideMeasurementProfileId: number | null;
+  overrideStockUomId: number | null;
+  overrideWeightPerUnit: number | null;
+  status: string;
+}
+
 export interface ItemUomDto {
   id: number;
   companyId: number;
@@ -620,6 +752,19 @@ export interface ItemUomDto {
 
 export interface ItemBarcodeDto {
   id: number;
+  companyId: number;
+  itemId: number;
+  itemVariantId: number | null;
+  uomId: number | null;
+  barcodeValue: string;
+  barcodeType: string;
+  scanPurpose: string;
+  preferenceRank: number;
+  isPrimary: boolean;
+  status: string;
+}
+
+export interface ItemBarcodeUpsertRequest {
   companyId: number;
   itemId: number;
   itemVariantId: number | null;

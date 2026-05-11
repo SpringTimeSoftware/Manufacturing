@@ -28,6 +28,11 @@ interface MobileTileProps {
   value: string;
 }
 
+interface MobileActionNoticeProps {
+  message: string | null;
+  tone?: MobileTone;
+}
+
 function toneStyle(tone: MobileTone = "neutral") {
   switch (tone) {
     case "success":
@@ -107,6 +112,14 @@ export function MobileTile({ hint, label, tone = "neutral", value }: MobileTileP
   );
 }
 
+export function MobileActionNotice({ message, tone = "info" }: MobileActionNoticeProps) {
+  if (!message) {
+    return null;
+  }
+
+  return <Text style={[styles.actionNotice, toneStyle(tone)]}>{message}</Text>;
+}
+
 export function MobileListItem({ children }: PropsWithChildren) {
   return <View style={styles.listItem}>{children}</View>;
 }
@@ -133,6 +146,16 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingHorizontal: 10,
     paddingVertical: 6
+  },
+  actionNotice: {
+    alignSelf: "stretch",
+    borderRadius: 16,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 18,
+    overflow: "hidden",
+    paddingHorizontal: 12,
+    paddingVertical: 10
   },
   button: {
     alignItems: "center",

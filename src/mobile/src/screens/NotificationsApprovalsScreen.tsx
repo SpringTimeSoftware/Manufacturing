@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { seededApprovals, seededNotifications } from "../mobileSeedData";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -8,9 +10,14 @@ import {
 } from "../ui/mobileComponents";
 
 export function NotificationsApprovalsScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const openNotification = (reference: string) => () => setActionMessage(`${reference} opened for mobile review.`);
+  const recordDecision = (decision: string, reference: string) => () => setActionMessage(`${decision} queued for ${reference}.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard title="Notifications / Inbox" subtitle="Alerts, reminders, approvals, and escalation messages grouped for quick triage.">
+        <MobileActionNotice message={actionMessage} tone="info" />
         {seededNotifications.map((notification) => (
           <MobileListItem key={notification.id}>
             <View style={styles.row}>
@@ -21,7 +28,7 @@ export function NotificationsApprovalsScreen() {
               <MobileBadge label={notification.category} tone={notification.severity} />
             </View>
             <Text style={styles.audit}>{`${notification.documentRef} / ${notification.createdLabel}`}</Text>
-            <MobileButton label={notification.actionLabel} tone={notification.severity} />
+            <MobileButton label={notification.actionLabel} onPress={openNotification(notification.documentRef)} tone={notification.severity} />
           </MobileListItem>
         ))}
       </MobileCard>
@@ -38,8 +45,8 @@ export function NotificationsApprovalsScreen() {
             </View>
             <Text style={styles.audit}>{`${approval.submittedBy} / ${approval.dueLabel} / ${approval.auditActionLabel}`}</Text>
             <View style={styles.buttonRow}>
-              <MobileButton label="Approve" tone="success" />
-              <MobileButton label="Reject" tone="danger" />
+              <MobileButton label="Approve" onPress={recordDecision("Approval", approval.referenceNo)} tone="success" />
+              <MobileButton label="Reject" onPress={recordDecision("Rejection", approval.referenceNo)} tone="danger" />
             </View>
           </MobileListItem>
         ))}

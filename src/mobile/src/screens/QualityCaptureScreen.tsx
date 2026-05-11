@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { seededNcrTasks, seededQualityTasks } from "../mobileSeedData";
 import type { MobileTone, QualityTask } from "../mobileTypes";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -22,9 +24,14 @@ function resultTone(result: QualityTask["result"]): MobileTone {
 }
 
 export function QualityCaptureScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueResult = (result: string, inspectionNo: string) => () => setActionMessage(`${result} result queued for ${inspectionNo}.`);
+  const queueNcr = (ncrNo: string) => () => setActionMessage(`NCR / rework capture queued for ${ncrNo}.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard title="QC Checkpoint Entry" subtitle="Pass/fail/measurement/photo capture for in-process and final checkpoints.">
+        <MobileActionNotice message={actionMessage} tone="warn" />
         {seededQualityTasks.map((task) => (
           <MobileListItem key={task.id}>
             <View style={styles.row}>
@@ -38,8 +45,8 @@ export function QualityCaptureScreen() {
             <TextInput accessibilityLabel={`${task.inspectionNo} actual value`} defaultValue={task.actualValue} style={styles.input} />
             <Text style={styles.audit}>{task.photoLabel}</Text>
             <View style={styles.buttonRow}>
-              <MobileButton label="Pass" tone="success" />
-              <MobileButton label="Fail" tone="danger" />
+              <MobileButton label="Pass" onPress={queueResult("Pass", task.inspectionNo)} tone="success" />
+              <MobileButton label="Fail" onPress={queueResult("Fail", task.inspectionNo)} tone="danger" />
             </View>
           </MobileListItem>
         ))}
@@ -56,7 +63,7 @@ export function QualityCaptureScreen() {
               <MobileBadge label={task.disposition} tone="warn" />
             </View>
             <TextInput accessibilityLabel={`${task.ncrNo} instruction`} defaultValue={task.instruction} multiline style={styles.notes} />
-            <MobileButton label="Queue NCR / rework capture" tone="warn" />
+            <MobileButton label="Queue NCR / rework capture" onPress={queueNcr(task.ncrNo)} tone="warn" />
           </MobileListItem>
         ))}
       </MobileCard>

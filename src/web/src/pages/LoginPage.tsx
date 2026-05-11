@@ -148,22 +148,23 @@ export function LoginPage() {
             </label>
             <label>
               <span>Device label</span>
-              <input onChange={(event) => setDeviceLabel(event.target.value)} value={deviceLabel} />
+              <input disabled onChange={(event) => setDeviceLabel(event.target.value)} value={deviceLabel} />
+              <small>Device registration is available after the approved device trust policy is enabled.</small>
             </label>
             <label className="login-form__toggle">
               <span>Register this device</span>
               <input
                 checked={registerDevice}
+                disabled
                 onChange={(event) => setRegisterDevice(event.target.checked)}
                 type="checkbox"
               />
+              <small>Device trust setup is not active for this sign-in.</small>
             </label>
           </div>
 
           <p className="muted">
-            {registerDevice
-              ? `${t("auth.deviceRegistration")} Device label: ${deviceLabel}.`
-              : "Device registration is off for this sign-in."}
+            Sign-in uses company, branch, and role scope. Device registration will be requested only after device trust is enabled.
           </p>
 
           <div className="login-form__actions">

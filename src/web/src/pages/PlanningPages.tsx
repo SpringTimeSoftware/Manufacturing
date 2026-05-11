@@ -19,7 +19,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpFilterBar, ErpGrid, ErpLookupField, ErpModalWorkspace, ErpStatusChip, ErpValidationSummary } from "../ui/ErpComponents";
+import { ErpActionBar, ErpFilterBar, ErpGrid, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpStatusChip, ErpValidationSummary } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
 import { Tile } from "../ui/Tile";
@@ -46,6 +46,19 @@ function StatusBadge({ status }: { status: string }) {
 function ActionBadge({ action }: { action: string }) {
   const tone = action === "MAKE" ? "info" : action === "BUY" ? "success" : action === "TRANSFER" ? "warn" : "neutral";
   return <ErpStatusChip tone={tone}>{action}</ErpStatusChip>;
+}
+
+function getExceptionSeverity(exceptionCode: string) {
+  const normalized = exceptionCode.toLowerCase();
+  if (normalized.includes("shortage")) {
+    return "High";
+  }
+
+  if (normalized.includes("late")) {
+    return "Medium";
+  }
+
+  return "Info";
 }
 
 function hasLiveWrite(session: ReturnType<typeof useAuth>["session"]) {
@@ -303,19 +316,42 @@ export function MrpResultsExceptionsPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [selectedExceptionId, setSelectedExceptionId] = useState<string | null>(null);
   const { deferredSearch, filter } = usePlanningFilter(search, status);
   const query = useApiQuery(queryKeys.planning.mrpResults(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listMrpRunConsoleSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const source = records[0]?.source ?? "Seeded";
   const exceptions = records.flatMap((record) => record.items.map((item) => ({ ...item, id: `${record.id}-${item.id}`, runCode: record.runCode })));
+  const selectedException = exceptions.find((item) => item.id === selectedExceptionId) ?? null;
 
   return (
-    <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "Create shortage actions", reason: "Shortage conversion requires BOQ approval workflow enablement." }]} secondary={[{ disabled: true, label: "Export exceptions", reason: "MRP exception export is pending the approved reporting workflow." }]} testId="mrp-exception-action-bar" /></>} description="Shortages, late items, missing data, and recommendations after MRP execution." filters={<ErpFilterBar ariaLabel="MRP exception filters" onClear={() => { setSearch(""); setStatus("all"); }} testId="mrp-exception-filter-bar"><input aria-label="Search MRP exceptions" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search item, exception, action" value={search} /><select aria-label="MRP exception status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Completed">Completed</option><option value="Running">Running</option></select></ErpFilterBar>} title="MRP Results / Exceptions">
-      <KpiStrip items={[{ label: "Result lines", value: String(exceptions.length) }, { label: "Shortages", value: String(exceptions.filter((item) => item.exceptionCode.includes("SHORTAGE")).length) }, { label: "Late supply", value: String(exceptions.filter((item) => item.exceptionCode.includes("LATE")).length) }, { label: "Make actions", value: String(exceptions.filter((item) => item.recommendedAction === "MAKE").length) }]} />
-      <Card title="Exception workbench" description="Recommendations are reviewable; conversion remains a downstream BOQ action.">
-        <ErpGrid ariaLabel="MRP exception results" columns={mrpExceptionColumns} getRowId={(record) => record.id} isLoading={query.isLoading} records={exceptions} rowLabel={(record) => `${record.itemLabel} mrp exception`} virtualization={{ enabled: true }} />
-      </Card>
-    </ListPageShell>
+    <>
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !selectedException, label: "Open exception", onClick: selectedException ? () => setSelectedExceptionId(selectedException.id) : undefined, reason: selectedException ? undefined : "Select an MRP exception before opening detail." }, { disabled: true, label: "Create shortage actions", reason: "Shortage conversion requires BOQ approval workflow enablement." }]} secondary={[{ disabled: true, label: "Export exceptions", reason: "MRP exception export is pending the approved reporting workflow." }]} testId="mrp-exception-action-bar" /></>} description="Shortages, late items, missing data, and recommendations after MRP execution." filters={<ErpFilterBar ariaLabel="MRP exception filters" onClear={() => { setSearch(""); setStatus("all"); }} testId="mrp-exception-filter-bar"><input aria-label="Search MRP exceptions" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search item, exception, action" value={search} /><select aria-label="MRP exception status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Completed">Completed</option><option value="Running">Running</option></select></ErpFilterBar>} title="MRP Results / Exceptions">
+        <KpiStrip items={[{ label: "Result lines", value: String(exceptions.length) }, { label: "Shortages", value: String(exceptions.filter((item) => item.exceptionCode.includes("SHORTAGE")).length) }, { label: "Late supply", value: String(exceptions.filter((item) => item.exceptionCode.includes("LATE")).length) }, { label: "Make actions", value: String(exceptions.filter((item) => item.recommendedAction === "MAKE").length) }]} />
+        <Card title="Exception workbench" description="Recommendations are reviewable; conversion remains a downstream BOQ action.">
+          <ErpGrid ariaLabel="MRP exception results" columns={mrpExceptionColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedExceptionId(record.id)} records={exceptions} rowLabel={(record) => `${record.itemLabel} mrp exception`} virtualization={{ enabled: true }} />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace
+        description="MRP exception detail keeps item, severity, and recommended action controlled by the selected run result."
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Create shortage action", reason: "Shortage conversion requires BOQ approval workflow enablement." }]} secondary={[{ disabled: true, label: "Export exception", reason: "MRP exception export is pending the approved reporting workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedExceptionId(null), variant: "quiet" }]} />}
+        isOpen={Boolean(selectedException)}
+        onClose={() => setSelectedExceptionId(null)}
+        title={selectedException?.itemLabel ?? "MRP exception"}
+      >
+        {selectedException ? (
+          <FormShell initialFingerprint={selectedException.id} title="Exception detail">
+            <ErpLookupField disabled disabledReason="Item is controlled by the MRP run result." label="Item" onChange={() => undefined} options={[{ label: selectedException.itemLabel, value: selectedException.itemLabel }]} value={selectedException.itemLabel} />
+            <ErpLookupField disabled disabledReason="Exception type is calculated by MRP netting." label="Exception type" onChange={() => undefined} options={[{ label: selectedException.exceptionCode, value: selectedException.exceptionCode }]} value={selectedException.exceptionCode} />
+            <ErpLookupField disabled disabledReason="Severity is derived from the exception type." label="Severity" onChange={() => undefined} options={[{ label: getExceptionSeverity(selectedException.exceptionCode), value: getExceptionSeverity(selectedException.exceptionCode) }]} value={getExceptionSeverity(selectedException.exceptionCode)} />
+            <ErpLookupField disabled disabledReason="Recommended action is calculated by MRP policy." label="Recommended action" onChange={() => undefined} options={[{ label: selectedException.recommendedAction, value: selectedException.recommendedAction }]} value={selectedException.recommendedAction} />
+            <ErpNumberField disabled disabledReason="Gross requirement is controlled by the MRP run result." label="Gross requirement" onChange={() => undefined} value={selectedException.grossRequirementQty} />
+            <ErpNumberField disabled disabledReason="Available quantity is controlled by the MRP run result." label="Available quantity" onChange={() => undefined} value={selectedException.availableQtyAtRun} />
+            <ErpNumberField disabled disabledReason="Net requirement is controlled by the MRP run result." label="Net requirement" onChange={() => undefined} value={selectedException.netRequirementQty} />
+          </FormShell>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
   );
 }
 

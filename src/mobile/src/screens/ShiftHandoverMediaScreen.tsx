@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { seededMediaUploads, seededShiftHandovers } from "../mobileSeedData";
-import { MobileBadge, MobileButton, MobileCard, MobileField, MobileListItem, MobileSectionTitle } from "../ui/mobileComponents";
+import { MobileActionNotice, MobileBadge, MobileButton, MobileCard, MobileField, MobileListItem, MobileSectionTitle } from "../ui/mobileComponents";
 
 function handoverTone(status: "Draft" | "Queued" | "Synced" | "Conflict") {
   if (status === "Conflict") {
@@ -27,6 +28,11 @@ function mediaTone(status: "Ready" | "Queued" | "Synced" | "Failed" | "Conflict"
 }
 
 export function ShiftHandoverMediaScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueHandover = (shiftLabel: string) => () => setActionMessage(`Handover queued for ${shiftLabel}.`);
+  const addNote = (shiftLabel: string) => () => setActionMessage(`Note draft opened for ${shiftLabel}.`);
+  const queueMedia = (fileLabel: string) => () => setActionMessage(`${fileLabel} queued for upload.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard
@@ -34,6 +40,7 @@ export function ShiftHandoverMediaScreen() {
         subtitle="Capture unresolved issues, shift summary, and media proof without forcing web administration onto the phone."
         title="Shift Handover / Notes / Photos"
       >
+        <MobileActionNotice message={actionMessage} tone="warn" />
         {seededShiftHandovers.map((handover) => (
           <MobileListItem key={handover.id}>
             <View style={styles.row}>
@@ -50,8 +57,8 @@ export function ShiftHandoverMediaScreen() {
               <MobileField label="Next owner" value={handover.nextOwner} />
             </View>
             <View style={styles.buttonRow}>
-              <MobileButton label="Queue handover" tone="warn" />
-              <MobileButton label="Add note" tone="neutral" />
+              <MobileButton label="Queue handover" onPress={queueHandover(handover.shiftLabel)} tone="warn" />
+              <MobileButton label="Add note" onPress={addNote(handover.shiftLabel)} tone="neutral" />
             </View>
           </MobileListItem>
         ))}
@@ -72,6 +79,13 @@ export function ShiftHandoverMediaScreen() {
               <MobileBadge label={upload.status} tone={mediaTone(upload.status)} />
               <Text style={styles.audit}>{upload.requiresNetwork ? "Network required for retry" : "Safe to queue offline"}</Text>
             </View>
+            <MobileButton
+              disabled={upload.status === "Synced"}
+              disabledReason="This attachment is already synced."
+              label={upload.status === "Failed" ? "Retry upload" : "Queue media"}
+              onPress={queueMedia(upload.fileLabel)}
+              tone={upload.status === "Failed" ? "danger" : "info"}
+            />
           </MobileListItem>
         ))}
       </MobileCard>

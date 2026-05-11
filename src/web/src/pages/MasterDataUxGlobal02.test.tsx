@@ -43,7 +43,7 @@ describe("Wave UX-GLOBAL-02 master-data enforcement", () => {
 
     const newDraft = screen.getByRole("button", { name: "New item group draft" });
     expect(newDraft).toBeDisabled();
-    expect(screen.getByText("Draft creation is controlled by the master-data rollout.")).toBeInTheDocument();
+    expect(screen.getByText("Draft creation requires the governed master-data maintenance workflow.")).toBeInTheDocument();
   });
 
   it("keeps Item Master business-facing and removes the old workspace-data action text", async () => {

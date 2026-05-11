@@ -383,7 +383,11 @@ export async function listBoqRequirementSetup(session: AuthSessionResponse | nul
   }
 }
 
-export async function listCapacityBoardSetup(filter: QueryFilter): Promise<CapacityBucketItem[]> {
+export async function listCapacityBoardSetup(session: AuthSessionResponse | null | undefined, filter: QueryFilter): Promise<CapacityBucketItem[]> {
+  if (hasLiveSession(session)) {
+    throw liveDataUnavailable("Capacity board");
+  }
+
   return filterSeeded(
     seededCapacityBuckets,
     filter,

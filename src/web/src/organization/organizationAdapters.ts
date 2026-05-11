@@ -22,6 +22,7 @@ export interface CompanySetupItem {
   legalName: string;
   taxRegistrationNo: string;
   timeZoneId: string;
+  defaultLanguageId: number | null;
   baseCurrencyCode: string;
   calendarCode: string;
   status: string;
@@ -36,8 +37,11 @@ export interface BranchSetupItem {
   name: string;
   branchType: string;
   timeZoneId: string;
+  defaultLanguageId: number | null;
   calendarCode: string;
+  defaultShiftId: number | null;
   defaultShift: string;
+  defaultWarehouseId: number | null;
   defaultWarehouse: string;
   contactEmail: string;
   status: string;
@@ -52,7 +56,9 @@ export interface DepartmentSetupItem {
   code: string;
   name: string;
   departmentType: string;
+  parentDepartmentId: number | null;
   parentDepartment: string;
+  managerUserId: number | null;
   manager: string;
   status: string;
   source: SetupDataSource;
@@ -81,14 +87,18 @@ export interface BinSetupItem {
   companyId: number;
   branchId: number;
   warehouseId: number;
+  parentBinId: number | null;
   code: string;
   name: string;
   binType: string;
+  capacityValue: number | null;
+  capacityUomId: number | null;
   capacityLabel: string;
   defaultReceive: boolean;
   defaultIssue: boolean;
   cycleCountLabel: string;
   isBlocked: boolean;
+  countCycleDays: number | null;
   blockReason: string;
   status: string;
   source: SetupDataSource;
@@ -120,6 +130,7 @@ const seededCompanies: CompanySetupItem[] = [
     legalName: "STS Precision Fabricators Private Limited",
     taxRegistrationNo: "27AAXCS9021K1Z5",
     timeZoneId: "Asia/Kolkata",
+    defaultLanguageId: null,
     baseCurrencyCode: "INR",
     calendarCode: "IND-MFG-2026",
     status: "Active",
@@ -133,6 +144,7 @@ const seededCompanies: CompanySetupItem[] = [
     legalName: "STS Export Assemblies LLP",
     taxRegistrationNo: "27AAXFS1188C1Z3",
     timeZoneId: "Asia/Kolkata",
+    defaultLanguageId: null,
     baseCurrencyCode: "USD",
     calendarCode: "EXPORT-2026",
     status: "Draft",
@@ -149,8 +161,11 @@ const seededBranches: BranchSetupItem[] = [
     name: "Main Fabrication Plant",
     branchType: "Manufacturing",
     timeZoneId: "Asia/Kolkata",
+    defaultLanguageId: null,
     calendarCode: "IND-MFG-2026",
+    defaultShiftId: 1,
     defaultShift: "SHIFT-A",
+    defaultWarehouseId: 101,
     defaultWarehouse: "RM-MAIN",
     contactEmail: "plant1@sts-precision.local",
     status: "Active",
@@ -164,8 +179,11 @@ const seededBranches: BranchSetupItem[] = [
     name: "Central Warehouse Hub",
     branchType: "Warehouse",
     timeZoneId: "Asia/Kolkata",
+    defaultLanguageId: null,
     calendarCode: "IND-MFG-2026",
+    defaultShiftId: 3,
     defaultShift: "SHIFT-G",
+    defaultWarehouseId: 103,
     defaultWarehouse: "FG-DISPATCH",
     contactEmail: "stores@sts-precision.local",
     status: "Active",
@@ -182,7 +200,9 @@ const seededDepartments: DepartmentSetupItem[] = [
     code: "PLN",
     name: "Planning",
     departmentType: "Planning",
+    parentDepartmentId: null,
     parentDepartment: "Operations",
+    managerUserId: null,
     manager: "Ritika Sharma",
     status: "Active",
     source: "Seeded"
@@ -195,7 +215,9 @@ const seededDepartments: DepartmentSetupItem[] = [
     code: "PRD",
     name: "Production",
     departmentType: "Production",
+    parentDepartmentId: null,
     parentDepartment: "Operations",
+    managerUserId: null,
     manager: "Ajay Patil",
     status: "Active",
     source: "Seeded"
@@ -208,7 +230,9 @@ const seededDepartments: DepartmentSetupItem[] = [
     code: "QC",
     name: "Quality Control",
     departmentType: "Quality",
+    parentDepartmentId: null,
     parentDepartment: "Operations",
+    managerUserId: null,
     manager: "Kiran Rao",
     status: "Active",
     source: "Seeded"
@@ -221,7 +245,9 @@ const seededDepartments: DepartmentSetupItem[] = [
     code: "STO",
     name: "Stores",
     departmentType: "Stores",
+    parentDepartmentId: null,
     parentDepartment: "Supply Chain",
+    managerUserId: null,
     manager: "Meera Iyer",
     status: "Active",
     source: "Seeded"
@@ -286,12 +312,16 @@ const seededBins: BinSetupItem[] = [
     companyId: 1,
     branchId: 10,
     warehouseId: 101,
+    parentBinId: null,
     code: "RM-A-R01",
     name: "Row A Rack 01",
     binType: "Rack",
+    capacityValue: 2.5,
+    capacityUomId: null,
     capacityLabel: "2.5 MT",
     defaultReceive: true,
     defaultIssue: false,
+    countCycleDays: 30,
     cycleCountLabel: "Every 30 days",
     isBlocked: false,
     blockReason: "None",
@@ -304,12 +334,16 @@ const seededBins: BinSetupItem[] = [
     companyId: 1,
     branchId: 10,
     warehouseId: 101,
+    parentBinId: null,
     code: "RM-QC-HOLD",
     name: "QC Hold Cage",
     binType: "Quarantine",
+    capacityValue: 1,
+    capacityUomId: null,
     capacityLabel: "1.0 MT",
     defaultReceive: false,
     defaultIssue: false,
+    countCycleDays: 7,
     cycleCountLabel: "Every 7 days",
     isBlocked: true,
     blockReason: "QC_HOLD",
@@ -322,12 +356,16 @@ const seededBins: BinSetupItem[] = [
     companyId: 1,
     branchId: 11,
     warehouseId: 103,
+    parentBinId: null,
     code: "FG-STAGE-01",
     name: "Dispatch Stage 01",
     binType: "Staging",
+    capacityValue: 12,
+    capacityUomId: null,
     capacityLabel: "12 pallets",
     defaultReceive: false,
     defaultIssue: true,
+    countCycleDays: 15,
     cycleCountLabel: "Every 15 days",
     isBlocked: false,
     blockReason: "None",
@@ -423,6 +461,7 @@ function mapCompany(dto: CompanyDto, source: SetupDataSource): CompanySetupItem 
     legalName: dto.legalName,
     taxRegistrationNo: dto.taxRegistrationNo ?? "Not captured",
     timeZoneId: dto.timeZoneId,
+    defaultLanguageId: dto.defaultLanguageId,
     baseCurrencyCode: dto.baseCurrencyCode ?? "Pending",
     calendarCode: dto.defaultCalendarCode ?? "Pending",
     status: dto.status,
@@ -439,8 +478,11 @@ function mapBranch(dto: BranchDto, source: SetupDataSource): BranchSetupItem {
     name: dto.branchName,
     branchType: dto.branchType,
     timeZoneId: dto.timeZoneId,
+    defaultLanguageId: dto.defaultLanguageId,
     calendarCode: dto.defaultCalendarCode ?? "Pending",
+    defaultShiftId: dto.defaultShiftId,
     defaultShift: dto.defaultShiftId ? `Shift ${dto.defaultShiftId}` : "Pending",
+    defaultWarehouseId: dto.defaultWarehouseId,
     defaultWarehouse: dto.defaultWarehouseId ? `Warehouse ${dto.defaultWarehouseId}` : "Pending",
     contactEmail: dto.contactEmail ?? "Pending",
     status: dto.status,
@@ -457,7 +499,9 @@ function mapDepartment(dto: DepartmentDto, source: SetupDataSource): DepartmentS
     code: dto.departmentCode,
     name: dto.departmentName,
     departmentType: dto.departmentType,
+    parentDepartmentId: dto.parentDepartmentId,
     parentDepartment: dto.parentDepartmentId ? `Department ${dto.parentDepartmentId}` : "Root",
+    managerUserId: dto.managerUserId,
     manager: dto.managerUserId ? `User ${dto.managerUserId}` : "Unassigned",
     status: dto.status,
     source
@@ -490,14 +534,18 @@ function mapBin(dto: BinDto, source: SetupDataSource): BinSetupItem {
     companyId: dto.companyId,
     branchId: dto.branchId,
     warehouseId: dto.warehouseId,
+    parentBinId: dto.parentBinId,
     code: dto.binCode,
     name: dto.binName,
     binType: dto.binType,
+    capacityValue: dto.capacityValue,
+    capacityUomId: dto.capacityUomId,
     capacityLabel: dto.capacityValue ? `${dto.capacityValue} UOM ${dto.capacityUomId ?? "pending"}` : "Not capped",
     defaultReceive: dto.isDefaultReceiveBin,
     defaultIssue: dto.isDefaultIssueBin,
     cycleCountLabel: dto.isCountCycleRequired ? `Every ${dto.countCycleDays ?? "?"} days` : "Not required",
     isBlocked: dto.isBlocked,
+    countCycleDays: dto.countCycleDays,
     blockReason: dto.blockReasonCode ?? "None",
     status: dto.status,
     source

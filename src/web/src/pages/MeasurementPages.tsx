@@ -1,8 +1,11 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import type { MeasurementProfileUpsertRequest, UomClassUpsertRequest, UomConversionUpsertRequest } from "../api/contracts";
+import { ApiError, apiClient } from "../api/http";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import {
   buildMasterFilter,
+  canPersistMasterData,
   listMeasurementFormulaSetup,
   listMeasurementProfileSetup,
   listUomClassSetup,
@@ -36,9 +39,39 @@ function SourceBadge({ source }: { source: MasterDataSource }) {
   return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Review mode"}</ErpStatusChip>;
 }
 
-function parseFirstDecimal(value: string | null | undefined) {
-  const match = value?.match(/-?\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
+type SaveTone = "success" | "danger" | "info";
+
+interface UomClassDraft extends UomClassUpsertRequest {
+  id: number | null;
+}
+
+interface UomConversionDraft extends UomConversionUpsertRequest {
+  id: number | null;
+}
+
+interface MeasurementProfileDraft extends MeasurementProfileUpsertRequest {
+  id: number | null;
+}
+
+function measurementErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiError) {
+    const details = error.details.filter((detail) => detail !== error.message);
+    return [error.message, ...details].join(" ");
+  }
+
+  return error instanceof Error ? error.message : fallback;
+}
+
+function SaveMessage({ message, tone }: { message: string | null; tone: SaveTone }) {
+  return message ? <ErpStatusChip tone={tone}>{message}</ErpStatusChip> : null;
+}
+
+function LoadError({ message }: { message: string | null }) {
+  return message ? (
+    <Card title="Live data unavailable" description={message}>
+      <ErpStatusChip tone="danger">Live source required</ErpStatusChip>
+    </Card>
+  ) : null;
 }
 
 function MeasurementAside({
@@ -174,30 +207,60 @@ const formulaColumns: DataGridColumn<MeasurementFormulaSetupItem>[] = [
 ];
 
 function MeasurementActionBar({
+  canCreate,
   exportLabel,
+  onCreate,
   primaryLabel,
   testId
 }: {
+  canCreate: boolean;
   exportLabel: string;
+  onCreate: () => void;
   primaryLabel: string;
   testId: string;
 }) {
   return (
     <ErpActionBar
-      primary={[{ disabled: true, label: primaryLabel, reason: "Draft creation is controlled by the measurement setup workflow." }]}
-      secondary={[{ disabled: true, label: exportLabel, reason: "Export is pending the controlled export workflow." }]}
+      primary={[
+        {
+          disabled: !canCreate,
+          label: primaryLabel,
+          onClick: canCreate ? onCreate : undefined,
+          reason: canCreate ? undefined : "Sign in with measurement setup write access to create this draft."
+        }
+      ]}
+      secondary={[{ disabled: true, label: exportLabel, reason: "Export requires the governed measurement export workflow." }]}
       testId={testId}
     />
   );
 }
 
-function MeasurementModalFooter({ onClose, saveLabel }: { onClose: () => void; saveLabel: string }) {
+function MeasurementModalFooter({
+  canSave,
+  isSaving,
+  onClose,
+  onSave,
+  saveLabel
+}: {
+  canSave: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  saveLabel: string;
+}) {
   return (
     <ErpActionBar
-      primary={[{ disabled: true, label: saveLabel, reason: "Save is disabled until the measurement setup workflow is enabled." }]}
+      primary={[
+        {
+          disabled: !canSave || isSaving,
+          label: isSaving ? "Saving..." : saveLabel,
+          onClick: canSave && !isSaving ? onSave : undefined,
+          reason: canSave ? undefined : "Sign in with measurement setup write access to save this record."
+        }
+      ]}
       secondary={[
         { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require measurement dependency checks." },
-        { disabled: true, label: "Review audit", reason: "Audit review is pending rollout." }
+        { disabled: true, label: "Review audit", reason: "Measurement audit history requires recorded live changes." }
       ]}
       utility={[{ label: "Close", onClick: onClose, variant: "quiet" }]}
     />
@@ -208,7 +271,10 @@ export function UomClassMasterPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<UomClassDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<SaveTone>("info");
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(
     () => buildMasterFilter(user?.activeContext.companyId, undefined, deferredSearch, status),
@@ -220,8 +286,73 @@ export function UomClassMasterPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = query.isError ? "Deferred" : records[0]?.source ?? "Seeded";
+  const canSave = canPersistMasterData(session);
+  const baseUomOptions = Array.from(new Map(records.map((record) => [record.baseUomId ?? 0, record.baseUom])).entries())
+    .filter(([value]) => value > 0)
+    .map(([value, label]) => ({ label, value: String(value) }));
+  const loadError = query.isError ? "UOM classes could not be loaded from the live API. Seeded operational data is not shown in authenticated mode." : null;
+  const openDraft = (record: UomClassSetupItem) => {
+    setDraft({
+      id: record.uomClassId,
+      classCode: record.code,
+      className: record.name,
+      baseUomId: record.baseUomId,
+      supportsFormulaConversion: record.supportsFormulaConversion,
+      status: record.status
+    });
+    setSaveMessage(null);
+  };
+  const openCreate = () => {
+    setDraft({
+      id: null,
+      classCode: "",
+      className: "",
+      baseUomId: baseUomOptions[0] ? Number(baseUomOptions[0].value) : null,
+      supportsFormulaConversion: false,
+      status: "Draft"
+    });
+    setSaveMessage(null);
+  };
+  const closeDraft = () => {
+    setDraft(null);
+    setSaveMessage(null);
+  };
+  const updateDraft = (changes: Partial<UomClassDraft>) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  const saveDraft = async () => {
+    if (!draft || !canSave || isSaving) {
+      return;
+    }
+
+    if (!draft.classCode.trim() || !draft.className.trim()) {
+      setSaveTone("danger");
+      setSaveMessage("Class code and class name are required.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const request: UomClassUpsertRequest = {
+        classCode: draft.classCode.trim(),
+        className: draft.className.trim(),
+        baseUomId: draft.baseUomId,
+        supportsFormulaConversion: draft.supportsFormulaConversion,
+        status: draft.status
+      };
+      const saved = draft.id
+        ? await apiClient.measurements.updateUomClass(draft.id, request)
+        : await apiClient.measurements.createUomClass(request);
+      setDraft((current) => current ? { ...current, id: saved.id } : current);
+      await query.refetch();
+      setSaveTone("success");
+      setSaveMessage("UOM class draft saved.");
+    } catch (error) {
+      setSaveTone("danger");
+      setSaveMessage(measurementErrorMessage(error, "UOM class draft could not be saved."));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
@@ -229,7 +360,7 @@ export function UomClassMasterPage() {
         actions={
           <>
             <SourceBadge source={source} />
-            <MeasurementActionBar exportLabel="Export classes" primaryLabel="New UOM class draft" testId="uom-class-action-bar" />
+            <MeasurementActionBar canCreate={canSave} exportLabel="Export classes" onCreate={openCreate} primaryLabel="New UOM class draft" testId="uom-class-action-bar" />
           </>
         }
         aside={
@@ -264,6 +395,7 @@ export function UomClassMasterPage() {
         }
         title="UOM Class Master"
       >
+        <LoadError message={loadError} />
         <KpiStrip
           items={[
             { label: "Classes", value: String(records.length) },
@@ -282,7 +414,7 @@ export function UomClassMasterPage() {
             }}
             getRowId={(record) => record.id}
             isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
+            onRowSelect={openDraft}
             records={records}
             rowLabel={(record) => `${record.code} UOM class`}
             testId="uom-class-grid"
@@ -293,33 +425,38 @@ export function UomClassMasterPage() {
 
       <ErpModalWorkspace
         description="Class detail stays in a controlled setup workspace without changing runtime conversion behavior."
-        footer={<MeasurementModalFooter onClose={() => setSelectedId(null)} saveLabel="Save class draft" />}
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "UOM class detail"}
+        footer={<MeasurementModalFooter canSave={canSave} isSaving={isSaving} onClose={closeDraft} onSave={saveDraft} saveLabel="Save class draft" />}
+        isOpen={Boolean(draft)}
+        onClose={closeDraft}
+        title={draft?.className || "UOM class detail"}
       >
-        {selected ? (
-          <FormShell initialFingerprint={selected.id} title="UOM class setup">
+        {draft ? (
+          <FormShell initialFingerprint={`${draft.id ?? "new"}-${saveMessage ?? ""}`} title="UOM class setup">
+            <SaveMessage message={saveMessage} tone={saveTone} />
             <label>
               <span>Class code</span>
-              <input defaultValue={selected.code} />
+              <input onChange={(event) => updateDraft({ classCode: event.target.value })} value={draft.classCode} />
             </label>
             <label>
               <span>Class name</span>
-              <input defaultValue={selected.name} />
+              <input onChange={(event) => updateDraft({ className: event.target.value })} value={draft.className} />
             </label>
             <ErpLookupField
               label="Base UOM"
-              onChange={() => undefined}
-              options={Array.from(new Set(records.map((record) => record.baseUom))).map((option) => ({ label: option, value: option }))}
-              value={selected.baseUom}
+              onChange={(value) => updateDraft({ baseUomId: value ? Number(value) : null })}
+              options={baseUomOptions}
+              value={draft.baseUomId ? String(draft.baseUomId) : ""}
             />
             <ErpLookupField
               label="Status"
-              onChange={() => undefined}
+              onChange={(value) => updateDraft({ status: value })}
               options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
-              value={selected.status}
+              value={draft.status}
             />
+            <label className="form-checkbox">
+              <input checked={draft.supportsFormulaConversion} onChange={(event) => updateDraft({ supportsFormulaConversion: event.target.checked })} type="checkbox" />
+              <span>Formula conversion allowed</span>
+            </label>
             <ErpActionBar secondary={[{ disabled: true, label: "Add unit", reason: "Unit maintenance requires UOM setup workflow enablement." }]} />
           </FormShell>
         ) : null}
@@ -332,7 +469,10 @@ export function UomConversionMasterPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<UomConversionDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<SaveTone>("info");
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(
     () => buildMasterFilter(user?.activeContext.companyId, undefined, deferredSearch, status),
@@ -344,8 +484,86 @@ export function UomConversionMasterPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = query.isError ? "Deferred" : records[0]?.source ?? "Seeded";
+  const canSave = canPersistMasterData(session);
+  const uomOptions = Array.from(
+    new Map(records.flatMap((record) => [[record.fromUomId, record.fromUom], [record.toUomId, record.toUom]] as Array<[number, string]>)).entries()
+  ).map(([value, label]) => ({ label, value: String(value) }));
+  const loadError = query.isError ? "UOM conversions could not be loaded from the live API. Seeded operational data is not shown in authenticated mode." : null;
+  const openDraft = (record: UomConversionSetupItem) => {
+    setDraft({
+      id: record.conversionId,
+      fromUomId: record.fromUomId,
+      toUomId: record.toUomId,
+      conversionMode: record.conversionMode,
+      factorNumerator: record.factorNumerator,
+      factorDenominator: record.factorDenominator,
+      formulaTokenSet: record.formulaTokenSet === "None" ? null : record.formulaTokenSet,
+      roundMode: record.roundMode,
+      precisionScale: record.precisionScale,
+      status: record.status
+    });
+    setSaveMessage(null);
+  };
+  const openCreate = () => {
+    const first = records[0];
+    setDraft({
+      id: null,
+      fromUomId: first?.fromUomId ?? (uomOptions[0] ? Number(uomOptions[0].value) : 0),
+      toUomId: first?.toUomId ?? (uomOptions[1] ? Number(uomOptions[1].value) : 0),
+      conversionMode: "Fixed",
+      factorNumerator: 1,
+      factorDenominator: 1,
+      formulaTokenSet: null,
+      roundMode: "Standard",
+      precisionScale: 3,
+      status: "Draft"
+    });
+    setSaveMessage(null);
+  };
+  const closeDraft = () => {
+    setDraft(null);
+    setSaveMessage(null);
+  };
+  const updateDraft = (changes: Partial<UomConversionDraft>) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  const saveDraft = async () => {
+    if (!draft || !canSave || isSaving) {
+      return;
+    }
+
+    if (!draft.fromUomId || !draft.toUomId || draft.factorNumerator <= 0 || draft.factorDenominator <= 0) {
+      setSaveTone("danger");
+      setSaveMessage("From UOM, To UOM, and positive conversion factors are required.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const request: UomConversionUpsertRequest = {
+        fromUomId: draft.fromUomId,
+        toUomId: draft.toUomId,
+        conversionMode: draft.conversionMode,
+        factorNumerator: draft.factorNumerator,
+        factorDenominator: draft.factorDenominator,
+        formulaTokenSet: draft.formulaTokenSet?.trim() || null,
+        roundMode: draft.roundMode,
+        precisionScale: draft.precisionScale,
+        status: draft.status
+      };
+      const saved = draft.id
+        ? await apiClient.measurements.updateUomConversion(draft.id, request)
+        : await apiClient.measurements.createUomConversion(request);
+      setDraft((current) => current ? { ...current, id: saved.id } : current);
+      await query.refetch();
+      setSaveTone("success");
+      setSaveMessage("UOM conversion draft saved.");
+    } catch (error) {
+      setSaveTone("danger");
+      setSaveMessage(measurementErrorMessage(error, "UOM conversion draft could not be saved."));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
@@ -353,7 +571,7 @@ export function UomConversionMasterPage() {
         actions={
           <>
             <SourceBadge source={source} />
-            <MeasurementActionBar exportLabel="Export conversions" primaryLabel="New conversion draft" testId="uom-conversion-action-bar" />
+            <MeasurementActionBar canCreate={canSave} exportLabel="Export conversions" onCreate={openCreate} primaryLabel="New conversion draft" testId="uom-conversion-action-bar" />
           </>
         }
         aside={
@@ -388,6 +606,7 @@ export function UomConversionMasterPage() {
         }
         title="UOM Conversion Master"
       >
+        <LoadError message={loadError} />
         <KpiStrip
           items={[
             { label: "Conversions", value: String(records.length) },
@@ -406,7 +625,7 @@ export function UomConversionMasterPage() {
             }}
             getRowId={(record) => record.id}
             isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
+            onRowSelect={openDraft}
             records={records}
             rowLabel={(record) => `${record.fromUom} to ${record.toUom} conversion`}
             testId="uom-conversion-grid"
@@ -417,63 +636,67 @@ export function UomConversionMasterPage() {
 
       <ErpModalWorkspace
         description="Conversion detail highlights the calculation rule without executing quantity posting."
-        footer={<MeasurementModalFooter onClose={() => setSelectedId(null)} saveLabel="Save conversion draft" />}
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected ? `${selected.fromUom} -> ${selected.toUom}` : "Conversion detail"}
+        footer={<MeasurementModalFooter canSave={canSave} isSaving={isSaving} onClose={closeDraft} onSave={saveDraft} saveLabel="Save conversion draft" />}
+        isOpen={Boolean(draft)}
+        onClose={closeDraft}
+        title={draft ? `${uomOptions.find((option) => option.value === String(draft.fromUomId))?.label ?? "From"} -> ${uomOptions.find((option) => option.value === String(draft.toUomId))?.label ?? "To"}` : "Conversion detail"}
       >
-        {selected ? (
-          <FormShell initialFingerprint={selected.id} title="Conversion setup">
+        {draft ? (
+          <FormShell initialFingerprint={`${draft.id ?? "new"}-${saveMessage ?? ""}`} title="Conversion setup">
+            <SaveMessage message={saveMessage} tone={saveTone} />
             <ErpLookupField
               label="From UOM"
-              onChange={() => undefined}
-              options={Array.from(new Set(records.flatMap((record) => [record.fromUom, record.toUom]))).map((option) => ({ label: option, value: option }))}
-              value={selected.fromUom}
+              onChange={(value) => updateDraft({ fromUomId: Number(value) })}
+              options={uomOptions}
+              value={String(draft.fromUomId)}
             />
             <ErpLookupField
               label="To UOM"
-              onChange={() => undefined}
-              options={Array.from(new Set(records.flatMap((record) => [record.fromUom, record.toUom]))).map((option) => ({ label: option, value: option }))}
-              value={selected.toUom}
+              onChange={(value) => updateDraft({ toUomId: Number(value) })}
+              options={uomOptions}
+              value={String(draft.toUomId)}
             />
             <ErpLookupField
               label="Conversion mode"
-              onChange={() => undefined}
+              onChange={(value) => updateDraft({ conversionMode: value })}
               options={["Fixed", "Formula"].map((value) => ({ label: value, value }))}
-              value={selected.conversionMode}
+              value={draft.conversionMode}
             />
             <ErpDecimalField
-              disabled
-              disabledReason="Conversion factor changes require the measurement setup workflow."
-              label="Conversion factor"
+              label="Factor numerator"
               min={0}
-              onChange={() => undefined}
+              onChange={(value) => updateDraft({ factorNumerator: value ?? 0 })}
               scale={6}
-              value={parseFirstDecimal(selected.factorLabel)}
+              value={draft.factorNumerator}
+            />
+            <ErpDecimalField
+              label="Factor denominator"
+              min={0}
+              onChange={(value) => updateDraft({ factorDenominator: value ?? 0 })}
+              scale={6}
+              value={draft.factorDenominator}
             />
             <ErpLookupField
               label="Rounding rule"
-              onChange={() => undefined}
-              options={["HalfUp", "Bankers", "Floor", "Ceiling"].map((value) => ({ label: value, value }))}
-              value={selected.roundMode}
+              onChange={(value) => updateDraft({ roundMode: value })}
+              options={["Standard", "Commercial", "HalfUp", "Bankers", "Floor", "Ceiling"].map((value) => ({ label: value, value }))}
+              value={draft.roundMode}
             />
             <ErpNumberField
-              disabled
-              disabledReason="Precision is controlled by the conversion setup record."
               label="Decimal places"
               min={0}
-              onChange={() => undefined}
-              value={selected.precisionScale}
+              onChange={(value) => updateDraft({ precisionScale: value ?? 0 })}
+              value={draft.precisionScale}
             />
             <ErpLookupField
               label="Status"
-              onChange={() => undefined}
+              onChange={(value) => updateDraft({ status: value })}
               options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
-              value={selected.status}
+              value={draft.status}
             />
             <label>
               <span>Formula tokens</span>
-              <textarea defaultValue={selected.formulaTokenSet} rows={3} />
+              <textarea onChange={(event) => updateDraft({ formulaTokenSet: event.target.value })} rows={3} value={draft.formulaTokenSet ?? ""} />
             </label>
           </FormShell>
         ) : null}
@@ -486,7 +709,10 @@ export function MeasurementProfileMasterPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<MeasurementProfileDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<SaveTone>("info");
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(
     () => buildMasterFilter(user?.activeContext.companyId, undefined, deferredSearch, status),
@@ -504,9 +730,97 @@ export function MeasurementProfileMasterPage() {
   );
   const profiles = profileQuery.data ?? [];
   const formulas = formulaQuery.data ?? [];
-  const selected = profiles.find((record) => record.id === selectedId) ?? null;
-  const selectedFormulas = selected ? formulas.filter((formula) => formula.profileId === selected.profileId) : formulas;
-  const source = profiles[0]?.source ?? formulas[0]?.source ?? "Seeded";
+  const selectedFormulas = draft?.id ? formulas.filter((formula) => formula.profileId === draft.id) : formulas;
+  const source = profileQuery.isError || formulaQuery.isError ? "Deferred" : profiles[0]?.source ?? formulas[0]?.source ?? "Seeded";
+  const canSave = canPersistMasterData(session);
+  const classOptions = Array.from(new Map(profiles.map((record) => [record.stockUomClassId, record.stockUomClass])).entries())
+    .filter(([value]) => value > 0)
+    .map(([value, label]) => ({ label, value: String(value) }));
+  const profileTypeOptions = Array.from(new Set([...profiles.map((record) => record.profileType), "CountOnly", "DimensionalFormula", "CatchWeight"]))
+    .filter(Boolean)
+    .map((value) => ({ label: value, value }));
+  const loadError = profileQuery.isError || formulaQuery.isError
+    ? "Measurement profiles could not be loaded from the live API. Seeded operational data is not shown in authenticated mode."
+    : null;
+  const openDraft = (record: MeasurementProfileSetupItem) => {
+    setDraft({
+      id: record.profileId,
+      profileCode: record.code,
+      profileName: record.name,
+      profileType: record.profileType,
+      stockUomClassId: record.stockUomClassId,
+      allowsCatchWeight: record.allowsCatchWeight,
+      requiresDimensions: record.requiresDimensions,
+      requiresDensity: record.requiresDensity,
+      requiresThickness: record.requiresThickness,
+      requiresPackSize: record.requiresPackSize,
+      supportsCommercialProductionSplit: record.supportsCommercialProductionSplit,
+      status: record.status
+    });
+    setSaveMessage(null);
+  };
+  const openCreate = () => {
+    setDraft({
+      id: null,
+      profileCode: "",
+      profileName: "",
+      profileType: "CountOnly",
+      stockUomClassId: classOptions[0] ? Number(classOptions[0].value) : 1,
+      allowsCatchWeight: false,
+      requiresDimensions: false,
+      requiresDensity: false,
+      requiresThickness: false,
+      requiresPackSize: false,
+      supportsCommercialProductionSplit: false,
+      status: "Draft"
+    });
+    setSaveMessage(null);
+  };
+  const closeDraft = () => {
+    setDraft(null);
+    setSaveMessage(null);
+  };
+  const updateDraft = (changes: Partial<MeasurementProfileDraft>) => setDraft((current) => (current ? { ...current, ...changes } : current));
+  const saveDraft = async () => {
+    if (!draft || !canSave || isSaving) {
+      return;
+    }
+
+    if (!draft.profileCode.trim() || !draft.profileName.trim() || !draft.stockUomClassId) {
+      setSaveTone("danger");
+      setSaveMessage("Profile code, profile name, and stock UOM class are required.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const request: MeasurementProfileUpsertRequest = {
+        profileCode: draft.profileCode.trim(),
+        profileName: draft.profileName.trim(),
+        profileType: draft.profileType,
+        stockUomClassId: draft.stockUomClassId,
+        allowsCatchWeight: draft.allowsCatchWeight,
+        requiresDimensions: draft.requiresDimensions,
+        requiresDensity: draft.requiresDensity,
+        requiresThickness: draft.requiresThickness,
+        requiresPackSize: draft.requiresPackSize,
+        supportsCommercialProductionSplit: draft.supportsCommercialProductionSplit,
+        status: draft.status
+      };
+      const saved = draft.id
+        ? await apiClient.measurements.updateProfile(draft.id, request)
+        : await apiClient.measurements.createProfile(request);
+      setDraft((current) => current ? { ...current, id: saved.id } : current);
+      await profileQuery.refetch();
+      setSaveTone("success");
+      setSaveMessage("Measurement profile draft saved.");
+    } catch (error) {
+      setSaveTone("danger");
+      setSaveMessage(measurementErrorMessage(error, "Measurement profile draft could not be saved."));
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
@@ -514,7 +828,7 @@ export function MeasurementProfileMasterPage() {
         actions={
           <>
             <SourceBadge source={source} />
-            <MeasurementActionBar exportLabel="Export profiles" primaryLabel="New measurement profile" testId="measurement-profile-action-bar" />
+            <MeasurementActionBar canCreate={canSave} exportLabel="Export profiles" onCreate={openCreate} primaryLabel="New measurement profile" testId="measurement-profile-action-bar" />
           </>
         }
         aside={
@@ -549,6 +863,7 @@ export function MeasurementProfileMasterPage() {
         }
         title="Measurement Profile Master"
       >
+        <LoadError message={loadError} />
         <KpiStrip
           items={[
             { label: "Profiles", value: String(profiles.length) },
@@ -568,7 +883,7 @@ export function MeasurementProfileMasterPage() {
               }}
               getRowId={(record) => record.id}
               isLoading={profileQuery.isLoading}
-              onRowSelect={(record) => setSelectedId(record.id)}
+              onRowSelect={openDraft}
               records={profiles}
               rowLabel={(record) => `${record.code} measurement profile`}
               testId="measurement-profile-grid"
@@ -595,64 +910,81 @@ export function MeasurementProfileMasterPage() {
 
       <ErpModalWorkspace
         description="Profile detail keeps catch-weight and formula behavior explicit for audit review."
-        footer={<MeasurementModalFooter onClose={() => setSelectedId(null)} saveLabel="Save profile draft" />}
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "Measurement profile detail"}
+        footer={<MeasurementModalFooter canSave={canSave} isSaving={isSaving} onClose={closeDraft} onSave={saveDraft} saveLabel="Save profile draft" />}
+        isOpen={Boolean(draft)}
+        onClose={closeDraft}
+        title={draft?.profileName || "Measurement profile detail"}
       >
-        {selected ? (
+        {draft ? (
           <>
             <div className="utility-grid">
-              <Tile eyebrow={selected.profileType} label="Catch weight" meta={selected.status}>
-                {selected.allowsCatchWeight ? "Allowed" : "Not allowed"}
+              <Tile eyebrow={draft.profileType} label="Catch weight" meta={draft.status}>
+                {draft.allowsCatchWeight ? "Allowed" : "Not allowed"}
               </Tile>
-              <Tile eyebrow="Formula count" label="Dimensional logic" meta={selected.stockUomClass}>
+              <Tile eyebrow="Formula count" label="Dimensional logic" meta={classOptions.find((option) => option.value === String(draft.stockUomClassId))?.label ?? "UOM class"}>
                 {selectedFormulas.length}
               </Tile>
             </div>
-            <FormShell initialFingerprint={selected.id} title="Measurement profile setup">
+            <FormShell initialFingerprint={`${draft.id ?? "new"}-${saveMessage ?? ""}`} title="Measurement profile setup">
+              <SaveMessage message={saveMessage} tone={saveTone} />
               <label>
                 <span>Profile code</span>
-                <input defaultValue={selected.code} />
+                <input onChange={(event) => updateDraft({ profileCode: event.target.value })} value={draft.profileCode} />
               </label>
               <label>
                 <span>Profile name</span>
-                <input defaultValue={selected.name} />
+                <input onChange={(event) => updateDraft({ profileName: event.target.value })} value={draft.profileName} />
               </label>
               <ErpLookupField
                 label="Stock UOM class"
-                onChange={() => undefined}
-                options={Array.from(new Set(profiles.map((record) => record.stockUomClass))).map((option) => ({ label: option, value: option }))}
-                value={selected.stockUomClass}
+                onChange={(value) => updateDraft({ stockUomClassId: Number(value) })}
+                options={classOptions}
+                value={String(draft.stockUomClassId)}
               />
               <ErpLookupField
                 label="Profile type"
-                onChange={() => undefined}
-                options={Array.from(new Set(profiles.map((record) => record.profileType))).map((option) => ({ label: option, value: option }))}
-                value={selected.profileType}
+                onChange={(value) => updateDraft({ profileType: value })}
+                options={profileTypeOptions}
+                value={draft.profileType}
               />
               <ErpLookupField
                 label="Dimension UOM class"
-                onChange={() => undefined}
-                options={Array.from(new Set(profiles.map((record) => record.stockUomClass))).map((option) => ({ label: option, value: option }))}
-                value={selected.stockUomClass}
+                onChange={(value) => updateDraft({ stockUomClassId: Number(value) })}
+                options={classOptions}
+                value={String(draft.stockUomClassId)}
               />
               <ErpLookupField
                 label="Weight UOM class"
-                onChange={() => undefined}
-                options={Array.from(new Set(profiles.map((record) => record.stockUomClass))).map((option) => ({ label: option, value: option }))}
-                value={selected.stockUomClass}
+                onChange={(value) => updateDraft({ stockUomClassId: Number(value) })}
+                options={classOptions}
+                value={String(draft.stockUomClassId)}
               />
-              <ErpNumberField disabled disabledReason="Precision is controlled by formula rules." label="Precision" min={0} onChange={() => undefined} value={selected.requiresDimensions ? 3 : 0} />
+              <ErpNumberField disabled disabledReason="Precision is controlled by formula rules." label="Precision" min={0} onChange={() => undefined} value={draft.requiresDimensions ? 3 : 0} />
               <ErpLookupField
                 label="Status"
-                onChange={() => undefined}
+                onChange={(value) => updateDraft({ status: value })}
                 options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
-                value={selected.status}
+                value={draft.status}
               />
               <label className="form-checkbox">
-                <input checked={selected.allowsCatchWeight} disabled readOnly type="checkbox" />
+                <input checked={draft.allowsCatchWeight} onChange={(event) => updateDraft({ allowsCatchWeight: event.target.checked })} type="checkbox" />
                 <span>Catch weight enabled</span>
+              </label>
+              <label className="form-checkbox">
+                <input checked={draft.requiresDimensions} onChange={(event) => updateDraft({ requiresDimensions: event.target.checked })} type="checkbox" />
+                <span>Dimensions required</span>
+              </label>
+              <label className="form-checkbox">
+                <input checked={draft.requiresDensity} onChange={(event) => updateDraft({ requiresDensity: event.target.checked })} type="checkbox" />
+                <span>Density required</span>
+              </label>
+              <label className="form-checkbox">
+                <input checked={draft.requiresThickness} onChange={(event) => updateDraft({ requiresThickness: event.target.checked })} type="checkbox" />
+                <span>Thickness required</span>
+              </label>
+              <label className="form-checkbox">
+                <input checked={draft.requiresPackSize} onChange={(event) => updateDraft({ requiresPackSize: event.target.checked })} type="checkbox" />
+                <span>Pack size required</span>
               </label>
             </FormShell>
           </>

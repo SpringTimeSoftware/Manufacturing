@@ -48,6 +48,15 @@ public sealed class AttachmentsController(IAttachmentService attachmentService) 
 
         return OkEnvelope(response, "Attachment linked.");
     }
+
+    [HttpGet("{id:long}/content")]
+    public async Task<IActionResult> Download(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var response = await attachmentService.OpenContentAsync(id, cancellationToken);
+        return File(response.Content, response.ContentType, response.FileName);
+    }
 }
 
 public sealed class AttachmentUploadForm

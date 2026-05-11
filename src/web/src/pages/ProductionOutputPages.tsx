@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataAdapters";
@@ -15,7 +16,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
+import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -72,6 +73,7 @@ const receiptColumns: DataGridColumn<ProductionReceiptItem>[] = [
 ];
 
 export function ProductionReceiptPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -101,7 +103,7 @@ export function ProductionReceiptPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Production receipt detail is review-only until posting workflow is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save receipt draft", reason: "Production receipt save requires posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post receipt", reason: "Posting requires the controlled production posting workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save receipt draft", reason: "Production receipt save requires posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post receipt", reason: "Posting requires the controlled production posting workflow." }, { label: "Open job card", onClick: () => navigate(`/production/job-cards?jobCard=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }, { label: "Open traceability", onClick: () => navigate(`/inventory/traceability?receipt=${encodeURIComponent(selected?.receiptNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.receiptNo ?? "Production receipt"}
@@ -122,6 +124,7 @@ const scrapColumns: DataGridColumn<ScrapByProductItem>[] = [
 ];
 
 export function ScrapByProductPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -146,12 +149,12 @@ export function ScrapByProductPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Scrap detail is review-only until scrap posting is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save scrap draft", reason: "Scrap save requires production posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post scrap", reason: "Posting requires the controlled production posting workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save scrap draft", reason: "Scrap save requires production posting workflow enablement." }]} secondary={[{ disabled: true, label: "Post scrap", reason: "Posting requires the controlled production posting workflow." }, { label: "Open job card", onClick: () => navigate(`/production/job-cards?jobCard=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.scrapNo ?? "Scrap entry"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Scrap / by-product controls"><ErpLookupField disabled disabledReason="Reason code is controlled by reason-code master." label="Reason" onChange={() => undefined} options={[{ label: selected.reasonCode, value: selected.reasonCode }]} value={selected.reasonCode} /><ErpLookupField disabled disabledReason="Inventory state is controlled by production posting rules." label="Inventory state" onChange={() => undefined} options={[{ label: selected.inventoryState, value: selected.inventoryState }]} value={selected.inventoryState} /><label><span>Valuation</span><input disabled defaultValue={selected.valuationSignal} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Scrap / by-product controls"><ErpLookupField disabled disabledReason="Reason code is controlled by reason-code master." label="Reason" onChange={() => undefined} options={[{ label: selected.reasonCode, value: selected.reasonCode }]} value={selected.reasonCode} /><ErpNumberField disabled disabledReason="Scrap and by-product quantities are controlled by production posting." label="Quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Inventory state is controlled by production posting rules." label="Inventory state" onChange={() => undefined} options={[{ label: selected.inventoryState, value: selected.inventoryState }]} value={selected.inventoryState} /><ErpLookupField disabled disabledReason="Valuation status is controlled by production posting and costing rules." label="Valuation" onChange={() => undefined} options={[{ label: selected.valuationSignal, value: selected.valuationSignal }]} value={selected.valuationSignal} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -167,6 +170,7 @@ const reworkColumns: DataGridColumn<ReworkOrderItem>[] = [
 ];
 
 export function ReworkOrderPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -191,12 +195,12 @@ export function ReworkOrderPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Rework detail is review-only until rework order save is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save rework order", reason: "Rework save requires quality and production workflow enablement." }]} secondary={[{ disabled: true, label: "Release rework", reason: "Release requires controlled rework workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save rework order", reason: "Rework save requires quality and production workflow enablement." }]} secondary={[{ disabled: true, label: "Release rework", reason: "Release requires controlled rework workflow." }, { label: "Open NCR", onClick: () => navigate(`/quality/ncr?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }, { label: "Open job card", onClick: () => navigate(`/production/job-cards?jobCard=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.reworkNo ?? "Rework order"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="Rework controls" description={selected.instructions}><ErpLookupField disabled disabledReason="Source document is controlled by NCR and production release context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Route selection is controlled by routing master." label="Route" onChange={() => undefined} options={[{ label: selected.routeLabel, value: selected.routeLabel }]} value={selected.routeLabel} /><label><span>Released / closed</span><input disabled defaultValue={`${selected.releasedLabel} / ${selected.closedLabel}`} /></label></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="Rework controls" description={selected.instructions}><ErpLookupField disabled disabledReason="Source document is controlled by NCR and production release context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Route selection is controlled by routing master." label="Route" onChange={() => undefined} options={[{ label: selected.routeLabel, value: selected.routeLabel }]} value={selected.routeLabel} /><ErpNumberField disabled disabledReason="Rework quantity is controlled by rework workflow." label="Quantity" onChange={() => undefined} value={selected.quantity} /><label><span>Released / closed</span><input disabled defaultValue={`${selected.releasedLabel} / ${selected.closedLabel}`} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

@@ -13,6 +13,7 @@ import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
 import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
+import { EmptyState } from "../ui/EmptyState";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -197,7 +198,14 @@ export function UserManagementPage() {
             <AdapterBadge />
             <ErpActionBar
               primary={[{ disabled: true, label: "Invite user", reason: "User invitations require the approved access workflow." }]}
-              secondary={[{ label: "Export", onClick: exportUsers }]}
+              secondary={[
+                {
+                  disabled: query.isError || filtered.length === 0,
+                  label: "Export",
+                  onClick: exportUsers,
+                  reason: query.isError ? "User directory must load before export." : "No users are available for export."
+                }
+              ]}
               testId="user-management-action-bar"
             />
           </>
@@ -249,6 +257,13 @@ export function UserManagementPage() {
           ]}
         />
 
+        {query.isError ? (
+          <EmptyState
+            description="Live user directory could not be loaded for the current operating context."
+            hint={query.error instanceof Error ? query.error.message : undefined}
+            title="User directory unavailable"
+          />
+        ) : null}
         <Card title="User directory" description="Dense access review with branch, role, and login-policy context.">
           <DataGrid
             ariaLabel="User management directory"
@@ -293,7 +308,7 @@ export function UserManagementPage() {
             <FormShell initialFingerprint={selected.id} title="Access policy">
               <label>
                 <span>Display name</span>
-                <input defaultValue={selected.displayName} />
+                <input disabled readOnly title="Display name changes require the approved access workflow." value={selected.displayName} />
               </label>
               <ErpLookupField
                 disabled
@@ -373,7 +388,14 @@ export function RolePermissionMatrixPage() {
             <AdapterBadge />
             <ErpActionBar
               primary={[{ disabled: true, label: "Create custom role", reason: "Custom role creation requires the approved role governance workflow." }]}
-              secondary={[{ label: "Export matrix", onClick: exportRoles }]}
+              secondary={[
+                {
+                  disabled: query.isError || filtered.length === 0,
+                  label: "Export matrix",
+                  onClick: exportRoles,
+                  reason: query.isError ? "Role matrix must load before export." : "No roles are available for export."
+                }
+              ]}
               testId="role-permission-action-bar"
             />
           </>
@@ -406,6 +428,13 @@ export function RolePermissionMatrixPage() {
           ]}
         />
 
+        {query.isError ? (
+          <EmptyState
+            description="Live role matrix could not be loaded for the current operating context."
+            hint={query.error instanceof Error ? query.error.message : undefined}
+            title="Role matrix unavailable"
+          />
+        ) : null}
         <Card title="Role templates" description="Scope and permission review without leaving the matrix list context.">
           <DataGrid
             ariaLabel="Role permission matrix"
@@ -466,7 +495,7 @@ export function RolePermissionMatrixPage() {
             <FormShell initialFingerprint={selected.id} title="Role template editor">
               <label>
                 <span>Role label</span>
-                <input defaultValue={selected.label} />
+                <input disabled readOnly title="Role label changes require the approved role governance workflow." value={selected.label} />
               </label>
               <ErpLookupField
                 disabled
@@ -581,6 +610,7 @@ export function AuditTrailPage() {
             <ErpActionBar
               secondary={[
                 {
+                  disabled: query.isError || records.length === 0,
                   label: "Export audit",
                   onClick: () =>
                     downloadCsv(
@@ -595,7 +625,10 @@ export function AuditTrailPage() {
                         String(record.createdByUserId ?? "System"),
                         record.correlationId
                       ])
-                    )
+                    ),
+                  reason: query.isError
+                    ? "Audit events must load before export."
+                    : "No audit events are available for export."
                 }
               ]}
               testId="audit-trail-action-bar"
@@ -645,6 +678,13 @@ export function AuditTrailPage() {
           ]}
         />
 
+        {query.isError ? (
+          <EmptyState
+            description="Live audit events could not be loaded for the current operating context."
+            hint={query.error instanceof Error ? query.error.message : undefined}
+            title="Audit trail unavailable"
+          />
+        ) : null}
         <Card title="Audit events" description="Time-ordered, role-scoped actions with entity and correlation context.">
           <DataGrid
             ariaLabel="Audit trail events"
@@ -683,19 +723,19 @@ export function AuditTrailPage() {
             <FormShell initialFingerprint={String(selected.id)} title="Audit event detail">
               <label>
                 <span>Correlation ID</span>
-                <input readOnly value={selected.correlationId} />
+                <input disabled readOnly value={selected.correlationId} />
               </label>
               <label>
                 <span>Entity ID</span>
-                <input readOnly value={selected.entityId ?? ""} />
+                <input disabled readOnly value={selected.entityId ?? ""} />
               </label>
               <label>
                 <span>Before snapshot</span>
-                <textarea readOnly rows={4} value={formatSnapshot(selected.beforeSnapshot, "No before snapshot captured.")} />
+                <textarea disabled readOnly rows={4} value={formatSnapshot(selected.beforeSnapshot, "No before snapshot captured.")} />
               </label>
               <label>
                 <span>After snapshot</span>
-                <textarea readOnly rows={5} value={formatSnapshot(selected.afterSnapshot, "No after snapshot captured.")} />
+                <textarea disabled readOnly rows={5} value={formatSnapshot(selected.afterSnapshot, "No after snapshot captured.")} />
               </label>
             </FormShell>
           </>

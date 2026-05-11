@@ -115,6 +115,7 @@ import {
   QcPlanSetupPage
 } from "../pages/QualityPages";
 import { PrintPackPage } from "../pages/PrintPackPage";
+import { GlobalSearchPage } from "../pages/SearchPage";
 
 function guardedRoute(path: string, element: ReactElement) {
   const roles = navigationItems.find((item) => item.path === `/${path}`)?.roles;
@@ -227,6 +228,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("platform/context-switch", <ContextSwitchPage />),
       guardedRoute("platform/notifications", <NotificationInboxPage />),
       guardedRoute("platform/approvals", <ApprovalWorkbenchPage />),
+      guardedRoute("search", <GlobalSearchPage />),
       guardedRoute("reports/print-pack", <PrintPackPage />)
     ]
   },

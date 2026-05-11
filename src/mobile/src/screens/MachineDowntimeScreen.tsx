@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { seededMachineTasks } from "../mobileSeedData";
 import type { MachineTask, MobileTone } from "../mobileTypes";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -22,9 +24,13 @@ function machineTone(status: MachineTask["status"]): MobileTone {
 }
 
 export function MachineDowntimeScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueAction = (label: string, machine: MachineTask) => () => setActionMessage(`${label} queued for ${machine.machineLabel}.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard title="Downtime Log" subtitle="Log machine stop, reason, photo reference, and escalation while offline.">
+        <MobileActionNotice message={actionMessage} tone="warn" />
         {seededMachineTasks.filter((machine) => machine.status === "Down").map((machine) => (
           <MobileListItem key={machine.id}>
             <View style={styles.row}>
@@ -35,7 +41,7 @@ export function MachineDowntimeScreen() {
               <MobileBadge label={machine.status} tone={machineTone(machine.status)} />
             </View>
             <TextInput accessibilityLabel="Downtime remarks" multiline placeholder="Add downtime reason, photo ref, and escalation note" style={styles.notes} />
-            <MobileButton label="Queue downtime log" tone="danger" />
+            <MobileButton label="Queue downtime log" onPress={queueAction("Downtime log", machine)} tone="danger" />
           </MobileListItem>
         ))}
       </MobileCard>
@@ -52,9 +58,9 @@ export function MachineDowntimeScreen() {
             </View>
             <MobileField label="Active job card" value={machine.activeJobCard} />
             <View style={styles.buttonRow}>
-              <MobileButton label="Run" tone="success" />
-              <MobileButton label="Idle" tone="warn" />
-              <MobileButton label="Down" tone="danger" />
+              <MobileButton label="Run" onPress={queueAction("Run status", machine)} tone="success" />
+              <MobileButton label="Idle" onPress={queueAction("Idle status", machine)} tone="warn" />
+              <MobileButton label="Down" onPress={queueAction("Down status", machine)} tone="danger" />
             </View>
           </MobileListItem>
         ))}

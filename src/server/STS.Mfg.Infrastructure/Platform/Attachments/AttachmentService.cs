@@ -6,6 +6,7 @@ using STS.Mfg.Application.Abstractions.Audit;
 using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
 using STS.Mfg.Application.Contracts.Attachments;
+using STS.Mfg.Application.Exceptions;
 using STS.Mfg.Domain.Platform.Attachments;
 using STS.Mfg.Infrastructure.Application;
 using STS.Mfg.Infrastructure.Persistence;
@@ -104,6 +105,33 @@ internal sealed class AttachmentService(
         var dto = MapAttachment(attachment);
         await WriteAuditAsync("platform", nameof(AttachmentRecord), "attachment.create", attachment.Id, null, dto, cancellationToken);
         return dto;
+    }
+
+    public async Task<AttachmentContentResult> OpenContentAsync(
+        long attachmentId,
+        CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var attachment = await DbContext.Attachments
+            .AsNoTracking()
+            .ApplyActiveOrganizationScope(scope)
+            .ApplyRecordVisibility(scope)
+            .FirstOrDefaultAsync(entity => entity.Id == attachmentId, cancellationToken);
+
+        attachment = EnsureFound(attachment, "Attachment is not available in the current operating scope.", "attachments.not_found");
+
+        if (!await attachmentStorage.ExistsAsync(attachment.StoragePath, cancellationToken))
+        {
+            throw new ResourceNotFoundException("Attachment content is not available in storage.", "attachments.content_missing");
+        }
+
+        var content = await attachmentStorage.OpenReadAsync(attachment.StoragePath, cancellationToken);
+        await WriteAuditAsync("platform", nameof(AttachmentRecord), "attachment.download", attachment.Id, null, MapAttachment(attachment), cancellationToken);
+
+        return new AttachmentContentResult(
+            attachment.FileName,
+            attachment.ContentType,
+            content);
     }
 
     private static AttachmentRecordDto MapAttachment(AttachmentRecord entity) =>

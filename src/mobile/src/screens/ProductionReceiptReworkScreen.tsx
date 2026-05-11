@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { seededNcrTasks, seededProductionOutputs } from "../mobileSeedData";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -9,9 +11,14 @@ import {
 } from "../ui/mobileComponents";
 
 export function ProductionReceiptReworkScreen() {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueReceipt = (receiptNo: string) => () => setActionMessage(`Output receipt queued for ${receiptNo}.`);
+  const queueRework = (ncrNo: string) => () => setActionMessage(`Rework instruction queued for ${ncrNo}.`);
+
   return (
     <View style={styles.stack}>
       <MobileCard title="Production Receipt" subtitle="Receive output with lot, serial, and catch-weight labels while offline-safe.">
+        <MobileActionNotice message={actionMessage} tone="success" />
         {seededProductionOutputs.map((output) => (
           <MobileListItem key={output.id}>
             <View style={styles.row}>
@@ -27,7 +34,7 @@ export function ProductionReceiptReworkScreen() {
               <MobileField label="Catch weight" value={output.catchWeightQty} />
             </View>
             <TextInput accessibilityLabel={`${output.receiptNo} lot serial`} defaultValue={output.lotSerialLabel} style={styles.input} />
-            <MobileButton label="Queue output receipt" tone="success" />
+            <MobileButton label="Queue output receipt" onPress={queueReceipt(output.receiptNo)} tone="success" />
           </MobileListItem>
         ))}
       </MobileCard>
@@ -43,7 +50,7 @@ export function ProductionReceiptReworkScreen() {
               <MobileBadge label={task.disposition} tone="warn" />
             </View>
             <TextInput accessibilityLabel={`${task.ncrNo} rework instruction`} defaultValue={task.instruction} multiline style={styles.notes} />
-            <MobileButton label="Queue rework instruction" tone="warn" />
+            <MobileButton label="Queue rework instruction" onPress={queueRework(task.ncrNo)} tone="warn" />
           </MobileListItem>
         ))}
       </MobileCard>

@@ -476,27 +476,23 @@ export async function listTranslationRegistry(
       apiClient.localization.resources("hi-IN", normalizedModule)
     ]);
 
-    const keys = Array.from(
-      new Set([...Object.keys(enIn.resources), ...Object.keys(hiIn.resources), ...translationRecords.map((record) => record.key)])
-    );
+    const keys = Array.from(new Set([...Object.keys(enIn.resources), ...Object.keys(hiIn.resources)]));
 
     return keys
       .filter((key) => {
-        const record = translationRecords.find((entry) => entry.key === key);
-        const moduleName = record?.module ?? normalizedModule ?? "Platform";
+        const moduleName = normalizedModule ?? key.split(".")[0] ?? "Platform";
         const matchesModule = module === "all" || moduleName.toLowerCase() === module.toLowerCase();
         const combinedText = [key, enIn.resources[key], hiIn.resources[key], moduleName].filter(Boolean).join(" ");
         const matchesSearch = search.trim().length === 0 || combinedText.toLowerCase().includes(search.toLowerCase());
         return matchesModule && matchesSearch;
       })
       .map((key, index) => {
-        const record = translationRecords.find((entry) => entry.key === key);
         return {
-          id: record?.id ?? `translation-live-${index}`,
-          module: record?.module ?? (normalizedModule ? normalizedModule[0].toUpperCase() + normalizedModule.slice(1) : "Platform"),
+          id: `translation-live-${index}`,
+          module: normalizedModule ? normalizedModule[0].toUpperCase() + normalizedModule.slice(1) : key.split(".")[0] ?? "Platform",
           key,
-          enIn: enIn.resources[key] ?? record?.enIn ?? "",
-          hiIn: hiIn.resources[key] ?? record?.hiIn ?? "",
+          enIn: enIn.resources[key] ?? "",
+          hiIn: hiIn.resources[key] ?? "",
           status: "Live Preview" as const,
           source: "Live" as const
         };

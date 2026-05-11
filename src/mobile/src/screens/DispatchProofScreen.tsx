@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { seededDispatchProofTasks, seededMediaUploads } from "../mobileSeedData";
-import { MobileBadge, MobileButton, MobileCard, MobileField, MobileListItem } from "../ui/mobileComponents";
+import { MobileActionNotice, MobileBadge, MobileButton, MobileCard, MobileField, MobileListItem } from "../ui/mobileComponents";
 
 function statusTone(status: "Ready" | "Loading" | "ProofQueued" | "Synced") {
   if (status === "Synced") {
@@ -16,14 +17,18 @@ function statusTone(status: "Ready" | "Loading" | "ProofQueued" | "Synced") {
 
 export function DispatchProofScreen() {
   const dispatchUploads = seededMediaUploads.filter((upload) => upload.sourceDocument.startsWith("SHIP-"));
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const queueScan = (shipmentNo: string) => () => setActionMessage(`Package scan queued for ${shipmentNo}.`);
+  const retryProof = (fileLabel: string) => () => setActionMessage(`${fileLabel} queued for proof upload retry.`);
 
   return (
     <View style={styles.stack}>
       <MobileCard
-        action={<MobileBadge label="M019" tone="success" />}
+        action={<MobileBadge label="Proof queue" tone="success" />}
         subtitle="Scan packed items, record vehicle and seal notes, then queue proof media when the dock network is unreliable."
         title="Dispatch Loading / Proof"
       >
+        <MobileActionNotice message={actionMessage} tone="success" />
         {seededDispatchProofTasks.map((task) => {
           const remaining = Math.max(task.packedItems - task.scannedItems, 0);
 
@@ -46,8 +51,8 @@ export function DispatchProofScreen() {
                 <MobileField label="Proof" value={task.proofLabel} />
               </View>
               <View style={styles.buttonRow}>
-                <MobileButton label="Scan package" tone="success" />
-                <MobileButton label="Capture proof" tone="info" />
+                <MobileButton label="Scan package" onPress={queueScan(task.shipmentNo)} tone="success" />
+                <MobileButton disabled disabledReason="Camera proof capture requires the native camera permission adapter." label="Capture proof" tone="info" />
               </View>
             </MobileListItem>
           );
@@ -64,6 +69,7 @@ export function DispatchProofScreen() {
               </View>
               <MobileBadge label={upload.status} tone={upload.status === "Failed" ? "danger" : "warn"} />
             </View>
+            <MobileButton label="Retry proof upload" onPress={retryProof(upload.fileLabel)} tone={upload.status === "Failed" ? "danger" : "info"} />
           </MobileListItem>
         ))}
       </MobileCard>

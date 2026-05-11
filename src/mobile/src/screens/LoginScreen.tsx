@@ -7,8 +7,8 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onSubmit }: LoginScreenProps) {
-  const [userName, setUserName] = useState("supervisor.demo");
-  const [password, setPassword] = useState("demo");
+  const [userName, setUserName] = useState("prod.supervisor");
+  const [password, setPassword] = useState("Production@123");
   const [deviceName, setDeviceName] = useState("Shopfloor Tablet 01");
 
   return (

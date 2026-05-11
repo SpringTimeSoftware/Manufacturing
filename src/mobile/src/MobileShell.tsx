@@ -98,7 +98,7 @@ export function MobileShell({
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>Mobile execution shell</Text>
+          <Text style={styles.eyebrow}>Mobile execution</Text>
           <Text style={styles.title}>{session.displayName}</Text>
           <Text style={styles.muted}>{`${activeContext.companyName} / ${activeContext.branchName}`}</Text>
           <View style={styles.badgeRow}>

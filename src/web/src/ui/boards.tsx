@@ -94,7 +94,7 @@ export function KanbanBoard({ columns }: { columns: KanbanColumn[] }) {
   );
 }
 
-export function LaneBoard({ lanes }: { lanes: Lane[] }) {
+export function LaneBoard({ lanes, onSlotSelect }: { lanes: Lane[]; onSlotSelect?: (lane: Lane, slot: LaneSlot) => void }) {
   return (
     <div className="ui-lane-board">
       {lanes.map((lane) => (
@@ -115,6 +115,15 @@ export function LaneBoard({ lanes }: { lanes: Lane[] }) {
               <article
                 className={`ui-lane-board__slot ui-lane-board__slot--${slot.emphasis ?? "queued"}`}
                 key={slot.id}
+                onClick={onSlotSelect ? () => onSlotSelect(lane, slot) : undefined}
+                onKeyDown={onSlotSelect ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSlotSelect(lane, slot);
+                  }
+                } : undefined}
+                role={onSlotSelect ? "button" : undefined}
+                tabIndex={onSlotSelect ? 0 : undefined}
               >
                 <strong>{slot.title}</strong>
                 <p>{slot.meta}</p>

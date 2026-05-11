@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   customerRecords,
   itemRecords,
@@ -21,6 +22,7 @@ import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
 import { ErpActionBar, ErpFilterBar, ErpGrid, ErpLookupField, ErpModalWorkspace, ErpStatusChip } from "../ui/ErpComponents";
+import { EmptyState } from "../ui/EmptyState";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -284,7 +286,7 @@ export function TranslationSetupPage() {
       <ListPageShell
         actions={
           <>
-            <Badge tone="success">Live localization preview</Badge>
+            <Badge tone="success">Localization preview</Badge>
             <ErpActionBar primary={[{ disabled: true, label: "Sync bundle", reason: "Translation sync requires localization approval workflow." }]} secondary={[{ disabled: true, label: "Export bundle", reason: "Translation export is pending the approved reporting workflow." }]} testId="translation-action-bar" />
           </>
         }
@@ -304,6 +306,7 @@ export function TranslationSetupPage() {
         filters={
           <FilterBar>
             <input
+              aria-label="Search translations"
               onChange={(event) => {
                 startTransition(() => setSearch(event.target.value));
               }}
@@ -329,6 +332,13 @@ export function TranslationSetupPage() {
           ]}
         />
 
+        {query.isError ? (
+          <EmptyState
+            description="Live translation resources could not be loaded for the current language context."
+            hint={query.error instanceof Error ? query.error.message : undefined}
+            title="Translation resources unavailable"
+          />
+        ) : null}
         <Card title="Translation bundle" description="Platform and module keys with localization review controls.">
           <DataGrid
             ariaLabel="Translation bundle"
@@ -419,6 +429,7 @@ export function WorkflowNumberingPage() {
         filters={
           <FilterBar>
             <input
+              aria-label="Search workflow rules"
               onChange={(event) => {
                 startTransition(() => setSearch(event.target.value));
               }}
@@ -443,6 +454,13 @@ export function WorkflowNumberingPage() {
           ]}
         />
 
+        {query.isError ? (
+          <EmptyState
+            description="Live workflow and numbering rules could not be loaded for the current operating context."
+            hint={query.error instanceof Error ? query.error.message : undefined}
+            title="Workflow rules unavailable"
+          />
+        ) : null}
         <Card title="Workflow templates" description="Series pattern, ownership, and approval chain review for document setup.">
           <DataGrid
             ariaLabel="Workflow numbering setup"
@@ -604,6 +622,13 @@ export function TenantSettingsPage() {
           </Card>
         </div>
 
+        {query.isError ? (
+          <EmptyState
+            description="Live tenant settings could not be loaded for the current operating context."
+            hint={query.error instanceof Error ? query.error.message : undefined}
+            title="Tenant settings unavailable"
+          />
+        ) : null}
         <Card title="Tenant policy registry" description="Deployment, localization, attachment, and feature-flag settings in one auditable list.">
           <DataGrid
             ariaLabel="Tenant settings registry"
@@ -652,5 +677,78 @@ export function TenantSettingsPage() {
 }
 
 export function PlatformSettingsPage() {
-  return <WorkflowNumberingPage />;
+  const navigate = useNavigate();
+  const setupAreas = [
+    {
+      id: "tenant",
+      label: "Tenant settings",
+      route: "/platform/tenant-settings",
+      summary: "Feature flags, deployment controls, localization defaults, and attachment policy."
+    },
+    {
+      id: "workflow",
+      label: "Workflow and numbering",
+      route: "/platform/workflow-numbering",
+      summary: "Document series, approval chain review, and transition setup."
+    },
+    {
+      id: "translations",
+      label: "Language setup",
+      route: "/platform/translations",
+      summary: "Language resource preview, translation review, and localization status."
+    },
+    {
+      id: "access",
+      label: "Users and roles",
+      route: "/platform/users",
+      summary: "User directory, role matrix, branch scope, and login policy review."
+    },
+    {
+      id: "audit",
+      label: "Audit trail",
+      route: "/platform/audit-trail",
+      summary: "Role-scoped action history, attachment events, and admin activity."
+    },
+    {
+      id: "attachments",
+      label: "Attachments",
+      route: "/platform/attachments",
+      summary: "Linked files, authorization, preview, download, and upload review."
+    }
+  ];
+
+  return (
+    <ListPageShell
+      actions={
+        <ErpActionBar
+          primary={[{ label: "Open tenant settings", onClick: () => navigate("/platform/tenant-settings") }]}
+          secondary={[
+            { label: "Open workflow setup", onClick: () => navigate("/platform/workflow-numbering") },
+            { label: "Open audit trail", onClick: () => navigate("/platform/audit-trail") }
+          ]}
+          testId="platform-settings-action-bar"
+        />
+      }
+      description="Single entry point for platform administration, rollout controls, localization, audit, and document access."
+      title="Platform Settings"
+    >
+      <KpiStrip
+        items={[
+          { label: "Setup areas", value: String(setupAreas.length) },
+          { label: "Access controls", value: "Users & roles" },
+          { label: "Audit", value: "Available" },
+          { label: "Documents", value: "Scoped" }
+        ]}
+      />
+      <Card title="Platform administration areas" description="Open the governed setup area needed for the current administration task.">
+        <div className="utility-grid">
+          {setupAreas.map((area) => (
+            <Tile eyebrow="Platform" key={area.id} label={area.label} meta="Open setup" onClick={() => navigate(area.route)}>
+              {area.summary}
+            </Tile>
+          ))}
+        </div>
+      </Card>
+    </ListPageShell>
+  );
 }

@@ -1,5 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import type { CustomerUpsertRequest, SupplierUpsertRequest } from "../api/contracts";
+import { apiClient } from "../api/http";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -135,7 +136,6 @@ const leadTimeReadyOptions = ["Any", "Ready", "Pending"].map(toOption);
 const dispatchPreferenceOptions = ["Standard dispatch", "Appointment required", "Dock booking", "Customer pickup"].map(toOption);
 const supplierCapabilityOptions = ["Material supplier", "Subcontract capable", "Service provider", "Logistics partner"].map(toOption);
 
-const documentDisabledReason = "Binary upload storage is not enabled. Document metadata can be saved now.";
 const saveDisabledReason = "Sign in with partner master write access to save this record.";
 
 function toOption(value: string) {
@@ -715,11 +715,13 @@ interface CustomerEditorProps {
   canSave: boolean;
   customer: CustomerSetupItem;
   customers: CustomerSetupItem[];
+  documentDisabledReason?: string;
   isSaving: boolean;
   mode: PartnerEditorMode;
   onAddAddress: () => void;
   onAddContact: () => void;
   onAddDocument: () => void;
+  onUploadDocument?: (file: File | null) => void;
   onAddressChange: <K extends keyof CustomerAddressSetupItem>(addressId: string, key: K, value: CustomerAddressSetupItem[K]) => void;
   onChange: <K extends keyof CustomerSetupItem>(key: K, value: CustomerSetupItem[K]) => void;
   onClose: () => void;
@@ -735,11 +737,13 @@ function CustomerEditor({
   canSave,
   customer,
   customers,
+  documentDisabledReason,
   isSaving,
   mode,
   onAddAddress,
   onAddContact,
   onAddDocument,
+  onUploadDocument,
   onAddressChange,
   onChange,
   onClose,
@@ -757,6 +761,7 @@ function CustomerEditor({
   const catalogStatus = customerCatalogStatus(customer);
   const firstAddress = addresses[0];
   const firstContact = workspace.contactPoints[0];
+  const canUploadDocument = Boolean(onUploadDocument);
   const updateProfile = <K extends keyof CustomerPartnerWorkspaceSetup["profile"]>(key: K, value: CustomerPartnerWorkspaceSetup["profile"][K]) =>
     onWorkspaceChange({ ...workspace, profile: { ...workspace.profile, [key]: value } });
   const updateContact = <K extends keyof PartnerContactPointSetupItem>(key: K, value: PartnerContactPointSetupItem[K]) => {
@@ -959,7 +964,13 @@ function CustomerEditor({
 
         <Card title={CUSTOMER_SECTIONS[10]} description="Tax, commercial, and dispatch documents for customer readiness.">
           <ErpActionBar secondary={[{ label: "Add document metadata", onClick: onAddDocument }]} />
-          <ErpFileActionState disabledReason={documentDisabledReason} enabled={false} label="Upload customer document" />
+          <ErpFileActionState
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
+            disabledReason={documentDisabledReason}
+            enabled={canUploadDocument}
+            label="Upload customer document"
+            onFileSelect={onUploadDocument}
+          />
           <ErpGrid
             ariaLabel="Customer documents"
             columns={documentColumns}
@@ -988,12 +999,14 @@ function CustomerEditor({
 interface SupplierEditorProps {
   addresses: SupplierAddressSetupItem[];
   canSave: boolean;
+  documentDisabledReason?: string;
   isSaving: boolean;
   leadTimes: SupplierLeadTimeSetupItem[];
   mode: PartnerEditorMode;
   onAddAddress: () => void;
   onAddContact: () => void;
   onAddDocument: () => void;
+  onUploadDocument?: (file: File | null) => void;
   onAddressChange: <K extends keyof SupplierAddressSetupItem>(addressId: string, key: K, value: SupplierAddressSetupItem[K]) => void;
   onChange: <K extends keyof SupplierSetupItem>(key: K, value: SupplierSetupItem[K]) => void;
   onClose: () => void;
@@ -1009,12 +1022,14 @@ interface SupplierEditorProps {
 function SupplierEditor({
   addresses,
   canSave,
+  documentDisabledReason,
   isSaving,
   leadTimes,
   mode,
   onAddAddress,
   onAddContact,
   onAddDocument,
+  onUploadDocument,
   onAddressChange,
   onChange,
   onClose,
@@ -1034,6 +1049,7 @@ function SupplierEditor({
   const leadTimeSignal = supplierLeadTimeSignal(leadTimes);
   const firstAddress = addresses[0];
   const firstContact = workspace.contactPoints[0];
+  const canUploadDocument = Boolean(onUploadDocument);
   const updateProfile = <K extends keyof SupplierPartnerWorkspaceSetup["profile"]>(key: K, value: SupplierPartnerWorkspaceSetup["profile"][K]) =>
     onWorkspaceChange({ ...workspace, profile: { ...workspace.profile, [key]: value } });
   const updateContact = <K extends keyof PartnerContactPointSetupItem>(key: K, value: PartnerContactPointSetupItem[K]) => {
@@ -1222,7 +1238,13 @@ function SupplierEditor({
 
         <Card title={SUPPLIER_SECTIONS[9]} description="Compliance document status and approval readiness.">
           <ErpActionBar secondary={[{ label: "Add compliance metadata", onClick: onAddDocument }]} />
-          <ErpFileActionState disabledReason={documentDisabledReason} enabled={false} label="Upload compliance document" />
+          <ErpFileActionState
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
+            disabledReason={documentDisabledReason}
+            enabled={canUploadDocument}
+            label="Upload compliance document"
+            onFileSelect={onUploadDocument}
+          />
           <ErpGrid
             ariaLabel="Supplier compliance documents"
             columns={documentColumns}
@@ -1238,7 +1260,13 @@ function SupplierEditor({
 
         <Card title={SUPPLIER_SECTIONS[10]} description="General supplier documents and commercial attachments.">
           <ErpActionBar secondary={[{ label: "Add document metadata", onClick: onAddDocument }]} />
-          <ErpFileActionState disabledReason={documentDisabledReason} enabled={false} label="Upload supplier document" />
+          <ErpFileActionState
+            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
+            disabledReason={documentDisabledReason}
+            enabled={canUploadDocument}
+            label="Upload supplier document"
+            onFileSelect={onUploadDocument}
+          />
           {documentRows.length > 0 ? (
             <ErpGrid ariaLabel="Supplier documents" columns={documentColumns} getRowId={(record) => record.id} records={documentRows} rowLabel={(record) => `${record.document} supplier document`} />
           ) : (
@@ -1294,6 +1322,13 @@ export function CustomerListDetailPage() {
   const addresses = addressesQuery.data ?? [];
   const source = customers[0]?.source ?? addresses[0]?.source ?? "Seeded";
   const canSave = canPersistMasterData(session);
+  const customerDocumentDisabledReason = !canSave
+    ? "Sign in with partner master write access to attach documents."
+    : !editorDraft || editorDraft.customerId <= 0 || editorMode === "create"
+      ? "Save the customer draft before attaching documents."
+      : isSaving
+        ? "Customer document upload is in progress."
+        : undefined;
   const customerColumns = useMemo(() => buildCustomerColumns(addresses), [addresses]);
   const filteredCustomers = useMemo(
     () =>
@@ -1444,6 +1479,7 @@ export function CustomerListDetailPage() {
           documentNo: "",
           revisionCode: "Draft",
           fileName: "",
+          storageUri: "",
           approvalStatus: "Draft",
           visibilityScope: "Internal",
           effectiveFrom: "",
@@ -1453,6 +1489,58 @@ export function CustomerListDetailPage() {
         }
       ]
     });
+  };
+
+  const uploadCustomerDocument = async (file: File | null) => {
+    if (!file || !editorDraft || !workspaceDraft || !canSave || editorDraft.customerId <= 0 || isSaving) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setSaveTone("info");
+      setSaveMessage("Uploading customer document...");
+      const attachment = await apiClient.platform.uploadAttachment({
+        companyId: editorDraft.companyId || user?.activeContext.companyId || undefined,
+        branchId: user?.activeContext.branchId || undefined,
+        relatedDocumentType: "CustomerDocument",
+        relatedDocumentId: editorDraft.customerId,
+        file
+      });
+      setWorkspaceDraft((current) =>
+        current
+          ? {
+              ...current,
+              documents: [
+                ...current.documents,
+                {
+                  id: `customer-document-attachment-${attachment.id}`,
+                  documentId: 0,
+                  documentType: "Commercial",
+                  title: attachment.fileName,
+                  documentNo: "",
+                  revisionCode: "Uploaded",
+                  fileName: attachment.fileName,
+                  storageUri: `attachment:${attachment.id}`,
+                  approvalStatus: "Draft",
+                  visibilityScope: "Internal",
+                  effectiveFrom: "",
+                  effectiveTo: "",
+                  expiresOn: "",
+                  status: attachment.status
+                }
+              ]
+            }
+          : current
+      );
+      setSaveTone("success");
+      setSaveMessage(`${attachment.fileName} uploaded and linked to this customer.`);
+    } catch (error) {
+      setSaveTone("danger");
+      setSaveMessage(error instanceof Error ? error.message : "Customer document upload failed.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const saveCustomer = async (mode: "draft" | "continue") => {
@@ -1666,11 +1754,13 @@ export function CustomerListDetailPage() {
           canSave={canSave}
           customer={editorDraft}
           customers={customers}
+          documentDisabledReason={customerDocumentDisabledReason}
           isSaving={isSaving}
           mode={editorMode}
           onAddAddress={addCustomerAddress}
           onAddContact={addCustomerContact}
           onAddDocument={addCustomerDocument}
+          onUploadDocument={customerDocumentDisabledReason ? undefined : uploadCustomerDocument}
           onAddressChange={updateCustomerAddress}
           onChange={updateEditor}
           onClose={closeEditor}
@@ -1726,6 +1816,13 @@ export function SupplierListDetailPage() {
   const leadTimes = leadTimesQuery.data ?? [];
   const source = suppliers[0]?.source ?? addresses[0]?.source ?? leadTimes[0]?.source ?? "Seeded";
   const canSave = canPersistMasterData(session);
+  const supplierDocumentDisabledReason = !canSave
+    ? "Sign in with partner master write access to attach documents."
+    : !editorDraft || editorDraft.supplierId <= 0 || editorMode === "create"
+      ? "Save the supplier draft before attaching documents."
+      : isSaving
+        ? "Supplier document upload is in progress."
+        : undefined;
   const supplierColumns = useMemo(() => buildSupplierColumns(addresses, leadTimes), [addresses, leadTimes]);
   const filteredSuppliers = useMemo(
     () =>
@@ -1872,6 +1969,7 @@ export function SupplierListDetailPage() {
           documentNo: "",
           revisionCode: "Draft",
           fileName: "",
+          storageUri: "",
           approvalStatus: "Draft",
           visibilityScope: "Internal",
           effectiveFrom: "",
@@ -1881,6 +1979,58 @@ export function SupplierListDetailPage() {
         }
       ]
     });
+  };
+
+  const uploadSupplierDocument = async (file: File | null) => {
+    if (!file || !editorDraft || !workspaceDraft || !canSave || editorDraft.supplierId <= 0 || isSaving) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setSaveTone("info");
+      setSaveMessage("Uploading supplier document...");
+      const attachment = await apiClient.platform.uploadAttachment({
+        companyId: editorDraft.companyId || user?.activeContext.companyId || undefined,
+        branchId: user?.activeContext.branchId || undefined,
+        relatedDocumentType: "SupplierDocument",
+        relatedDocumentId: editorDraft.supplierId,
+        file
+      });
+      setWorkspaceDraft((current) =>
+        current
+          ? {
+              ...current,
+              documents: [
+                ...current.documents,
+                {
+                  id: `supplier-document-attachment-${attachment.id}`,
+                  documentId: 0,
+                  documentType: "Compliance",
+                  title: attachment.fileName,
+                  documentNo: "",
+                  revisionCode: "Uploaded",
+                  fileName: attachment.fileName,
+                  storageUri: `attachment:${attachment.id}`,
+                  approvalStatus: "Draft",
+                  visibilityScope: "Internal",
+                  effectiveFrom: "",
+                  effectiveTo: "",
+                  expiresOn: "",
+                  status: attachment.status
+                }
+              ]
+            }
+          : current
+      );
+      setSaveTone("success");
+      setSaveMessage(`${attachment.fileName} uploaded and linked to this supplier.`);
+    } catch (error) {
+      setSaveTone("danger");
+      setSaveMessage(error instanceof Error ? error.message : "Supplier document upload failed.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const saveSupplier = async (mode: "draft" | "continue") => {
@@ -2100,12 +2250,14 @@ export function SupplierListDetailPage() {
         <SupplierEditor
           addresses={selectedAddresses}
           canSave={canSave}
+          documentDisabledReason={supplierDocumentDisabledReason}
           isSaving={isSaving}
           leadTimes={selectedLeadTimes}
           mode={editorMode}
           onAddAddress={addSupplierAddress}
           onAddContact={addSupplierContact}
           onAddDocument={addSupplierDocument}
+          onUploadDocument={supplierDocumentDisabledReason ? undefined : uploadSupplierDocument}
           onAddressChange={updateSupplierAddress}
           onChange={updateEditor}
           onClose={closeEditor}

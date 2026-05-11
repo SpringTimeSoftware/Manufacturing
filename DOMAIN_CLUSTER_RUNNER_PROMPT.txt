@@ -1,0 +1,336 @@
+Work only on branch main.
+
+This is MASTER-COMPLETION-CLUSTER-RUNNER-01.
+
+Use the extracted Master Completion Pack in the repo as the single source of truth:
+- 000_README.md
+- 001_EXECUTION_MANIFEST.csv
+- 002_GLOBAL_RUNNER_NOTES.md
+- screen-prompts/
+
+Mission:
+Execute the full screen completion pack in domain clusters so the project can be completed without manual one-by-one prompt launching.
+
+This is NOT an audit-only pass.
+This is NOT a cosmetic-only pass.
+This is NOT a “fix a few examples” pass.
+This is a controlled multi-cluster implementation run.
+
+GLOBAL NON-NEGOTIABLE GATES
+1. No visible touched action may remain dead.
+   Every visible touched action must end as:
+   - WORKING
+   - DISABLED WITH REASON
+   - HIDDEN
+
+2. No governed master-linked value may remain unrestricted free text where a source master exists.
+
+3. No numeric/decimal/money/quantity/weight/dimension/rate field may remain a generic unrestricted text field.
+
+4. No active upload/media/document action may remain fake.
+   If file/media/doc upload is part of a screen contract, do not merely report “pending”.
+   Implement the workflow if it is an internal application workflow that can be completed in this repo.
+   Only disable with a clear business-safe reason if the workflow truly depends on an external blocker.
+   Use the same core upload/storage/metadata/authorization logic consistently across all screens that use file/media/document upload.
+
+5. In live authenticated mode, do not silently show seeded operational fallback when live API fails.
+
+6. Deep create/edit/detail experiences must use centered modal workspace or full-page workspace.
+   No right-drawer deep editors.
+
+7. No internal/scaffold wording in production-facing UI.
+
+8. Do not stop because one screen or one cluster improved.
+   Continue until the current cluster is COMPLETE or BLOCKED.
+   Continue to the next cluster automatically unless a real blocker appears.
+
+READ FIRST, IN THIS EXACT ORDER
+1. AGENTS.md
+2. docs/codex-progress/README.md
+3. MASTER_COMPLETION_SPEC.md
+4. MASTER_ACTION_REGISTRY.csv
+5. MASTER_FIELD_REGISTRY.csv
+6. SCREEN_COMPLETION_MATRIX.csv
+7. DOMAIN_WAVE_EXECUTION_PLAN.md
+8. docs/design/erp-ui-interaction-standards.md
+9. docs/design/erp-field-governance-standards.md
+10. 07-ux-governance/master_lookup_field_rules.md
+11. 07-ux-governance/action_truth_matrix.csv
+12. 07-governance/entity_field_schema_matrix.csv
+13. 07-governance/screen_field_violation_matrix.csv
+14. docs/final-audit/07_screen_issue_register.csv
+15. 001_EXECUTION_MANIFEST.csv
+16. 002_GLOBAL_RUNNER_NOTES.md
+17. all files under screen-prompts/
+18. current source tree under src/
+19. tests/
+20. database/README.md
+21. deploy/iis/*
+22. docs/uat/*
+23. docs/release/production-readiness-review.md
+24. docs/security/production-security-hardening-review.md
+
+CLUSTER ORDER
+Execute clusters in this exact order, using the manifest and prompt files to determine the exact screen files inside each cluster:
+
+CLUSTER 1 — PLATFORM / ADMIN / AUTH / SHARED
+Includes:
+- login
+- forgot password
+- dashboard shell
+- executive cockpit
+- users
+- roles
+- permissions
+- notifications
+- approvals
+- tenant settings
+- workflow
+- numbering
+- translations
+- route/menu completeness
+- shared UI/action/filter/modal truth
+
+CLUSTER 2 — ORGANIZATION / SETUP / RESOURCE BASICS
+Includes:
+- company
+- branch
+- department
+- warehouse
+- bin
+- shift
+- work center
+- machine
+- tool/resource/operator setup
+
+CLUSTER 3 — MASTER DATA / COMMERCIAL FOUNDATION
+Includes:
+- item groups/categories/subcategories
+- item attributes
+- product family
+- business segment
+- reporting bucket
+- item master
+- item variants
+- barcodes
+- customer
+- supplier
+- supplier lead time
+- UOM classes
+- UOM conversions
+- measurement profiles
+- price lists
+- discounts
+- tax
+- currency
+- payment/trade terms
+
+CLUSTER 4 — ENGINEERING / PLANNING
+Includes:
+- BOM
+- routing
+- ECO
+- operation standards
+- alternate items
+- engineering documents
+- MPS
+- MRP
+- BOQ/requirements
+- capacity
+- machine board / occupancy / order delivery / stage board if present
+
+CLUSTER 5 — PRODUCTION / INVENTORY / QUALITY / DISPATCH
+Includes:
+- work orders
+- job cards
+- shift production
+- material issue / return / transfer
+- downtime
+- production receipt
+- scrap / by-product
+- rework
+- QC / inspection / NCR / hold-release
+- inventory movement / cycle count / traceability
+- pack list / shipment / dispatch proof / print pack / traveler / labels
+
+CLUSTER 6 — MOBILE / DEVICE / SYNC
+Includes:
+- mobile login
+- context switch
+- mobile home
+- notifications/approvals
+- job cards
+- execution capture
+- material scan
+- inventory movement
+- downtime
+- QC capture
+- receipt/rework
+- shift handover/media
+- dispatch proof
+- order stage board
+- device utilities
+- sync status
+
+CLUSTER 7 — INTEGRATIONS / AI / REPORTING / IMPORT-EXPORT
+Includes:
+- provider admin
+- provider health
+- webhooks
+- imports
+- exports
+- AI assistant
+- translation assistant
+- report catalog
+- report parameters
+- saved views
+- delivery logs / event logs where present
+
+FOR EACH CLUSTER DO THIS EXACT SEQUENCE
+
+PHASE A — Cluster inventory and baseline
+- Identify all screen prompt files in this cluster from 001_EXECUTION_MANIFEST.csv.
+- Build baseline counts for this cluster only:
+  - screens in scope
+  - deep editors in scope
+  - governed lookup violations
+  - numeric field violations
+  - dead actions
+  - upload/media/document truth violations
+  - seeded/live-data truth violations
+  - layout/modal violations
+  - scroll/overflow violations
+  - wording violations
+
+- Update:
+  - docs/final-audit/07_screen_issue_register.csv
+  - 07-governance/screen_field_violation_matrix.csv
+  - 07-ux-governance/action_truth_matrix.csv
+
+PHASE B — Execute every screen prompt in the cluster
+For each prompt file in the cluster:
+1. Read the prompt file completely.
+2. Implement the screen exactly to its completion contract.
+3. Do not skip required sections, fields, actions, validations, lookups, screenshots, or output conditions.
+4. If a prompt says upload/media/document workflow must exist, implement it if it can be completed in-repo.
+5. If an action/workflow truly cannot exist due to an external blocker, disable it with a clear business-safe reason and document the blocker.
+6. Do not treat “documented as pending” as completion.
+7. Update any shared components or backend support needed to make the screen truthful.
+
+PHASE C — Cluster-wide enforcement pass
+After all screen prompts in the cluster are implemented:
+- do one sweep across the cluster to remove any remaining:
+  - free-text governed fields
+  - numeric-as-text fields
+  - dead visible actions
+  - fake upload/media/doc actions
+  - silent seeded live operational data
+  - right-drawer deep editors
+  - broken scroll/overflow
+  - internal wording leaks
+
+PHASE D — Validation
+Run:
+- npm run typecheck
+- npm test
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+If validation fails:
+- attempt to auto-fix trivial validation blockers first
+- rerun validation
+- only stop if a real blocker remains
+
+PHASE E — Screenshot evidence
+Capture screenshots for all touched primary screens and modals in the cluster.
+If a screen scrolls, max 3 screenshots:
+- top
+- middle
+- bottom
+Do not loop.
+
+Store under:
+- docs/codex-review-screens/MASTER-COMPLETION-CLUSTER-RUNNER-01/<cluster-name>/
+
+PHASE F — Cluster summary and gate
+Create:
+- docs/codex-progress/<cluster-name>-output.md
+
+The cluster summary must include:
+- screens touched
+- screens fully compliant
+- screens still partial
+- lookup violations fixed
+- numeric field violations fixed
+- dead actions removed/disabled/wired
+- upload/media/document truth issues fixed
+- seeded/live-data issues fixed
+- layout/scroll issues fixed
+- remaining blockers in the cluster
+- validation results
+- screenshot folder path
+
+The cluster is COMPLETE only if:
+- critical violations for the cluster = 0
+- no dead visible actions remain in the cluster
+- touched governed field violations = 0
+- touched numeric field violations = 0
+
+If the cluster is BLOCKED:
+- report exact blockers
+- then stop the overall run
+
+If the cluster is COMPLETE:
+- continue automatically to the next cluster
+
+FINAL OUTPUTS
+At the very end, create/update:
+- docs/codex-progress/MASTER-COMPLETION-CLUSTER-RUNNER-01-output.md
+- docs/codex-progress/README.md
+
+Create final review pack:
+- artifacts/review-packs/MASTER-COMPLETION-CLUSTER-RUNNER-01-review-pack.zip
+
+The final review pack must include:
+- all cluster output markdown files
+- updated action_truth_matrix.csv
+- updated entity_field_schema_matrix.csv
+- updated screen_field_violation_matrix.csv
+- updated 07_screen_issue_register.csv
+- screenshot folders for all completed clusters
+- changed DB README / DDL / seed files if any
+- MASTER-COMPLETION-CLUSTER-RUNNER-01-output.md
+
+STOP CONDITIONS
+Stop only if:
+- a validation failure remains after trivial blocker repair
+- a critical runtime/build blocker appears
+- the next step would require inventing a large speculative module outside current implemented scope
+
+Do NOT stop just because:
+- one screen family was improved
+- one cluster was improved
+- some examples were fixed
+- docs were updated
+
+BEFORE STOPPING
+1. commit all changes
+2. push main
+3. return only:
+   - clusters completed
+   - clusters blocked
+   - number of screens scanned
+   - number of screens fully compliant
+   - number of screens still partial
+   - number of lookup violations fixed
+   - number of numeric field violations fixed
+   - number of dead actions removed/disabled/wired
+   - number of upload truth issues fixed
+   - number of seeded/live truth issues fixed
+   - number of layout/scroll issues fixed
+   - top 20 remaining blockers
+   - validation results
+   - final review pack path

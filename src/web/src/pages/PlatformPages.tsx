@@ -15,7 +15,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpModalWorkspace } from "../ui/ErpComponents";
+import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
@@ -148,6 +148,33 @@ export function ForgotPasswordPage() {
             <Link className="login-form__link login-form__link--button" to="/login">
               Back to sign in
             </Link>
+          </div>
+
+          <div className="login-form__grid">
+            <label>
+              <span>Verification token</span>
+              <input disabled placeholder="Token verification is completed through the approved recovery channel." />
+            </label>
+            <label>
+              <span>New password</span>
+              <input disabled placeholder="Password reset completion is not enabled for direct entry." type="password" />
+            </label>
+            <label>
+              <span>Confirm password</span>
+              <input disabled placeholder="Password reset completion is not enabled for direct entry." type="password" />
+            </label>
+            <label className="login-form__toggle">
+              <span>Complete reset</span>
+              <Button
+                disabled
+                title="Password reset completion requires the approved verification workflow."
+                type="button"
+                variant="secondary"
+              >
+                Verify and reset
+              </Button>
+              <small>Password reset completion requires the approved verification workflow.</small>
+            </label>
           </div>
 
           {result ? (
@@ -307,39 +334,39 @@ export function ContextSwitchPage() {
           title="Operating context"
           validationErrors={submitError ? [submitError] : []}
         >
-          <label>
-            <span>Company</span>
-            <select onChange={(event) => setDraftCompanyId(Number(event.target.value))} value={draftCompanyId}>
-              {companies.map((company) => (
-                <option key={company.companyId} value={company.companyId}>
-                  {company.companyName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Branch</span>
-            <select onChange={(event) => setDraftBranchId(Number(event.target.value))} value={draftBranchId}>
-              {availableBranches.map((branch) => (
-                <option key={branch.branchId} value={branch.branchId}>
-                  {branch.branchName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Preferred warehouse</span>
-            <select
-              onChange={(event) => setDraftWarehouseId(Number(event.target.value))}
-              value={draftWarehouseId ?? ""}
-            >
-              {availableWarehouses.map((warehouse) => (
-                <option key={warehouse.warehouseId} value={warehouse.warehouseId}>
-                  {warehouse.warehouseName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ErpLookupField
+            label="Company"
+            onChange={(value) => setDraftCompanyId(Number(value))}
+            options={companies.map((company) => ({
+              label: company.companyName,
+              value: String(company.companyId)
+            }))}
+            required
+            value={String(draftCompanyId || "")}
+          />
+          <ErpLookupField
+            disabled={availableBranches.length === 0}
+            disabledReason="No branch is assigned for the selected company."
+            label="Branch"
+            onChange={(value) => setDraftBranchId(Number(value))}
+            options={availableBranches.map((branch) => ({
+              label: branch.branchName,
+              value: String(branch.branchId)
+            }))}
+            required
+            value={String(draftBranchId || "")}
+          />
+          <ErpLookupField
+            disabled={availableWarehouses.length === 0}
+            disabledReason="No warehouse preference is available for the selected branch."
+            label="Preferred warehouse"
+            onChange={(value) => setDraftWarehouseId(value ? Number(value) : null)}
+            options={availableWarehouses.map((warehouse) => ({
+              label: warehouse.warehouseName,
+              value: String(warehouse.warehouseId)
+            }))}
+            value={draftWarehouseId ? String(draftWarehouseId) : ""}
+          />
           {message ? <div className="ui-validation-summary">{message}</div> : null}
         </FormShell>
 

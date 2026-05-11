@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataAdapters";
@@ -114,6 +115,7 @@ const resultColumns: DataGridColumn<InspectionResultItem>[] = [
 ];
 
 function InspectionPage({ title, description, defaultType }: { title: string; description: string; defaultType: string }) {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -138,7 +140,7 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
       </ListPageShell>
       <ErpModalWorkspace
         description="Inspection detail is review-only until inspection entry is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save inspection", reason: "Inspection save requires quality execution workflow enablement." }]} secondary={[{ disabled: true, label: "Release hold", reason: "Hold release requires quality approval workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save inspection", reason: "Inspection save requires quality execution workflow enablement." }]} secondary={[{ disabled: true, label: "Release hold", reason: "Hold release requires quality approval workflow." }, { label: "Open NCR", onClick: () => navigate(`/quality/ncr?inspection=${encodeURIComponent(selected?.inspectionNo ?? "")}`) }, { label: "Open source", onClick: () => navigate(`/production/job-cards?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.inspectionNo ?? title}
@@ -179,6 +181,7 @@ const ncrColumns: DataGridColumn<NonConformanceItem>[] = [
 ];
 
 export function NcrDeviationPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -203,7 +206,7 @@ export function NcrDeviationPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="NCR detail is review-only until quality disposition workflow is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save NCR", reason: "NCR save requires quality workflow enablement." }]} secondary={[{ disabled: true, label: "Release disposition", reason: "Disposition release requires quality approval workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save NCR", reason: "NCR save requires quality workflow enablement." }]} secondary={[{ disabled: true, label: "Release disposition", reason: "Disposition release requires quality approval workflow." }, { label: "Open rework", onClick: () => navigate(`/production/rework-orders?ncr=${encodeURIComponent(selected?.ncrNo ?? "")}`) }, { label: "Open source", onClick: () => navigate(`/quality/in-process-inspections?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.ncrNo ?? "NCR"}

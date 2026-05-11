@@ -15,7 +15,10 @@ import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface AttachmentViewerItem {
   id: string;
+  attachmentId: number | null;
   documentNo: string;
+  relatedDocumentType: string;
+  relatedDocumentId: number;
   linkedDocument: string;
   fileName: string;
   fileType: string;
@@ -111,7 +114,10 @@ export interface AvailablePromiseItem {
 const seededAttachments: AttachmentViewerItem[] = [
   {
     id: "attachment-drawing-oz50",
+    attachmentId: null,
     documentNo: "DOC-BOM-OZ50-R3",
+    relatedDocumentType: "BOM",
+    relatedDocumentId: 1,
     linkedDocument: "BOM FG-OZ-50 R3",
     fileName: "oz50-tank-assembly-r3.pdf",
     fileType: "PDF drawing",
@@ -123,7 +129,10 @@ const seededAttachments: AttachmentViewerItem[] = [
   },
   {
     id: "attachment-customer-spec",
+    attachmentId: null,
     documentNo: "DOC-SO-0189-SPEC",
+    relatedDocumentType: "SalesOrder",
+    relatedDocumentId: 189,
     linkedDocument: "SO-2026-0189",
     fileName: "enkay-customer-specification.pdf",
     fileType: "Customer spec",
@@ -135,7 +144,10 @@ const seededAttachments: AttachmentViewerItem[] = [
   },
   {
     id: "attachment-qc-photo",
+    attachmentId: null,
     documentNo: "DOC-QC-HOLD-104",
+    relatedDocumentType: "QualityHold",
+    relatedDocumentId: 104,
     linkedDocument: "QC Hold Cage",
     fileName: "incoming-sheet-surface-photo.jpg",
     fileType: "Photo",
@@ -162,7 +174,10 @@ function formatFileSize(bytes: number) {
 function mapAttachment(item: AttachmentDto): AttachmentViewerItem {
   return {
     id: String(item.id),
+    attachmentId: item.id,
     documentNo: `${item.relatedDocumentType}-${item.relatedDocumentId}`,
+    relatedDocumentType: item.relatedDocumentType,
+    relatedDocumentId: item.relatedDocumentId,
     linkedDocument: `${item.relatedDocumentType} #${item.relatedDocumentId}`,
     fileName: item.fileName,
     fileType: item.contentType,

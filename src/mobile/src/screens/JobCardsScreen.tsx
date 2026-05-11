@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { seededJobCards, seededTimeline } from "../mobileSeedData";
 import type { MobileJobCard, MobileTone } from "../mobileTypes";
 import {
+  MobileActionNotice,
   MobileBadge,
   MobileButton,
   MobileCard,
@@ -25,6 +26,7 @@ function statusTone(status: MobileJobCard["status"]): MobileTone {
 
 export function JobCardsScreen() {
   const [selectedId, setSelectedId] = useState(seededJobCards[0]?.id ?? "");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const selected = useMemo(
     () => seededJobCards.find((jobCard) => jobCard.id === selectedId) ?? seededJobCards[0],
     [selectedId]
@@ -48,6 +50,7 @@ export function JobCardsScreen() {
       </MobileCard>
 
       <MobileCard title="Job Card Detail" subtitle="Operation context, specs, attachments, and required quantity.">
+        <MobileActionNotice message={actionMessage} tone="success" />
         <View style={styles.fieldGrid}>
           <MobileField label="Job card" value={selected.jobCardNo} />
           <MobileField label="Machine" value={selected.machineLabel} />
@@ -68,7 +71,7 @@ export function JobCardsScreen() {
             </View>
           </MobileListItem>
         ))}
-        <MobileButton label="Open action sheet" tone="success" />
+        <MobileButton label="Open action sheet" onPress={() => setActionMessage(`Action sheet opened for ${selected.jobCardNo}.`)} tone="success" />
       </MobileCard>
     </View>
   );

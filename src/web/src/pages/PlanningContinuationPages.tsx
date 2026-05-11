@@ -85,20 +85,21 @@ const capacityColumns: DataGridColumn<CapacityBucketItem>[] = [
 ];
 
 export function CapacityPlanningBoardPage() {
-  const { user } = useAuth();
+  const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { deferredSearch, filter } = useCapacityFilter(search, status);
   const query = useApiQuery(
     queryKeys.planning.capacityBoard(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
-    () => listCapacityBoardSetup(filter),
+    () => listCapacityBoardSetup(session, filter),
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const preview = selected ?? records[0] ?? null;
-  const source = records[0]?.source ?? "Deferred";
+  const isLive = Boolean(session?.accessToken && !session.accessToken.startsWith("demo-"));
+  const source = records[0]?.source ?? (isLive ? "Live" : "Deferred");
   const avgUtilization = records.length ? Math.round(records.reduce((total, record) => total + record.utilizationPercent, 0) / records.length) : 0;
   const overloadedRecords = records.filter((record) => record.status === "Overloaded");
   const canReviewOverloads = overloadedRecords.length > 0;
@@ -170,6 +171,11 @@ export function CapacityPlanningBoardPage() {
         title="Capacity Planning Board"
       >
         <KpiStrip items={[{ label: "Buckets", value: String(records.length) }, { label: "Overloaded", value: String(records.filter((record) => record.status === "Overloaded").length) }, { label: "Avg utilization", value: `${avgUtilization}%` }, { label: "Planned", value: String(records.filter((record) => record.source === "Deferred").length) }]} />
+        {query.isError ? (
+          <Card title="Capacity board unavailable" description={query.error instanceof Error ? query.error.message : "Live capacity data could not be loaded for this operating context."}>
+            <StatusBadge status="Blocked" />
+          </Card>
+        ) : null}
         <Card title="Machine load lanes" description="Lane view keeps the capacity screen aligned with the manufacturing board visual language.">
           <div className="capacity-board-scroll" data-testid="capacity-board-scroll">
             <LaneBoard lanes={buildCapacityLanes(records)} />
@@ -190,7 +196,7 @@ export function CapacityPlanningBoardPage() {
           <FormShell initialFingerprint={selected.id} title="Capacity review controls">
             <ErpLookupField disabled disabledReason="Machine selection is controlled by work-center capacity setup." label="Machine" onChange={() => undefined} options={[{ label: selected.machineLabel, value: selected.machineLabel }]} value={selected.machineLabel} />
             <ErpLookupField disabled disabledReason="Planned order is controlled by production planning." label="Planned order" onChange={() => undefined} options={[{ label: selected.plannedOrderRef, value: selected.plannedOrderRef }]} value={selected.plannedOrderRef} />
-            <label><span>Constraint signal</span><input defaultValue={selected.constraintSignal} disabled /></label>
+            <ErpLookupField disabled disabledReason="Constraint signal is calculated by the capacity planning engine." label="Constraint signal" onChange={() => undefined} options={[{ label: selected.constraintSignal, value: selected.constraintSignal }]} value={selected.constraintSignal} />
           </FormShell>
         ) : null}
       </ErpModalWorkspace>

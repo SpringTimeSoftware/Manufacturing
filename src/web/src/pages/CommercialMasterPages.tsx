@@ -482,11 +482,11 @@ export function PriceListMasterPage() {
           <ErpActionBar
             primary={[{ disabled: !canSave || validation.length > 0, label: "Save Draft", onClick: handleSave, reason: !canSave ? saveReason : validation[0] }]}
             secondary={[
-              { disabled: true, label: "Add line", reason: "Multi-line price maintenance is pending price-line workflow rollout." },
+              { disabled: true, label: "Add line", reason: "Multi-line price maintenance requires the approved price-line workflow." },
               { disabled: true, label: "Remove line", reason: "Line removal requires price-line dependency checks." },
-              { disabled: true, label: "Clone", reason: "Price-list cloning is pending controlled copy workflow." },
+              { disabled: true, label: "Clone", reason: "Price-list cloning requires the controlled copy workflow." },
               { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require transaction dependency checks." },
-              { disabled: true, label: "View audit", reason: "Commercial audit view is pending rollout." }
+              { disabled: true, label: "View audit", reason: "Commercial audit history requires recorded live changes." }
             ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
@@ -703,7 +703,7 @@ export function DiscountSchemeMasterPage() {
               { disabled: true, label: "Add break", reason: "Additional break rows require the discount-rule workflow." },
               { disabled: true, label: "Remove break", reason: "Break removal requires discount dependency checks." },
               { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require transaction dependency checks." },
-              { disabled: true, label: "View audit", reason: "Commercial audit view is pending rollout." }
+              { disabled: true, label: "View audit", reason: "Commercial audit history requires recorded live changes." }
             ]}
             utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]}
           />
@@ -969,7 +969,7 @@ export function TaxCurrencyTermsPage() {
             primary={[{ disabled: !canSave || setupValidation.length > 0, label: "Save Setup", onClick: handleSave, reason: !canSave ? saveReason : setupValidation[0] }]}
             secondary={[
               { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require commercial dependency checks." },
-              { disabled: true, label: "View audit", reason: "Commercial audit view is pending rollout." }
+              { disabled: true, label: "View audit", reason: "Commercial audit history requires recorded live changes." }
             ]}
             utility={[{ label: "Close", onClick: closeModal, variant: "quiet" }]}
           />

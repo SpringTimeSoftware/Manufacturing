@@ -18,11 +18,12 @@ import {
 import { useFeatureFlags } from "../featureFlags/FeatureFlagProvider";
 import { NotificationCenter } from "../notifications/NotificationCenter";
 import { useNotifications } from "../notifications/NotificationProvider";
+import { hasLiveSession } from "../api/liveData";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { Drawer } from "../ui/Drawer";
+import { ErpActionBar, ErpModalWorkspace } from "../ui/ErpComponents";
 import { EmptyState } from "../ui/EmptyState";
 import { FilterBar } from "../ui/FilterBar";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -74,6 +75,28 @@ function matchesDueWindow(record: OrderDeliveryRecord, window: string) {
 function SourceBadge({ source }: { source: "Live" | "Seeded" }) {
   return <Badge tone={source === "Live" ? "success" : "neutral"}>{source === "Live" ? "Live operations" : "Operational snapshot"}</Badge>;
 }
+
+const emptyLiveOrderDelivery = {
+  kpis: [] as Array<{ label: string; value: string; hint?: string }>,
+  records: [] as OrderDeliveryRecord[],
+  source: "Live" as const
+};
+
+const emptyLiveStageWise = {
+  columns: [],
+  kpis: [] as Array<{ label: string; value: string; hint?: string }>,
+  source: "Live" as const
+};
+
+const emptyExecutiveSummary = {
+  openOrders: 0,
+  overdueOrders: 0,
+  criticalShortages: 0,
+  delayedSuppliers: 0,
+  machineDowntimeMinutesToday: 0,
+  dispatchReadyToday: 0,
+  qcPending: 0
+};
 
 const orderColumns: DataGridColumn<OrderDeliveryRecord>[] = [
   {
@@ -146,6 +169,7 @@ export function DashboardHomePage() {
   const { flags } = useFeatureFlags();
   const { session, user } = useAuth();
   const { notifications, unreadCount } = useNotifications();
+  const isLive = hasLiveSession(session);
   const dashboardFilter = useMemo(
     () => buildDashboardFilter(user?.activeContext.companyId, user?.activeContext.branchId),
     [user?.activeContext.branchId, user?.activeContext.companyId]
@@ -166,39 +190,53 @@ export function DashboardHomePage() {
     () =>
       buildHomeDashboardData(
         user?.roles ?? [],
-        orderQuery.data ?? {
+        orderQuery.data ?? (isLive ? emptyLiveOrderDelivery : {
           kpis: [
             { label: "Open Orders", value: String(orderDeliveryRecords.length) },
             { label: "Critical Risks", value: "3" }
           ],
           records: orderDeliveryRecords,
           source: "Seeded"
-        },
-        stageQuery.data ?? {
+        }),
+        stageQuery.data ?? (isLive ? emptyLiveStageWise : {
           columns: stageWiseColumns,
           kpis: [],
           source: "Seeded"
-        },
+        }),
         notifications
       ),
-    [notifications, orderQuery.data, stageQuery.data, user?.roles]
+    [isLive, notifications, orderQuery.data, stageQuery.data, user?.roles]
   );
   const riskRecords = useMemo(
     () =>
-      (orderQuery.data?.records ?? orderDeliveryRecords)
+      (orderQuery.data?.records ?? (isLive ? [] : orderDeliveryRecords))
         .filter((record) => record.priority === "High" || record.status !== "On Track")
         .slice(0, 5),
-    [orderQuery.data?.records]
+    [isLive, orderQuery.data?.records]
   );
   const stageColumns = useMemo(
-    () => (stageQuery.data?.columns ?? stageWiseColumns).slice(0, 4),
-    [stageQuery.data?.columns]
+    () => (stageQuery.data?.columns ?? (isLive ? [] : stageWiseColumns)).slice(0, 4),
+    [isLive, stageQuery.data?.columns]
   );
   const bottleneckItems = homeData.attentionItems.slice(0, 4);
   const quickActions = homeData.actionTiles.slice(0, 6);
+  const dashboardError =
+    orderQuery.isError || stageQuery.isError
+      ? [
+          orderQuery.error instanceof Error ? orderQuery.error.message : null,
+          stageQuery.error instanceof Error ? stageQuery.error.message : null
+        ].filter(Boolean).join(" ")
+      : null;
 
   return (
     <div className="page-shell dashboard-home">
+      {dashboardError ? (
+        <EmptyState
+          description="Live dashboard data could not be loaded for the current operating context."
+          hint={dashboardError}
+          title="Dashboard data unavailable"
+        />
+      ) : null}
       <KpiStrip items={homeData.kpis} />
 
       <div className="dashboard-home__layout">
@@ -317,6 +355,7 @@ export function OrderDeliveryDashboardPage() {
   const navigate = useNavigate();
   const { flags } = useFeatureFlags();
   const { session, user } = useAuth();
+  const isLive = hasLiveSession(session);
   const [search, setSearch] = useState("");
   const [dueWindow, setDueWindow] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -333,7 +372,7 @@ export function OrderDeliveryDashboardPage() {
     { staleTime: 60_000 }
   );
 
-  const records = orderQuery.data?.records ?? orderDeliveryRecords;
+  const records = orderQuery.data?.records ?? (isLive ? [] : orderDeliveryRecords);
   const filtered = useMemo(
     () =>
       records.filter((record) => {
@@ -353,13 +392,12 @@ export function OrderDeliveryDashboardPage() {
       <ListPageShell
         actions={
           <>
-            <SourceBadge source={orderQuery.data?.source ?? "Seeded"} />
-            <Button disabled={!flags.enablePrintAndExport} variant="secondary" onClick={() => window.print()}>
-              Print
-            </Button>
-            <Button variant="primary" onClick={() => navigate("/dashboards/executive-cockpit")}>
-              Open executive cockpit
-            </Button>
+            <SourceBadge source={orderQuery.data?.source ?? (isLive ? "Live" : "Seeded")} />
+            <ErpActionBar
+              primary={[{ label: "Open executive cockpit", onClick: () => navigate("/dashboards/executive-cockpit") }]}
+              secondary={[{ disabled: !flags.enablePrintAndExport, label: "Print", onClick: flags.enablePrintAndExport ? () => window.print() : undefined, reason: flags.enablePrintAndExport ? undefined : "Printing requires print/export feature enablement." }]}
+              testId="order-delivery-action-bar"
+            />
           </>
         }
         description="Due dates, priorities, and work completion for customer commitments."
@@ -389,7 +427,14 @@ export function OrderDeliveryDashboardPage() {
         }
         title="Order Delivery Dashboard"
       >
-        <KpiStrip items={orderQuery.data?.kpis ?? [{ label: "Open Orders", value: String(filtered.length) }]} />
+        <KpiStrip items={orderQuery.data?.kpis ?? (isLive ? [] : [{ label: "Open Orders", value: String(filtered.length) }])} />
+        {orderQuery.isError ? (
+          <EmptyState
+            description="Live order delivery data could not be loaded for the current operating context."
+            hint={orderQuery.error instanceof Error ? orderQuery.error.message : undefined}
+            title="Order delivery unavailable"
+          />
+        ) : null}
         <Card title="Order risk table" description="Sort and filter customer commitments before delays escape into dispatch.">
           <DataGrid
             ariaLabel="Order delivery risk table"
@@ -409,15 +454,18 @@ export function OrderDeliveryDashboardPage() {
         </Card>
       </ListPageShell>
 
-      <Drawer
+      <ErpModalWorkspace
         description="Customer-order centric preview aligned to the dashboard pattern."
         footer={
-          <div className="context-chip-row">
-            <Button disabled title="Dashboard export is pending the approved reporting workflow." variant="secondary">
-              Export
-            </Button>
-            <Button disabled title="Open a work order from the Work Orders screen after selecting a concrete order context." variant="primary">Open related work orders</Button>
-          </div>
+          <ErpActionBar
+            primary={[{ label: "Open sales order", onClick: () => navigate(`/sales/orders?order=${encodeURIComponent(selected?.salesOrder ?? "")}`) }]}
+            secondary={[
+              { disabled: true, label: "Export", reason: "Dashboard export is pending the approved reporting workflow." },
+              { label: "Open BOQ", onClick: () => navigate(`/planning/boq-requirements?order=${encodeURIComponent(selected?.salesOrder ?? "")}`) },
+              { label: "Open machine board", onClick: () => navigate(`/production/machine-board?order=${encodeURIComponent(selected?.salesOrder ?? "")}`) }
+            ]}
+            utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]}
+          />
         }
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
@@ -438,7 +486,7 @@ export function OrderDeliveryDashboardPage() {
             </div>
           </Card>
         ) : null}
-      </Drawer>
+      </ErpModalWorkspace>
     </>
   );
 }
@@ -447,6 +495,7 @@ export function StageWiseDashboardPage() {
   const navigate = useNavigate();
   const { flags } = useFeatureFlags();
   const { session, user } = useAuth();
+  const isLive = hasLiveSession(session);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const dashboardFilter = useMemo(
@@ -461,7 +510,7 @@ export function StageWiseDashboardPage() {
   );
 
   const columns = useMemo(() => {
-    const sourceColumns = stageQuery.data?.columns ?? stageWiseColumns;
+    const sourceColumns = stageQuery.data?.columns ?? (isLive ? [] : stageWiseColumns);
     if (!deferredSearch.trim()) {
       return sourceColumns;
     }
@@ -481,7 +530,7 @@ export function StageWiseDashboardPage() {
         )
       }))
       .filter((column) => column.count > 0);
-  }, [deferredSearch, stageQuery.data?.columns]);
+  }, [deferredSearch, isLive, stageQuery.data?.columns]);
 
   return (
     <div className="page-shell">
@@ -489,14 +538,15 @@ export function StageWiseDashboardPage() {
       <Card
         actions={
           <>
-            <SourceBadge source={stageQuery.data?.source ?? "Seeded"} />
-            <Button disabled title="Dashboard data refresh follows the configured query refresh interval." variant="secondary">Refresh</Button>
-            <Button disabled title="Stage dashboard export is pending the approved reporting workflow." variant="secondary">
-              Export
-            </Button>
-            <Button variant="primary" onClick={() => navigate("/production/machine-board")}>
-              Open machine board
-            </Button>
+            <SourceBadge source={stageQuery.data?.source ?? (isLive ? "Live" : "Seeded")} />
+            <ErpActionBar
+              primary={[{ label: "Open machine board", onClick: () => navigate("/production/machine-board") }]}
+              secondary={[
+                { disabled: stageQuery.isFetching, label: stageQuery.isFetching ? "Refreshing" : "Refresh", onClick: stageQuery.isFetching ? undefined : () => void stageQuery.refetch(), reason: stageQuery.isFetching ? "Stage board refresh is already running." : undefined },
+                { disabled: true, label: "Export", reason: "Stage dashboard export requires the approved reporting workflow." }
+              ]}
+              testId="stage-wise-action-bar"
+            />
           </>
         }
         description="Order, machine, and customer progression across deterministic business stages."
@@ -504,6 +554,7 @@ export function StageWiseDashboardPage() {
       >
         <FilterBar>
           <input
+            aria-label="Search stage board"
             onChange={(event) => {
               startTransition(() => setSearch(event.target.value));
             }}
@@ -511,6 +562,13 @@ export function StageWiseDashboardPage() {
             value={search}
           />
         </FilterBar>
+        {stageQuery.isError ? (
+          <EmptyState
+            description="Live stage board data could not be loaded for the current operating context."
+            hint={stageQuery.error instanceof Error ? stageQuery.error.message : undefined}
+            title="Stage board unavailable"
+          />
+        ) : null}
         {columns.length > 0 ? (
           <KanbanBoard columns={columns} />
         ) : (
@@ -530,6 +588,7 @@ export function ExecutiveCockpitPage() {
   const { flags } = useFeatureFlags();
   const { session, user } = useAuth();
   const { notifications } = useNotifications();
+  const isLive = hasLiveSession(session);
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -546,7 +605,7 @@ export function ExecutiveCockpitPage() {
   );
 
   const topRisks = useMemo(() => {
-    const items = executiveQuery.data?.topRisks ?? orderDeliveryRecords.slice(0, 3);
+    const items = executiveQuery.data?.topRisks ?? (isLive ? [] : orderDeliveryRecords.slice(0, 3));
     return items.filter((record) => {
       const matchesSearch =
         `${record.salesOrder} ${record.customer} ${record.blocker} ${record.nextAction}`
@@ -555,10 +614,10 @@ export function ExecutiveCockpitPage() {
       const matchesRisk = riskFilter === "all" || record.status.toLowerCase().replace(/\s+/g, "-") === riskFilter;
       return matchesSearch && matchesRisk;
     });
-  }, [deferredSearch, executiveQuery.data?.topRisks, riskFilter]);
+  }, [deferredSearch, executiveQuery.data?.topRisks, isLive, riskFilter]);
 
   const selected = topRisks.find((record) => record.id === selectedId) ?? null;
-  const summary = executiveQuery.data?.summary ?? {
+  const summary = executiveQuery.data?.summary ?? (isLive ? emptyExecutiveSummary : {
     openOrders: 28,
     overdueOrders: 6,
     criticalShortages: 11,
@@ -566,14 +625,14 @@ export function ExecutiveCockpitPage() {
     machineDowntimeMinutesToday: 92,
     dispatchReadyToday: 3,
     qcPending: 5
-  };
+  });
 
   return (
     <>
       <ListPageShell
         actions={
           <>
-            <SourceBadge source={executiveQuery.data?.source ?? "Seeded"} />
+            <SourceBadge source={executiveQuery.data?.source ?? (isLive ? "Live" : "Seeded")} />
             <Button variant="secondary" onClick={() => navigate("/dashboards/order-delivery")}>
               Open delivery dashboard
             </Button>
@@ -602,6 +661,13 @@ export function ExecutiveCockpitPage() {
         }
         title="Executive Cockpit"
       >
+        {executiveQuery.isError ? (
+          <EmptyState
+            description="Live executive cockpit data could not be loaded for the current operating context."
+            hint={executiveQuery.error instanceof Error ? executiveQuery.error.message : undefined}
+            title="Executive cockpit unavailable"
+          />
+        ) : null}
         <KpiStrip
           items={[
             { label: "Open Orders", value: String(summary.openOrders) },
@@ -632,7 +698,7 @@ export function ExecutiveCockpitPage() {
           </Card>
 
           <Card title="Stage pressure map" description="Cross-functional stage pressure summarized on the same management surface.">
-            <KanbanBoard columns={executiveQuery.data?.stageColumns ?? stageWiseColumns} />
+            <KanbanBoard columns={executiveQuery.data?.stageColumns ?? (isLive ? [] : stageWiseColumns)} />
           </Card>
         </div>
 
@@ -653,17 +719,14 @@ export function ExecutiveCockpitPage() {
         </Card>
       </ListPageShell>
 
-      <Drawer
+      <ErpModalWorkspace
         description="Open the intervention detail while preserving the same management dashboard context."
         footer={
-          <div className="context-chip-row">
-            <Button variant="secondary" onClick={() => navigate("/platform/approvals")}>
-              Open approvals
-            </Button>
-            <Button variant="primary" onClick={() => navigate("/dashboards/order-delivery")}>
-              Open order detail
-            </Button>
-          </div>
+          <ErpActionBar
+            primary={[{ label: "Open order detail", onClick: () => navigate("/dashboards/order-delivery") }]}
+            secondary={[{ label: "Open approvals", onClick: () => navigate("/platform/approvals") }]}
+            utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]}
+          />
         }
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
@@ -684,7 +747,7 @@ export function ExecutiveCockpitPage() {
             </div>
           </Card>
         ) : null}
-      </Drawer>
+      </ErpModalWorkspace>
     </>
   );
 }

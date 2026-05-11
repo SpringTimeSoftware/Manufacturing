@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { bomRecords } from "../api/mockData";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
@@ -29,7 +30,7 @@ import { Card } from "../ui/Card";
 import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { Timeline } from "../ui/Timeline";
-import { KpiStrip, LaneBoard, OccupancyCalendar } from "../ui/boards";
+import { KpiStrip, LaneBoard, OccupancyCalendar, type Lane, type LaneSlot } from "../ui/boards";
 import type { BomRecord } from "../api/mockData";
 
 function SourceBadge({ source }: { source: MasterDataSource }) {
@@ -303,6 +304,7 @@ const operationColumns: DataGridColumn<WorkOrderOperationLineItem>[] = [
 ];
 
 export function WorkOrdersPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -338,7 +340,7 @@ export function WorkOrdersPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Materials, operations, readiness, reservations, and release action labels."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Review release", reason: "Release review requires planning release workflow enablement." }]} secondary={[{ disabled: true, label: "Print traveler", reason: "Traveler printing is pending document workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Review release", reason: "Release review requires planning release workflow enablement." }, { disabled: true, label: "Generate job cards", reason: "Job-card generation requires production release workflow enablement." }]} secondary={[{ label: "Issue materials", onClick: () => navigate(`/inventory/material-issue?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Receive production", onClick: () => navigate(`/production/receipts?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Print traveler", onClick: () => navigate(`/reports/print-pack?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(detail)}
         onClose={() => setSelectedId(null)}
         title={detail?.workOrderNo ?? "Selected work order"}
@@ -397,6 +399,7 @@ const downtimeColumns: DataGridColumn<DowntimeRegisterItem>[] = [
 ];
 
 export function JobCardsPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -432,7 +435,7 @@ export function JobCardsPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Timeline and quick action labels for pause, reject, downtime, and completion review."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Complete", reason: "Completion requires production execution workflow enablement." }]} secondary={[{ disabled: true, label: "Pause", reason: "Pause requires production execution workflow enablement." }, { disabled: true, label: "Add reject", reason: "Reject entry requires quality workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Complete", reason: "Completion requires production execution workflow enablement." }]} secondary={[{ disabled: true, label: "Pause", reason: "Pause requires production execution workflow enablement." }, { disabled: true, label: "Add reject", reason: "Reject entry requires quality workflow enablement." }, { label: "Record downtime", onClick: () => navigate(`/production/downtime?jobCard=${encodeURIComponent(detail?.jobCardNo ?? "")}`) }, { label: "Open QC", onClick: () => navigate(`/quality/in-process-inspections?jobCard=${encodeURIComponent(detail?.jobCardNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(detail)}
         onClose={() => setSelectedId(null)}
         title={detail?.jobCardNo ?? "Selected job card"}
@@ -463,23 +466,57 @@ function useMachineBoardData() {
   return { dateFrom, dateTo, setDateFrom, setDateTo, query };
 }
 
+function toIsoDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function addDaysIso(base: Date, days: number) {
+  const next = new Date(base);
+  next.setDate(next.getDate() + days);
+  return toIsoDate(next);
+}
+
 export function MachineBoardPage() {
+  const navigate = useNavigate();
   const { dateFrom, dateTo, setDateFrom, setDateTo, query } = useMachineBoardData();
+  const [selectedSlot, setSelectedSlot] = useState<{ lane: Lane; slot: LaneSlot } | null>(null);
   const board = query.data;
   const source = board?.source ?? "Seeded";
+  const setToday = () => {
+    const today = toIsoDate(new Date());
+    setDateFrom(today);
+    setDateTo(today);
+  };
 
   return (
-    <ListPageShell
-      actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "Auto-assign review", reason: "Auto-assignment review requires machine-scheduling workflow enablement." }]} secondary={[{ disabled: true, label: "Today", reason: "Quick date reset is pending scheduling toolbar enablement." }]} testId="machine-board-action-bar" /></>}
-      description="Lane view of what each machine is running next, preserving the production board visual language."
-      filters={<FilterBar><input aria-label="Machine board from" onChange={(event) => setDateFrom(event.target.value)} type="date" value={dateFrom} /><input aria-label="Machine board to" onChange={(event) => setDateTo(event.target.value)} type="date" value={dateTo} /></FilterBar>}
-      title="Machine Schedule Board"
-    >
-      <KpiStrip items={[{ label: "Machines", value: String(board?.lanes.length ?? 0) }, { label: "Running", value: String(board?.lanes.filter((lane) => lane.status === "Running").length ?? 0) }, { label: "Down", value: String(board?.lanes.filter((lane) => lane.status === "Down").length ?? 0) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
-      <Card title="Machine lanes" description="Current and queued work stays visible as lane cards rather than a generic grid.">
-        <LaneBoard lanes={board?.lanes ?? []} />
-      </Card>
-    </ListPageShell>
+    <>
+      <ListPageShell
+        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "Auto-assign review", reason: "Auto-assignment review requires machine-scheduling workflow enablement." }]} secondary={[{ label: "Today", onClick: setToday }]} testId="machine-board-action-bar" /></>}
+        description="Lane view of what each machine is running next, preserving the production board visual language."
+        filters={<FilterBar><input aria-label="Machine board from" onChange={(event) => setDateFrom(event.target.value)} type="date" value={dateFrom} /><input aria-label="Machine board to" onChange={(event) => setDateTo(event.target.value)} type="date" value={dateTo} /></FilterBar>}
+        title="Machine Schedule Board"
+      >
+        <KpiStrip items={[{ label: "Machines", value: String(board?.lanes.length ?? 0) }, { label: "Running", value: String(board?.lanes.filter((lane) => lane.status === "Running").length ?? 0) }, { label: "Down", value: String(board?.lanes.filter((lane) => lane.status === "Down").length ?? 0) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
+        <Card title="Machine lanes" description="Current and queued work stays visible as lane cards rather than a generic grid.">
+          <LaneBoard lanes={board?.lanes ?? []} onSlotSelect={(lane, slot) => setSelectedSlot({ lane, slot })} />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace
+        description="Machine card detail keeps scheduling context visible without changing assignment state."
+        footer={<ErpActionBar primary={[{ label: "Open job cards", onClick: () => navigate(`/production/job-cards?jobCard=${encodeURIComponent(selectedSlot?.slot.title.split(" / ")[0] ?? "")}`) }]} secondary={[{ disabled: true, label: "Auto-assign review", reason: "Auto-assignment review requires machine-scheduling workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedSlot(null), variant: "quiet" }]} />}
+        isOpen={Boolean(selectedSlot)}
+        onClose={() => setSelectedSlot(null)}
+        title={selectedSlot?.slot.title ?? "Machine card"}
+      >
+        {selectedSlot ? (
+          <FormShell initialFingerprint={`${selectedSlot.lane.id}-${selectedSlot.slot.id}`} title="Machine schedule card">
+            <ErpLookupField disabled disabledReason="Machine is controlled by the machine schedule board." label="Machine" onChange={() => undefined} options={[{ label: selectedSlot.lane.machine, value: selectedSlot.lane.machine }]} value={selectedSlot.lane.machine} />
+            <ErpLookupField disabled disabledReason="Job card is controlled by production scheduling." label="Job card" onChange={() => undefined} options={[{ label: selectedSlot.slot.title, value: selectedSlot.slot.title }]} value={selectedSlot.slot.title} />
+            <ErpLookupField disabled disabledReason="Schedule window is calculated by machine scheduling." label="Schedule window" onChange={() => undefined} options={[{ label: `${selectedSlot.slot.start} - ${selectedSlot.slot.end}`, value: `${selectedSlot.slot.start} - ${selectedSlot.slot.end}` }]} value={`${selectedSlot.slot.start} - ${selectedSlot.slot.end}`} />
+          </FormShell>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
   );
 }
 
@@ -487,10 +524,15 @@ export function OccupancyCalendarPage() {
   const { dateFrom, dateTo, setDateFrom, setDateTo, query } = useMachineBoardData();
   const board = query.data;
   const source = board?.source ?? "Seeded";
+  const setNextSevenDays = () => {
+    const today = new Date();
+    setDateFrom(toIsoDate(today));
+    setDateTo(addDaysIso(today, 6));
+  };
 
   return (
     <ListPageShell
-      actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "Review assignment", reason: "Assignment review requires machine-scheduling workflow enablement." }]} secondary={[{ disabled: true, label: "Next 7 days", reason: "Quick range selection is pending scheduling toolbar enablement." }]} testId="occupancy-action-bar" /></>}
+      actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "Review assignment", reason: "Assignment review requires machine-scheduling workflow enablement." }]} secondary={[{ label: "Next 7 days", onClick: setNextSevenDays }]} testId="occupancy-action-bar" /></>}
       description="Calendar occupancy across machines and days for PPS planning."
       filters={<FilterBar><input aria-label="Occupancy from" onChange={(event) => setDateFrom(event.target.value)} type="date" value={dateFrom} /><input aria-label="Occupancy to" onChange={(event) => setDateTo(event.target.value)} type="date" value={dateTo} /></FilterBar>}
       title="PPS Machine Occupancy Calendar"
@@ -523,6 +565,7 @@ const shiftProductionColumns: DataGridColumn<ShiftProductionItem>[] = [
 ];
 
 export function ShiftProductionEntryPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -550,7 +593,7 @@ export function ShiftProductionEntryPage() {
           <DataGrid ariaLabel="Shift production list" columns={shiftProductionColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.shiftLabel} shift production`} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Shift production detail is review-only until summary submission is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Submit summary", reason: "Shift summary submission requires production execution workflow enablement." }]} secondary={[{ disabled: true, label: "Save shift draft", reason: "Shift draft save requires production execution workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.jobCardLabel ?? "Shift production"}>
+      <ErpModalWorkspace description="Shift production detail is review-only until summary submission is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Submit summary", reason: "Shift summary submission requires production execution workflow enablement." }]} secondary={[{ disabled: true, label: "Save shift draft", reason: "Shift draft save requires production execution workflow enablement." }, { label: "Open job card", onClick: () => navigate(`/production/job-cards?jobCard=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }, { label: "Open downtime", onClick: () => navigate(`/production/downtime?jobCard=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.jobCardLabel ?? "Shift production"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Shift production controls" description={selected.issueSummary}><ErpNumberField disabled disabledReason="Shift quantities are posted through the controlled production workflow." label="Good quantity" onChange={() => undefined} value={selected.goodQuantity} /><ErpNumberField disabled disabledReason="Shift quantities are posted through the controlled production workflow." label="Reject quantity" onChange={() => undefined} value={selected.rejectQuantity} /><ErpNumberField disabled disabledReason="Shift quantities are posted through the controlled production workflow." label="Scrap quantity" onChange={() => undefined} value={selected.scrapQuantity} /></FormShell> : null}
       </ErpModalWorkspace>
     </>
@@ -558,6 +601,7 @@ export function ShiftProductionEntryPage() {
 }
 
 export function DowntimeRegisterPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -585,7 +629,7 @@ export function DowntimeRegisterPage() {
           <DataGrid ariaLabel="Downtime register" columns={downtimeColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.reasonCode} downtime event`} virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Downtime detail is review-only until RCA workflow is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save downtime review", reason: "Downtime review save requires RCA workflow enablement." }]} secondary={[{ disabled: true, label: "Open RCA queue", reason: "RCA workflow is pending quality action enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.reasonCode ?? "Downtime event"}>
+      <ErpModalWorkspace description="Downtime detail is review-only until RCA workflow is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save downtime review", reason: "Downtime review save requires RCA workflow enablement." }]} secondary={[{ label: "Open job card", onClick: () => navigate(`/production/job-cards?jobCard=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }, { label: "Open RCA queue", onClick: () => navigate(`/quality/ncr?source=${encodeURIComponent(selected?.jobCardLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.reasonCode ?? "Downtime event"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Downtime review controls" description={selected.remarks}><ErpLookupField disabled disabledReason="Machine selection is controlled by machine master." label="Machine" onChange={() => undefined} options={[{ label: selected.machineLabel, value: selected.machineLabel }]} value={selected.machineLabel} /><label><span>Start</span><input disabled defaultValue={selected.startOn} /></label><label><span>End</span><input disabled defaultValue={selected.endOn} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>

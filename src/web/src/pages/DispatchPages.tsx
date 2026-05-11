@@ -1,5 +1,7 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { queryKeys, useApiQuery } from "../api/hooks";
+import { useNavigate } from "react-router-dom";
+import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
+import { apiClient } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
 import {
   listDispatchPlanning,
@@ -15,7 +17,7 @@ import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataA
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
+import { ErpActionBar, ErpFileActionState, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -81,6 +83,7 @@ const packLineColumns: DataGridColumn<PackListLineItem>[] = [
 ];
 
 export function PackListPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -110,7 +113,7 @@ export function PackListPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Pack list detail is review-only until packing workflow is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save pack list", reason: "Pack-list save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Print labels", reason: "Label printing is pending document workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save pack list", reason: "Pack-list save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Print labels", reason: "Label printing is pending document workflow enablement." }, { label: "Open shipment", onClick: () => navigate(`/dispatch/shipments?packList=${encodeURIComponent(selected?.packListNo ?? "")}`) }, { label: "Open print pack", onClick: () => navigate(`/reports/print-pack?packList=${encodeURIComponent(selected?.packListNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.packListNo ?? "Pack list"}
@@ -118,6 +121,10 @@ export function PackListPage() {
         {selected ? (
           <>
             <KpiStrip items={[{ label: "Lines", value: String(selected.lineCount) }, { label: "Packed qty", value: String(selected.packedQuantity) }, { label: "Completeness", value: selected.completenessSignal }]} />
+            <FormShell initialFingerprint={`${selected.id}-controls`} title="Pack controls">
+              <ErpNumberField disabled disabledReason="Packed quantity is controlled by pack-line posting." label="Packed quantity" onChange={() => undefined} value={selected.packedQuantity} />
+              <ErpLookupField disabled disabledReason="Pack status is controlled by the dispatch workflow." label="Status" onChange={() => undefined} options={[{ label: selected.status, value: selected.status }]} value={selected.status} />
+            </FormShell>
             <Card title="Pack lines" description={selected.remarks}>
               <DataGrid ariaLabel="Pack list lines" columns={packLineColumns} getRowId={(record) => record.id} records={selected.lines} rowLabel={(record) => `${record.itemLabel} pack line`} />
             </Card>
@@ -194,10 +201,13 @@ const shipmentLineColumns: DataGridColumn<ShipmentLineItem>[] = [
 ];
 
 export function ShipmentDeliveryPage() {
+  const navigate = useNavigate();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [proofFiles, setProofFiles] = useState<Record<string, string>>({});
+  const [proofMessage, setProofMessage] = useState<string | null>(null);
   const { deferredSearch, filter } = useDispatchFilter(search, status);
   const query = useApiQuery(
     queryKeys.dispatch.shipments(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
@@ -207,6 +217,38 @@ export function ShipmentDeliveryPage() {
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const proofUpload = useApiMutation(
+    (payload: { file: File; shipment: ShipmentItem }) =>
+      apiClient.platform.uploadAttachment({
+        branchId: user?.activeContext.branchId,
+        companyId: user?.activeContext.companyId,
+        file: payload.file,
+        relatedDocumentId: payload.shipment.shipmentId,
+        relatedDocumentType: "ShipmentProof"
+      }),
+    {
+      onError: (error) => setProofMessage(error.message),
+      onSuccess: (attachment, variables) => {
+        setProofFiles((current) => ({ ...current, [variables.shipment.id]: attachment.fileName }));
+        setProofMessage(`${attachment.fileName} linked as shipment proof.`);
+      }
+    }
+  );
+  const proofDisabledReason = !selected
+    ? "Select a shipment before loading proof."
+    : selected.source !== "Live"
+      ? "Proof upload requires a live shipment record."
+      : proofUpload.isPending
+        ? "Shipment proof upload is in progress."
+        : undefined;
+  const handleProofSelect = (file: File | null) => {
+    if (!file || !selected || proofDisabledReason) {
+      return;
+    }
+
+    setProofMessage(null);
+    proofUpload.mutate({ file, shipment: selected });
+  };
 
   return (
     <>
@@ -223,7 +265,7 @@ export function ShipmentDeliveryPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Shipment detail is review-only until shipment preparation is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Close shipment", reason: "Shipment close requires dispatch proof approval." }, { disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }, { label: "Open pack list", onClick: () => navigate(`/dispatch/pack-lists?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }, { label: "Open print pack", onClick: () => navigate(`/reports/print-pack?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.shipmentNo ?? "Shipment"}
@@ -234,7 +276,18 @@ export function ShipmentDeliveryPage() {
             <Card title="Shipment lines" description={selected.proofNotes}>
               <DataGrid ariaLabel="Shipment lines" columns={shipmentLineColumns} getRowId={(record) => record.id} records={selected.lines} rowLabel={(record) => `${record.itemLabel} shipment line`} />
             </Card>
-            <FormShell initialFingerprint={selected.id} title="Shipment controls"><ErpLookupField disabled disabledReason="Vehicle assignment is controlled by dispatch workflow." label="Vehicle" onChange={() => undefined} options={[{ label: selected.vehicleRef, value: selected.vehicleRef }]} value={selected.vehicleRef} /><label><span>Tracking</span><input disabled defaultValue={selected.trackingRef} /></label></FormShell>
+            <FormShell initialFingerprint={selected.id} title="Shipment controls"><ErpLookupField disabled disabledReason="Vehicle assignment is controlled by dispatch workflow." label="Vehicle" onChange={() => undefined} options={[{ label: selected.vehicleRef, value: selected.vehicleRef }]} value={selected.vehicleRef} /><ErpLookupField disabled disabledReason="Pack list is controlled by dispatch planning." label="Pack list" onChange={() => undefined} options={[{ label: selected.packListLabel, value: selected.packListLabel }]} value={selected.packListLabel} /><ErpNumberField disabled disabledReason="Shipped quantity is controlled by shipment line posting." label="Shipped quantity" onChange={() => undefined} value={selected.shippedQuantity} /><label><span>Tracking</span><input disabled defaultValue={selected.trackingRef} /></label></FormShell>
+            <Card title="Proof documents" description="Loading and delivery proof files are linked to the shipment audit record.">
+              <ErpFileActionState
+                accept=".pdf,.png,.jpg,.jpeg"
+                disabledReason={proofDisabledReason}
+                enabled={!proofDisabledReason}
+                fileName={proofFiles[selected.id]}
+                label="Load proof"
+                onFileSelect={handleProofSelect}
+              />
+              {proofMessage ? <p className="muted">{proofMessage}</p> : null}
+            </Card>
           </>
         ) : null}
       </ErpModalWorkspace>

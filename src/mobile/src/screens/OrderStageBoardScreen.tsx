@@ -18,7 +18,7 @@ export function OrderStageBoardScreen() {
   return (
     <View style={styles.stack}>
       <MobileCard
-        action={<MobileBadge label="W057 mobile" tone="info" />}
+        action={<MobileBadge label="Order health" tone="info" />}
         subtitle="Compact order health cards mirror the web delivery dashboard without carrying the dense table to mobile."
         title="Order Snapshot"
       >
@@ -41,8 +41,8 @@ export function OrderStageBoardScreen() {
       </MobileCard>
 
       <MobileCard
-        action={<MobileBadge label="W108 mobile" tone="warn" />}
-        subtitle="Stage columns are compressed into swipeable-looking stacked cards for plant-head and manager review."
+        action={<MobileBadge label="Stage review" tone="warn" />}
+        subtitle="Stage columns are compressed into stacked cards for plant-head and manager review."
         title="Stage Wise Mobile Board"
       >
         {seededStageBoardColumns.map((column) => (
