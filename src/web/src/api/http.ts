@@ -58,6 +58,7 @@ import type {
   JobCardSummaryDto,
   MachineBoardItem,
   MachineDto,
+  MachineUpsertRequest,
   MeasurementFormulaDto,
   MeasurementProfileDto,
   MrpRunDto,
@@ -95,6 +96,7 @@ import type {
   TranslationBundleResponse,
   UserDirectoryItemDto,
   WorkCenterDto,
+  WorkCenterUpsertRequest,
   RoleMatrixItemDto,
   RoutingDto,
   RoutingUpsertRequest,
@@ -115,6 +117,8 @@ import type {
   TaxCategoryUpsertRequest,
   TradeTermDto,
   TradeTermUpsertRequest,
+  ToolDto,
+  ToolUpsertRequest,
   UomClassDto,
   UomConversionDto,
   UomDto,
@@ -537,10 +541,44 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<WorkCenterDto>>(`/api/work-centers?${query}`);
     },
+    createWorkCenter: (body: WorkCenterUpsertRequest) =>
+      request<WorkCenterDto>("/api/work-centers", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateWorkCenter: (id: number, body: WorkCenterUpsertRequest) =>
+      request<WorkCenterDto>(`/api/work-centers/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     machines: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<MachineDto>>(`/api/machines?${query}`);
-    }
+    },
+    createMachine: (body: MachineUpsertRequest) =>
+      request<MachineDto>("/api/machines", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateMachine: (id: number, body: MachineUpsertRequest) =>
+      request<MachineDto>(`/api/machines/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    tools: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ToolDto>>(`/api/tools?${query}`);
+    },
+    createTool: (body: ToolUpsertRequest) =>
+      request<ToolDto>("/api/tools", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateTool: (id: number, body: ToolUpsertRequest) =>
+      request<ToolDto>(`/api/tools/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      })
   },
   salesPlanning: {
     quotes: (filter: QueryFilter = {}) => {

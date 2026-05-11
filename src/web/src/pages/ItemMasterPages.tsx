@@ -345,6 +345,8 @@ export function ItemGroupMasterPage() {
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
+  const defaultProfileOptions = uniqueOptions(records, (record) => record.defaultProfile).map((option) => ({ label: option, value: option }));
+  const reportingBucketOptions = uniqueOptions(records, (record) => record.reportingBucket).map((option) => ({ label: option, value: option }));
 
   return (
     <>
@@ -413,14 +415,18 @@ export function ItemGroupMasterPage() {
               <span>Group code</span>
               <input defaultValue={selected.code} />
             </label>
-            <label>
-              <span>Default profile</span>
-              <input defaultValue={selected.defaultProfile} />
-            </label>
-            <label>
-              <span>Reporting bucket</span>
-              <input defaultValue={selected.reportingBucket} />
-            </label>
+            <ErpLookupField
+              label="Default profile"
+              onChange={() => undefined}
+              options={defaultProfileOptions}
+              value={selected.defaultProfile}
+            />
+            <ErpLookupField
+              label="Reporting bucket"
+              onChange={() => undefined}
+              options={reportingBucketOptions}
+              value={selected.reportingBucket}
+            />
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
@@ -1447,6 +1453,22 @@ function ItemDetailEditor({
     [records]
   );
   const categoryOptions = useMemo(() => groupOptions.map((option) => ({ label: option.label, value: option.label })), [groupOptions]);
+  const subCategoryOptions = useMemo(
+    () => uniqueOptions(records, (record) => record.subCategory).map((option) => ({ label: option, value: option })),
+    [records]
+  );
+  const productFamilyOptions = useMemo(
+    () => uniqueOptions(records, (record) => record.productFamily).map((option) => ({ label: option, value: option })),
+    [records]
+  );
+  const businessSegmentOptions = useMemo(
+    () => uniqueOptions(records, (record) => record.businessSegment).map((option) => ({ label: option, value: option })),
+    [records]
+  );
+  const reportingBucketOptions = useMemo(
+    () => uniqueOptions(records, (record) => record.reportingBucket).map((option) => ({ label: option, value: option })),
+    [records]
+  );
   const uomOptions = useMemo(
     () =>
       records
@@ -1469,7 +1491,7 @@ function ItemDetailEditor({
     [records]
   );
   const blockers = validationBlockers(item);
-  const taxonomyUnavailableReason = "Dedicated item taxonomy setup is required before this value can be selected.";
+  const taxonomyUnavailableReason = "Create the controlled taxonomy value before selecting it here.";
 
   const patch = (changes: Partial<ItemMasterSetupItem>) => updateItem((current) => ({ ...current, ...changes }));
   const patchCatalog = (changes: Partial<ItemMasterSetupItem["catalog"]>) =>
@@ -1679,30 +1701,37 @@ function ItemDetailEditor({
                 value={item.category || item.groupLabel}
               />
               <ErpLookupField
-                disabled
-                disabledReason={taxonomyUnavailableReason}
                 label="Subcategory"
-                onChange={() => undefined}
-                options={[]}
+                disabled={subCategoryOptions.length === 0}
+                disabledReason={subCategoryOptions.length === 0 ? taxonomyUnavailableReason : undefined}
+                onChange={(value) => patch({ subCategory: value })}
+                options={subCategoryOptions}
                 value={item.subCategory}
               />
               <ErpLookupField
-                disabled
-                disabledReason={taxonomyUnavailableReason}
                 label="Product family"
-                onChange={() => undefined}
-                options={[]}
+                disabled={productFamilyOptions.length === 0}
+                disabledReason={productFamilyOptions.length === 0 ? taxonomyUnavailableReason : undefined}
+                onChange={(value) => patch({ productFamily: value })}
+                options={productFamilyOptions}
                 value={item.productFamily}
               />
               <ErpLookupField
-                disabled
-                disabledReason={taxonomyUnavailableReason}
                 label="Business segment"
-                onChange={() => undefined}
-                options={[]}
+                disabled={businessSegmentOptions.length === 0}
+                disabledReason={businessSegmentOptions.length === 0 ? taxonomyUnavailableReason : undefined}
+                onChange={(value) => patch({ businessSegment: value })}
+                options={businessSegmentOptions}
                 value={item.businessSegment}
               />
-              <TextField label="Reporting bucket" onChange={(value) => patch({ reportingBucket: value })} value={item.reportingBucket} />
+              <ErpLookupField
+                disabled={reportingBucketOptions.length === 0}
+                disabledReason={reportingBucketOptions.length === 0 ? taxonomyUnavailableReason : undefined}
+                label="Reporting bucket"
+                onChange={(value) => patch({ reportingBucket: value })}
+                options={reportingBucketOptions}
+                value={item.reportingBucket}
+              />
               <TextAreaField label="Attributes" onChange={(value) => patch({ attributeSummary: value })} value={item.attributeSummary} />
               <TextAreaField
                 label="Aliases"

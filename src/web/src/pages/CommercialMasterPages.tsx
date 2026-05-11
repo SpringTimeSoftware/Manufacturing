@@ -65,6 +65,7 @@ const approvalOptions = ["Draft", "Review", "Approved", "Retired"].map(toOption)
 const priceListTypeOptions = ["Standard Sales", "Customer Contract", "Export", "Purchase Reference"].map(toOption);
 const discountTypeOptions = ["Quantity Break", "Customer Scheme", "Campaign", "Item Group"].map(toOption);
 const applicabilityOptions = ["Item", "Item Group", "Customer", "Customer Group", "Price List"].map(toOption);
+const customerSegmentOptions = ["Domestic industrial", "Export", "Strategic", "Project", "Aftermarket"].map(toOption);
 const rateTypeOptions = ["Manual", "Month End", "Transaction"].map(toOption);
 const rateSourceOptions = ["Finance table", "Bank advisory", "Contract rate"].map(toOption);
 const roundingOptions = ["HalfUp", "Bankers", "Floor", "Ceiling"].map(toOption);
@@ -77,6 +78,8 @@ const uomOptions = [
   { label: "MTR - Meter", value: "3" }
 ];
 const saveReason = "Sign in with commercial master write access to save this setup.";
+const missingCustomerGroupReason = "Customer-group master setup is required before group applicability can be selected.";
+const missingBranchReason = "Branch selection requires branch lookup integration for this commercial setup.";
 
 function toOption(value: string) {
   return { label: value, value };
@@ -500,7 +503,12 @@ export function PriceListMasterPage() {
                 <ErpLookupField label="Price list type" onChange={(value) => setDraft({ ...draft, priceListType: value })} options={priceListTypeOptions} required value={draft.priceListType} />
                 {dateInput("Effective from", draft.effectiveFrom, (value) => setDraft({ ...draft, effectiveFrom: value ?? todayIso }))}
                 {dateInput("Effective to", draft.effectiveTo, (value) => setDraft({ ...draft, effectiveTo: value }))}
-                {textInput("Customer segment", draft.customerSegment, (value) => setDraft({ ...draft, customerSegment: value || null }))}
+                <ErpLookupField
+                  label="Customer segment"
+                  onChange={(value) => setDraft({ ...draft, customerSegment: value || null })}
+                  options={customerSegmentOptions}
+                  value={draft.customerSegment ?? ""}
+                />
                 <ErpLookupField label="Approval status" onChange={(value) => setDraft({ ...draft, approvalStatus: value })} options={approvalOptions} value={draft.approvalStatus} />
                 <ErpLookupField label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={statusOptions} value={draft.status} />
               </div>
@@ -521,9 +529,23 @@ export function PriceListMasterPage() {
             <Card title="Applicability" description="Customer, group, branch, and item-group priority controls.">
               <div className="form-grid form-grid--three">
                 <ErpLookupField label="Customer" onChange={(value) => updateAssignment({ customerId: toId(value), customerGroupCode: null })} options={customerOptions} value={String(draft.assignments[0]?.customerId ?? "")} />
-                {textInput("Customer group", draft.assignments[0]?.customerGroupCode, (value) => updateAssignment({ customerGroupCode: value || null, customerId: null }))}
+                <ErpLookupField
+                  disabled
+                  disabledReason={missingCustomerGroupReason}
+                  label="Customer group"
+                  onChange={() => undefined}
+                  options={draft.assignments[0]?.customerGroupCode ? [{ label: draft.assignments[0].customerGroupCode, value: draft.assignments[0].customerGroupCode }] : []}
+                  value={draft.assignments[0]?.customerGroupCode ?? ""}
+                />
                 <ErpLookupField label="Item group applicability" onChange={(value) => updateAssignment({ itemGroupId: toId(value) })} options={itemGroupOptions} value={String(draft.assignments[0]?.itemGroupId ?? "")} />
-                {textInput("Branch id", draft.assignments[0]?.branchId, (value) => updateAssignment({ branchId: toId(value) }), "number")}
+                <ErpLookupField
+                  disabled
+                  disabledReason={missingBranchReason}
+                  label="Branch"
+                  onChange={() => undefined}
+                  options={draft.assignments[0]?.branchId ? [{ label: `Branch ${draft.assignments[0].branchId}`, value: String(draft.assignments[0].branchId) }] : []}
+                  value={String(draft.assignments[0]?.branchId ?? "")}
+                />
                 {textInput("Priority rank", draft.assignments[0]?.priorityRank, (value) => updateAssignment({ priorityRank: Number(value) || 10 }), "number")}
                 <ErpLookupField label="Assignment status" onChange={(value) => updateAssignment({ status: value })} options={statusOptions} value={draft.assignments[0]?.status ?? "Draft"} />
               </div>
@@ -686,7 +708,14 @@ export function DiscountSchemeMasterPage() {
                 {textInput("Rule name", draft.rules[0]?.ruleName, (value) => updateRule({ ruleName: value }))}
                 <ErpLookupField label="Applicability type" onChange={(value) => updateRule({ applicabilityType: value })} options={applicabilityOptions} required value={draft.rules[0]?.applicabilityType ?? "Item"} />
                 <ErpLookupField label="Customer" onChange={(value) => updateRule({ customerId: toId(value), customerGroupCode: null })} options={customerOptions} value={String(draft.rules[0]?.customerId ?? "")} />
-                {textInput("Customer group", draft.rules[0]?.customerGroupCode, (value) => updateRule({ customerGroupCode: value || null, customerId: null }))}
+                <ErpLookupField
+                  disabled
+                  disabledReason={missingCustomerGroupReason}
+                  label="Customer group"
+                  onChange={() => undefined}
+                  options={draft.rules[0]?.customerGroupCode ? [{ label: draft.rules[0].customerGroupCode, value: draft.rules[0].customerGroupCode }] : []}
+                  value={draft.rules[0]?.customerGroupCode ?? ""}
+                />
                 <ErpLookupField label="Item" onChange={(value) => updateRule({ itemId: toId(value), itemGroupId: null })} options={itemOptions} value={String(draft.rules[0]?.itemId ?? "")} />
                 <ErpLookupField label="Item group" onChange={(value) => updateRule({ itemGroupId: toId(value), itemId: null })} options={itemGroupOptions} value={String(draft.rules[0]?.itemGroupId ?? "")} />
                 {textInput("Minimum quantity", draft.rules[0]?.minQuantity, (value) => updateRule({ minQuantity: Number(value) || 0 }), "number")}

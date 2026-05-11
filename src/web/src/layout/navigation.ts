@@ -487,6 +487,24 @@ export const navigationItems: NavigationItem[] = [
     roles: ["PlatformAdmin", "CompanyAdmin", "ProductionSupervisor"]
   },
   {
+    label: "Work Centers",
+    path: "/resources/work-centers",
+    section: "Resources",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager", "ProductionSupervisor"]
+  },
+  {
+    label: "Machines",
+    path: "/resources/machines",
+    section: "Resources",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager", "ProductionSupervisor"]
+  },
+  {
+    label: "Tools / Resources",
+    path: "/resources/tools",
+    section: "Resources",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager"]
+  },
+  {
     label: "Print Pack",
     path: "/reports/print-pack",
     section: "Reports",

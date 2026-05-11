@@ -1601,6 +1601,18 @@ export interface WorkCenterDto {
   status: string;
 }
 
+export interface WorkCenterUpsertRequest {
+  companyId: number;
+  branchId: number;
+  workCenterCode: string;
+  workCenterName: string;
+  departmentId: number | null;
+  capacityUomId: number | null;
+  defaultShiftPatternCode: string | null;
+  parallelCapacityUnits: number;
+  status: string;
+}
+
 export interface MachineDto {
   id: number;
   companyId: number;
@@ -1613,6 +1625,41 @@ export interface MachineDto {
   defaultShiftId: number | null;
   isUnderMaintenance: boolean;
   isSchedulingEnabled: boolean;
+  status: string;
+}
+
+export interface MachineUpsertRequest {
+  companyId: number;
+  branchId: number;
+  workCenterId: number;
+  machineCode: string;
+  machineName: string;
+  capacityPerHour: number;
+  currentStatus: string;
+  defaultShiftId: number | null;
+  isUnderMaintenance: boolean;
+  isSchedulingEnabled: boolean;
+  status: string;
+}
+
+export interface ToolDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  toolCode: string;
+  toolName: string;
+  toolType: string;
+  compatibleMachineGroup: string | null;
+  status: string;
+}
+
+export interface ToolUpsertRequest {
+  companyId: number;
+  branchId: number | null;
+  toolCode: string;
+  toolName: string;
+  toolType: string;
+  compatibleMachineGroup: string | null;
   status: string;
 }
 

@@ -81,6 +81,7 @@ import {
   WarehouseMasterPage
 } from "../pages/OrganizationPages";
 import { CustomerListDetailPage, SupplierListDetailPage } from "../pages/PartnerPages";
+import { MachineMasterPage, ToolResourceMasterPage, WorkCenterMasterPage } from "../pages/ResourceFoundationPages";
 import {
   CycleCountPage,
   DowntimeRegisterPage,
@@ -218,6 +219,9 @@ export const appRouter = createBrowserRouter([
       guardedRoute("organization/warehouses", <WarehouseMasterPage />),
       guardedRoute("organization/bins", <BinMasterPage />),
       guardedRoute("organization/shifts", <ShiftCalendarPage />),
+      guardedRoute("resources/work-centers", <WorkCenterMasterPage />),
+      guardedRoute("resources/machines", <MachineMasterPage />),
+      guardedRoute("resources/tools", <ToolResourceMasterPage />),
       guardedRoute("platform/context-switch", <ContextSwitchPage />),
       guardedRoute("platform/notifications", <NotificationInboxPage />),
       guardedRoute("platform/approvals", <ApprovalWorkbenchPage />),

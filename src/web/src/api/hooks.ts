@@ -136,7 +136,9 @@ export const queryKeys = {
     workCenters: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
       ["resources", "work-centers", companyId ?? 0, branchId ?? 0, search, status] as const,
     machines: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
-      ["resources", "machines", companyId ?? 0, branchId ?? 0, search, status] as const
+      ["resources", "machines", companyId ?? 0, branchId ?? 0, search, status] as const,
+    tools: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["resources", "tools", companyId ?? 0, branchId ?? 0, search, status] as const
   },
   engineering: {
     boms: (companyId?: number | null, search = "", status = "all") =>

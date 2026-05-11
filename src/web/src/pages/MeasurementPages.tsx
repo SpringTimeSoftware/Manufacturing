@@ -18,6 +18,7 @@ import { Card } from "../ui/Card";
 import type { DataGridColumn } from "../ui/DataGrid";
 import {
   ErpActionBar,
+  ErpDecimalField,
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
@@ -32,6 +33,11 @@ import { KpiStrip } from "../ui/boards";
 function SourceBadge({ source }: { source: MasterDataSource }) {
   const tone = source === "Live" ? "success" : source === "Deferred" ? "info" : "neutral";
   return <ErpStatusChip tone={tone}>{source === "Live" ? "Setup complete" : "Review mode"}</ErpStatusChip>;
+}
+
+function parseFirstDecimal(value: string | null | undefined) {
+  const match = value?.match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
 }
 
 function MeasurementAside({
@@ -419,10 +425,15 @@ export function UomConversionMasterPage() {
               options={Array.from(new Set(records.flatMap((record) => [record.fromUom, record.toUom]))).map((option) => ({ label: option, value: option }))}
               value={selected.toUom}
             />
-            <label>
-              <span>Factor or formula</span>
-              <input defaultValue={selected.factorLabel} />
-            </label>
+            <ErpDecimalField
+              disabled
+              disabledReason="Conversion factor changes require the measurement setup workflow."
+              label="Conversion factor"
+              min={0}
+              onChange={() => undefined}
+              scale={6}
+              value={parseFirstDecimal(selected.factorLabel)}
+            />
             <label>
               <span>Formula tokens</span>
               <textarea defaultValue={selected.formulaTokenSet} rows={3} />
