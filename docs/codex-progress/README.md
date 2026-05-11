@@ -75,6 +75,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - `WAVE05C-ENGINEERING-DOCUMENTS-ALTERNATES-PLANNING-CAPACITY-COMPLETION` completed on 2026-04-24 to finish engineering document linking, alternate-item authoring, Wave 5C planning/capacity action truth, and screenshot evidence under `/docs/codex-review-screens/WAVE05C/`.
 - `PROCESS-01-DELIVERY-WORKFLOW-HARDENING` completed on 2026-04-24 to add repo-local validation, screenshot, and review-pack automation with a passing Wave 5C proof run under `/docs/codex-review-screens/WAVE05C-PROOF/` and `/artifacts/review-packs/WAVE05C-PROOF-review-pack.zip`.
 - `RUN-CURRENT-WAVE-2026-04-24` completed on 2026-04-24 to execute the configured proof wave through `scripts/run-wave.ps1`, refresh the screenshot pack, and confirm local runtimes remain available.
+- `VERIFY-LIVE-VS-MAIN-01` completed on 2026-05-11 to compare latest `main` against the live IP and confirm the Item Master free-text issue is caused by an outdated live web asset, not current source code.
 
 ## Prompt Log
 
