@@ -42,8 +42,12 @@ describe("Wave UX-GLOBAL-02 master-data enforcement", () => {
     expect(screen.getByTestId("item-group-grid")).toHaveClass("erp-grid");
 
     const newDraft = screen.getByRole("button", { name: "New item group draft" });
-    expect(newDraft).toBeDisabled();
-    expect(screen.getByText("Draft creation requires the governed master-data maintenance workflow.")).toBeInTheDocument();
+    expect(newDraft).toBeEnabled();
+    fireEvent.click(newDraft);
+    const dialog = await screen.findByRole("dialog", { name: "Item group detail" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Save item group draft" })).toBeDisabled();
+    expect(within(dialog).getByText("Save is not enabled for this setup workflow yet.")).toBeInTheDocument();
   });
 
   it("keeps Item Master business-facing and removes the old workspace-data action text", async () => {

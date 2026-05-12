@@ -76,6 +76,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - `PROCESS-01-DELIVERY-WORKFLOW-HARDENING` completed on 2026-04-24 to add repo-local validation, screenshot, and review-pack automation with a passing Wave 5C proof run under `/docs/codex-review-screens/WAVE05C-PROOF/` and `/artifacts/review-packs/WAVE05C-PROOF-review-pack.zip`.
 - `RUN-CURRENT-WAVE-2026-04-24` completed on 2026-04-24 to execute the configured proof wave through `scripts/run-wave.ps1`, refresh the screenshot pack, and confirm local runtimes remain available.
 - `VERIFY-LIVE-VS-MAIN-01` completed on 2026-05-11 to compare latest `main` against the live IP and confirm the Item Master free-text issue is caused by an outdated live web asset, not current source code.
+- `HELP-SYSTEM-AND-ACTION-COMPLETION-01` completed on 2026-05-12 to add the help system foundation and correct touched New / New Draft / Create / Save action truth.
 
 ## Prompt Log
 
@@ -281,6 +282,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 5 completed on 2026-05-11 for Production/Inventory/Quality/Dispatch. Output: `/docs/codex-progress/cluster-5-production-inventory-quality-dispatch-output.md`
 - MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 6 blocked on 2026-05-11 at mobile screenshot evidence after code/action/field gates passed for Mobile/Device/Sync. Output: `/docs/codex-progress/cluster-6-mobile-device-sync-output.md`
 - DEMO-CLOSEOUT-01 completed on 2026-05-12 for the focused web-only customer demo build. Output: `/docs/codex-progress/DEMO-CLOSEOUT-01-output.md`
+- HELP-SYSTEM-AND-ACTION-COMPLETION-01 completed on 2026-05-12. Output: `/docs/codex-progress/HELP-SYSTEM-AND-ACTION-COMPLETION-01-output.md`
 
 ## Remediation Log
 

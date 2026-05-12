@@ -299,16 +299,18 @@ function CommonFilters({
 
 function MasterPageActionBar({
   exportLabel,
+  onCreate,
   primaryLabel,
   testId
 }: {
   exportLabel: string;
+  onCreate?: () => void;
   primaryLabel: string;
   testId?: string;
 }) {
   return (
     <ErpActionBar
-      primary={[{ disabled: true, label: primaryLabel, reason: "Draft creation requires the governed master-data maintenance workflow." }]}
+      primary={[{ disabled: !onCreate, label: primaryLabel, onClick: onCreate, reason: onCreate ? undefined : "Draft creation requires the governed master-data maintenance workflow." }]}
       secondary={[{ disabled: true, label: exportLabel, reason: "Export requires the governed master-data export workflow." }]}
       testId={testId}
     />
@@ -338,6 +340,65 @@ function MasterModalFooter({
   );
 }
 
+const newItemGroupDraftId = "__new_item_group_draft__";
+const newItemAttributeDraftId = "__new_item_attribute_draft__";
+const newReasonDraftId = "__new_reason_code_draft__";
+const newClassificationDraftId = "__new_classification_draft__";
+
+function buildItemGroupDraft(records: ItemGroupSetupItem[]): ItemGroupSetupItem {
+  return {
+    id: newItemGroupDraftId,
+    groupId: 0,
+    code: "",
+    name: "",
+    parent: "",
+    defaultProfile: records[0]?.defaultProfile ?? "Standard Count Item",
+    defaultTraceability: records[0]?.defaultTraceability ?? "None",
+    defaultQcRequired: false,
+    reportingBucket: records[0]?.reportingBucket ?? "Operations",
+    status: "Draft",
+    source: "Deferred"
+  };
+}
+
+function buildItemAttributeDraft(): ItemAttributeSetupItem {
+  return {
+    id: newItemAttributeDraftId,
+    code: "",
+    name: "",
+    sampleValues: "",
+    valueCount: 0,
+    usedForVariants: false,
+    status: "Draft",
+    source: "Deferred"
+  };
+}
+
+function buildReasonDraft(): ReasonCodeSetupItem {
+  return {
+    id: newReasonDraftId,
+    code: "",
+    name: "",
+    module: "Production",
+    usage: "",
+    severity: "Info",
+    requiresRemarks: false,
+    status: "Draft",
+    source: "Deferred"
+  };
+}
+
+function buildClassificationDraft(type: ClassificationSetupRecord["type"] = "Product family"): ClassificationSetupRecord {
+  return {
+    id: newClassificationDraftId,
+    code: "",
+    itemCount: 0,
+    name: "",
+    status: "Draft",
+    type
+  };
+}
+
 export function ItemGroupMasterPage() {
   const { deferredSearch, filter, search, setSearch, setStatus, status, user } = useCommonFilter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -347,7 +408,7 @@ export function ItemGroupMasterPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
+  const selected = selectedId === newItemGroupDraftId ? buildItemGroupDraft(records) : records.find((record) => record.id === selectedId) ?? null;
   const defaultProfileOptions = uniqueOptions(records, (record) => record.defaultProfile).map((option) => ({ label: option, value: option }));
   const reportingBucketOptions = uniqueOptions(records, (record) => record.reportingBucket).map((option) => ({ label: option, value: option }));
   const parentGroupOptions = records
@@ -360,7 +421,7 @@ export function ItemGroupMasterPage() {
         actions={
           <>
             <SourceBadge source="Deferred" />
-            <MasterPageActionBar exportLabel="Export groups" primaryLabel="New item group draft" testId="item-group-action-bar" />
+            <MasterPageActionBar exportLabel="Export groups" onCreate={() => setSelectedId(newItemGroupDraftId)} primaryLabel="New item group draft" testId="item-group-action-bar" />
           </>
         }
         aside={
@@ -413,7 +474,7 @@ export function ItemGroupMasterPage() {
         footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save item group draft" />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "Item group detail"}
+        title={selected?.name || "Item group detail"}
       >
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="Item group setup">
@@ -477,7 +538,7 @@ export function ItemAttributeMasterPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
+  const selected = selectedId === newItemAttributeDraftId ? buildItemAttributeDraft() : records.find((record) => record.id === selectedId) ?? null;
 
   return (
     <>
@@ -485,7 +546,7 @@ export function ItemAttributeMasterPage() {
         actions={
           <>
             <SourceBadge source="Deferred" />
-            <MasterPageActionBar exportLabel="Export attributes" primaryLabel="New attribute draft" testId="item-attribute-action-bar" />
+            <MasterPageActionBar exportLabel="Export attributes" onCreate={() => setSelectedId(newItemAttributeDraftId)} primaryLabel="New attribute draft" testId="item-attribute-action-bar" />
           </>
         }
         aside={
@@ -538,11 +599,11 @@ export function ItemAttributeMasterPage() {
         footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save attribute draft" />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "Attribute detail"}
+        title={selected?.name || "Attribute detail"}
       >
         {selected ? (
           <>
-            <ErpActionBar secondary={[{ disabled: true, label: "Add allowed value", reason: "Allowed-value maintenance requires the attribute setup workflow." }]} />
+            <ErpActionBar secondary={[{ disabled: true, label: "Add allowed value", reason: "Allowed-value maintenance is disabled until value versioning and item-usage checks are enabled." }]} />
             <FormShell initialFingerprint={selected.id} title="Attribute setup">
               <label>
                 <span>Attribute code</span>
@@ -586,7 +647,7 @@ export function ReasonCodeRulesPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
+  const selected = selectedId === newReasonDraftId ? buildReasonDraft() : records.find((record) => record.id === selectedId) ?? null;
 
   return (
     <>
@@ -594,7 +655,7 @@ export function ReasonCodeRulesPage() {
         actions={
           <>
             <SourceBadge source="Deferred" />
-            <MasterPageActionBar exportLabel="Export reasons" primaryLabel="New reason draft" testId="reason-code-action-bar" />
+            <MasterPageActionBar exportLabel="Export reasons" onCreate={() => setSelectedId(newReasonDraftId)} primaryLabel="New reason draft" testId="reason-code-action-bar" />
           </>
         }
         aside={
@@ -647,7 +708,7 @@ export function ReasonCodeRulesPage() {
         footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save reason draft" />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "Reason detail"}
+        title={selected?.name || "Reason detail"}
       >
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="Reason-code setup">
@@ -664,6 +725,18 @@ export function ReasonCodeRulesPage() {
               onChange={() => undefined}
               options={uniqueOptions(records, (record) => record.module).map((option) => ({ label: option, value: option }))}
               value={selected.module}
+            />
+            <ErpLookupField
+              label="Severity"
+              onChange={() => undefined}
+              options={["Info", "Warning", "Critical"].map((value) => ({ label: value, value }))}
+              value={selected.severity}
+            />
+            <ErpLookupField
+              label="Status"
+              onChange={() => undefined}
+              options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
+              value={selected.status}
             />
           </FormShell>
         ) : null}
@@ -741,7 +814,7 @@ export function ClassificationSetupPage() {
   const source = (query.data ?? [])[0]?.source ?? "Deferred";
   const records = useMemo(() => buildClassificationRecords(query.data ?? []), [query.data]);
   const filteredRecords = records.filter((record) => typeFilter === "all" || record.type === typeFilter);
-  const selected = records.find((record) => record.id === selectedId) ?? null;
+  const selected = selectedId === newClassificationDraftId ? buildClassificationDraft(typeFilter === "all" ? "Product family" : typeFilter as ClassificationSetupRecord["type"]) : records.find((record) => record.id === selectedId) ?? null;
 
   return (
     <>
@@ -750,7 +823,7 @@ export function ClassificationSetupPage() {
           <>
             <SourceBadge source={source} />
             <ErpActionBar
-              primary={[{ disabled: true, label: "New classification", reason: "Classification creation requires taxonomy setup enablement." }]}
+              primary={[{ label: "New classification", onClick: () => setSelectedId(newClassificationDraftId) }]}
               secondary={[{ disabled: true, label: "Export classifications", reason: "Export is pending the controlled export workflow." }]}
               testId="classification-action-bar"
             />
@@ -825,7 +898,7 @@ export function ClassificationSetupPage() {
         footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save classification" />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
-        title={selected?.name ?? "Classification detail"}
+        title={selected?.name || "Classification detail"}
       >
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="Classification setup">

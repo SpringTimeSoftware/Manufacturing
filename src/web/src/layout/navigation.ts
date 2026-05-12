@@ -462,6 +462,11 @@ export const navigationItems: NavigationItem[] = [
     section: "Platform"
   },
   {
+    label: "Help Center",
+    path: "/help",
+    section: "Platform"
+  },
+  {
     label: "Companies",
     path: "/organization/companies",
     section: "Organization",

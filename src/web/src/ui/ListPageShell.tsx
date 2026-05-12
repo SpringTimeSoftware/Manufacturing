@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react";
+import { ScreenHelpButton } from "../help/ScreenHelpButton";
 
 interface ListPageShellProps {
   title: string;
@@ -23,7 +24,10 @@ export function ListPageShell({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        {actions ? <div className="page-shell__actions">{actions}</div> : null}
+        <div className="page-shell__actions">
+          <ScreenHelpButton />
+          {actions}
+        </div>
       </header>
       {filters ? <div className="page-shell__filters">{filters}</div> : null}
       <div className={`page-shell__body ${aside ? "page-shell__body--with-aside" : ""}`}>

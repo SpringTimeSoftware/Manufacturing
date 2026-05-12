@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import type { ApprovalWorkItem, NotificationItem } from "../api/contracts";
 import { useAuth } from "../auth/AuthContext";
 import { useFeatureFlags } from "../featureFlags/FeatureFlagProvider";
+import { ScreenHelpButton } from "../help/ScreenHelpButton";
 import { useI18n } from "../i18n/I18nProvider";
 import { useNotifications } from "../notifications/NotificationProvider";
 import {
@@ -95,7 +96,10 @@ export function ForgotPasswordPage() {
           }}
         >
           <div className="login-form__header">
-            <span className="login-eyebrow">Account recovery</span>
+            <div className="login-form__header-row">
+              <span className="login-eyebrow">Account recovery</span>
+              <ScreenHelpButton />
+            </div>
             <h2>Recover access</h2>
             <p>
               Submit your account and company details. If the account can be verified, recovery guidance will

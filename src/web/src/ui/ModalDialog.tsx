@@ -14,6 +14,7 @@ interface ModalDialogProps {
   isOpen: boolean;
   onClose: () => void;
   footer?: ReactNode;
+  headerActions?: ReactNode;
   panelClassName?: string;
   closeLabel?: string;
 }
@@ -23,6 +24,7 @@ export function ModalDialog({
   closeLabel = "Close",
   description,
   footer,
+  headerActions,
   isOpen,
   onClose,
   panelClassName,
@@ -107,9 +109,12 @@ export function ModalDialog({
               </p>
             ) : null}
           </div>
-          <Button onClick={onClose} ref={closeButtonRef} variant="quiet">
-            {closeLabel}
-          </Button>
+          <div className="ui-modal__header-actions">
+            {headerActions}
+            <Button onClick={onClose} ref={closeButtonRef} variant="quiet">
+              {closeLabel}
+            </Button>
+          </div>
         </header>
         <div className="ui-modal__body">{children}</div>
         {footer ? <footer className="ui-modal__footer">{footer}</footer> : null}

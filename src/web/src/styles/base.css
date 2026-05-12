@@ -1557,6 +1557,13 @@ textarea:focus {
   gap: 10px;
 }
 
+.login-form__header-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
 .login-form__assist {
   align-items: center;
   display: flex;
@@ -2002,6 +2009,210 @@ textarea:focus {
   font-family: var(--font-mono);
   font-size: 0.77rem;
   padding: 5px 8px;
+}
+
+.ui-modal__header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.screen-help-button {
+  min-height: 34px;
+}
+
+.screen-help-button--compact {
+  padding-inline: 10px;
+}
+
+.screen-help-modal {
+  width: min(1040px, calc(100vw - 64px));
+}
+
+.screen-help {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.screen-help__summary,
+.screen-help__panel,
+.help-topic-link,
+.help-guide-link,
+.help-glossary-preview article,
+.help-glossary-grid article,
+.help-tab-grid article,
+.help-field-grid article {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.88);
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.screen-help__summary {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.screen-help__summary h3,
+.screen-help__panel h4,
+.help-topic-link strong,
+.help-guide-link strong,
+.help-glossary-preview strong,
+.help-glossary-grid strong,
+.help-tab-grid strong,
+.help-field-grid strong {
+  margin: 0;
+}
+
+.screen-help__summary p,
+.screen-help__panel p,
+.help-topic-link p,
+.help-guide-link p,
+.help-glossary-preview p,
+.help-glossary-grid p,
+.help-tab-grid p,
+.help-field-grid p {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.screen-help__eyebrow,
+.help-topic-link span,
+.help-field-grid span {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.screen-help__grid,
+.help-center-grid,
+.help-tab-grid,
+.help-field-grid,
+.help-glossary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.screen-help__panel ul,
+.help-list,
+.help-ordered-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.screen-help__actions,
+.help-topic-list,
+.help-guide-list,
+.help-glossary-preview,
+.help-topic-page {
+  display: grid;
+  gap: 10px;
+}
+
+.screen-help__actions {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.screen-help__actions article {
+  border-left: 3px solid rgba(14, 165, 233, 0.26);
+  display: grid;
+  gap: 5px;
+  padding-left: 10px;
+}
+
+.screen-help__actions small,
+.help-guide-link small,
+.help-glossary-grid small,
+.help-tab-grid small,
+.help-field-grid small {
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.screen-help__chips,
+.help-index-summary {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.screen-help__chips span,
+.help-index-summary span {
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 999px;
+  color: var(--primary-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.quick-help {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.quick-help label {
+  display: grid;
+  gap: 5px;
+}
+
+.quick-help label span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quick-help__answer {
+  background: rgba(14, 165, 233, 0.07);
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+}
+
+.quick-help__answer p {
+  margin: 0;
+}
+
+.quick-help__answer small {
+  color: var(--text-muted);
+}
+
+.help-topic-link,
+.help-guide-link,
+.help-inline-link {
+  color: inherit;
+}
+
+.help-topic-link:hover,
+.help-guide-link:hover,
+.help-inline-link:hover {
+  border-color: rgba(14, 165, 233, 0.28);
+  color: var(--primary-deep);
+}
+
+.help-inline-link {
+  color: var(--primary-deep);
+  font-weight: 800;
+  justify-self: start;
+  margin-top: 10px;
 }
 
 @media (max-width: 1100px) {

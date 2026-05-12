@@ -116,6 +116,12 @@ import {
 } from "../pages/QualityPages";
 import { PrintPackPage } from "../pages/PrintPackPage";
 import { GlobalSearchPage } from "../pages/SearchPage";
+import {
+  HelpCenterPage,
+  HelpGlossaryPage,
+  HelpTopicPage,
+  ProcessGuidePage
+} from "../pages/HelpPages";
 
 function guardedRoute(path: string, element: ReactElement) {
   const roles = navigationItems.find((item) => item.path === `/${path}`)?.roles;
@@ -229,6 +235,10 @@ export const appRouter = createBrowserRouter([
       guardedRoute("platform/notifications", <NotificationInboxPage />),
       guardedRoute("platform/approvals", <ApprovalWorkbenchPage />),
       guardedRoute("search", <GlobalSearchPage />),
+      guardedRoute("help", <HelpCenterPage />),
+      guardedRoute("help/topics/:topicId", <HelpTopicPage />),
+      guardedRoute("help/process/:guideId", <ProcessGuidePage />),
+      guardedRoute("help/glossary", <HelpGlossaryPage />),
       guardedRoute("reports/print-pack", <PrintPackPage />)
     ]
   },

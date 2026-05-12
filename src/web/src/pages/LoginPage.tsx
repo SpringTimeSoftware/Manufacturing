@@ -1,6 +1,7 @@
 import { startTransition, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { ScreenHelpButton } from "../help/ScreenHelpButton";
 import { useI18n } from "../i18n/I18nProvider";
 import { Button } from "../ui/Button";
 
@@ -95,7 +96,10 @@ export function LoginPage() {
           }}
         >
           <div className="login-form__header">
-            <span className="login-eyebrow">Secure sign-in</span>
+            <div className="login-form__header-row">
+              <span className="login-eyebrow">Secure sign-in</span>
+              <ScreenHelpButton />
+            </div>
             <h2>{t("auth.loginTitle")}</h2>
             <p>
               Use your assigned company, branch, and role access to continue.

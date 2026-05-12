@@ -4,6 +4,7 @@ import { DataGrid, type DataGridColumn } from "./DataGrid";
 import { EmptyState } from "./EmptyState";
 import { FilterBar } from "./FilterBar";
 import { ModalDialog } from "./ModalDialog";
+import { ScreenHelpButton } from "../help/ScreenHelpButton";
 
 type ErpButtonVariant = "primary" | "secondary" | "ghost" | "quiet";
 type ErpStatusTone = "info" | "success" | "warn" | "danger" | "neutral";
@@ -428,6 +429,7 @@ export function ErpModalWorkspace({
     <ModalDialog
       description={description}
       footer={footer ? <div className="erp-modal-workspace__footer">{footer}</div> : undefined}
+      headerActions={<ScreenHelpButton compact />}
       isOpen={isOpen}
       onClose={onClose}
       panelClassName={["erp-modal-workspace", panelClassName].filter(Boolean).join(" ")}

@@ -82,6 +82,7 @@ const implementedProtectedRoutes = [
   "/platform/settings",
   "/platform/tenant-settings",
   "/search",
+  "/help",
   "/organization/companies",
   "/organization/branches",
   "/organization/departments",
