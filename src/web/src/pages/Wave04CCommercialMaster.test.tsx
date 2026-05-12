@@ -25,6 +25,9 @@ describe("Wave 4C commercial master pages", () => {
     expect(within(modal).getByLabelText("UOM").tagName).toBe("SELECT");
     expect(within(modal).getByLabelText("Tax category").tagName).toBe("SELECT");
     expect(within(modal).getByLabelText("Customer").tagName).toBe("SELECT");
+    await user.selectOptions(within(modal).getByLabelText("Currency"), "7002");
+    const unitPriceField = within(modal).getByLabelText("Unit price");
+    expect(within(unitPriceField.closest(".erp-money-field") as HTMLElement).getByText("USD")).toBeInTheDocument();
     expect(screen.getByText("Sign in with commercial master write access to save this setup.")).toBeInTheDocument();
     expect(screen.getByText("Unit price must be greater than zero before activation.")).toBeInTheDocument();
   });
@@ -45,6 +48,9 @@ describe("Wave 4C commercial master pages", () => {
     expect(within(modal).getByLabelText("Applicability type").tagName).toBe("SELECT");
     expect(within(modal).getByLabelText("Item").tagName).toBe("SELECT");
     expect(within(modal).getByLabelText("Price list").tagName).toBe("SELECT");
+    await user.selectOptions(within(modal).getByLabelText("Currency"), "7002");
+    const discountAmountField = within(modal).getByLabelText("Discount amount");
+    expect(within(discountAmountField.closest(".erp-money-field") as HTMLElement).getByText("USD")).toBeInTheDocument();
   });
 
   it("renders tax, currency, rate, payment, and trade-term setup without internal copy", async () => {

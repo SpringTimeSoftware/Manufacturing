@@ -226,7 +226,7 @@ export function WorkCenterMasterPage() {
       aside={
         <Card title="Resource control" description="Work centers provide the controlled capacity source for routing, planning, and shop-floor execution.">
           <div className="compact-stack">
-            <ErpStatusChip tone="success">API-backed setup</ErpStatusChip>
+            <ErpStatusChip tone="success">Setup enabled</ErpStatusChip>
             <ErpStatusChip tone="info">Capacity controlled</ErpStatusChip>
           </div>
         </Card>

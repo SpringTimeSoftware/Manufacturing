@@ -291,7 +291,7 @@ export function UomClassMasterPage() {
   const baseUomOptions = Array.from(new Map(records.map((record) => [record.baseUomId ?? 0, record.baseUom])).entries())
     .filter(([value]) => value > 0)
     .map(([value, label]) => ({ label, value: String(value) }));
-  const loadError = query.isError ? "UOM classes could not be loaded from the live API. Seeded operational data is not shown in authenticated mode." : null;
+  const loadError = query.isError ? "UOM classes could not be loaded. Reference records are not shown when the setup service is unavailable." : null;
   const openDraft = (record: UomClassSetupItem) => {
     setDraft({
       id: record.uomClassId,
@@ -489,7 +489,7 @@ export function UomConversionMasterPage() {
   const uomOptions = Array.from(
     new Map(records.flatMap((record) => [[record.fromUomId, record.fromUom], [record.toUomId, record.toUom]] as Array<[number, string]>)).entries()
   ).map(([value, label]) => ({ label, value: String(value) }));
-  const loadError = query.isError ? "UOM conversions could not be loaded from the live API. Seeded operational data is not shown in authenticated mode." : null;
+  const loadError = query.isError ? "UOM conversions could not be loaded. Reference records are not shown when the setup service is unavailable." : null;
   const openDraft = (record: UomConversionSetupItem) => {
     setDraft({
       id: record.conversionId,
@@ -740,7 +740,7 @@ export function MeasurementProfileMasterPage() {
     .filter(Boolean)
     .map((value) => ({ label: value, value }));
   const loadError = profileQuery.isError || formulaQuery.isError
-    ? "Measurement profiles could not be loaded from the live API. Seeded operational data is not shown in authenticated mode."
+    ? "Measurement profiles could not be loaded. Reference records are not shown when the setup service is unavailable."
     : null;
   const openDraft = (record: MeasurementProfileSetupItem) => {
     setDraft({

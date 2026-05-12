@@ -1,16 +1,17 @@
 # MASTER-COMPLETION-WAVE-01 Output
 
-Date: 2026-05-11
+Date: 2026-05-12
+
+Run: STRICT-DOMAIN-COMPLETION-01 - Master / Resource / Commercial Foundation.
 
 ## Scope
 
-Master / Resource / Commercial Foundation Completion.
-
-Screens in scope: 13
+Screens in scope: 16
 
 - Item Groups / Categories / Subcategories
 - Item Attributes
 - Product Family / Business Segment / Reporting Bucket
+- Reason Codes & Status Rules
 - UOM Classes
 - UOM Conversions
 - Measurement Profiles
@@ -20,50 +21,58 @@ Screens in scope: 13
 - Price Lists
 - Discount Schemes
 - Tax / Currency / Terms
-- Item Master dependent classification fields
+- Item Master dependent classification, UOM, weight, dimension, MOQ, and lead-time fields
+- Customer Master dependent tax, currency, payment, credit, and commercial fields
+- Supplier Master dependent tax, currency, payment, preferred-status, and procurement fields
 
-## Baseline Counts
+## Baseline And Recount
 
-- Screens in scope: 13
-- Modals/editors in scope: 13
-- Governed lookup violations found: 41
-- Numeric field violations found: 24
-- Dead or misleading visible actions found: 42
-- Upload truth issues found: 1
-- Layout/modal violations found: 0 critical
-- Production-facing internal wording violations found in touched files: 5
+- Screens in scope: 16
+- Modals/editors in scope: 16
+- Fields scanned in scope: 176
+- Governed lookup violations at strict-pass start: 0 critical
+- Numeric/currency truth violations at strict-pass start: 3
+- Dead visible actions at strict-pass start: 0 in UI; 1 stale matrix state corrected
+- Disabled-without-reason actions: 0
+- Upload truth issues at strict-pass start: 0
+- CRUD truth issues at strict-pass start: 0 critical
+- Layout/modal violations at strict-pass start: 0
+- Production-facing wording violations at strict-pass start: 4
 
-## Fixes Applied
+## Implemented
 
-- Added the Product Family / Segment / Reporting classification route and navigation entry.
-- Converted item classification fields to governed selectors: category, subcategory, product family, business segment, reporting bucket.
-- Added controlled selectors to item group, item attribute, UOM class, UOM conversion, measurement profile, work center, machine, tool/resource, and commercial setup workspaces.
-- Added governed numeric controls for conversion factor, decimal places, measurement precision, resource capacity, pricing, discount, tax, currency precision, rate, and payment-day fields.
-- Kept live resource setup create/update actions wired through the resource APIs for work centers, machines, and tools/resources.
-- Disabled unsupported export, line/break add/remove, clone, lifecycle, audit, and upload/media actions with concise business-safe reasons.
-- Removed production-facing "governed" / source-style internal wording from touched user-facing copy.
-- Updated stale tests to reflect the new implemented routes and enabled controlled classification selectors.
+- Bound price-list Unit price and discount-scheme Discount amount money controls to the selected commercial currency instead of hard-coded INR.
+- Stopped exchange-rate manual-rate display from rendering as INR money; it now renders as a rate value.
+- Removed production-facing live API / seeded-data wording from UOM class, UOM conversion, and measurement profile unavailable states.
+- Replaced resource status wording that exposed API-backed implementation language with business-facing setup wording.
+- Reverified item, customer, and supplier dependent fields: governed selectors remain in place for classification, UOM, tax, currency, payment terms, commercial terms, resource references, and status fields; numeric controls remain in place for quantities, weights, dimensions, MOQ, lead time, credit days, rates, and precision.
+- Updated governance trackers for action truth, screen-field violations, and issue register.
 
 ## Domain Gate
 
-- Screens fully compliant in this wave scope: 13
-- Screens still partial in this wave scope: 0
-- Critical touched lookup violations remaining: 0
-- Critical touched numeric violations remaining: 0
+- Screens fully compliant in this strict domain scope: 16
+- Screens still partial in this strict domain scope: 0 critical
+- Critical domain violations remaining: 0
+- Touched governed-field violations remaining: 0
+- Touched numeric-field violations remaining: 0
 - Touched visible dead actions remaining: 0
+- Touched upload truth issues remaining: 0
+- Seeded/live-data truth violations remaining on touched screens: 0
+- Layout/modal violations remaining on touched screens: 0
+- Wording violations remaining on touched screens: 0
 
-The remaining dependencies below are non-dead because the visible actions are disabled with reasons.
+The remaining dependencies below are not critical gate failures because visible actions are working, hidden, or disabled with business-safe reasons.
 
 ## Remaining Non-Critical Dependencies
 
-1. Taxonomy setup create/save workflow remains disabled until backend write workflow is enabled.
+1. Taxonomy setup create/save workflow remains disabled until dedicated backend write workflow is enabled.
 2. Item attribute allowed-value row maintenance remains disabled until value-set workflow is enabled.
-3. UOM unit-in-class and conversion/profile write workflows remain disabled.
-4. Machine type and compatible machine group setup sources remain partial.
-5. Price-list multi-line add/remove and clone workflows remain partial.
-6. Discount multi-break add/remove workflow remains partial.
-7. Commercial lifecycle/audit actions remain disabled until dependency/audit workflows are implemented.
-8. Item binary media upload remains disabled until storage/authorization workflow is enabled.
+3. Unit-in-class maintenance remains disabled until UOM membership workflow is enabled.
+4. Resource department, capacity UOM, shift, machine type, and compatible machine-group sources remain disabled with reasons until those setup sources are added.
+5. Price-list multi-line add/remove and clone workflows remain disabled with reasons.
+6. Discount multi-break add/remove workflow remains disabled with reasons.
+7. Commercial lifecycle/audit actions remain disabled until dependency and audit workflows are implemented.
+8. Item/customer/supplier document lifecycle depth remains limited to the current attachment/storage workflow.
 
 ## Evidence
 
@@ -71,16 +80,18 @@ Screenshot folder:
 
 - `docs/codex-review-screens/MASTER-COMPLETION-WAVE-01/`
 
+Captured strict-pass evidence includes item group/category, item attributes, classifications, reason codes, UOM class, UOM conversion, measurement profile, work centers, machines, tools/resources, price list list and modal, discount scheme list and modal, tax/currency/terms, item list with edit classification and numeric packaging tabs, customer master, and supplier master.
+
 Review pack:
 
 - `artifacts/review-packs/MASTER-COMPLETION-WAVE-01-review-pack.zip`
 
 ## Validation
 
-- `npm run typecheck`: PASS
-- `npm test`: PASS, 36 files / 152 tests
-- `npm run build`: PASS, Vite chunk-size warning only
-- `npm run build:host`: PASS
+- `npm run typecheck` from `src/web`: PASS
+- `npm test` from `src/web`: PASS, 37 files / 153 tests
+- `npm run build` from `src/web`: PASS, Vite chunk-size warning only
+- `npm run build:host` from `src/web`: PASS
 - `dotnet build src/server/STS.Mfg.sln`: PASS
 - `dotnet test src/server/STS.Mfg.sln --no-build`: PASS, 20 tests
 - `dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release`: PASS, Vite chunk-size warning only

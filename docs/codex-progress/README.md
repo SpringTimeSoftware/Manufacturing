@@ -273,7 +273,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - WAVE02-platform-admin-security completed on 2026-05-09. Output: `/docs/codex-progress/WAVE02-platform-admin-security-output.md`
 - RECOVERY-RESUME-01 completed on 2026-05-09. Output: `/docs/codex-progress/RECOVERY-RESUME-01-output.md`
 - RESET-01 core master data truth slice completed on 2026-05-09. Output: `/docs/codex-progress/RESET-01-core-master-data-truth-output.md`
-- MASTER-COMPLETION-WAVE-01 completed on 2026-05-11. Output: `/docs/codex-progress/MASTER-COMPLETION-WAVE-01-output.md`
+- MASTER-COMPLETION-WAVE-01 strict domain completion refreshed on 2026-05-12. Output: `/docs/codex-progress/MASTER-COMPLETION-WAVE-01-output.md`
 - MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 1 completed on 2026-05-11 for Platform/Admin/Auth/Shared. Output: `/docs/codex-progress/cluster-1-platform-admin-auth-shared-output.md`
 - MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 2 completed on 2026-05-11 for Organization/Setup/Resource Basics. Output: `/docs/codex-progress/cluster-2-organization-setup-resource-basics-output.md`
 - MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 3 completed on 2026-05-11 for Master Data/Commercial Foundation. Output: `/docs/codex-progress/cluster-3-master-data-commercial-foundation-output.md`

@@ -109,17 +109,19 @@ function toId(value: string) {
   return value ? Number(value) : null;
 }
 
-function formatMoney(value: number, currencyCode: string | null | undefined) {
-  return `${currencyCode ?? ""} ${value.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`.trim();
-}
-
-function textInput(label: string, value: string | number | null | undefined, onChange: (value: string) => void, type = "text") {
+function textInput(
+  label: string,
+  value: string | number | null | undefined,
+  onChange: (value: string) => void,
+  type = "text",
+  moneyCurrencyCode = "INR"
+) {
   if (type === "number") {
     const numericValue = typeof value === "number" ? value : value ? Number(value) : null;
     const commitNumber = (nextValue: number | null) => onChange(nextValue === null ? "" : String(nextValue));
 
     if (/price|amount/i.test(label)) {
-      return <ErpMoneyField currencyCode="INR" label={label} min={0} onChange={commitNumber} value={numericValue} />;
+      return <ErpMoneyField currencyCode={moneyCurrencyCode} label={label} min={0} onChange={commitNumber} value={numericValue} />;
     }
 
     if (/rate|percent|quantity/i.test(label)) {
@@ -344,6 +346,7 @@ export function PriceListMasterPage() {
   const itemOptions = items.map((item) => ({ label: `${item.code} - ${item.name}`, value: String(item.itemId) }));
   const itemGroupOptions = itemGroups.map((group) => ({ label: `${group.code} - ${group.name}`, value: String(group.groupId) }));
   const customerOptions = customers.map((customer) => ({ label: `${customer.code} - ${customer.name}`, value: String(customer.customerId) }));
+  const draftCurrencyCode = currencies.find((currency) => currency.id === draft?.currencyId)?.currencyCode ?? "INR";
 
   const kpis = useMemo(
     () => [
@@ -530,7 +533,7 @@ export function PriceListMasterPage() {
                 <ErpLookupField label="Item group" onChange={(value) => updateLine({ itemGroupId: toId(value), itemId: null })} options={itemGroupOptions} value={String(draft.lines[0]?.itemGroupId ?? "")} />
                 <ErpLookupField label="UOM" onChange={(value) => updateLine({ uomId: Number(value) })} options={uomOptions} required value={String(draft.lines[0]?.uomId ?? "")} />
                 {textInput("Minimum quantity", draft.lines[0]?.minQuantity, (value) => updateLine({ minQuantity: Number(value) || 0 }), "number")}
-                {textInput("Unit price", draft.lines[0]?.unitPrice, (value) => updateLine({ unitPrice: Number(value) || 0 }), "number")}
+                {textInput("Unit price", draft.lines[0]?.unitPrice, (value) => updateLine({ unitPrice: Number(value) || 0 }), "number", draftCurrencyCode)}
                 <ErpLookupField label="Tax category" onChange={(value) => updateLine({ taxCategoryId: toId(value) })} options={taxOptions} value={String(draft.lines[0]?.taxCategoryId ?? "")} />
                 {dateInput("Line effective from", draft.lines[0]?.effectiveFrom ?? todayIso, (value) => updateLine({ effectiveFrom: value ?? todayIso }))}
                 {checkboxInput("Discount eligible", Boolean(draft.lines[0]?.discountEligible), (value) => updateLine({ discountEligible: value }))}
@@ -596,6 +599,7 @@ export function DiscountSchemeMasterPage() {
   const itemOptions = items.map((item) => ({ label: `${item.code} - ${item.name}`, value: String(item.itemId) }));
   const itemGroupOptions = itemGroups.map((group) => ({ label: `${group.code} - ${group.name}`, value: String(group.groupId) }));
   const customerOptions = customers.map((customer) => ({ label: `${customer.code} - ${customer.name}`, value: String(customer.customerId) }));
+  const draftCurrencyCode = currencies.find((currency) => currency.id === draft?.currencyId)?.currencyCode ?? "INR";
 
   const columns: DataGridColumn<DiscountSchemeDto>[] = [
     {
@@ -747,7 +751,7 @@ export function DiscountSchemeMasterPage() {
                 <ErpLookupField label="Item group" onChange={(value) => updateRule({ itemGroupId: toId(value), itemId: null })} options={itemGroupOptions} value={String(draft.rules[0]?.itemGroupId ?? "")} />
                 {textInput("Minimum quantity", draft.rules[0]?.minQuantity, (value) => updateRule({ minQuantity: Number(value) || 0 }), "number")}
                 {textInput("Discount percent", draft.rules[0]?.discountPercent, (value) => updateRule({ discountPercent: value ? Number(value) : null }), "number")}
-                {textInput("Discount amount", draft.rules[0]?.discountAmount, (value) => updateRule({ discountAmount: value ? Number(value) : null }), "number")}
+                {textInput("Discount amount", draft.rules[0]?.discountAmount, (value) => updateRule({ discountAmount: value ? Number(value) : null }), "number", draftCurrencyCode)}
                 <ErpLookupField label="Price list" onChange={(value) => updateRule({ priceListId: toId(value) })} options={priceListOptions} value={String(draft.rules[0]?.priceListId ?? "")} />
                 <ErpLookupField label="Rule status" onChange={(value) => updateRule({ status: value })} options={statusOptions} value={draft.rules[0]?.status ?? "Draft"} />
               </div>
@@ -956,7 +960,7 @@ export function TaxCurrencyTermsPage() {
               <button className="compact-list__row" key={rate.id} onClick={() => { setSelectedId(rate.id); setActiveKind("rate"); setRateDraft({ ...rate }); }} type="button">
                 <strong>{rate.currencyCode}</strong>
                 <span>{rate.rateType} / {rate.rateSource}</span>
-                <span>{rate.manualRate ? formatMoney(rate.manualRate, "INR") : "No manual rate"}</span>
+                <span>{rate.manualRate ? rate.manualRate.toLocaleString("en-IN", { maximumFractionDigits: 6 }) : "No manual rate"}</span>
               </button>
             ))}
             {rates.length === 0 ? <ErpEmptyState description="No exchange-rate setup matches the current search." title="No rate setup" /> : null}
