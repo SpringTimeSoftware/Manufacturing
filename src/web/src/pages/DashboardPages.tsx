@@ -286,9 +286,19 @@ export function DashboardHomePage() {
                       <span>{item.owner}</span>
                       <Badge tone={item.tone}>{item.status}</Badge>
                     </div>
-                    <Button variant="quiet" onClick={() => navigate(item.path)}>
-                      Open workspace
+                    <Button
+                      disabled={Boolean(item.actionDisabledReason) || !item.path}
+                      title={item.actionDisabledReason ?? (!item.path ? "This item does not have a record workspace." : undefined)}
+                      variant="quiet"
+                      onClick={() => {
+                        if (item.path) {
+                          navigate(item.path);
+                        }
+                      }}
+                    >
+                      {item.actionLabel ?? "Open workspace"}
                     </Button>
+                    {item.actionDisabledReason ? <small>{item.actionDisabledReason}</small> : null}
                   </div>
                 ))}
               </div>
@@ -709,7 +719,11 @@ export function ExecutiveCockpitPage() {
                 key={item.id}
                 label={item.title}
                 meta={item.status}
-                onClick={() => navigate(item.path)}
+                onClick={item.path ? () => {
+                  if (item.path) {
+                    navigate(item.path);
+                  }
+                } : undefined}
               >
                 {item.nextAction}
               </Tile>

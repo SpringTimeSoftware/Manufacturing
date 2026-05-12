@@ -83,7 +83,7 @@ export const seededApprovalItems: ApprovalWorkItem[] = [
     id: "approval-dispatch-release",
     module: "Dispatch",
     documentType: "Dispatch release",
-    referenceNo: "PK-00419 / SO-2026-0194",
+    referenceNo: "PACK-2026-0042 / SO-2026-0189",
     title: "Approve dispatch release before loading",
     summary: "The packed sales order is ready for loading after dispatch release approval.",
     submittedBy: "Karan Mehta",
@@ -94,7 +94,7 @@ export const seededApprovalItems: ApprovalWorkItem[] = [
     stepName: "Dispatch release gate",
     auditActionLabel: "Approve dispatch release",
     relatedNotificationId: "notif-dispatch-approval",
-    actionDisabledReason: "Dispatch release deep links are not enabled for this approval. Open Pack Lists and search PK-00419.",
+    actionPath: "/dispatch/pack-lists?packList=PACK-2026-0042",
     tags: ["Dispatch", "Gate", "Loading"]
   }
 ];

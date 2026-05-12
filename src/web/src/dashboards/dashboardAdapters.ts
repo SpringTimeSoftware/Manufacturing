@@ -19,6 +19,7 @@ import {
   stageWiseKpis,
   type OrderDeliveryRecord
 } from "../api/mockData";
+import { getLinkedRecordActionState } from "../notifications/linkedRecordActions";
 import type { KanbanColumn } from "../ui/boards";
 
 export interface HomeActionTile {
@@ -31,12 +32,14 @@ export interface HomeActionTile {
 }
 
 export interface HomeAttentionItem {
+  actionDisabledReason?: string;
+  actionLabel?: string;
   id: string;
   title: string;
   owner: string;
   status: string;
   nextAction: string;
-  path: string;
+  path?: string;
   tone: "info" | "success" | "warn" | "danger" | "neutral";
 }
 
@@ -277,20 +280,28 @@ function buildAttentionItems(records: OrderDeliveryRecord[], notifications: Noti
       owner: "Cross-functional review",
       status: record.status,
       nextAction: record.nextAction,
-      path: "/dashboards/order-delivery",
+      path: `/dashboards/order-delivery?order=${encodeURIComponent(record.salesOrder)}`,
       tone
     };
   });
 
-  const notificationItems = notifications.slice(0, 2).map((item) => ({
-    id: item.id,
-    title: item.title,
-    owner: item.module,
-    status: item.statusLabel ?? (item.isRead ? "Read" : "Unread"),
-    nextAction: item.auditActionLabel ?? item.actionLabel ?? item.body,
-    path: item.actionPath ?? "/platform/notifications",
-    tone: item.severity
-  }));
+  const notificationItems = notifications.slice(0, 2).map((item) => {
+    const linkedAction = getLinkedRecordActionState(item, item.actionLabel ?? "Open linked record");
+
+    return {
+      actionDisabledReason: linkedAction.hidden
+        ? "This notification does not have a record workspace."
+        : linkedAction.reason,
+      actionLabel: linkedAction.hidden ? "Open workspace" : linkedAction.label,
+      id: item.id,
+      title: item.title,
+      owner: item.module,
+      status: item.statusLabel ?? (item.isRead ? "Read" : "Unread"),
+      nextAction: item.auditActionLabel ?? item.actionLabel ?? item.body,
+      path: linkedAction.disabled || linkedAction.hidden ? undefined : linkedAction.path,
+      tone: item.severity
+    };
+  });
 
   return [...riskItems, ...notificationItems];
 }

@@ -15,7 +15,8 @@ const navigationGroups: Array<{ label: string; sourceSections: string[]; visible
   { label: "OVERVIEW", sourceSections: ["Dashboards"], visibleCount: 5 },
   { label: "PLANNING", sourceSections: ["Planning", "Sales"], visibleCount: 6 },
   { label: "ENGINEERING & PRODUCTION", sourceSections: ["Engineering", "Production"], visibleCount: 7 },
-  { label: "MASTER DATA", sourceSections: ["Organization", "Measurement", "Masters", "Resources"], visibleCount: 7 },
+  { label: "ORGANIZATION", sourceSections: ["Organization", "Resources"], visibleCount: 6 },
+  { label: "MASTER DATA", sourceSections: ["Measurement", "Masters"], visibleCount: 7 },
   { label: "COMMERCIAL SETUP", sourceSections: ["Commercial Setup"], visibleCount: 5 },
   { label: "PROCUREMENT", sourceSections: ["Procurement"], visibleCount: 4 },
   { label: "INVENTORY", sourceSections: ["Inventory"], visibleCount: 5 },
@@ -73,14 +74,18 @@ type NavigationIconName =
   | "quote"
   | "reasonCode"
   | "reports"
+  | "receipt"
+  | "rework"
   | "roles"
   | "routing"
   | "salesOrder"
   | "search"
   | "settings"
   | "shift"
+  | "scrap"
   | "supplier"
   | "taxTerms"
+  | "tenant"
   | "tool"
   | "translation"
   | "uomClass"
@@ -119,21 +124,17 @@ function getNavigationParent(item: NavigationItem, groupLabel: string) {
     return item.section === "Sales" ? "Demand and Sales" : "Planning Control";
   }
 
+  if (groupLabel === "ORGANIZATION") {
+    return item.section === "Resources" ? "Resource Setup" : "Company Structure";
+  }
+
   if (groupLabel === "ENGINEERING & PRODUCTION") {
     return item.section === "Engineering" ? "Engineering" : "Production Execution";
   }
 
   if (groupLabel === "MASTER DATA") {
-    if (item.section === "Organization") {
-      return "Organization";
-    }
-
     if (item.section === "Measurement") {
       return "Units and Measurement";
-    }
-
-    if (item.section === "Resources") {
-      return "Resources";
     }
 
     if (item.path.includes("/partners/")) {
@@ -241,8 +242,8 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/platform/context-switch": "settings",
     "/platform/notifications": "bell",
     "/platform/roles": "roles",
-    "/platform/settings": "settings",
-    "/platform/tenant-settings": "settings",
+    "/platform/settings": "platform",
+    "/platform/tenant-settings": "tenant",
     "/platform/translations": "translation",
     "/platform/users": "users",
     "/platform/workflow-numbering": "workflow",
@@ -254,9 +255,9 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/production/machine-board": "machineBoard",
     "/production/machine-status": "machine",
     "/production/occupancy": "capacity",
-    "/production/receipts": "production",
-    "/production/rework-orders": "reasonCode",
-    "/production/scrap-by-products": "production",
+    "/production/receipts": "receipt",
+    "/production/rework-orders": "rework",
+    "/production/scrap-by-products": "scrap",
     "/production/shift-production": "shift",
     "/production/work-orders": "workOrder",
     "/quality/final-inspections": "quality",
@@ -750,6 +751,22 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="M15 13.5V17" />
       </>
     ),
+    receipt: (
+      <>
+        <path {...common} d="M6 4h12v16H6V4Z" />
+        <path {...common} d="M9 8h6" />
+        <path {...common} d="M9 12h6" />
+        <path {...common} d="m9 16 2 2 4-5" />
+      </>
+    ),
+    rework: (
+      <>
+        <path {...common} d="M7 7h7a4 4 0 0 1 0 8H9" />
+        <path {...common} d="m10 4-3 3 3 3" />
+        <path {...common} d="M9 15l-3 3 3 3" />
+        <path {...common} d="M14 15h3" />
+      </>
+    ),
     routing: (
       <>
         <path {...common} d="M5 6h4v4H5V6Z" />
@@ -801,6 +818,15 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
       </>
     ),
+    scrap: (
+      <>
+        <path {...common} d="M6 7h12" />
+        <path {...common} d="M8 7l1 12h6l1-12" />
+        <path {...common} d="M10 4h4l1 3H9l1-3Z" />
+        <path {...common} d="M10.5 11.5 13.5 15" />
+        <path {...common} d="m13.5 11.5-3 3.5" />
+      </>
+    ),
     supplier: (
       <>
         <path {...common} d="M4 8h10v8H4V8Z" />
@@ -815,6 +841,16 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="M8 10h8" />
         <path {...common} d="M8 14h5" />
         <path {...common} d="m15 14 2 2 2-4" />
+      </>
+    ),
+    tenant: (
+      <>
+        <path {...common} d="M5 20V5h14v15" />
+        <path {...common} d="M8 8h2" />
+        <path {...common} d="M14 8h2" />
+        <path {...common} d="M8 12h2" />
+        <path {...common} d="M14 12h2" />
+        <path {...common} d="M10 20v-4h4v4" />
       </>
     ),
     tool: (

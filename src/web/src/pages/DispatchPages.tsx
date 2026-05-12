@@ -1,5 +1,5 @@
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { apiClient } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
@@ -84,6 +84,7 @@ const packLineColumns: DataGridColumn<PackListLineItem>[] = [
 
 export function PackListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -97,6 +98,24 @@ export function PackListPage() {
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const requestedPackList = searchParams.get("packList");
+
+  useEffect(() => {
+    if (!requestedPackList || records.length === 0) {
+      return;
+    }
+
+    const normalized = requestedPackList.toLowerCase();
+    const match = records.find(
+      (record) =>
+        record.packListNo.toLowerCase() === normalized ||
+        record.packListNo.toLowerCase().includes(normalized)
+    );
+
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [records, requestedPackList]);
 
   return (
     <>
@@ -202,6 +221,7 @@ const shipmentLineColumns: DataGridColumn<ShipmentLineItem>[] = [
 
 export function ShipmentDeliveryPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -217,6 +237,26 @@ export function ShipmentDeliveryPage() {
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const requestedShipment = searchParams.get("shipment") ?? searchParams.get("packList");
+
+  useEffect(() => {
+    if (!requestedShipment || records.length === 0) {
+      return;
+    }
+
+    const normalized = requestedShipment.toLowerCase();
+    const match = records.find(
+      (record) =>
+        record.shipmentNo.toLowerCase() === normalized ||
+        record.shipmentNo.toLowerCase().includes(normalized) ||
+        record.packListLabel.toLowerCase() === normalized ||
+        record.packListLabel.toLowerCase().includes(normalized)
+    );
+
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [records, requestedShipment]);
   const proofUpload = useApiMutation(
     (payload: { file: File; shipment: ShipmentItem }) =>
       apiClient.platform.uploadAttachment({
@@ -265,7 +305,7 @@ export function ShipmentDeliveryPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Shipment detail is review-only until shipment preparation is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Close shipment", reason: "Shipment close requires dispatch proof approval." }, { disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }, { label: "Open pack list", onClick: () => navigate(`/dispatch/pack-lists?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }, { label: "Open print pack", onClick: () => navigate(`/reports/print-pack?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Close shipment", reason: "Shipment close requires dispatch proof approval." }, { disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }, { label: "Open pack list", onClick: () => navigate(`/dispatch/pack-lists?packList=${encodeURIComponent(selected?.packListLabel ?? "")}`) }, { label: "Open print pack", onClick: () => navigate(`/reports/print-pack?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title={selected?.shipmentNo ?? "Shipment"}

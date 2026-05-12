@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { apiClient } from "../api/http";
@@ -6,6 +6,7 @@ import { buildDemoSession } from "../auth/AuthContext";
 import { storeSession } from "../auth/authStorage";
 import { NotificationCenter } from "../notifications/NotificationCenter";
 import { seededNotifications } from "../notifications/NotificationProvider";
+import { DashboardHomePage } from "../pages/DashboardPages";
 import { seededApprovalItems } from "../platform/platformAdapters";
 import { renderWithApp } from "../test/render";
 import { AppShell } from "./AppShell";
@@ -51,11 +52,26 @@ describe("NAVIGATION-AND-NOTIFICATION-TRUTH-01", () => {
     );
 
     expect(await screen.findByText("Dashboard content")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Master Data/i }));
-
-    ["Organization", "Units and Measurement", "Item Foundation", "Business Partners", "Resources"].forEach((parent) => {
-      expect(screen.getByText(parent)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Organization/i }));
+    const organizationSection = screen.getByRole("button", { name: /Organization/i }).closest("section");
+    expect(organizationSection).not.toBeNull();
+    const organizationNav = within(organizationSection as HTMLElement);
+    expect(organizationNav.getByText("Company Structure")).toBeInTheDocument();
+    expect(organizationNav.getByText("Resource Setup")).toBeInTheDocument();
+    ["Companies", "Branches", "Departments", "Warehouses", "Bins", "Shift Calendar", "Work Centers", "Machines", "Tools / Resources"].forEach((label) => {
+      expect(organizationNav.getByRole("link", { name: label })).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByRole("button", { name: /Master Data/i }));
+    const masterDataSection = screen.getByRole("button", { name: /Master Data/i }).closest("section");
+    expect(masterDataSection).not.toBeNull();
+    const masterDataNav = within(masterDataSection as HTMLElement);
+
+    ["Units and Measurement", "Item Foundation", "Business Partners"].forEach((parent) => {
+      expect(masterDataNav.getByText(parent)).toBeInTheDocument();
+    });
+    expect(masterDataNav.queryByText("Company Structure")).not.toBeInTheDocument();
+    expect(masterDataNav.queryByRole("link", { name: "Companies" })).not.toBeInTheDocument();
 
     const expectedIcons = [
       ["UOM Classes", "uomClass"],
@@ -74,13 +90,21 @@ describe("NAVIGATION-AND-NOTIFICATION-TRUTH-01", () => {
     ] as const;
 
     const iconNames = expectedIcons.map(([label, icon]) => {
-      const link = screen.getByRole("link", { name: label });
+      const link = masterDataNav.getByRole("link", { name: label });
       expect(link).toHaveAttribute("data-nav-parent");
       expect(link.querySelector(`[data-nav-icon="${icon}"]`)).toBeInTheDocument();
       return icon;
     });
 
     expect(new Set(iconNames).size).toBe(iconNames.length);
+
+    fireEvent.click(screen.getByRole("button", { name: /Engineering & Production/i }));
+    expect(screen.getByRole("link", { name: "Production Receipt" }).querySelector('[data-nav-icon="receipt"]')).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Scrap / By-product" }).querySelector('[data-nav-icon="scrap"]')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Platform/i }));
+    expect(screen.getByRole("link", { name: "Platform Settings" }).querySelector('[data-nav-icon="platform"]')).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Tenant Settings" }).querySelector('[data-nav-icon="tenant"]')).toBeInTheDocument();
   });
 
   it("removes duplicate role, company-branch, and unread summary clutter from the shared header", async () => {
@@ -177,5 +201,34 @@ describe("NAVIGATION-AND-NOTIFICATION-TRUTH-01", () => {
     const disabledLink = within(bomDialog).getByRole("button", { name: "Open linked record" });
     expect(disabledLink).toBeDisabled();
     expect(within(bomDialog).getByText(/BOM revision deep links are not enabled/i)).toBeInTheDocument();
+  });
+
+  it("routes dashboard blockers and dispatch approvals with record-specific context", async () => {
+    renderWithApp(
+      <Routes>
+        <Route path="/" element={<AppShell />}>
+          <Route index element={<DashboardHomePage />} />
+        </Route>
+        <Route path="/dashboards/order-delivery" element={<LocationProbe label="order target" />} />
+      </Routes>
+    );
+
+    expect(await screen.findByText("Delivery risk")).toBeInTheDocument();
+    fireEvent.click((await screen.findAllByRole("button", { name: "Open workspace" }))[0]);
+    expect(await screen.findByText("order target /dashboards/order-delivery?order=SO-2026-0189")).toBeInTheDocument();
+
+    cleanup();
+
+    renderWithApp(
+      <Routes>
+        <Route path="/platform/approvals" element={<ApprovalWorkbenchPage />} />
+        <Route path="/dispatch/pack-lists" element={<LocationProbe label="pack target" />} />
+      </Routes>,
+      { route: "/platform/approvals?approval=approval-dispatch-release" }
+    );
+
+    expect(await screen.findByRole("dialog", { name: "PACK-2026-0042 / SO-2026-0189" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open linked record" }));
+    expect(await screen.findByText("pack target /dispatch/pack-lists?packList=PACK-2026-0042")).toBeInTheDocument();
   });
 });
