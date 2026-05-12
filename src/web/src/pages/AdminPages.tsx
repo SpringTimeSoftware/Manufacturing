@@ -133,12 +133,12 @@ const roleColumns: DataGridColumn<RoleMatrixItem>[] = [
   },
   {
     key: "coverage",
-    header: "Coverage",
+    header: "Users",
     width: "18%",
     render: (record) => (
       <div>
         <strong>{`${record.activeUsers} users`}</strong>
-        <div className="muted">{record.mobileSurface}</div>
+        <div className="muted">Web role template</div>
       </div>
     )
   },
@@ -367,14 +367,13 @@ export function RolePermissionMatrixPage() {
   const exportRoles = () =>
     downloadCsv(
       "role-permission-matrix.csv",
-      ["Role code", "Role label", "Audience", "Scope mode", "Active users", "Mobile surface", "Status", "Permissions"],
+      ["Role code", "Role label", "Audience", "Scope mode", "Active users", "Status", "Permissions"],
       filtered.map((record) => [
         record.roleCode,
         record.label,
         record.audience,
         record.scopeMode,
         String(record.activeUsers),
-        record.mobileSurface,
         record.status,
         record.permissions.map((permission) => `${permission.module}:${permission.access}:${permission.dataScope}`).join("; ")
       ])
@@ -472,7 +471,7 @@ export function RolePermissionMatrixPage() {
               items={[
                 { label: "Users", value: String(selected.activeUsers) },
                 { label: "Scope", value: selected.scopeMode },
-                { label: "Mobile", value: selected.mobileSurface },
+                { label: "Modules", value: String(selected.permissions.length) },
                 { label: "Status", value: selected.status }
               ]}
             />
@@ -512,14 +511,6 @@ export function RolePermissionMatrixPage() {
                 onChange={() => undefined}
                 options={[{ label: selected.scopeMode, value: selected.scopeMode }]}
                 value={selected.scopeMode}
-              />
-              <ErpLookupField
-                disabled
-                disabledReason="Mobile surface changes require role governance approval."
-                label="Mobile surface"
-                onChange={() => undefined}
-                options={[{ label: selected.mobileSurface, value: selected.mobileSurface }]}
-                value={selected.mobileSurface}
               />
             </FormShell>
           </>

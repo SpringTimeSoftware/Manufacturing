@@ -22,9 +22,9 @@ const defaultFlags: FeatureFlags = {
   enableDenseGridVirtualization: true,
   enableNotificationCenter: true,
   enablePrintAndExport: true,
-  showDemoBadges: true,
+  showDemoBadges: false,
   showEmptyStateHints: true,
-  showSeededNavigation: true
+  showSeededNavigation: false
 };
 
 interface FeatureFlagContextValue {

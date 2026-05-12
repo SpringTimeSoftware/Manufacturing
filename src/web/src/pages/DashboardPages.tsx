@@ -307,7 +307,6 @@ export function DashboardHomePage() {
                   eyebrow={tile.eyebrow}
                   key={tile.id}
                   label={tile.label}
-                  meta={tile.summary}
                   onClick={() => navigate(tile.path)}
                 >
                   {tile.summary}

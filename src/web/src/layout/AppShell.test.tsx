@@ -28,6 +28,7 @@ describe("AppShell", () => {
     expect(screen.getByText("DISPATCH")).toBeInTheDocument();
     expect(screen.getByText("PLATFORM")).toBeInTheDocument();
     expect(screen.getByText("REPORTS")).toBeInTheDocument();
+    expect(screen.queryByText("WORKFLOW SHORTCUTS")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Home Dashboard" })).toHaveClass(
       "app-shell__nav-link--active"
     );
@@ -117,7 +118,8 @@ describe("AppShell", () => {
       /React \+ TypeScript/i,
       /fallback/i,
       /adapter/i,
-      /mock/i
+      /mock/i,
+      /mobile/i
     ].forEach((pattern) => expect(shellText).not.toMatch(pattern));
   });
 });

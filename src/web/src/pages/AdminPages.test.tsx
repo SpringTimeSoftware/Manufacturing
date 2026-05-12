@@ -39,10 +39,12 @@ describe("AdminPages", () => {
 
     expect(await screen.findByText("Role & Permission Matrix")).toBeInTheDocument();
     expect(await screen.findByText("Planning Manager")).toBeInTheDocument();
+    expect(screen.queryByText(/mobile/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Planning Manager"));
 
     expect(await screen.findByText("Permission lanes")).toBeInTheDocument();
+    expect(screen.queryByText(/mobile/i)).not.toBeInTheDocument();
   });
 
   it("renders audit trail events and opens the audit workspace", async () => {

@@ -60,7 +60,7 @@ function groupNavigationItems() {
 
   if (ungrouped.length > 0) {
     grouped.push({
-      label: "MOBILE / OPERATIONS",
+      label: "OTHER WORKSPACES",
       sourceSections: [],
       visibleCount: 5,
       items: ungrouped
