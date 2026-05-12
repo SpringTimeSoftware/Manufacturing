@@ -111,3 +111,9 @@ Supporting verification count:
 Recommendation: controlled web demo-ready, not role-wise UAT-ready or pilot-ready.
 
 The product is no longer blocked by the highest-value runtime read failures from the previous UAT report. It still needs workflow-depth waves before any role can receive full UAT acceptance.
+
+## WS01 Rerun Addendum - 2026-05-12
+
+WS01 rechecked the role-wise runtime layer through the new Runtime UAT console and backend login tests. All listed UAT identities are covered by `AuthServiceTests.LoginAsync_ShouldIssueTokensForEveryUatRuntimeRole`, and the console records role-specific representative probes for sales, planning, procurement, inventory, production, quality, dispatch, plant dashboards, and platform administration.
+
+Role acceptance remains PARTIAL because full write lifecycle, approval/audit depth, mobile execution, and irreversible transaction proof are outside WS01. Runtime and seed truth for the completed read/probe scope are now exposed in-app and exportable.

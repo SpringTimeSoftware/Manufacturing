@@ -1,0 +1,31 @@
+Work only on branch main.
+
+This is WS11: Final Release / Performance / Hardening.
+
+Use the detailed workstream plan at:
+- docs/master-workstream-roadmap/workstreams/WS11_Final_Release_Performance_Hardening.md
+
+Do not start another workstream.
+Do not stop after partial fixes.
+Do not create docs-only output.
+
+Follow the workstream document exactly.
+
+Mandatory gates:
+- no visible touched action may remain dead
+- governed fields must use lookup/select where source exists
+- numeric/money/quantity/date fields must use governed controls
+- live authenticated mode must not show silent seeded operational rows
+- deep editors must use centered modal/full-page workspace
+- validation must pass
+- screenshot evidence required
+- review pack required
+
+Before stopping:
+1. create/update docs/codex-progress/WS11-output.md
+2. update all relevant matrices
+3. capture screenshots under docs/codex-review-screens/WS11/
+4. create artifacts/review-packs/WS11-review-pack.zip
+5. commit all changes
+6. push main
+7. return only: files changed, screens completed, actions wired/disabled/hidden, blockers, validation results, review pack path.

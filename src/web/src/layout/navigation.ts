@@ -457,6 +457,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["PlatformAdmin"]
   },
   {
+    label: "Runtime UAT",
+    path: "/platform/runtime-uat",
+    section: "Platform",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlantHead"]
+  },
+  {
     label: "Global Search",
     path: "/search",
     section: "Platform"

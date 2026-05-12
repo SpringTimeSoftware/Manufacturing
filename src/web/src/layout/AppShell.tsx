@@ -242,6 +242,7 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/platform/context-switch": "settings",
     "/platform/notifications": "bell",
     "/platform/roles": "roles",
+    "/platform/runtime-uat": "audit",
     "/platform/settings": "platform",
     "/platform/tenant-settings": "tenant",
     "/platform/translations": "translation",

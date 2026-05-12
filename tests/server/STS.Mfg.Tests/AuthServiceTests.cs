@@ -41,6 +41,34 @@ public sealed class AuthServiceTests
         Assert.Equal(12, refreshed.User.ActiveContext.BranchId);
     }
 
+    [Theory]
+    [InlineData("super.admin", "Super@123", AppRoles.SuperAdmin)]
+    [InlineData("platform.admin", "Platform@123", AppRoles.PlatformAdmin)]
+    [InlineData("company.admin", "Company@123", AppRoles.CompanyAdmin)]
+    [InlineData("sales.coordinator", "Sales@123", AppRoles.SalesCoordinator)]
+    [InlineData("planning.manager", "Planning@123", AppRoles.PlanningManager)]
+    [InlineData("purchase.manager", "Purchase@123", AppRoles.PurchaseManager)]
+    [InlineData("stores.keeper", "Stores@123", AppRoles.StoreKeeper)]
+    [InlineData("prod.supervisor", "Production@123", AppRoles.ProductionSupervisor)]
+    [InlineData("machine.operator", "Operator@123", AppRoles.MachineOperator)]
+    [InlineData("qc.inspector", "Quality@123", AppRoles.QCInspector)]
+    [InlineData("dispatch.manager", "Dispatch@123", AppRoles.DispatchManager)]
+    [InlineData("plant.head", "Plant@123", AppRoles.PlantHead)]
+    public async Task LoginAsync_ShouldIssueTokensForEveryUatRuntimeRole(string userName, string password, string expectedRole)
+    {
+        await using var scope = BuildServices().CreateAsyncScope();
+        var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+
+        var session = await authService.LoginAsync(new LoginRequest(userName, password, null, null, "web"));
+
+        Assert.False(string.IsNullOrWhiteSpace(session.AccessToken));
+        Assert.False(string.IsNullOrWhiteSpace(session.RefreshToken));
+        Assert.Equal(userName, session.User.UserName);
+        Assert.Contains(expectedRole, session.User.Roles);
+        Assert.NotNull(session.User.ActiveContext.CompanyId);
+        Assert.NotNull(session.User.ActiveContext.BranchId);
+    }
+
     private static ServiceProvider BuildServices()
     {
         var configuration = new ConfigurationBuilder()

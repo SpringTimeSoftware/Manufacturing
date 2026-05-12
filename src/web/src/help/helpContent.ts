@@ -669,6 +669,56 @@ const explicitScreens: Record<string, Partial<HelpScreenRecord>> = {
     relatedScreens: ["Users", "Roles & Permissions", "Workflow & Numbering"],
     title: "Tenant Settings"
   },
+  "/platform/runtime-uat": {
+    actions: [
+      ...genericActions,
+      {
+        action: "Run checks",
+        allowedWhen: "An authorized platform, company, or plant leadership role is signed in.",
+        dependencies: ["Authenticated session", "Runtime APIs", "UAT baseline data"],
+        disabledReason: "Run checks is disabled while a check is already in progress.",
+        purpose: "Refresh role, API, baseline data, and publish-readiness evidence for the runtime readiness pass."
+      },
+      {
+        action: "Export evidence",
+        allowedWhen: "Runtime UAT evidence rows are visible after checks run.",
+        dependencies: ["Visible evidence rows"],
+        disabledReason: "Export is disabled until checks have produced evidence rows.",
+        purpose: "Download the filtered runtime UAT evidence as a CSV review artifact."
+      }
+    ],
+    commonMistakes: ["Treating partial role UAT as full workflow acceptance", "Running UAT before health and database readiness are clear"],
+    domain: "Platform",
+    fields: [
+      {
+        controlType: "lookup",
+        examples: ["All roles", "PlanningManager", "DispatchManager"],
+        fieldId: "roleFocus",
+        label: "Role focus",
+        lookupSource: "Runtime UAT evidence roles",
+        meaning: "Narrows evidence to a role or shows every role in scope.",
+        screenOrTab: "Runtime UAT",
+        validation: "Use one of the listed role options."
+      },
+      {
+        controlType: "lookup",
+        examples: ["PASS", "PARTIAL", "FAIL"],
+        fieldId: "status",
+        label: "Status",
+        lookupSource: "Runtime UAT status set",
+        meaning: "Filters evidence by the status assigned to each runtime check.",
+        screenOrTab: "Runtime UAT",
+        validation: "Use PASS, PARTIAL, FAIL, or NOT-IN-SCOPE."
+      }
+    ],
+    keyActions: ["Run runtime checks", "Filter by role or status", "Export evidence", "Open linked screen when available"],
+    prerequisites: ["Signed-in platform, company, or plant leadership role", "Published host and database available"],
+    purpose: "Use Runtime UAT to verify health, role identities, endpoint reads, baseline data proof, and publish readiness before executing role-wise UAT.",
+    relatedScreens: ["Notifications", "Approvals", "Audit Trail", "Tenant Settings"],
+    statuses: ["PASS", "PARTIAL", "FAIL", "NOT-IN-SCOPE"],
+    targetRoles: ["PlatformAdmin", "CompanyAdmin", "PlantHead"],
+    title: "Runtime UAT"
+  },
   "/help": {
     actions: genericActions,
     commonMistakes: ["Searching by internal team language instead of business terms"],

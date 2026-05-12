@@ -1,0 +1,12 @@
+Workstream,Primary Domains,Key Screens,Main Completion Risk,Must Be Complete Before
+WS01 Runtime/UAT/Seed,Runtime/API/Seeds/UAT,Login Smoke Role UAT API Probe,Fake data and endpoint failures,All later workstreams
+WS02 Platform/Security/Admin,Users Roles Workflow Audit Attachments UDF,Users Roles Permissions Audit Approvals Notifications Tenant Workflow UDF,Security and approval gaps,WS03+
+WS03 Master/Resource/Commercial,Items Customers Suppliers Resources Pricing Tax Terms,Item Customer Supplier UOM Resources Price Discount Tax Currency,Governed fields and transaction prerequisites,WS04+
+WS04 Engineering/Planning,BOM Routing ECO MRP BOQ Capacity,BOM Routing ECO MRP BOQ Capacity Machine Board,Planning flows not transaction-safe,WS05
+WS05 Production/Shop Floor,WO JC Material Issue Production Receipt Downtime,Work Orders Job Cards Shift Production Material Issue Receipt Rework,Posting/workflow/audit gaps,WS06
+WS06 Inventory/QC/Dispatch/Documents,Inventory Quality Dispatch Documents,Stock Cycle Count QC NCR Dispatch Pack POD Labels,Traceability and close-loop proof,WS07+
+WS07 Mobile/Integrations/AI/Reporting,Mobile Providers AI Reports Import Export,Mobile Help AI Reports Integrations Import Export,Provider/tooling and safe AI limits,WS11
+WS08 Finance/Accounting/AP/AR,GL AP AR Bank Costing,COA Journals Periods Trial Balance AP AR Aging Bank,Accounting architecture missing,WS11
+WS09 Procure-to-Pay,RFQ PO GRN Invoice Payments,RFQ Compare PO GRN Invoice Payment Vendor Return,Full P2P lifecycle missing,WS08/WS11
+WS10 Service/Warranty/AMC,Service Warranty AMC RMA,Service Ticket Warranty AMC RMA Repair,Post-sales module missing,WS11
+WS11 Final Release,Release Security Performance UAT,Release Checklist UAT Performance Backup Restore,Final pilot readiness,End

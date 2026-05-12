@@ -53,6 +53,8 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 
 Authentication still validates against the bootstrap identity directory, but user/role administration now has a SQL-backed visibility mirror aligned to those bootstrap users. The minimum platform seed includes the deliberate `super.admin` / `SuperAdmin` visibility mirror for controlled full-menu administration and UAT support, plus live UAT role identities for SalesCoordinator, PurchaseManager, and PlantHead. Web adapters for screens beyond `P083` remain intentionally demo-backed or blocked until their backend contracts or normal prompt-chain work exist.
 
+WS01 Runtime/UAT/Seed Truth did not require destructive database changes. It reuses the ordered apply path through `seed/005_uat_runtime_seed.sql` and exposes runtime seed proof through `/platform/runtime-uat`.
+
 ## Rules
 
 - Packs are forward-only and idempotent.

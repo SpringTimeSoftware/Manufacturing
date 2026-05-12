@@ -194,6 +194,23 @@ export interface SystemContextResponse {
   teamUserIds: number[];
 }
 
+export interface SystemInfoResponse {
+  product: string;
+  phase: string;
+  message: string;
+}
+
+export interface HealthCheckEntryResponse {
+  status: string;
+  description: string | null;
+  durationMs: number;
+}
+
+export interface HealthCheckResponse {
+  status: string;
+  entries: Record<string, HealthCheckEntryResponse>;
+}
+
 export interface DashboardFilter extends QueryFilter {
   salesOrderId?: number;
   customerId?: number;

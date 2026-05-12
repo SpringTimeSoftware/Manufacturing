@@ -83,3 +83,9 @@ This report records the LONG-RUN-01 localhost smoke rerun after the final audit 
 Smoke result: PASS for the LONG-RUN-01 localhost smoke checklist.
 
 Remaining non-smoke gaps are workflow depth, mobile live execution, irreversible transaction proof, and pilot-grade controls. Those are tracked in `docs/uat/LOCALHOST_ROLE_WISE_UAT_RESULTS.md` and `docs/final-audit/*`.
+
+## WS01 Rerun Addendum - 2026-05-12
+
+WS01 added the `/platform/runtime-uat` evidence console and automated runtime probes for health, readiness, authenticated context, notification and approval data truth, role-aware representative APIs, traceability seed proof, and dispatch print proof.
+
+The smoke checklist remains PASS at the runtime/read level. The console does not convert partial workflow acceptance into full UAT acceptance; it gives customer-facing, exportable evidence and explicit failure states when live data is unavailable.

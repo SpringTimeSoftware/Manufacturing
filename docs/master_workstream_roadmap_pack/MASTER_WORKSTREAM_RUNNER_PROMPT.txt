@@ -1,0 +1,48 @@
+Work only on branch main.
+
+This is MASTER-WORKSTREAM-RUNNER.
+
+Goal:
+Run exactly one workstream from docs/master-workstream-roadmap at a time, using the specified workstream ID.
+
+Before running, ask or read the target workstream ID from CURRENT_WORKSTREAM_ID if present. If no target ID is supplied, stop and ask for the workstream ID.
+
+Read first:
+- AGENTS.md
+- docs/master-workstream-roadmap/00_README.md
+- docs/master-workstream-roadmap/01_MASTER_WORKSTREAM_ROADMAP.md
+- docs/master-workstream-roadmap/02_WORKSTREAM_ORDER_AND_GATES.md
+- docs/master-workstream-roadmap/03_GLOBAL_DEFINITION_OF_DONE.md
+- docs/master-workstream-roadmap/04_FUNCTIONAL_COVERAGE_CONTRACT.md
+- docs/master-workstream-roadmap/05_FIELD_ACTION_DATA_TRUTH_CONTRACT.md
+- docs/master-workstream-roadmap/06_SCREEN_AND_EVIDENCE_RULES.md
+- the selected workstream file under docs/master-workstream-roadmap/workstreams/
+- current repo source, tests, database README, governance matrices, UAT docs.
+
+Hard rules:
+- do not run multiple workstreams unless explicitly instructed
+- do not skip gates
+- do not call a workstream complete with critical blockers remaining
+- every visible touched action must be working, disabled with reason, or hidden
+- governed fields must use lookup/select where source exists
+- numeric fields must use numeric/decimal/money controls
+- live mode cannot silently show seeded fake operational data
+- screenshots and review pack are required
+
+Execution:
+1. baseline scan
+2. implement/fix
+3. update matrices
+4. validate
+5. capture screenshots
+6. create review pack
+7. commit and push
+
+Return only:
+- workstream ID
+- completion status
+- files changed
+- blockers
+- validation results
+- screenshot folder
+- review pack path

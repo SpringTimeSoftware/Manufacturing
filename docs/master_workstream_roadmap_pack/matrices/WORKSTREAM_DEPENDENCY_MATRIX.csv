@@ -1,0 +1,12 @@
+Workstream,Depends On,Can Run In Parallel With,Key Dependency Notes
+WS01,None,None,Must establish runtime truth and seed data first
+WS02,WS01,None,Security/admin gates required before workflows
+WS03,WS01 WS02,None,Master data drives all downstream flows
+WS04,WS03,None,Engineering/planning depends on item/UOM/resource truth
+WS05,WS03 WS04,None,Production depends on released BOM/routing/planning
+WS06,WS03 WS05,None,Inventory/QC/dispatch depend on production and item traceability
+WS07,WS01 WS02 WS05 WS06,None,Mobile/integrations/reporting depend on reliable core data
+WS08,WS03 WS05 WS06,WS09 after shared rules,Accounting can start once posting sources are stable
+WS09,WS03 WS06 WS08 partial,None,P2P needs supplier/item/tax/GL foundation
+WS10,WS03 WS06 WS08 partial,None,Service needs customer/item/serial/dispatch history
+WS11,All,None,Release gates require all prior workstreams

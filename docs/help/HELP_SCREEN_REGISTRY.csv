@@ -77,6 +77,7 @@
 "Workflow & Numbering","/platform/workflow-numbering","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Platform Settings","/platform/settings","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Tenant Settings","/platform/tenant-settings","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
+"Runtime UAT","/platform/runtime-uat","src/web/src/pages/RuntimeUatPage.tsx","Platform","Yes","No","No","Yes","No","Implemented","Runtime, role, data-truth, and publish-readiness help available from page header."
 "Global Search","/search","src/web/src/pages/SearchPage.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Help Center","/help","src/web/src/pages/HelpPages.tsx","Platform","Yes","No","No","No","No","Implemented","Screen help available from page header."
 "Companies","/organization/companies","src/web/src/pages/OrganizationPages.tsx","Organization","Yes","No","No","Yes","No","Implemented","Screen help available from page header."

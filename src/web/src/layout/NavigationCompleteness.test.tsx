@@ -81,6 +81,7 @@ const implementedProtectedRoutes = [
   "/platform/workflow-numbering",
   "/platform/settings",
   "/platform/tenant-settings",
+  "/platform/runtime-uat",
   "/search",
   "/help",
   "/organization/companies",

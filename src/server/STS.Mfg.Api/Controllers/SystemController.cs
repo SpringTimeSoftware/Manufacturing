@@ -15,7 +15,7 @@ public sealed class SystemController(
     [HttpGet("info")]
     public ActionResult<ApiEnvelope<SystemInfoResponse>> GetInfo()
     {
-        var response = new SystemInfoResponse("STS Manufacturing ERP", "bootstrap", "Backend skeleton online.");
+        var response = new SystemInfoResponse("STS Manufacturing ERP", "runtime", "Runtime services are available.");
 
         return OkEnvelope(response);
     }

@@ -94,12 +94,14 @@ import type {
   ApprovalWorkItem,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
+  HealthCheckResponse,
   ShiftDto,
   ShiftUpsertRequest,
   StageWiseDashboardItem,
   SalesOrderDto,
   SwitchOperatingContextRequest,
   SystemContextResponse,
+  SystemInfoResponse,
   WarehouseDto,
   WarehouseUpsertRequest,
   TranslationBundleResponse,
@@ -226,6 +228,17 @@ async function requestBlob(path: string, { skipAuth = false, ...init }: ApiReque
   };
 }
 
+async function requestJson<T>(path: string, init: RequestInit = {}) {
+  const response = await fetch(path, init);
+  const payload = (await response.json().catch(() => undefined)) as T | undefined;
+
+  if (!response.ok || !payload) {
+    throw new ApiError("Runtime check failed.", response.status);
+  }
+
+  return payload;
+}
+
 export const apiClient = {
   auth: {
     login: (body: LoginRequest) =>
@@ -259,7 +272,10 @@ export const apiClient = {
       })
   },
   system: {
-    context: () => request<SystemContextResponse>("/api/system/context")
+    context: () => request<SystemContextResponse>("/api/system/context"),
+    healthLive: () => requestJson<HealthCheckResponse>("/api/health/live"),
+    healthReady: () => requestJson<HealthCheckResponse>("/api/health/ready"),
+    info: () => request<SystemInfoResponse>("/api/system/info", { skipAuth: true })
   },
   localization: {
     resources: (languageCode: string, module?: string, keys?: string[]) => {

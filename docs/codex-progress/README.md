@@ -285,6 +285,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - HELP-SYSTEM-AND-ACTION-COMPLETION-01 completed on 2026-05-12. Output: `/docs/codex-progress/HELP-SYSTEM-AND-ACTION-COMPLETION-01-output.md`
 - NAVIGATION-AND-NOTIFICATION-TRUTH-01 completed on 2026-05-12. Output: `/docs/codex-progress/NAVIGATION-AND-NOTIFICATION-TRUTH-01-output.md`
 - NAVIGATION-NOTIFICATION-TRUTH-02 completed on 2026-05-12. Output: `/docs/codex-progress/NAVIGATION-NOTIFICATION-TRUTH-02-output.md`
+- WS01 Runtime/UAT/Seed Truth completed on 2026-05-12. Output: `/docs/codex-progress/WS01-output.md`
 
 ## Remediation Log
 

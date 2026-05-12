@@ -115,6 +115,7 @@ import {
   QcPlanSetupPage
 } from "../pages/QualityPages";
 import { PrintPackPage } from "../pages/PrintPackPage";
+import { RuntimeUatPage } from "../pages/RuntimeUatPage";
 import { GlobalSearchPage } from "../pages/SearchPage";
 import {
   HelpCenterPage,
@@ -222,6 +223,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("platform/workflow-numbering", <WorkflowNumberingPage />),
       guardedRoute("platform/tenant-settings", <TenantSettingsPage />),
       guardedRoute("platform/settings", <PlatformSettingsPage />),
+      guardedRoute("platform/runtime-uat", <RuntimeUatPage />),
       guardedRoute("organization/companies", <CompanyMasterPage />),
       guardedRoute("organization/branches", <BranchMasterPage />),
       guardedRoute("organization/departments", <DepartmentMasterPage />),
