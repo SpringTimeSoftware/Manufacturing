@@ -214,6 +214,7 @@ export interface NotificationItem {
   statusLabel?: string;
   actionLabel?: string;
   actionPath?: string;
+  actionDisabledReason?: string;
 }
 
 export interface SelectOption {
@@ -261,6 +262,7 @@ export interface ApprovalWorkItem {
   auditActionLabel: string;
   relatedNotificationId?: string;
   actionPath?: string;
+  actionDisabledReason?: string;
   tags: string[];
 }
 

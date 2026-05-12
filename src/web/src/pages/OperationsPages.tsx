@@ -1,5 +1,5 @@
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { bomRecords } from "../api/mockData";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
@@ -305,6 +305,7 @@ const operationColumns: DataGridColumn<WorkOrderOperationLineItem>[] = [
 
 export function WorkOrdersPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -324,6 +325,24 @@ export function WorkOrdersPage() {
   );
   const detail = detailQuery.data ?? selected;
   const source = records[0]?.source ?? "Seeded";
+  const requestedWorkOrder = searchParams.get("workOrder");
+
+  useEffect(() => {
+    if (!requestedWorkOrder || records.length === 0) {
+      return;
+    }
+
+    const normalized = requestedWorkOrder.toLowerCase();
+    const match = records.find(
+      (record) =>
+        record.workOrderNo.toLowerCase() === normalized ||
+        record.workOrderNo.toLowerCase().includes(normalized)
+    );
+
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [records, requestedWorkOrder]);
 
   return (
     <>

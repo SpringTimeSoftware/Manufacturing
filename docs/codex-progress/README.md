@@ -283,6 +283,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - MASTER-COMPLETION-CLUSTER-RUNNER-01 Cluster 6 blocked on 2026-05-11 at mobile screenshot evidence after code/action/field gates passed for Mobile/Device/Sync. Output: `/docs/codex-progress/cluster-6-mobile-device-sync-output.md`
 - DEMO-CLOSEOUT-01 completed on 2026-05-12 for the focused web-only customer demo build. Output: `/docs/codex-progress/DEMO-CLOSEOUT-01-output.md`
 - HELP-SYSTEM-AND-ACTION-COMPLETION-01 completed on 2026-05-12. Output: `/docs/codex-progress/HELP-SYSTEM-AND-ACTION-COMPLETION-01-output.md`
+- NAVIGATION-AND-NOTIFICATION-TRUTH-01 completed on 2026-05-12. Output: `/docs/codex-progress/NAVIGATION-AND-NOTIFICATION-TRUTH-01-output.md`
 
 ## Remediation Log
 

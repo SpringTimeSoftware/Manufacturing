@@ -722,8 +722,14 @@ export function ExecutiveCockpitPage() {
         description="Open the intervention detail while preserving the same management dashboard context."
         footer={
           <ErpActionBar
-            primary={[{ label: "Open order detail", onClick: () => navigate("/dashboards/order-delivery") }]}
-            secondary={[{ label: "Open approvals", onClick: () => navigate("/platform/approvals") }]}
+            primary={[{ label: "Open order detail", onClick: () => navigate(`/dashboards/order-delivery?order=${encodeURIComponent(selected?.salesOrder ?? "")}`) }]}
+            secondary={[
+              {
+                disabled: true,
+                label: "Open approvals",
+                reason: "Approval-specific links are available from approval alerts and the Approval Workbench."
+              }
+            ]}
             utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]}
           />
         }

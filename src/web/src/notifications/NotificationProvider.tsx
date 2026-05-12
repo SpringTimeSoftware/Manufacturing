@@ -7,18 +7,18 @@ export const seededNotifications: NotificationItem[] = [
   {
     id: "notif-wo-risk",
     title: "Work order release still blocked",
-    body: "WO-02642 is waiting on RM-SS-SHEET and routing step approval.",
+    body: "WO-2026-044 is waiting on RM-SS-SHEET and routing step approval.",
     module: "Planning",
     category: "Approval",
     severity: "warn",
     createdAt: "2026-04-18T08:45:00Z",
     isRead: false,
     requiresAction: true,
-    documentRef: "WO-02642",
+    documentRef: "WO-2026-044",
     auditActionLabel: "Review re-release approval",
     statusLabel: "Escalated",
-    actionLabel: "Open approvals",
-    actionPath: "/platform/approvals"
+    actionLabel: "Open approval",
+    actionPath: "/platform/approvals?approval=approval-wo-release"
   },
   {
     id: "notif-bom-approval",
@@ -33,8 +33,8 @@ export const seededNotifications: NotificationItem[] = [
     documentRef: "BOM-FG-OZ-50 / R4",
     auditActionLabel: "Approve BOM revision",
     statusLabel: "Pending",
-    actionLabel: "Open approvals",
-    actionPath: "/platform/approvals"
+    actionLabel: "Open approval",
+    actionPath: "/platform/approvals?approval=approval-bom-r4"
   },
   {
     id: "notif-qc",
@@ -49,7 +49,7 @@ export const seededNotifications: NotificationItem[] = [
     documentRef: "SO-2026-0189",
     auditActionLabel: "Review QC hold",
     actionLabel: "Open stage board",
-    actionPath: "/dashboards/stage-wise"
+    actionDisabledReason: "Stage-board deep links for this sales order are not enabled. Open Stage Wise and search SO-2026-0189."
   },
   {
     id: "notif-translation",
@@ -76,10 +76,16 @@ export const seededNotifications: NotificationItem[] = [
     documentRef: "PK-00419 / SO-2026-0194",
     auditActionLabel: "Approve dispatch release",
     statusLabel: "Pending",
-    actionLabel: "Open approvals",
-    actionPath: "/platform/approvals"
+    actionLabel: "Open approval",
+    actionPath: "/platform/approvals?approval=approval-dispatch-release"
   }
 ];
+
+const seededNotificationKeys = new Set(seededNotifications.map((item) => `${item.id}:${item.title}:${item.documentRef ?? ""}`));
+
+function isSeededNotificationRow(item: NotificationItem) {
+  return seededNotificationKeys.has(`${item.id}:${item.title}:${item.documentRef ?? ""}`);
+}
 
 interface NotificationValue {
   isLiveSession: boolean;
@@ -137,6 +143,13 @@ export function NotificationProvider({
       .list()
       .then((items) => {
         if (isMounted) {
+          if (items.some(isSeededNotificationRow)) {
+            setNotifications([]);
+            setLoading(false);
+            setLoadError("The notification service returned non-live operating alerts. They are hidden until verified live notification data is available.");
+            return;
+          }
+
           setNotifications(items);
           setLoading(false);
           setLoadError(null);

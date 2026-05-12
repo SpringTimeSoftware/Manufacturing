@@ -1,11 +1,12 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import type { ApprovalWorkItem, NotificationItem } from "../api/contracts";
 import { useAuth } from "../auth/AuthContext";
 import { useFeatureFlags } from "../featureFlags/FeatureFlagProvider";
 import { ScreenHelpButton } from "../help/ScreenHelpButton";
 import { useI18n } from "../i18n/I18nProvider";
 import { useNotifications } from "../notifications/NotificationProvider";
+import { getLinkedRecordActionState } from "../notifications/linkedRecordActions";
 import {
   listApprovalWorkItems,
   requestForgotPassword,
@@ -524,7 +525,7 @@ export function NotificationInboxPage() {
           />
         ) : loadError ? (
           <EmptyState
-            description="Live notification data is unavailable. Only verified alerts are shown in this session."
+            description="Live notification data is unavailable. No alerts are shown until the live inbox is verified."
             hint={loadError}
             title="Notification inbox unavailable"
           />
@@ -571,19 +572,29 @@ export function NotificationInboxPage() {
         footer={
           selected ? (
             <ErpActionBar
-              primary={
-                selected.actionPath
-                  ? [
-                      {
-                        label: selected.actionLabel ?? "Open linked record",
-                        onClick: () => {
+              primary={(() => {
+                const linkedAction = getLinkedRecordActionState(selected, selected.actionLabel ?? "Open linked record");
+
+                if (linkedAction.hidden) {
+                  return [];
+                }
+
+                const linkedPath = linkedAction.path;
+
+                return [
+                  {
+                    disabled: linkedAction.disabled,
+                    label: linkedAction.label,
+                    onClick: linkedPath
+                      ? () => {
                           markAsRead(selected.id);
-                          navigate(selected.actionPath ?? "/");
+                          navigate(linkedPath);
                         }
-                      }
-                    ]
-                  : []
-              }
+                      : undefined,
+                    reason: linkedAction.reason
+                  }
+                ];
+              })()}
               secondary={
                 !selected.isRead
                   ? [
@@ -683,6 +694,7 @@ function isApprovalDecisionAllowed(status: ApprovalWorkItem["status"]) {
 
 export function ApprovalWorkbenchPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { markAsRead } = useNotifications();
   const [approvals, setApprovals] = useState<ApprovalWorkItem[]>([]);
   const [selected, setSelected] = useState<ApprovalWorkItem | null>(null);
@@ -732,6 +744,26 @@ export function ApprovalWorkbenchPage() {
       isMounted = false;
     };
   }, []);
+
+  const requestedApproval = searchParams.get("approval") ?? searchParams.get("reference");
+
+  useEffect(() => {
+    if (!requestedApproval || approvals.length === 0) {
+      return;
+    }
+
+    const normalized = requestedApproval.toLowerCase();
+    const match = approvals.find(
+      (approval) =>
+        approval.id.toLowerCase() === normalized ||
+        approval.referenceNo.toLowerCase() === normalized ||
+        approval.referenceNo.toLowerCase().includes(normalized)
+    );
+
+    if (match) {
+      setSelected(match);
+    }
+  }, [approvals, requestedApproval]);
 
   const filtered = useMemo(() => {
     return approvals.filter((approval) => {
@@ -843,7 +875,7 @@ export function ApprovalWorkbenchPage() {
       >
         {loadError ? (
           <EmptyState
-            description="Live approval data is unavailable. Only verified approvals are shown in this session."
+            description="Live approval data is unavailable. No approvals are shown until the live queue is verified."
             hint={loadError}
             title="Approval queue unavailable"
           />
@@ -954,16 +986,29 @@ export function ApprovalWorkbenchPage() {
                 />
               </label>
               {message ? <div className="ui-validation-summary">{message}</div> : null}
-              {selected.actionPath ? (
-                <Button
-                  variant="quiet"
-                  onClick={() => {
-                    navigate(selected.actionPath ?? "/");
-                  }}
-                >
-                  Open linked record
-                </Button>
-              ) : null}
+              {(() => {
+                const linkedAction = getLinkedRecordActionState(selected, "Open linked record");
+
+                if (linkedAction.hidden) {
+                  return null;
+                }
+
+                const linkedPath = linkedAction.path;
+
+                return (
+                  <ErpActionBar
+                    secondary={[
+                      {
+                        disabled: linkedAction.disabled,
+                        label: linkedAction.label,
+                        onClick: linkedPath ? () => navigate(linkedPath) : undefined,
+                        reason: linkedAction.reason,
+                        variant: "quiet"
+                      }
+                    ]}
+                  />
+                );
+              })()}
             </FormShell>
           </>
         ) : null}

@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { getLinkedRecordActionState } from "./linkedRecordActions";
 import { useNotifications } from "./NotificationProvider";
 
 interface NotificationCenterProps {
@@ -15,7 +16,7 @@ export function NotificationCenter({ compact = false }: NotificationCenterProps)
   if (loadError) {
     return (
       <EmptyState
-        description="Live notification data is not available right now. Only verified alerts are shown in this session."
+        description="Live notification data is not available right now. No alerts are shown until the live inbox is verified."
         hint={loadError}
         title="Notification inbox unavailable"
       />
@@ -60,38 +61,47 @@ export function NotificationCenter({ compact = false }: NotificationCenterProps)
           </div>
         </div>
       ) : null}
-      {notifications.map((notification) => (
-        <article className="notification-item" key={notification.id}>
-          <div className="notification-item__meta">
-            <Badge tone={notification.severity}>{notification.module}</Badge>
-            <span>{new Date(notification.createdAt).toLocaleString("en-IN")}</span>
-          </div>
-          <strong>{notification.title}</strong>
-          <p>{notification.body}</p>
-          <div className="context-chip-row">
-            {!notification.isRead ? (
-              <Button variant="quiet" onClick={() => markAsRead(notification.id)}>
-                Mark read
-              </Button>
-            ) : null}
-            {notification.actionPath ? (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  markAsRead(notification.id);
-                  const nextPath = notification.actionPath;
+      {notifications.map((notification) => {
+        const linkedAction = getLinkedRecordActionState(notification, notification.actionLabel ?? "Open linked record");
 
-                  if (nextPath) {
-                    navigate(nextPath);
-                  }
-                }}
-              >
-                {notification.actionLabel ?? "Open"}
-              </Button>
-            ) : null}
-          </div>
-        </article>
-      ))}
+        return (
+          <article className="notification-item" key={notification.id}>
+            <div className="notification-item__meta">
+              <Badge tone={notification.severity}>{notification.module}</Badge>
+              <span>{new Date(notification.createdAt).toLocaleString("en-IN")}</span>
+            </div>
+            <strong>{notification.title}</strong>
+            <p>{notification.body}</p>
+            <div className="context-chip-row">
+              {!notification.isRead ? (
+                <Button variant="quiet" onClick={() => markAsRead(notification.id)}>
+                  Mark read
+                </Button>
+              ) : null}
+              {!linkedAction.hidden ? (
+                <span className="linked-record-action">
+                  <Button
+                    disabled={linkedAction.disabled}
+                    title={linkedAction.reason}
+                    variant="primary"
+                    onClick={() => {
+                      if (!linkedAction.path) {
+                        return;
+                      }
+
+                      markAsRead(notification.id);
+                      navigate(linkedAction.path);
+                    }}
+                  >
+                    {linkedAction.label}
+                  </Button>
+                  {linkedAction.disabled && linkedAction.reason ? <small>{linkedAction.reason}</small> : null}
+                </span>
+              ) : null}
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 }
