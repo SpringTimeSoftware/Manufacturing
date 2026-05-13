@@ -107,6 +107,9 @@ export interface JobCardSetupItem {
   jobCardNo: string;
   workOrderLabel: string;
   operationLabel: string;
+  assignedMachineId: number | null;
+  assignedOperatorUserId: number | null;
+  shiftId: number | null;
   machineLabel: string;
   operatorLabel: string;
   shiftLabel: string;
@@ -396,6 +399,9 @@ function mapJobCardSummary(dto: JobCardSummaryDto, source: MasterDataSource): Jo
     jobCardNo: dto.jobCardNo,
     workOrderLabel: dto.workOrderNo ?? `WO ${dto.workOrderId}`,
     operationLabel: operationLabel(dto.operationId),
+    assignedMachineId: dto.assignedMachineId,
+    assignedOperatorUserId: dto.assignedOperatorUserId,
+    shiftId: dto.shiftId,
     machineLabel: machineLabel(dto.assignedMachineId),
     operatorLabel: operatorLabel(dto.assignedOperatorUserId),
     shiftLabel: shiftLabel(dto.shiftId),
@@ -454,6 +460,9 @@ function mapJobCardDetail(dto: JobCardDto, source: MasterDataSource): JobCardSet
     jobCardNo: dto.jobCardNo,
     workOrderLabel: dto.workOrderNo ?? `WO ${dto.workOrderId}`,
     operationLabel: operationLabel(dto.operationId),
+    assignedMachineId: dto.assignedMachineId,
+    assignedOperatorUserId: dto.assignedOperatorUserId,
+    shiftId: dto.shiftId,
     machineLabel: machineLabel(dto.assignedMachineId),
     operatorLabel: operatorLabel(dto.assignedOperatorUserId),
     shiftLabel: shiftLabel(dto.shiftId),
@@ -748,6 +757,9 @@ const seededJobCards: JobCardSetupItem[] = [
     jobCardNo: "JC-90441",
     workOrderLabel: "WO-2026-044",
     operationLabel: "Cutting and forming",
+    assignedMachineId: 1,
+    assignedOperatorUserId: 101,
+    shiftId: 1,
     machineLabel: "MC-01 Laser Cutter",
     operatorLabel: "Ajay",
     shiftLabel: "Shift A",
@@ -772,6 +784,9 @@ const seededJobCards: JobCardSetupItem[] = [
     jobCardNo: "JC-90391",
     workOrderLabel: "WO-2026-044",
     operationLabel: "Testing",
+    assignedMachineId: 3,
+    assignedOperatorUserId: 102,
+    shiftId: 1,
     machineLabel: "MC-03 Test Bench",
     operatorLabel: "Kiran",
     shiftLabel: "Shift A",

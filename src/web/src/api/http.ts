@@ -62,8 +62,14 @@ import type {
   DowntimeEventDto,
   InspectionDto,
   InspectionPlanDto,
+  JobCardCompleteRequest,
   JobCardDto,
+  JobCardPauseRequest,
+  JobCardQuantityRequest,
+  JobCardQuantityResultDto,
+  JobCardResumeRequest,
   JobCardSummaryDto,
+  JobCardStartRequest,
   MachineBoardItem,
   MachineDto,
   MachineUpsertRequest,
@@ -982,6 +988,31 @@ export const apiClient = {
       return request<PagedResult<JobCardSummaryDto>>(`/api/job-cards?${query}`);
     },
     jobCard: (id: number) => request<JobCardDto>(`/api/job-cards/${id}`),
+    startJobCard: (id: number, body: JobCardStartRequest) =>
+      request<ActionResponse>(`/api/job-cards/${id}/start`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    pauseJobCard: (id: number, body: JobCardPauseRequest) =>
+      request<ActionResponse>(`/api/job-cards/${id}/pause`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    resumeJobCard: (id: number, body: JobCardResumeRequest) =>
+      request<ActionResponse>(`/api/job-cards/${id}/resume`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    logJobCardQuantity: (id: number, body: JobCardQuantityRequest) =>
+      request<JobCardQuantityResultDto>(`/api/job-cards/${id}/quantities`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    completeJobCard: (id: number, body: JobCardCompleteRequest = {}) =>
+      request<ActionResponse>(`/api/job-cards/${id}/complete`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     downtime: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<DowntimeEventDto>>(`/api/downtime?${query}`);

@@ -1,0 +1,8 @@
+"Item","BaselineState","FinalState","Evidence","Notes"
+"Job-card web API contracts","MISSING","COMPLETE","src/web/src/api/contracts.ts","Added start, pause, resume, quantity, and complete request/result contract types."
+"Job-card API client methods","MISSING","COMPLETE","src/web/src/api/http.ts","Added wrappers for /api/job-cards/{id}/start, /pause, /resume, /quantities, and /complete."
+"Job-card adapter assignment mapping","PARTIAL","COMPLETE","src/web/src/operations/operationsAdapters.ts","Mapped machine/operator/shift IDs into job-card setup/detail rows for governed execution controls."
+"Job-card route context","GENERIC CONTEXT RISK","COMPLETE","src/web/src/pages/OperationsPages.tsx","/production/job-cards?jobCard=... opens the matching job-card workspace instead of a blank generic page."
+"Backend job-card endpoints","EXISTING","UNCHANGED","src/server/STS.Mfg.Api","Existing live job-card endpoints are reused; no backend schema change was required."
+"Database schema","EXISTING","UNCHANGED","database/README.md","No destructive or additive database change was required for WS05."
+"Host publish assets","STALE","COMPLETE","src/server/STS.Mfg.Host/wwwroot/index.html; src/server/STS.Mfg.Host/wwwroot/assets/index-CO7Dw67p.js","Publish-folder assets refreshed by npm build:host and dotnet publish."

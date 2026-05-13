@@ -289,6 +289,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - WS02 Platform/Security/Admin/Extensibility completed on 2026-05-13. Output: `/docs/codex-progress/WS02-output.md`
 - WS03 Master/Resource/Commercial Foundation completed on 2026-05-13. Output: `/docs/codex-progress/WS03-output.md`
 - WS04 Engineering/Planning completed on 2026-05-13. Output: `/docs/codex-progress/WS04-output.md`
+- WS05 Production/Shop Floor Execution completed on 2026-05-13. Output: `/docs/codex-progress/WS05-output.md`
 
 ## Remediation Log
 

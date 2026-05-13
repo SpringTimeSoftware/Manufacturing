@@ -1,0 +1,105 @@
+{
+  "wave_id": "WS05",
+  "screenshot_mode": "top_only",
+  "explicit_demo_session": true,
+  "captures": [
+    {
+      "route": "/production/work-orders",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\work-orders-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/job-cards",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\job-cards-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/job-cards",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\job-card-execution-modal-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/machine-board",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\machine-board-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/occupancy",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\occupancy-calendar-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/shift-production",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\shift-production-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/downtime",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\downtime-register-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/receipts",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\production-receipts-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/scrap-by-products",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\scrap-by-products-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/rework-orders",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\rework-orders-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/production/machine-status",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\machine-status-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/material-issue",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\material-issue-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/material-return",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\material-return-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/traceability",
+      "files": [
+        "docs\\codex-review-screens\\WS05\\traceability-top.png"
+      ],
+      "explicit_demo_session": true
+    }
+  ]
+}

@@ -1,7 +1,9 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { apiClient } from "../api/http";
 import { bomRecords } from "../api/mockData";
-import { queryKeys, useApiQuery } from "../api/hooks";
+import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
+import { hasLiveSession } from "../api/liveData";
 import { useAuth } from "../auth/AuthContext";
 import {
   getJobCardDetailSetup,
@@ -27,7 +29,7 @@ import { ListPageShell } from "../ui/ListPageShell";
 import { FilterBar } from "../ui/FilterBar";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
+import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { Timeline } from "../ui/Timeline";
 import { KpiStrip, LaneBoard, OccupancyCalendar, type Lane, type LaneSlot } from "../ui/boards";
@@ -417,12 +419,65 @@ const downtimeColumns: DataGridColumn<DowntimeRegisterItem>[] = [
   { key: "status", header: "Status", width: "12%", render: (record) => <StatusBadge status={record.status} /> }
 ];
 
+const executionReasonOptions = [
+  { label: "Production hold", value: "PRODUCTION_HOLD" },
+  { label: "Quality review", value: "QUALITY_REVIEW" },
+  { label: "Material wait", value: "MATERIAL_WAIT" },
+  { label: "Machine stop", value: "MACHINE_STOP" }
+];
+
+type JobCardExecutionAction = "start" | "pause" | "resume" | "quantity" | "complete";
+
+interface JobCardQuantityDraft {
+  goodQty: number;
+  rejectQty: number;
+  scrapQty: number;
+  reasonCode: string;
+  remarks: string;
+}
+
+function isJobStatus(detail: JobCardSetupItem | null | undefined, ...statuses: string[]) {
+  const normalized = detail?.status.toLowerCase() ?? "";
+  return statuses.some((status) => normalized === status.toLowerCase());
+}
+
+function jobExecutionReason(
+  session: Parameters<typeof hasLiveSession>[0],
+  detail: JobCardSetupItem | null | undefined,
+  extraReason?: string | null
+) {
+  if (!detail) {
+    return "Open a job card before posting execution actions.";
+  }
+
+  if (!hasLiveSession(session)) {
+    return "Live production sign-in is required before updating job cards.";
+  }
+
+  return extraReason ?? undefined;
+}
+
+function actionStatusMessage(status: string | null | undefined, fallback: string) {
+  return status ? `${fallback} Current status: ${status}.` : fallback;
+}
+
 export function JobCardsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pauseReasonCode, setPauseReasonCode] = useState("PRODUCTION_HOLD");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionTone, setActionTone] = useState<"success" | "warn" | "danger" | "info">("info");
+  const [quantityDraft, setQuantityDraft] = useState<JobCardQuantityDraft>({
+    goodQty: 1,
+    rejectQty: 0,
+    scrapQty: 0,
+    reasonCode: "PRODUCTION_HOLD",
+    remarks: ""
+  });
   const { deferredSearch, filter } = useProductionFilter(search, status);
   const query = useApiQuery(
     queryKeys.production.jobCards(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
@@ -438,6 +493,104 @@ export function JobCardsPage() {
   );
   const detail = detailQuery.data ?? selected;
   const source = records[0]?.source ?? "Seeded";
+  const requestedJobCard = searchParams.get("jobCard");
+  const startReason = detail && (!detail.assignedMachineId || !detail.assignedOperatorUserId)
+    ? "Assign a machine and operator before starting the job card."
+    : undefined;
+  const quantityReason = quantityDraft.goodQty + quantityDraft.rejectQty + quantityDraft.scrapQty <= 0
+    ? "Enter at least one good, reject, or scrap quantity before logging production."
+    : quantityDraft.rejectQty + quantityDraft.scrapQty > 0 && !quantityDraft.reasonCode
+      ? "Select a reason before logging reject or scrap quantity."
+      : undefined;
+  const pauseReason = !pauseReasonCode ? "Select a pause reason before pausing the job card." : undefined;
+  const canStart = isJobStatus(detail, "Assigned");
+  const canPause = isJobStatus(detail, "Started");
+  const canResume = isJobStatus(detail, "Paused");
+  const canComplete = detail ? !isJobStatus(detail, "Completed", "QC_Hold", "Cancelled") : false;
+  const actionMutation = useApiMutation(
+    async (action: JobCardExecutionAction) => {
+      if (!detail) {
+        throw new Error("Open a job card before posting execution actions.");
+      }
+
+      if (action === "start") {
+        if (!detail.assignedMachineId || !detail.assignedOperatorUserId) {
+          throw new Error("Assign a machine and operator before starting the job card.");
+        }
+
+        return apiClient.production.startJobCard(detail.jobCardId, {
+          machineId: detail.assignedMachineId,
+          operatorUserId: detail.assignedOperatorUserId,
+          remarks: quantityDraft.remarks || null
+        });
+      }
+
+      if (action === "pause") {
+        return apiClient.production.pauseJobCard(detail.jobCardId, {
+          reasonCode: pauseReasonCode,
+          remarks: quantityDraft.remarks || null
+        });
+      }
+
+      if (action === "resume") {
+        return apiClient.production.resumeJobCard(detail.jobCardId, {
+          machineId: detail.assignedMachineId,
+          operatorUserId: detail.assignedOperatorUserId,
+          remarks: quantityDraft.remarks || null
+        });
+      }
+
+      if (action === "quantity") {
+        return apiClient.production.logJobCardQuantity(detail.jobCardId, {
+          goodQty: quantityDraft.goodQty,
+          rejectQty: quantityDraft.rejectQty,
+          scrapQty: quantityDraft.scrapQty,
+          reasonCode: quantityDraft.reasonCode || null,
+          remarks: quantityDraft.remarks || null
+        });
+      }
+
+      return apiClient.production.completeJobCard(detail.jobCardId, { remarks: quantityDraft.remarks || null });
+    },
+    {
+      onSuccess: async (result, action) => {
+        setActionTone("success");
+        setActionMessage(actionStatusMessage(result.status, `${action === "quantity" ? "Quantity logged." : "Job-card action posted."}`));
+        await Promise.all([query.refetch(), detailQuery.refetch()]);
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
+
+  useEffect(() => {
+    if (!requestedJobCard || records.length === 0) {
+      return;
+    }
+
+    const normalized = requestedJobCard.toLowerCase();
+    const match = records.find((record) => record.jobCardNo.toLowerCase() === normalized || record.jobCardNo.toLowerCase().includes(normalized));
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [records, requestedJobCard]);
+
+  useEffect(() => {
+    if (!detail) {
+      return;
+    }
+
+    setQuantityDraft({
+      goodQty: Math.max(Math.min(detail.plannedQuantity - detail.goodQuantity - detail.rejectQuantity - detail.scrapQuantity, 1), 0),
+      rejectQty: 0,
+      scrapQty: 0,
+      reasonCode: "PRODUCTION_HOLD",
+      remarks: ""
+    });
+    setActionMessage(null);
+  }, [detail?.id, detail?.plannedQuantity, detail?.goodQuantity, detail?.rejectQuantity, detail?.scrapQuantity]);
 
   return (
     <>
@@ -454,14 +607,39 @@ export function JobCardsPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Timeline and quick action labels for pause, reject, downtime, and completion review."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Complete", reason: "Completion requires production execution workflow enablement." }]} secondary={[{ disabled: true, label: "Pause", reason: "Pause requires production execution workflow enablement." }, { disabled: true, label: "Add reject", reason: "Reject entry requires quality workflow enablement." }, { label: "Record downtime", onClick: () => navigate(`/production/downtime?jobCard=${encodeURIComponent(detail?.jobCardNo ?? "")}`) }, { label: "Open QC", onClick: () => navigate(`/quality/in-process-inspections?jobCard=${encodeURIComponent(detail?.jobCardNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[
+          canStart
+            ? { disabled: Boolean(jobExecutionReason(session, detail, startReason)) || actionMutation.isPending, label: actionMutation.isPending ? "Starting" : "Start", onClick: () => actionMutation.mutate("start"), reason: jobExecutionReason(session, detail, startReason) }
+            : canResume
+              ? { disabled: Boolean(jobExecutionReason(session, detail)) || actionMutation.isPending, label: actionMutation.isPending ? "Resuming" : "Resume", onClick: () => actionMutation.mutate("resume"), reason: jobExecutionReason(session, detail) }
+              : { disabled: Boolean(jobExecutionReason(session, detail)) || !canComplete || actionMutation.isPending, label: actionMutation.isPending ? "Completing" : "Complete", onClick: () => actionMutation.mutate("complete"), reason: canComplete ? jobExecutionReason(session, detail) : "Completed or cancelled job cards cannot be completed again." }
+        ]} secondary={[
+          { disabled: Boolean(jobExecutionReason(session, detail, quantityReason)) || !canPause || actionMutation.isPending, label: "Log quantity", onClick: () => actionMutation.mutate("quantity"), reason: canPause ? jobExecutionReason(session, detail, quantityReason) : "Start or resume the job card before logging production quantity." },
+          { disabled: Boolean(jobExecutionReason(session, detail, pauseReason)) || !canPause || actionMutation.isPending, label: "Pause", onClick: () => actionMutation.mutate("pause"), reason: canPause ? jobExecutionReason(session, detail, pauseReason) : "Only started job cards can be paused." },
+          { label: "Record downtime", onClick: () => navigate(`/production/downtime?jobCard=${encodeURIComponent(detail?.jobCardNo ?? "")}`) },
+          { label: "Open QC", onClick: () => navigate(`/quality/in-process-inspections?jobCard=${encodeURIComponent(detail?.jobCardNo ?? "")}`) }
+        ]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(detail)}
         onClose={() => setSelectedId(null)}
+        statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
         title={detail?.jobCardNo ?? "Selected job card"}
       >
         {detail ? (
           <>
             <KpiStrip items={[{ label: "Machine", value: detail.machineLabel }, { label: "Operator", value: detail.operatorLabel }, { label: "Qty", value: detail.quantitySummary }, { label: "Downtime", value: String(detail.downtimeMinutes) }]} />
+            <FormShell initialFingerprint={`${detail.id}-${detail.status}`} title="Execution posting controls" description="Live supervisors can post supported job-card state and quantity updates from this workspace.">
+              <ErpLookupField disabled disabledReason="Job-card assignment is controlled by production scheduling." label="Machine" onChange={() => undefined} options={[{ label: detail.machineLabel, value: String(detail.assignedMachineId ?? detail.machineLabel) }]} value={String(detail.assignedMachineId ?? detail.machineLabel)} />
+              <ErpLookupField disabled disabledReason="Operator assignment is controlled by production scheduling." label="Operator" onChange={() => undefined} options={[{ label: detail.operatorLabel, value: String(detail.assignedOperatorUserId ?? detail.operatorLabel) }]} value={String(detail.assignedOperatorUserId ?? detail.operatorLabel)} />
+              <ErpDecimalField disabled={!hasLiveSession(session)} disabledReason={!hasLiveSession(session) ? "Live production sign-in is required before logging quantities." : undefined} label="Good quantity to log" min={0} onChange={(value) => setQuantityDraft((current) => ({ ...current, goodQty: value ?? 0 }))} value={quantityDraft.goodQty} />
+              <ErpDecimalField disabled={!hasLiveSession(session)} disabledReason={!hasLiveSession(session) ? "Live production sign-in is required before logging quantities." : undefined} label="Reject quantity to log" min={0} onChange={(value) => setQuantityDraft((current) => ({ ...current, rejectQty: value ?? 0 }))} value={quantityDraft.rejectQty} />
+              <ErpDecimalField disabled={!hasLiveSession(session)} disabledReason={!hasLiveSession(session) ? "Live production sign-in is required before logging quantities." : undefined} label="Scrap quantity to log" min={0} onChange={(value) => setQuantityDraft((current) => ({ ...current, scrapQty: value ?? 0 }))} value={quantityDraft.scrapQty} />
+              <ErpLookupField disabled={!hasLiveSession(session)} disabledReason={!hasLiveSession(session) ? "Live production sign-in is required before selecting execution reasons." : undefined} label="Execution reason" onChange={(value) => setQuantityDraft((current) => ({ ...current, reasonCode: value }))} options={executionReasonOptions} value={quantityDraft.reasonCode} />
+              <ErpLookupField disabled={!hasLiveSession(session)} disabledReason={!hasLiveSession(session) ? "Live production sign-in is required before selecting pause reasons." : undefined} label="Pause reason" onChange={setPauseReasonCode} options={executionReasonOptions} value={pauseReasonCode} />
+              <label>
+                <span>Supervisor remarks</span>
+                <input disabled={!hasLiveSession(session)} onChange={(event) => setQuantityDraft((current) => ({ ...current, remarks: event.target.value }))} value={quantityDraft.remarks} />
+              </label>
+            </FormShell>
             <Card title="Execution timeline" description="Activity history stays visible without leaving the queue screen.">
               <Timeline entries={detail.events} />
             </Card>

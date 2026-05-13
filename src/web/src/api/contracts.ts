@@ -2559,6 +2559,48 @@ export interface JobCardDto {
   downtimes: DowntimeEventDto[];
 }
 
+export interface JobCardStartRequest {
+  machineId: number;
+  operatorUserId: number;
+  eventOn?: string | null;
+  remarks?: string | null;
+}
+
+export interface JobCardPauseRequest {
+  reasonCode: string;
+  remarks?: string | null;
+}
+
+export interface JobCardResumeRequest {
+  machineId?: number | null;
+  operatorUserId?: number | null;
+  remarks?: string | null;
+}
+
+export interface JobCardQuantityRequest {
+  goodQty: number;
+  rejectQty: number;
+  scrapQty: number;
+  catchWeightQty?: number | null;
+  reasonCode?: string | null;
+  remarks?: string | null;
+}
+
+export interface JobCardQuantityResultDto {
+  jobCardId: number;
+  jobCardNo: string;
+  completedGoodQty: number;
+  completedRejectQty: number;
+  completedScrapQty: number;
+  totalProcessedQty: number;
+  remainingQuantity: number;
+  status: string;
+}
+
+export interface JobCardCompleteRequest {
+  remarks?: string | null;
+}
+
 export interface MachineBoardItem {
   machineId: number;
   machineCode: string;

@@ -1,0 +1,85 @@
+{
+  "wave_id": "WS05",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173"
+  },
+  "screenshot_mode": "top_only",
+  "routes_to_capture": [
+    {
+      "route": "/production/work-orders",
+      "ready_text": "Work Orders",
+      "output_prefix": "work-orders"
+    },
+    {
+      "route": "/production/job-cards",
+      "ready_text": "Job Cards",
+      "output_prefix": "job-cards"
+    },
+    {
+      "route": "/production/job-cards",
+      "ready_text": "Job Cards",
+      "pre_actions": [
+        {
+          "kind": "text",
+          "label": "JC-90441"
+        }
+      ],
+      "output_prefix": "job-card-execution-modal"
+    },
+    {
+      "route": "/production/machine-board",
+      "ready_text": "Machine Schedule Board",
+      "output_prefix": "machine-board"
+    },
+    {
+      "route": "/production/occupancy",
+      "ready_text": "PPS Machine Occupancy Calendar",
+      "output_prefix": "occupancy-calendar"
+    },
+    {
+      "route": "/production/shift-production",
+      "ready_text": "Shift Production Entry",
+      "output_prefix": "shift-production"
+    },
+    {
+      "route": "/production/downtime",
+      "ready_text": "Downtime Register",
+      "output_prefix": "downtime-register"
+    },
+    {
+      "route": "/production/receipts",
+      "ready_text": "Production Receipt",
+      "output_prefix": "production-receipts"
+    },
+    {
+      "route": "/production/scrap-by-products",
+      "ready_text": "Scrap / By-product Entry",
+      "output_prefix": "scrap-by-products"
+    },
+    {
+      "route": "/production/rework-orders",
+      "ready_text": "Rework Order",
+      "output_prefix": "rework-orders"
+    },
+    {
+      "route": "/production/machine-status",
+      "ready_text": "Machine Status / OEE-lite",
+      "output_prefix": "machine-status"
+    },
+    {
+      "route": "/inventory/material-issue",
+      "ready_text": "Material Issue to WO",
+      "output_prefix": "material-issue"
+    },
+    {
+      "route": "/inventory/material-return",
+      "ready_text": "Material Return from WO",
+      "output_prefix": "material-return"
+    },
+    {
+      "route": "/inventory/traceability",
+      "ready_text": "Lot / Serial / Catch Weight Traceability",
+      "output_prefix": "traceability"
+    }
+  ]
+}
