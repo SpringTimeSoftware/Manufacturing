@@ -1,6 +1,7 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { queryKeys, useApiQuery } from "../api/hooks";
+import { hasLiveSession } from "../api/liveData";
 import { useAuth } from "../auth/AuthContext";
 import {
   listMaterialIssueSetup,
@@ -85,7 +86,7 @@ export function InventoryBalancePage() {
   const query = useApiQuery(queryKeys.inventory.balances(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listStockBalanceSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <>
@@ -128,7 +129,7 @@ export function TraceabilityPage() {
   const query = useApiQuery(queryKeys.inventory.traceability(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch), () => listTraceabilitySetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? records[0] ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar secondary={[{ disabled: true, label: "Export genealogy", reason: "Traceability export is pending the approved reporting workflow." }]} testId="traceability-action-bar" /></>} description="Forward/backward traceability by lot, serial, order, and stock movement." filters={<FilterBar><input aria-label="Search traceability" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search lot, serial, item, order" value={search} /></FilterBar>} title="Lot / Serial / Catch Weight Traceability">
@@ -164,7 +165,7 @@ export function MaterialIssuePage() {
   const query = useApiQuery(queryKeys.inventory.materialIssues(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listMaterialIssueSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <>
@@ -200,7 +201,7 @@ export function MaterialReturnPage() {
   const query = useApiQuery(queryKeys.inventory.materialReturns(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listMaterialReturnSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <>
@@ -236,7 +237,7 @@ export function StockTransferPutawayPage() {
   const query = useApiQuery(queryKeys.inventory.stockTransfers(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listStockTransferPutawaySetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <>

@@ -2,6 +2,7 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { apiClient } from "../api/http";
+import { hasLiveSession } from "../api/liveData";
 import { useAuth } from "../auth/AuthContext";
 import {
   listDispatchPlanning,
@@ -97,7 +98,7 @@ export function PackListPage() {
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
   const requestedPackList = searchParams.get("packList");
 
   useEffect(() => {
@@ -174,7 +175,7 @@ export function DispatchPlanningPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <ListPageShell
@@ -219,6 +220,32 @@ const shipmentLineColumns: DataGridColumn<ShipmentLineItem>[] = [
   { key: "status", header: "Status", width: "12%", render: (record) => <StatusBadge status={record.status} /> }
 ];
 
+interface ShipmentProofDraft {
+  vehicleRef: string;
+  trackingRef: string;
+  sealNo: string;
+  proofNotes: string;
+  status: string;
+  loadedOn: string;
+  deliveredOn: string;
+}
+
+function toDateTimeLocalValue(value: string | null | undefined) {
+  return value?.trim() ? value.slice(0, 16) : "";
+}
+
+function buildShipmentProofDraft(record: ShipmentItem): ShipmentProofDraft {
+  return {
+    vehicleRef: record.vehicleRef === "Vehicle pending" ? "" : record.vehicleRef,
+    trackingRef: record.trackingRef === "Tracking pending" ? "" : record.trackingRef,
+    sealNo: record.sealNo === "Seal pending" ? "" : record.sealNo,
+    proofNotes: record.proofNotes === "Proof pending" ? "" : record.proofNotes,
+    status: record.status,
+    loadedOn: record.loadedLabel === "Open" ? "" : record.loadedLabel.replace(" ", "T"),
+    deliveredOn: record.deliveredLabel === "Open" ? "" : record.deliveredLabel.replace(" ", "T")
+  };
+}
+
 export function ShipmentDeliveryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -227,7 +254,9 @@ export function ShipmentDeliveryPage() {
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [proofFiles, setProofFiles] = useState<Record<string, string>>({});
+  const [proofDraft, setProofDraft] = useState<ShipmentProofDraft | null>(null);
   const [proofMessage, setProofMessage] = useState<string | null>(null);
+  const [proofTone, setProofTone] = useState<"success" | "warn" | "danger" | "info">("info");
   const { deferredSearch, filter } = useDispatchFilter(search, status);
   const query = useApiQuery(
     queryKeys.dispatch.shipments(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
@@ -236,7 +265,7 @@ export function ShipmentDeliveryPage() {
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
   const requestedShipment = searchParams.get("shipment") ?? searchParams.get("packList");
 
   useEffect(() => {
@@ -257,6 +286,55 @@ export function ShipmentDeliveryPage() {
       setSelectedId(match.id);
     }
   }, [records, requestedShipment]);
+
+  useEffect(() => {
+    setProofDraft(selected ? buildShipmentProofDraft(selected) : null);
+    setProofMessage(null);
+  }, [selected?.id]);
+
+  const proofSave = useApiMutation(
+    async (_: void) => {
+      if (!selected || !proofDraft) {
+        throw new Error("Select a shipment before saving proof status.");
+      }
+
+      return apiClient.dispatch.updateShipmentProof(selected.shipmentId, {
+        vehicleRef: proofDraft.vehicleRef || null,
+        trackingRef: proofDraft.trackingRef || null,
+        sealNo: proofDraft.sealNo || null,
+        proofNotes: proofDraft.proofNotes || null,
+        status: proofDraft.status,
+        loadedOn: proofDraft.loadedOn || null,
+        deliveredOn: proofDraft.deliveredOn || null
+      });
+    },
+    {
+      onSuccess: async () => {
+        setProofTone("success");
+        setProofMessage("Shipment proof status saved.");
+        await query.refetch();
+      },
+      onError: (error) => {
+        setProofTone("danger");
+        setProofMessage(error.message);
+      }
+    }
+  );
+
+  const proofSaveReason = !selected
+    ? "Select a shipment before saving proof status."
+    : selected.source !== "Live"
+      ? "Proof status save requires a live shipment record."
+      : !proofDraft?.status
+        ? "Select a shipment status before saving proof."
+        : proofSave.isPending
+          ? "Shipment proof save is in progress."
+          : undefined;
+
+  const updateProofDraft = (patch: Partial<ShipmentProofDraft>) => {
+    setProofDraft((current) => current ? { ...current, ...patch } : current);
+  };
+
   const proofUpload = useApiMutation(
     (payload: { file: File; shipment: ShipmentItem }) =>
       apiClient.platform.uploadAttachment({
@@ -267,8 +345,12 @@ export function ShipmentDeliveryPage() {
         relatedDocumentType: "ShipmentProof"
       }),
     {
-      onError: (error) => setProofMessage(error.message),
+      onError: (error) => {
+        setProofTone("danger");
+        setProofMessage(error.message);
+      },
       onSuccess: (attachment, variables) => {
+        setProofTone("success");
         setProofFiles((current) => ({ ...current, [variables.shipment.id]: attachment.fileName }));
         setProofMessage(`${attachment.fileName} linked as shipment proof.`);
       }
@@ -304,10 +386,11 @@ export function ShipmentDeliveryPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Shipment detail is review-only until shipment preparation is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save shipment", reason: "Shipment save requires dispatch workflow enablement." }]} secondary={[{ disabled: true, label: "Close shipment", reason: "Shipment close requires dispatch proof approval." }, { disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }, { label: "Open pack list", onClick: () => navigate(`/dispatch/pack-lists?packList=${encodeURIComponent(selected?.packListLabel ?? "")}`) }, { label: "Open print pack", onClick: () => navigate(`/reports/print-pack?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        description="Shipment detail supports live proof status updates and document upload while preparation remains controlled by dispatch workflow."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(proofSaveReason), label: proofSave.isPending ? "Saving proof status" : "Save proof status", onClick: proofSaveReason ? undefined : () => proofSave.mutate(undefined), reason: proofSaveReason }]} secondary={[{ disabled: true, label: "Close shipment", reason: "Shipment close requires dispatch proof approval." }, { disabled: true, label: "Export documents", reason: "Shipment document export is pending the approved reporting workflow." }, { label: "Open pack list", onClick: () => navigate(`/dispatch/pack-lists?packList=${encodeURIComponent(selected?.packListLabel ?? "")}`) }, { label: "Open print pack", onClick: () => navigate(`/reports/print-pack?shipment=${encodeURIComponent(selected?.shipmentNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
+        statusMeta={proofMessage ? <Badge tone={proofTone}>{proofMessage}</Badge> : null}
         title={selected?.shipmentNo ?? "Shipment"}
       >
         {selected ? (
@@ -316,7 +399,17 @@ export function ShipmentDeliveryPage() {
             <Card title="Shipment lines" description={selected.proofNotes}>
               <DataGrid ariaLabel="Shipment lines" columns={shipmentLineColumns} getRowId={(record) => record.id} records={selected.lines} rowLabel={(record) => `${record.itemLabel} shipment line`} />
             </Card>
-            <FormShell initialFingerprint={selected.id} title="Shipment controls"><ErpLookupField disabled disabledReason="Vehicle assignment is controlled by dispatch workflow." label="Vehicle" onChange={() => undefined} options={[{ label: selected.vehicleRef, value: selected.vehicleRef }]} value={selected.vehicleRef} /><ErpLookupField disabled disabledReason="Pack list is controlled by dispatch planning." label="Pack list" onChange={() => undefined} options={[{ label: selected.packListLabel, value: selected.packListLabel }]} value={selected.packListLabel} /><ErpNumberField disabled disabledReason="Shipped quantity is controlled by shipment line posting." label="Shipped quantity" onChange={() => undefined} value={selected.shippedQuantity} /><label><span>Tracking</span><input disabled defaultValue={selected.trackingRef} /></label></FormShell>
+            <FormShell initialFingerprint={selected.id} title="Shipment controls">
+              <label><span>Vehicle</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ vehicleRef: event.target.value })} value={proofDraft?.vehicleRef ?? ""} /></label>
+              <ErpLookupField disabled disabledReason="Pack list is controlled by dispatch planning." label="Pack list" onChange={() => undefined} options={[{ label: selected.packListLabel, value: selected.packListLabel }]} value={selected.packListLabel} />
+              <ErpNumberField disabled disabledReason="Shipped quantity is controlled by shipment line posting." label="Shipped quantity" onChange={() => undefined} value={selected.shippedQuantity} />
+              <label><span>Tracking / LR</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ trackingRef: event.target.value })} value={proofDraft?.trackingRef ?? ""} /></label>
+              <label><span>Seal number</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ sealNo: event.target.value })} value={proofDraft?.sealNo ?? ""} /></label>
+              <ErpLookupField disabled={!proofDraft || selected.source !== "Live"} disabledReason={selected.source !== "Live" ? "Live shipment record is required before changing shipment status." : undefined} label="Shipment status" onChange={(value) => updateProofDraft({ status: value })} options={[{ label: "Loading", value: "Loading" }, { label: "Dispatched", value: "Dispatched" }, { label: "Delivered", value: "Delivered" }, { label: "Closed", value: "Closed" }]} value={proofDraft?.status ?? selected.status} />
+              <label><span>Loaded on</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ loadedOn: event.target.value })} type="datetime-local" value={toDateTimeLocalValue(proofDraft?.loadedOn)} /></label>
+              <label><span>Delivered on</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ deliveredOn: event.target.value })} type="datetime-local" value={toDateTimeLocalValue(proofDraft?.deliveredOn)} /></label>
+              <label className="form-span-2"><span>Proof notes</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ proofNotes: event.target.value })} value={proofDraft?.proofNotes ?? ""} /></label>
+            </FormShell>
             <Card title="Proof documents" description="Loading and delivery proof files are linked to the shipment audit record.">
               <ErpFileActionState
                 accept=".pdf,.png,.jpg,.jpeg"
@@ -326,7 +419,6 @@ export function ShipmentDeliveryPage() {
                 label="Load proof"
                 onFileSelect={handleProofSelect}
               />
-              {proofMessage ? <p className="muted">{proofMessage}</p> : null}
             </Card>
           </>
         ) : null}

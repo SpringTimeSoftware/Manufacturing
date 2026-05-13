@@ -1,6 +1,8 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { queryKeys, useApiQuery } from "../api/hooks";
+import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
+import { hasLiveSession } from "../api/liveData";
+import { apiClient } from "../api/http";
 import { useAuth } from "../auth/AuthContext";
 import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataAdapters";
 import {
@@ -85,7 +87,7 @@ export function QcPlanSetupPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
 
   return (
     <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New QC plan", reason: "QC plan creation requires quality master workflow enablement." }]} secondary={[{ disabled: true, label: "Export plans", reason: "QC plan export is pending the approved reporting workflow." }]} testId="qc-plan-action-bar" /></>} description="Inspection checkpoints, parameter libraries, and auto-hold/NCR behavior." filters={<FilterBar><input aria-label="Search QC plans" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search plan, item, parameter" value={search} /><select aria-label="QC plan status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Active">Active</option><option value="Draft">Draft</option></select><select aria-label="QC plan type" onChange={(event) => setInspectionType(event.target.value)} value={inspectionType}><option value="all">Type: Any</option><option value="Incoming">Incoming</option><option value="InProcess">In process</option><option value="Final">Final</option></select></FilterBar>} title="QC Plan Setup">
@@ -120,6 +122,9 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [decisionNotes, setDecisionNotes] = useState("");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionTone, setActionTone] = useState<"success" | "warn" | "danger" | "info">("info");
   const { deferredSearch, filter } = useQualityFilter(search, status, defaultType);
   const query = useApiQuery(
     queryKeys.quality.inspections(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status, defaultType),
@@ -128,7 +133,37 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
+  const canRelease = selected?.status.toLowerCase().includes("hold") || selected?.overallResult.toLowerCase().includes("fail");
+  const canHold = selected ? !selected.status.toLowerCase().includes("hold") && !selected.status.toLowerCase().includes("release") : false;
+  const liveDecisionReason = !selected
+    ? "Open an inspection before posting a quality decision."
+    : !hasLiveSession(session)
+      ? "Live quality sign-in is required before posting inspection hold or release."
+      : undefined;
+  const decisionMutation = useApiMutation(
+    async (action: "hold" | "release") => {
+      if (!selected) {
+        throw new Error("Open an inspection before posting a quality decision.");
+      }
+
+      const body = { notes: decisionNotes || null };
+      return action === "hold"
+        ? apiClient.quality.holdInspection(selected.inspectionId, body)
+        : apiClient.quality.releaseInspection(selected.inspectionId, body);
+    },
+    {
+      onSuccess: async (result, action) => {
+        setActionTone("success");
+        setActionMessage(action === "hold" ? "Inspection hold applied." : `Inspection released.${result.status ? ` Current status: ${result.status}.` : ""}`);
+        await query.refetch();
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
 
   return (
     <>
@@ -140,9 +175,15 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
       </ListPageShell>
       <ErpModalWorkspace
         description="Inspection detail is review-only until inspection entry is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save inspection", reason: "Inspection save requires quality execution workflow enablement." }]} secondary={[{ disabled: true, label: "Release hold", reason: "Hold release requires quality approval workflow." }, { label: "Open NCR", onClick: () => navigate(`/quality/ncr?inspection=${encodeURIComponent(selected?.inspectionNo ?? "")}`) }, { label: "Open source", onClick: () => navigate(`/production/job-cards?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save inspection", reason: "Inspection result entry requires mobile execution workflow enablement; hold and release decisions are available here." }]} secondary={[
+          { disabled: Boolean(liveDecisionReason) || !canHold || decisionMutation.isPending, label: decisionMutation.isPending ? "Applying hold" : "Apply hold", onClick: liveDecisionReason || !canHold ? undefined : () => decisionMutation.mutate("hold"), reason: canHold ? liveDecisionReason : "Only open inspections can be placed on hold." },
+          { disabled: Boolean(liveDecisionReason) || !canRelease || decisionMutation.isPending, label: decisionMutation.isPending ? "Releasing hold" : "Release hold", onClick: liveDecisionReason || !canRelease ? undefined : () => decisionMutation.mutate("release"), reason: canRelease ? liveDecisionReason : "Only held or failed inspections can be released from this action." },
+          { label: "Open NCR", onClick: () => navigate(`/quality/ncr?inspection=${encodeURIComponent(selected?.inspectionNo ?? "")}`) },
+          { label: "Open source", onClick: () => navigate(`/production/job-cards?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }
+        ]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
+        statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
         title={selected?.inspectionNo ?? title}
       >
         {selected ? (
@@ -151,7 +192,7 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
             <Card title="Parameter results" description={selected.notes}>
               <DataGrid ariaLabel="Inspection result lines" columns={resultColumns} getRowId={(record) => record.id} records={selected.results} rowLabel={(record) => `${record.parameterCode} result`} />
             </Card>
-            <FormShell initialFingerprint={selected.id} title="Inspection controls"><ErpLookupField disabled disabledReason="Source document is controlled by receipt, job-card, or dispatch context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Trace selection is controlled by inventory and production traceability." label="Trace" onChange={() => undefined} options={[{ label: selected.traceLabel, value: selected.traceLabel }]} value={selected.traceLabel} /></FormShell>
+            <FormShell initialFingerprint={selected.id} title="Inspection controls"><ErpLookupField disabled disabledReason="Source document is controlled by receipt, job-card, or dispatch context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Trace selection is controlled by inventory and production traceability." label="Trace" onChange={() => undefined} options={[{ label: selected.traceLabel, value: selected.traceLabel }]} value={selected.traceLabel} /><label className="form-span-2"><span>Decision notes</span><input disabled={!hasLiveSession(session)} onChange={(event) => setDecisionNotes(event.target.value)} value={decisionNotes} /></label></FormShell>
           </>
         ) : null}
       </ErpModalWorkspace>
@@ -186,6 +227,9 @@ export function NcrDeviationPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [closeRemarks, setCloseRemarks] = useState("");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionTone, setActionTone] = useState<"success" | "warn" | "danger" | "info">("info");
   const { deferredSearch, filter } = useQualityFilter(search, status);
   const query = useApiQuery(
     queryKeys.quality.nonConformances(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
@@ -194,7 +238,34 @@ export function NcrDeviationPage() {
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
+  const closeReason = !selected
+    ? "Open an NCR before closing it."
+    : !hasLiveSession(session)
+      ? "Live quality sign-in is required before closing NCR records."
+      : selected.status.toLowerCase().includes("closed")
+        ? "Closed NCR records cannot be closed again."
+        : undefined;
+  const closeMutation = useApiMutation(
+    async (_: void) => {
+      if (!selected) {
+        throw new Error("Open an NCR before closing it.");
+      }
+
+      return apiClient.quality.closeNonConformance(selected.ncrId, { remarks: closeRemarks || null });
+    },
+    {
+      onSuccess: async (result) => {
+        setActionTone("success");
+        setActionMessage(`NCR closed.${result.status ? ` Current status: ${result.status}.` : ""}`);
+        await query.refetch();
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
 
   return (
     <>
@@ -206,12 +277,18 @@ export function NcrDeviationPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="NCR detail is review-only until quality disposition workflow is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save NCR", reason: "NCR save requires quality workflow enablement." }]} secondary={[{ disabled: true, label: "Release disposition", reason: "Disposition release requires quality approval workflow." }, { label: "Open rework", onClick: () => navigate(`/production/rework-orders?ncr=${encodeURIComponent(selected?.ncrNo ?? "")}`) }, { label: "Open source", onClick: () => navigate(`/quality/in-process-inspections?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Save NCR", reason: "NCR field editing requires quality disposition workflow enablement; close is available for live open NCRs." }]} secondary={[
+          { disabled: Boolean(closeReason) || closeMutation.isPending, label: closeMutation.isPending ? "Closing NCR" : "Close NCR", onClick: closeReason ? undefined : () => closeMutation.mutate(undefined), reason: closeReason },
+          { disabled: true, label: "Release disposition", reason: "Disposition release requires quality approval workflow." },
+          { label: "Open rework", onClick: () => navigate(`/production/rework-orders?ncr=${encodeURIComponent(selected?.ncrNo ?? "")}`) },
+          { label: "Open source", onClick: () => navigate(`/quality/in-process-inspections?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }
+        ]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
+        statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
         title={selected?.ncrNo ?? "NCR"}
       >
-        {selected ? <FormShell initialFingerprint={selected.id} title="NCR controls" description={selected.remarks}><label><span>Root cause</span><input disabled defaultValue={selected.rootCause} /></label><ErpLookupField disabled disabledReason="Disposition is controlled by quality disposition rules." label="Disposition" onChange={() => undefined} options={[{ label: selected.disposition, value: selected.disposition }]} value={selected.disposition} /><ErpLookupField disabled disabledReason="Rework link is controlled by the rework order workflow." label="Rework link" onChange={() => undefined} options={[{ label: selected.reworkLink, value: selected.reworkLink }]} value={selected.reworkLink} /></FormShell> : null}
+        {selected ? <FormShell initialFingerprint={selected.id} title="NCR controls" description={selected.remarks}><label><span>Root cause</span><input disabled defaultValue={selected.rootCause} /></label><ErpLookupField disabled disabledReason="Disposition is controlled by quality disposition rules." label="Disposition" onChange={() => undefined} options={[{ label: selected.disposition, value: selected.disposition }]} value={selected.disposition} /><ErpLookupField disabled disabledReason="Rework link is controlled by the rework order workflow." label="Rework link" onChange={() => undefined} options={[{ label: selected.reworkLink, value: selected.reworkLink }]} value={selected.reworkLink} /><label className="form-span-2"><span>Close remarks</span><input disabled={!hasLiveSession(session)} onChange={(event) => setCloseRemarks(event.target.value)} value={closeRemarks} /></label></FormShell> : null}
       </ErpModalWorkspace>
     </>
   );

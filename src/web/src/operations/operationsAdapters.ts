@@ -24,6 +24,11 @@ import type { Lane, OccupancyRow } from "../ui/boards";
 export interface CycleCountLineItem {
   id: string;
   lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  binId: number | null;
+  lotId: number | null;
+  serialId: number | null;
   itemLabel: string;
   trackingLabel: string;
   binLabel: string;
@@ -37,6 +42,9 @@ export interface CycleCountLineItem {
 export interface CycleCountSetupItem {
   id: string;
   cycleCountId: number;
+  companyId: number;
+  branchId: number;
+  warehouseId: number;
   countNo: string;
   warehouseLabel: string;
   countDate: string;
@@ -241,6 +249,11 @@ function mapCycleCountLine(line: CycleCountLineDto): CycleCountLineItem {
   return {
     id: `cycle-count-line-${line.id}`,
     lineNo: line.lineNo,
+    itemId: line.itemId,
+    itemVariantId: line.itemVariantId,
+    binId: line.binId,
+    lotId: line.lotId,
+    serialId: line.serialId,
     itemLabel: itemLabel(line.itemId),
     trackingLabel: trackingLabel(line.lotId, line.serialId),
     binLabel: line.binId ? `Bin ${line.binId}` : "No bin",
@@ -257,6 +270,9 @@ function mapCycleCount(dto: CycleCountDto, source: MasterDataSource): CycleCount
   return {
     id: `cycle-count-${dto.id}`,
     cycleCountId: dto.id,
+    companyId: dto.companyId,
+    branchId: dto.branchId,
+    warehouseId: dto.warehouseId,
     countNo: dto.countNo,
     warehouseLabel: `Warehouse ${dto.warehouseId}`,
     countDate: dateLabel(dto.countDate),
@@ -582,6 +598,9 @@ const seededCycleCounts: CycleCountSetupItem[] = [
   {
     id: "cycle-count-rm-main",
     cycleCountId: 6101,
+    companyId: 1,
+    branchId: 12,
+    warehouseId: 201,
     countNo: "CC-2026-0031",
     warehouseLabel: "RM-MAIN",
     countDate: "2026-03-05",
@@ -597,6 +616,11 @@ const seededCycleCounts: CycleCountSetupItem[] = [
       {
         id: "cycle-count-rm-main-line-1",
         lineNo: 10,
+        itemId: 10002,
+        itemVariantId: null,
+        binId: 2001,
+        lotId: 70001,
+        serialId: null,
         itemLabel: "RM-SS-SHEET / Stainless Steel Sheet",
         trackingLabel: "LOT-SS-2026-03A",
         binLabel: "RM-A-01",
@@ -609,6 +633,11 @@ const seededCycleCounts: CycleCountSetupItem[] = [
       {
         id: "cycle-count-rm-main-line-2",
         lineNo: 20,
+        itemId: 10003,
+        itemVariantId: null,
+        binId: 2004,
+        lotId: null,
+        serialId: null,
         itemLabel: "RM-GASKET-SET / Gasket Set",
         trackingLabel: "Non-tracked",
         binLabel: "RM-C-04",
@@ -621,6 +650,11 @@ const seededCycleCounts: CycleCountSetupItem[] = [
       {
         id: "cycle-count-rm-main-line-3",
         lineNo: 30,
+        itemId: 10004,
+        itemVariantId: null,
+        binId: 2005,
+        lotId: 70002,
+        serialId: null,
         itemLabel: "RM-VALVE-SET / Valve Set",
         trackingLabel: "LOT-VALVE-2026-02B",
         binLabel: "QC-CAGE-01",

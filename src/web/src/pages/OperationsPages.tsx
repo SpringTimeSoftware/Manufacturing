@@ -4,6 +4,7 @@ import { apiClient } from "../api/http";
 import { bomRecords } from "../api/mockData";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { hasLiveSession } from "../api/liveData";
+import type { CycleCountUpsertRequest } from "../api/contracts";
 import { useAuth } from "../auth/AuthContext";
 import {
   getJobCardDetailSetup,
@@ -217,11 +218,82 @@ const cycleLineColumns: DataGridColumn<CycleCountLineItem>[] = [
   { key: "variance", header: "Variance", width: "10%", render: (record) => <Badge tone={record.varianceQuantity === 0 ? "success" : "warn"}>{record.varianceQuantity}</Badge> }
 ];
 
+interface CycleCountDraftLine extends CycleCountLineItem {
+  countedQuantity: number;
+  status: string;
+  remarks: string;
+}
+
+interface CycleCountDraft {
+  cycleCountId: number;
+  companyId: number;
+  branchId: number;
+  warehouseId: number;
+  countNo: string;
+  warehouseLabel: string;
+  countDate: string;
+  countType: string;
+  status: string;
+  remarks: string;
+  postedLabel: string;
+  source: MasterDataSource;
+  lines: CycleCountDraftLine[];
+}
+
+function dateControlValue(value: string | null | undefined) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+}
+
+function buildCycleDraft(record: CycleCountSetupItem): CycleCountDraft {
+  return {
+    cycleCountId: record.cycleCountId,
+    companyId: record.companyId,
+    branchId: record.branchId,
+    warehouseId: record.warehouseId,
+    countNo: record.countNo,
+    warehouseLabel: record.warehouseLabel,
+    countDate: dateControlValue(record.countDate),
+    countType: record.countType,
+    status: record.status,
+    remarks: record.remarks,
+    postedLabel: record.postedLabel,
+    source: record.source,
+    lines: record.lines.map((line) => ({ ...line }))
+  };
+}
+
+function buildCycleRequest(draft: CycleCountDraft): CycleCountUpsertRequest {
+  return {
+    companyId: draft.companyId,
+    branchId: draft.branchId,
+    warehouseId: draft.warehouseId,
+    countNo: draft.countNo,
+    countDate: draft.countDate,
+    countType: draft.countType,
+    status: draft.status,
+    remarks: draft.remarks || null,
+    lines: draft.lines.map((line) => ({
+      lineNo: line.lineNo,
+      itemId: line.itemId,
+      itemVariantId: line.itemVariantId,
+      binId: line.binId,
+      lotId: line.lotId,
+      serialId: line.serialId,
+      countedQuantity: line.countedQuantity,
+      status: line.status,
+      remarks: line.remarks || null
+    }))
+  };
+}
+
 export function CycleCountPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CycleCountDraft | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionTone, setActionTone] = useState<"success" | "warn" | "danger" | "info">("info");
   const { deferredSearch, filter } = useProductionFilter(search, status);
   const query = useApiQuery(
     queryKeys.inventory.cycleCounts(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
@@ -230,12 +302,105 @@ export function CycleCountPage() {
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
+  const isLive = hasLiveSession(session);
+  const validation = draft
+    ? [
+        draft.countNo.trim() ? "" : "Count number is required.",
+        draft.countDate ? "" : "Count date is required.",
+        draft.lines.length > 0 ? "" : "At least one count line is required.",
+        draft.lines.some((line) => line.countedQuantity < 0) ? "Counted quantity cannot be negative." : ""
+      ].filter(Boolean)
+    : [];
+  const saveReason = !draft
+    ? "Open a count sheet before saving."
+    : !isLive
+      ? "Live inventory sign-in is required before saving count sheets."
+      : validation[0];
+  const postReason = !draft
+    ? "Open a count sheet before posting."
+    : !isLive
+      ? "Live inventory sign-in is required before posting count sheets."
+      : draft.status.toLowerCase().includes("posted")
+        ? "Posted count sheets cannot be posted again."
+        : undefined;
+  const cycleMutation = useApiMutation(
+    async (action: "save" | "post") => {
+      if (!draft) {
+        throw new Error("Open a count sheet before posting cycle-count actions.");
+      }
+
+      if (action === "post") {
+        return apiClient.inventory.postCycleCount(draft.cycleCountId);
+      }
+
+      return apiClient.inventory.updateCycleCount(draft.cycleCountId, buildCycleRequest(draft));
+    },
+    {
+      onSuccess: async (result, action) => {
+        setActionTone("success");
+        setActionMessage(action === "post" ? "Cycle count posted." : "Cycle count saved.");
+        setDraft(buildCycleDraft({
+          id: `cycle-count-${result.id}`,
+          cycleCountId: result.id,
+          companyId: result.companyId,
+          branchId: result.branchId,
+          warehouseId: result.warehouseId,
+          countNo: result.countNo,
+          warehouseLabel: `Warehouse ${result.warehouseId}`,
+          countDate: result.countDate,
+          countType: result.countType,
+          status: result.status,
+          remarks: result.remarks ?? "No remarks",
+          postedLabel: result.postedOn ? result.postedOn.slice(0, 16).replace("T", " ") : "Not posted",
+          lineCount: result.lines.length,
+          varianceCount: result.lines.filter((line) => line.varianceQuantity !== 0).length,
+          absoluteVariance: result.lines.reduce((total, line) => total + Math.abs(line.varianceQuantity), 0),
+          source: "Live",
+          lines: result.lines.map((line) => ({
+            id: `cycle-count-line-${line.id}`,
+            lineNo: line.lineNo,
+            itemId: line.itemId,
+            itemVariantId: line.itemVariantId,
+            binId: line.binId,
+            lotId: line.lotId,
+            serialId: line.serialId,
+            itemLabel: `Item ${line.itemId}`,
+            trackingLabel: line.lotId ? `Lot ${line.lotId}` : line.serialId ? `Serial ${line.serialId}` : "Non-tracked",
+            binLabel: line.binId ? `Bin ${line.binId}` : "No bin",
+            systemQuantity: line.systemQuantity,
+            countedQuantity: line.countedQuantity,
+            varianceQuantity: line.varianceQuantity,
+            status: line.status,
+            remarks: line.remarks ?? "No remarks"
+          }))
+        }));
+        await query.refetch();
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
+
+  useEffect(() => {
+    setDraft(selected ? buildCycleDraft(selected) : null);
+    setActionMessage(null);
+  }, [selected?.id]);
+
+  const updateDraft = (patch: Partial<CycleCountDraft>) => {
+    setDraft((current) => current ? { ...current, ...patch } : current);
+  };
+
+  const updateLine = (index: number, patch: Partial<CycleCountDraftLine>) => {
+    setDraft((current) => current ? { ...current, lines: current.lines.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line) } : current);
+  };
 
   return (
     <>
       <ListPageShell
-        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New count sheet", reason: "Cycle-count creation requires inventory count workflow enablement." }]} secondary={[{ disabled: true, label: "Export variances", reason: "Variance export is pending the approved reporting workflow." }]} testId="cycle-count-action-bar" /></>}
+        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New count sheet", reason: "New count generation requires approved warehouse count rules; existing live count sheets can be saved and posted." }]} secondary={[{ disabled: true, label: "Export variances", reason: "Variance export is pending the approved reporting workflow." }]} testId="cycle-count-action-bar" /></>}
         description="Count sheets, warehouse/bin variances, approvals, and posted audit status for stores users."
         filters={<FilterBar><input aria-label="Search cycle counts" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search count, warehouse, item" value={search} /><select aria-label="Cycle count status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Draft">Draft</option><option value="Posted">Posted</option><option value="Variance">Variance</option></select></FilterBar>}
         title="Cycle Count"
@@ -246,22 +411,37 @@ export function CycleCountPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Cycle-count detail is review-only until count adjustment workflow is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save count sheet", reason: "Cycle-count save requires inventory count workflow enablement." }]} secondary={[{ disabled: true, label: "Post count", reason: "Posting requires inventory count approval workflow." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
-        isOpen={Boolean(selected)}
+        description="Review and post count-sheet quantities through the live cycle-count workflow."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || cycleMutation.isPending, label: cycleMutation.isPending ? "Saving count sheet" : "Save count sheet", onClick: saveReason ? undefined : () => cycleMutation.mutate("save"), reason: saveReason }]} secondary={[{ disabled: Boolean(postReason) || cycleMutation.isPending, label: cycleMutation.isPending ? "Posting count" : "Post count", onClick: postReason ? undefined : () => cycleMutation.mutate("post"), reason: postReason }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        isOpen={Boolean(draft)}
         onClose={() => setSelectedId(null)}
-        title={selected?.countNo ?? "Cycle count"}
+        statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
+        title={draft?.countNo ?? "Cycle count"}
       >
-        {selected ? (
+        {draft ? (
           <>
-            <KpiStrip items={[{ label: "Warehouse", value: selected.warehouseLabel }, { label: "Posted", value: selected.postedLabel }, { label: "Variance", value: String(selected.absoluteVariance) }]} />
-            <Card title="Count lines" description={selected.remarks}>
-              <DataGrid ariaLabel="Cycle count lines" columns={cycleLineColumns} getRowId={(record) => record.id} records={selected.lines} rowLabel={(record) => `${record.itemLabel} count line`} />
-            </Card>
-            <FormShell initialFingerprint={selected.id} title="Approval controls">
-              <ErpLookupField disabled disabledReason="Count status is controlled by count approval workflow." label="Status" onChange={() => undefined} options={[{ label: selected.status, value: selected.status }]} value={selected.status} />
-              <label><span>Remarks</span><input disabled defaultValue={selected.remarks} /></label>
+            <KpiStrip items={[{ label: "Warehouse", value: draft.warehouseLabel }, { label: "Posted", value: draft.postedLabel }, { label: "Variance", value: String(draft.lines.reduce((total, line) => total + Math.abs(line.varianceQuantity), 0)) }]} />
+            <FormShell initialFingerprint={`${draft.cycleCountId}-${draft.status}`} title="Count sheet controls" validationErrors={validation}>
+              <label><span>Count number</span><input disabled={!isLive} onChange={(event) => updateDraft({ countNo: event.target.value })} value={draft.countNo} /></label>
+              <ErpLookupField disabled disabledReason="Warehouse is controlled by the count-sheet generation rules." label="Warehouse" onChange={() => undefined} options={[{ label: draft.warehouseLabel, value: String(draft.warehouseId) }]} value={String(draft.warehouseId)} />
+              <label><span>Count date</span><input disabled={!isLive} onChange={(event) => updateDraft({ countDate: event.target.value })} type="date" value={dateControlValue(draft.countDate)} /></label>
+              <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing count type." : undefined} label="Count type" onChange={(value) => updateDraft({ countType: value })} options={[{ label: "Cycle", value: "Cycle" }, { label: "Full", value: "Full" }, { label: "Spot", value: "Spot" }]} value={draft.countType} />
+              <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing count status." : undefined} label="Status" onChange={(value) => updateDraft({ status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Variance", value: "Variance" }, { label: "Matched", value: "Matched" }, { label: "Posted", value: "Posted" }]} value={draft.status} />
+              <label className="form-span-2"><span>Remarks</span><input disabled={!isLive} onChange={(event) => updateDraft({ remarks: event.target.value })} value={draft.remarks} /></label>
             </FormShell>
+            <Card title="Count lines" description={draft.remarks}>
+              <DataGrid ariaLabel="Cycle count lines" columns={cycleLineColumns} getRowId={(record) => record.id} records={draft.lines} rowLabel={(record) => `${record.itemLabel} count line`} />
+            </Card>
+            {draft.lines.map((line, index) => (
+              <FormShell initialFingerprint={`${line.id}-${line.countedQuantity}`} key={line.id} title={`Count line ${line.lineNo}`}>
+                <ErpLookupField disabled disabledReason="Item is controlled by the count sheet." label="Item" onChange={() => undefined} options={[{ label: line.itemLabel, value: String(line.itemId) }]} value={String(line.itemId)} />
+                <ErpLookupField disabled disabledReason="Bin is controlled by warehouse/bin master." label="Bin" onChange={() => undefined} options={[{ label: line.binLabel, value: String(line.binId ?? "") }]} value={String(line.binId ?? "")} />
+                <ErpLookupField disabled disabledReason="Lot or serial is controlled by inventory traceability." label="Lot / serial" onChange={() => undefined} options={[{ label: line.trackingLabel, value: line.trackingLabel }]} value={line.trackingLabel} />
+                <ErpDecimalField disabled disabledReason="System quantity is calculated from stock balances." label="System quantity" onChange={() => undefined} value={line.systemQuantity} />
+                <ErpDecimalField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before updating counted quantity." : undefined} label="Counted quantity" min={0} onChange={(value) => updateLine(index, { countedQuantity: value ?? 0 })} value={line.countedQuantity} />
+                <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing line status." : undefined} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Matched", value: "Matched" }, { label: "Variance", value: "Variance" }, { label: "Review", value: "Review" }]} value={line.status} />
+              </FormShell>
+            ))}
           </>
         ) : null}
       </ErpModalWorkspace>

@@ -2403,6 +2403,34 @@ export interface CycleCountDto {
   lines: CycleCountLineDto[];
 }
 
+export interface CycleCountLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  binId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  countedQuantity: number;
+  status: string;
+  remarks: string | null;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+  serialNo?: string | null;
+}
+
+export interface CycleCountUpsertRequest {
+  companyId: number;
+  branchId: number;
+  warehouseId: number;
+  countNo: string;
+  countDate: string;
+  countType: string;
+  status: string;
+  remarks: string | null;
+  lines: CycleCountLineUpsertRequest[];
+}
+
 export interface WorkOrderOperationDto {
   id: number;
   sequenceNo: number;
@@ -2753,6 +2781,10 @@ export interface InspectionDto {
   results: InspectionResultDto[];
 }
 
+export interface InspectionHoldReleaseRequest {
+  notes?: string | null;
+}
+
 export interface NonConformanceDto {
   id: number;
   companyId: number;
@@ -2767,6 +2799,10 @@ export interface NonConformanceDto {
   rootCause: string | null;
   reworkOrderId: number | null;
   remarks: string | null;
+}
+
+export interface NonConformanceActionRequest {
+  remarks?: string | null;
 }
 
 export interface PackListLineDto {
@@ -2830,6 +2866,16 @@ export interface ShipmentDto {
   deliveredOn: string | null;
   lines: ShipmentLineDto[];
   stockTransactions: StockTransactionDto[];
+}
+
+export interface ShipmentProofRequest {
+  vehicleRef: string | null;
+  trackingRef: string | null;
+  sealNo: string | null;
+  proofNotes: string | null;
+  status: string;
+  loadedOn?: string | null;
+  deliveredOn?: string | null;
 }
 
 export interface DispatchPlanningItemDto {

@@ -1,0 +1,131 @@
+{
+  "wave_id": "WS06",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173"
+  },
+  "screenshot_mode": "top_only",
+  "routes_to_capture": [
+    {
+      "route": "/inventory/balances",
+      "ready_text": "Inventory Balance by Warehouse / Bin",
+      "output_prefix": "inventory-balances"
+    },
+    {
+      "route": "/inventory/traceability",
+      "ready_text": "Lot / Serial / Catch Weight Traceability",
+      "output_prefix": "traceability"
+    },
+    {
+      "route": "/inventory/material-issue",
+      "ready_text": "Material Issue to WO",
+      "output_prefix": "material-issue"
+    },
+    {
+      "route": "/inventory/material-return",
+      "ready_text": "Material Return from WO",
+      "output_prefix": "material-return"
+    },
+    {
+      "route": "/inventory/stock-transfer",
+      "ready_text": "Stock Transfer / Putaway",
+      "output_prefix": "stock-transfer"
+    },
+    {
+      "route": "/inventory/cycle-counts",
+      "ready_text": "Cycle Count",
+      "output_prefix": "cycle-counts"
+    },
+    {
+      "route": "/quality/plans",
+      "ready_text": "QC Plan Setup",
+      "output_prefix": "qc-plan-setup"
+    },
+    {
+      "route": "/quality/incoming-inspections",
+      "ready_text": "Incoming Inspection",
+      "output_prefix": "incoming-inspection"
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "ready_text": "In-Process Inspection",
+      "output_prefix": "in-process-inspection"
+    },
+    {
+      "route": "/quality/final-inspections",
+      "ready_text": "Final Inspection",
+      "output_prefix": "final-inspection"
+    },
+    {
+      "route": "/quality/ncr",
+      "ready_text": "NCR / Deviation",
+      "output_prefix": "ncr-deviation"
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "ready_text": "Pack List",
+      "output_prefix": "pack-lists"
+    },
+    {
+      "route": "/dispatch/planning",
+      "ready_text": "Dispatch Planning",
+      "output_prefix": "dispatch-planning"
+    },
+    {
+      "route": "/dispatch/shipments",
+      "ready_text": "Shipment / Delivery",
+      "output_prefix": "shipment-delivery"
+    },
+    {
+      "route": "/platform/attachments",
+      "ready_text": "Attachment / Document Viewer",
+      "output_prefix": "attachment-viewer"
+    },
+    {
+      "route": "/engineering/documents",
+      "ready_text": "Engineering Attachment / Document Viewer",
+      "output_prefix": "engineering-documents"
+    },
+    {
+      "route": "/reports/print-pack",
+      "ready_text": "Print Pack / Traveler / Labels",
+      "output_prefix": "print-pack"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/inventory/cycle-counts",
+      "ready_text": "Cycle Count",
+      "open_text": "CC-2026-0031",
+      "modal_ready_text": "Count sheet controls",
+      "output_prefix": "cycle-count-modal"
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "ready_text": "In-Process Inspection",
+      "open_text": "INSP-IP-2026-0014",
+      "modal_ready_text": "Inspection controls",
+      "output_prefix": "inspection-release-modal"
+    },
+    {
+      "route": "/quality/ncr",
+      "ready_text": "NCR / Deviation",
+      "open_text": "NCR-2026-0018",
+      "modal_ready_text": "NCR controls",
+      "output_prefix": "ncr-close-modal"
+    },
+    {
+      "route": "/dispatch/shipments",
+      "ready_text": "Shipment / Delivery",
+      "open_text": "SHIP-2026-0029",
+      "modal_ready_text": "Shipment controls",
+      "output_prefix": "shipment-proof-modal"
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "ready_text": "Pack List",
+      "open_text": "PACK-2026-0042",
+      "modal_ready_text": "Pack controls",
+      "output_prefix": "pack-list-modal"
+    }
+  ]
+}

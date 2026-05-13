@@ -1,0 +1,166 @@
+{
+  "wave_id": "WS06",
+  "screenshot_mode": "top_only",
+  "explicit_demo_session": true,
+  "captures": [
+    {
+      "route": "/inventory/balances",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\inventory-balances-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/traceability",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\traceability-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/material-issue",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\material-issue-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/material-return",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\material-return-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/stock-transfer",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\stock-transfer-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/cycle-counts",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\cycle-counts-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/plans",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\qc-plan-setup-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/incoming-inspections",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\incoming-inspection-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\in-process-inspection-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/final-inspections",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\final-inspection-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/ncr",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\ncr-deviation-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\pack-lists-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/dispatch/planning",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\dispatch-planning-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/dispatch/shipments",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\shipment-delivery-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/platform/attachments",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\attachment-viewer-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/engineering/documents",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\engineering-documents-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/reports/print-pack",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\print-pack-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/inventory/cycle-counts",
+      "modal": "CC-2026-0031",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\cycle-count-modal-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "modal": "INSP-IP-2026-0014",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\inspection-release-modal-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/quality/ncr",
+      "modal": "NCR-2026-0018",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\ncr-close-modal-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/dispatch/shipments",
+      "modal": "SHIP-2026-0029",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\shipment-proof-modal-top.png"
+      ],
+      "explicit_demo_session": true
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "modal": "PACK-2026-0042",
+      "files": [
+        "docs\\codex-review-screens\\WS06\\pack-list-modal-top.png"
+      ],
+      "explicit_demo_session": true
+    }
+  ]
+}

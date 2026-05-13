@@ -32,6 +32,7 @@ import type {
   CustomerPartnerWorkspaceDto,
   CustomerUpsertRequest,
   CycleCountDto,
+  CycleCountUpsertRequest,
   DashboardFilter,
   DepartmentDto,
   DepartmentUpsertRequest,
@@ -61,6 +62,7 @@ import type {
   LogoutRequest,
   DowntimeEventDto,
   InspectionDto,
+  InspectionHoldReleaseRequest,
   InspectionPlanDto,
   JobCardCompleteRequest,
   JobCardDto,
@@ -80,6 +82,7 @@ import type {
   MrpRunDto,
   MrpRunStartRequest,
   NonConformanceDto,
+  NonConformanceActionRequest,
   NotificationItem,
   OperationDto,
   OperationUpsertRequest,
@@ -161,6 +164,7 @@ import type {
   LotTraceabilityDto,
   SerialTraceabilityDto,
   ShipmentDto,
+  ShipmentProofRequest,
   ScrapEntryDto,
   WorkOrderDto,
   WorkOrderReadinessDto,
@@ -974,7 +978,21 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<CycleCountDto>>(`/api/cycle-counts?${query}`);
     },
-    cycleCount: (id: number) => request<CycleCountDto>(`/api/cycle-counts/${id}`)
+    cycleCount: (id: number) => request<CycleCountDto>(`/api/cycle-counts/${id}`),
+    createCycleCount: (body: CycleCountUpsertRequest) =>
+      request<CycleCountDto>("/api/cycle-counts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateCycleCount: (id: number, body: CycleCountUpsertRequest) =>
+      request<CycleCountDto>(`/api/cycle-counts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    postCycleCount: (id: number) =>
+      request<CycleCountDto>(`/api/cycle-counts/${id}/post`, {
+        method: "POST"
+      })
   },
   production: {
     workOrders: (filter: QueryFilter = {}) => {
@@ -1046,11 +1064,26 @@ export const apiClient = {
       return request<PagedResult<InspectionDto>>(`/api/quality/inspections?${query}`);
     },
     inspection: (id: number) => request<InspectionDto>(`/api/quality/inspections/${id}`),
+    holdInspection: (id: number, body: InspectionHoldReleaseRequest = {}) =>
+      request<ActionResponse>(`/api/quality/inspections/${id}/hold`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    releaseInspection: (id: number, body: InspectionHoldReleaseRequest = {}) =>
+      request<ActionResponse>(`/api/quality/inspections/${id}/release`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     nonConformances: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
-      return request<PagedResult<NonConformanceDto>>(`/api/quality/non-conformances?${query}`);
+      return request<PagedResult<NonConformanceDto>>(`/api/quality/ncrs?${query}`);
     },
-    nonConformance: (id: number) => request<NonConformanceDto>(`/api/quality/non-conformances/${id}`)
+    nonConformance: (id: number) => request<NonConformanceDto>(`/api/quality/ncrs/${id}`),
+    closeNonConformance: (id: number, body: NonConformanceActionRequest = {}) =>
+      request<ActionResponse>(`/api/quality/ncrs/${id}/close`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
   },
   dispatch: {
     packLists: (filter: QueryFilter = {}) => {
@@ -1063,6 +1096,11 @@ export const apiClient = {
       return request<PagedResult<ShipmentDto>>(`/api/dispatch/shipments?${query}`);
     },
     shipment: (id: number) => request<ShipmentDto>(`/api/dispatch/shipments/${id}`),
+    updateShipmentProof: (id: number, body: ShipmentProofRequest) =>
+      request<ShipmentDto>(`/api/dispatch/shipments/${id}/proof`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     planning: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<DispatchPlanningItemDto[]>(`/api/dispatch/planning?${query}`);
