@@ -118,7 +118,9 @@ import type {
   ProductionReceiptDto,
   ProductionReceiptSummaryDto,
   PurchaseOrderDto,
+  PurchaseOrderUpsertRequest,
   PurchaseRequisitionDto,
+  PurchaseRequisitionUpsertRequest,
   QueryFilter,
   QuoteDto,
   QuoteUpsertRequest,
@@ -173,6 +175,7 @@ import type {
   SupplierPartnerWorkspaceDto,
   SupplierUpsertRequest,
   SubcontractOrderDto,
+  SubcontractOrderUpsertRequest,
   StockBalanceDto,
   StockTransactionDto,
   TaxCategoryDto,
@@ -975,14 +978,56 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<PurchaseRequisitionDto>>(`/api/purchase-requisitions?${query}`);
     },
+    createPurchaseRequisition: (body: PurchaseRequisitionUpsertRequest) =>
+      request<PurchaseRequisitionDto>("/api/purchase-requisitions", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updatePurchaseRequisition: (id: number, body: PurchaseRequisitionUpsertRequest) =>
+      request<PurchaseRequisitionDto>(`/api/purchase-requisitions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    approvePurchaseRequisition: (id: number) =>
+      request<PurchaseRequisitionDto>(`/api/purchase-requisitions/${id}/approve`, {
+        method: "POST"
+      }),
     purchaseOrders: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<PurchaseOrderDto>>(`/api/purchase-orders?${query}`);
     },
+    createPurchaseOrder: (body: PurchaseOrderUpsertRequest) =>
+      request<PurchaseOrderDto>("/api/purchase-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updatePurchaseOrder: (id: number, body: PurchaseOrderUpsertRequest) =>
+      request<PurchaseOrderDto>(`/api/purchase-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    approvePurchaseOrder: (id: number) =>
+      request<PurchaseOrderDto>(`/api/purchase-orders/${id}/approve`, {
+        method: "POST"
+      }),
     subcontractOrders: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<SubcontractOrderDto>>(`/api/subcontract-orders?${query}`);
-    }
+    },
+    createSubcontractOrder: (body: SubcontractOrderUpsertRequest) =>
+      request<SubcontractOrderDto>("/api/subcontract-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateSubcontractOrder: (id: number, body: SubcontractOrderUpsertRequest) =>
+      request<SubcontractOrderDto>(`/api/subcontract-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    approveSubcontractOrder: (id: number) =>
+      request<SubcontractOrderDto>(`/api/subcontract-orders/${id}/approve`, {
+        method: "POST"
+      })
   },
   inventory: {
     balances: (filter: QueryFilter = {}) => {

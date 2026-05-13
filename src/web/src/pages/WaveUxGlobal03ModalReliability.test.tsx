@@ -51,13 +51,14 @@ describe("Wave UX-GLOBAL-03 modal, action, and lookup reliability", () => {
     expect(await screen.findByText("Purchase Order List / Detail")).toBeInTheDocument();
     expect(screen.getByTestId("purchase-order-action-bar")).toHaveClass("erp-action-bar");
     expect(screen.getByRole("button", { name: "Approve PO" })).toBeDisabled();
-    expect(screen.getByText("PO approval requires the procurement approval workflow.")).toBeInTheDocument();
+    expect(screen.getByText("Purchase order approval requires a live procurement session.")).toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole("row", { name: "PO-2026-0114 purchase order" }));
     const dialog = await screen.findByRole("dialog", { name: "PO-2026-0114" });
     expect(within(dialog).getByTestId("erp-modal-workspace")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Supplier").tagName).toBe("SELECT");
     expect(within(dialog).getByRole("button", { name: "Save purchase order" })).toBeDisabled();
+    expect(within(dialog).getByText("Purchase order save requires a live procurement session.")).toBeInTheDocument();
   });
 
   it("uses governed modal and lookup controls for inventory issue review", async () => {

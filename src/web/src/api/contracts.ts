@@ -2526,6 +2526,18 @@ export interface PurchaseRequisitionLineDto {
   status: string;
 }
 
+export interface PurchaseRequisitionLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  requiredQuantity: number;
+  orderUomId: number;
+  needByDate: string;
+  sourceBoqRequirementLineId: number | null;
+  linkedWorkOrderId: number | null;
+  status: string;
+  itemCode?: string | null;
+}
+
 export interface PurchaseRequisitionDto {
   id: number;
   companyId: number;
@@ -2535,6 +2547,16 @@ export interface PurchaseRequisitionDto {
   sourceDocumentId: number | null;
   status: string;
   lines: PurchaseRequisitionLineDto[];
+}
+
+export interface PurchaseRequisitionUpsertRequest {
+  companyId: number;
+  branchId: number;
+  purchaseRequisitionNo: string;
+  sourceDocumentType: string;
+  sourceDocumentId: number | null;
+  status: string;
+  lines: PurchaseRequisitionLineUpsertRequest[];
 }
 
 export interface PurchaseOrderLineDto {
@@ -2550,6 +2572,19 @@ export interface PurchaseOrderLineDto {
   status: string;
 }
 
+export interface PurchaseOrderLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  purchaseRequisitionLineId: number | null;
+  orderedQuantity: number;
+  orderUomId: number;
+  expectedDate: string;
+  linkedWorkOrderId: number | null;
+  sourceBoqRequirementLineId: number | null;
+  status: string;
+  itemCode?: string | null;
+}
+
 export interface PurchaseOrderDto {
   id: number;
   companyId: number;
@@ -2562,6 +2597,19 @@ export interface PurchaseOrderDto {
   lines: PurchaseOrderLineDto[];
 }
 
+export interface PurchaseOrderUpsertRequest {
+  companyId: number;
+  branchId: number;
+  purchaseOrderNo: string;
+  supplierId: number;
+  orderAddressId: number | null;
+  status: string;
+  expectedReceiptDate: string | null;
+  lines: PurchaseOrderLineUpsertRequest[];
+  supplierCode?: string | null;
+  orderAddressCode?: string | null;
+}
+
 export interface SubcontractOrderDto {
   id: number;
   companyId: number;
@@ -2572,6 +2620,18 @@ export interface SubcontractOrderDto {
   operationId: number | null;
   status: string;
   expectedReturnDate: string | null;
+}
+
+export interface SubcontractOrderUpsertRequest {
+  companyId: number;
+  branchId: number;
+  subcontractOrderNo: string;
+  supplierId: number;
+  workOrderId: number | null;
+  operationId: number | null;
+  status: string;
+  expectedReturnDate: string | null;
+  supplierCode?: string | null;
 }
 
 export interface StockBalanceDto {

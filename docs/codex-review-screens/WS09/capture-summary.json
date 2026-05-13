@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-05-13T11:42:22.033Z",
+  "summary": [
+    {
+      "screen": "Purchase Requisition List / Detail",
+      "route": "/procurement/requisitions",
+      "state": "loaded"
+    },
+    {
+      "screen": "Purchase Requisition",
+      "action": "New PR draft",
+      "state": "workspace opened"
+    },
+    {
+      "screen": "Purchase Order List / Detail",
+      "route": "/procurement/purchase-orders",
+      "state": "loaded"
+    },
+    {
+      "screen": "Purchase Order",
+      "action": "New PO draft",
+      "state": "workspace opened; receive disabled with reason"
+    },
+    {
+      "screen": "Subcontract / Outside Processing Plan",
+      "route": "/procurement/subcontract-plan",
+      "state": "loaded"
+    },
+    {
+      "screen": "Subcontract Plan",
+      "action": "New outside plan",
+      "state": "workspace opened; receive-back disabled with reason"
+    }
+  ]
+}
