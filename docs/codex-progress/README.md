@@ -297,6 +297,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - WS09 Procure-to-Pay Deepening completed for implemented V1 procurement screens and blocked on full P2P modules outside current scope on 2026-05-13. Output: `/docs/codex-progress/WS09-output.md`
 - WS10 Service/Warranty/AMC blocked on 2026-05-13 by explicit V1 field-service, warranty, and customer-support suite exclusion. Output: `/docs/codex-progress/WS10-output.md`
 - WS11 Final Release/Performance/Hardening completed repo-executable release guards and smoke evidence on 2026-05-13; product remains not pilot-ready until UAT/mobile/provider/restore blockers close. Output: `/docs/codex-progress/WS11-output.md`
+- MARKET-V2-MASTER-COMPLETION-RUNNER-01 completed V2 workbook repair/status fill, P0 transaction-line fixes, ERP completion gate expansion, and P0/P1 queue generation on 2026-05-13. Output: `/docs/codex-progress/MARKET-BENCHMARK-V2-FIT-GAP-AND-CODEX-EXECUTION-PACK-01-output.md`
 
 ## Remediation Log
 

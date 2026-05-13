@@ -26,6 +26,7 @@ import {
   ErpActionBar,
   ErpDecimalField,
   ErpLookupField,
+  ErpMoneyField,
   ErpModalWorkspace,
   ErpNumberField,
   ErpValidationSummary
@@ -80,10 +81,7 @@ interface PrWorkspace {
   sourceDocumentType: string;
   sourceDocumentId: number | null;
   status: string;
-  itemId: number | null;
-  requiredQuantity: number | null;
-  orderUomId: number | null;
-  needByDate: string;
+  lines: PurchaseRequisitionUpsertRequest["lines"];
 }
 
 interface PoWorkspace {
@@ -94,10 +92,7 @@ interface PoWorkspace {
   orderAddressId: number | null;
   status: string;
   expectedReceiptDate: string;
-  itemId: number | null;
-  orderedQuantity: number | null;
-  orderUomId: number | null;
-  expectedDate: string;
+  lines: PurchaseOrderUpsertRequest["lines"];
 }
 
 interface SubcontractWorkspace {
@@ -137,13 +132,46 @@ function numberValue(value: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function buildPrLine(lineNo: number): PurchaseRequisitionUpsertRequest["lines"][number] {
+  return {
+    lineNo,
+    itemId: 0,
+    requiredQuantity: 1,
+    orderUomId: 0,
+    needByDate: todayIsoDate(),
+    sourceBoqRequirementLineId: null,
+    linkedWorkOrderId: null,
+    status: "Pending"
+  };
+}
+
+function buildPoLine(lineNo: number): PurchaseOrderUpsertRequest["lines"][number] {
+  return {
+    lineNo,
+    itemId: 0,
+    purchaseRequisitionLineId: null,
+    orderedQuantity: 1,
+    orderUomId: 0,
+    expectedDate: todayIsoDate(),
+    linkedWorkOrderId: null,
+    sourceBoqRequirementLineId: null,
+    status: "Open"
+  };
+}
+
+function renumberPrLines(lines: PurchaseRequisitionUpsertRequest["lines"]) {
+  return lines.map((line, index) => ({ ...line, lineNo: (index + 1) * 10 }));
+}
+
+function renumberPoLines(lines: PurchaseOrderUpsertRequest["lines"]) {
+  return lines.map((line, index) => ({ ...line, lineNo: (index + 1) * 10 }));
+}
+
 function entityOptions<T>(items: T[] | undefined, getValue: (item: T) => number, getLabel: (item: T) => string) {
   return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
 }
 
 function buildPrWorkspace(record: PurchaseRequisitionItem | null): PrWorkspace {
-  const firstLine = record?.lines[0];
-
   return {
     mode: record ? "edit" : "create",
     record,
@@ -151,16 +179,22 @@ function buildPrWorkspace(record: PurchaseRequisitionItem | null): PrWorkspace {
     sourceDocumentType: record?.sourceDocumentType ?? "Manual",
     sourceDocumentId: record?.sourceDocumentId ?? null,
     status: record?.status ?? "Draft",
-    itemId: firstLine?.itemId ?? null,
-    requiredQuantity: firstLine?.requiredQuantity ?? 1,
-    orderUomId: firstLine?.orderUomId ?? null,
-    needByDate: firstLine?.needByDate && firstLine.needByDate !== "Open" ? firstLine.needByDate : todayIsoDate()
+    lines: record?.lines.length
+      ? record.lines.map((line) => ({
+          lineNo: line.lineNo,
+          itemId: line.itemId,
+          requiredQuantity: line.requiredQuantity,
+          orderUomId: line.orderUomId,
+          needByDate: line.needByDate && line.needByDate !== "Open" ? line.needByDate : todayIsoDate(),
+          sourceBoqRequirementLineId: line.sourceBoqRequirementLineId,
+          linkedWorkOrderId: line.linkedWorkOrderId,
+          status: line.status
+        }))
+      : [buildPrLine(10)]
   };
 }
 
 function buildPoWorkspace(record: PurchaseOrderItem | null): PoWorkspace {
-  const firstLine = record?.lines[0];
-
   return {
     mode: record ? "edit" : "create",
     record,
@@ -169,10 +203,19 @@ function buildPoWorkspace(record: PurchaseOrderItem | null): PoWorkspace {
     orderAddressId: record?.orderAddressId ?? null,
     status: record?.status ?? "Draft",
     expectedReceiptDate: record?.expectedReceiptDate && record.expectedReceiptDate !== "Open" ? record.expectedReceiptDate : todayIsoDate(),
-    itemId: firstLine?.itemId ?? null,
-    orderedQuantity: firstLine?.orderedQuantity ?? 1,
-    orderUomId: firstLine?.orderUomId ?? null,
-    expectedDate: firstLine?.expectedDate && firstLine.expectedDate !== "Open" ? firstLine.expectedDate : todayIsoDate()
+    lines: record?.lines.length
+      ? record.lines.map((line) => ({
+          lineNo: line.lineNo,
+          itemId: line.itemId,
+          purchaseRequisitionLineId: line.purchaseRequisitionLineId,
+          orderedQuantity: line.orderedQuantity,
+          orderUomId: line.orderUomId,
+          expectedDate: line.expectedDate && line.expectedDate !== "Open" ? line.expectedDate : todayIsoDate(),
+          linkedWorkOrderId: line.linkedWorkOrderId,
+          sourceBoqRequirementLineId: line.sourceBoqRequirementLineId,
+          status: line.status
+        }))
+      : [buildPoLine(10)]
   };
 }
 
@@ -190,19 +233,6 @@ function buildSubcontractWorkspace(record: SubcontractPlanItem | null): Subcontr
 }
 
 function buildPurchaseRequisitionRequest(workspace: PrWorkspace, companyId: number, branchId: number): PurchaseRequisitionUpsertRequest {
-  const existingLines = workspace.record?.lines ?? [];
-  const firstExisting = existingLines[0];
-  const firstLine = {
-    lineNo: firstExisting?.lineNo ?? 10,
-    itemId: workspace.itemId ?? 0,
-    requiredQuantity: workspace.requiredQuantity ?? 0,
-    orderUomId: workspace.orderUomId ?? 0,
-    needByDate: workspace.needByDate,
-    sourceBoqRequirementLineId: firstExisting?.sourceBoqRequirementLineId ?? null,
-    linkedWorkOrderId: firstExisting?.linkedWorkOrderId ?? null,
-    status: firstExisting?.status ?? "Pending"
-  };
-
   return {
     companyId: workspace.record?.companyId ?? companyId,
     branchId: workspace.record?.branchId ?? branchId,
@@ -210,34 +240,11 @@ function buildPurchaseRequisitionRequest(workspace: PrWorkspace, companyId: numb
     sourceDocumentType: workspace.sourceDocumentType,
     sourceDocumentId: workspace.sourceDocumentId,
     status: workspace.status,
-    lines: [firstLine, ...existingLines.slice(1).map((line) => ({
-      lineNo: line.lineNo,
-      itemId: line.itemId,
-      requiredQuantity: line.requiredQuantity,
-      orderUomId: line.orderUomId,
-      needByDate: line.needByDate,
-      sourceBoqRequirementLineId: line.sourceBoqRequirementLineId,
-      linkedWorkOrderId: line.linkedWorkOrderId,
-      status: line.status
-    }))]
+    lines: renumberPrLines(workspace.lines)
   };
 }
 
 function buildPurchaseOrderRequest(workspace: PoWorkspace, companyId: number, branchId: number): PurchaseOrderUpsertRequest {
-  const existingLines = workspace.record?.lines ?? [];
-  const firstExisting = existingLines[0];
-  const firstLine = {
-    lineNo: firstExisting?.lineNo ?? 10,
-    itemId: workspace.itemId ?? 0,
-    purchaseRequisitionLineId: firstExisting?.purchaseRequisitionLineId ?? null,
-    orderedQuantity: workspace.orderedQuantity ?? 0,
-    orderUomId: workspace.orderUomId ?? 0,
-    expectedDate: workspace.expectedDate,
-    linkedWorkOrderId: firstExisting?.linkedWorkOrderId ?? null,
-    sourceBoqRequirementLineId: firstExisting?.sourceBoqRequirementLineId ?? null,
-    status: firstExisting?.status ?? "Open"
-  };
-
   return {
     companyId: workspace.record?.companyId ?? companyId,
     branchId: workspace.record?.branchId ?? branchId,
@@ -246,17 +253,7 @@ function buildPurchaseOrderRequest(workspace: PoWorkspace, companyId: number, br
     orderAddressId: workspace.orderAddressId,
     status: workspace.status,
     expectedReceiptDate: workspace.expectedReceiptDate || null,
-    lines: [firstLine, ...existingLines.slice(1).map((line) => ({
-      lineNo: line.lineNo,
-      itemId: line.itemId,
-      purchaseRequisitionLineId: line.purchaseRequisitionLineId,
-      orderedQuantity: line.orderedQuantity,
-      orderUomId: line.orderUomId,
-      expectedDate: line.expectedDate,
-      linkedWorkOrderId: line.linkedWorkOrderId,
-      sourceBoqRequirementLineId: line.sourceBoqRequirementLineId,
-      status: line.status
-    }))]
+    lines: renumberPoLines(workspace.lines)
   };
 }
 
@@ -296,28 +293,31 @@ function procurementValidationErrors(workspace: PrWorkspace | PoWorkspace | Subc
     errors.push("Supplier is required.");
   }
 
-  if ("itemId" in workspace && !workspace.itemId) {
-    errors.push("Item is required.");
-  }
+  if ("lines" in workspace) {
+    if (workspace.lines.length === 0) {
+      errors.push("At least one line is required.");
+    }
 
-  if ("orderUomId" in workspace && !workspace.orderUomId) {
-    errors.push("Order UOM is required.");
-  }
-
-  if ("requiredQuantity" in workspace && (!workspace.requiredQuantity || workspace.requiredQuantity <= 0)) {
-    errors.push("Required quantity must be greater than zero.");
-  }
-
-  if ("orderedQuantity" in workspace && (!workspace.orderedQuantity || workspace.orderedQuantity <= 0)) {
-    errors.push("Ordered quantity must be greater than zero.");
-  }
-
-  if ("needByDate" in workspace && !workspace.needByDate) {
-    errors.push("Need-by date is required.");
-  }
-
-  if ("expectedDate" in workspace && !workspace.expectedDate) {
-    errors.push("Expected line date is required.");
+    workspace.lines.forEach((line, index) => {
+      if (!line.itemId) {
+        errors.push(`Line ${index + 1} item is required.`);
+      }
+      if (!line.orderUomId) {
+        errors.push(`Line ${index + 1} order UOM is required.`);
+      }
+      if ("requiredQuantity" in line && (!line.requiredQuantity || line.requiredQuantity <= 0)) {
+        errors.push(`Line ${index + 1} required quantity must be greater than zero.`);
+      }
+      if ("orderedQuantity" in line && (!line.orderedQuantity || line.orderedQuantity <= 0)) {
+        errors.push(`Line ${index + 1} ordered quantity must be greater than zero.`);
+      }
+      if ("needByDate" in line && !line.needByDate) {
+        errors.push(`Line ${index + 1} need-by date is required.`);
+      }
+      if ("expectedDate" in line && !line.expectedDate) {
+        errors.push(`Line ${index + 1} expected line date is required.`);
+      }
+    });
   }
 
   return errors;
@@ -399,6 +399,36 @@ export function PurchaseRequisitionPage() {
           ? "Purchase requisition approval is in progress."
           : undefined;
 
+  const updateLine = (lineIndex: number, patch: Partial<PurchaseRequisitionUpsertRequest["lines"][number]>) => {
+    if (!workspace) {
+      return;
+    }
+
+    setWorkspace({
+      ...workspace,
+      lines: workspace.lines.map((line, index) => (index === lineIndex ? { ...line, ...patch } : line))
+    });
+  };
+
+  const addLine = () => {
+    if (!workspace) {
+      return;
+    }
+
+    setWorkspace({ ...workspace, lines: [...workspace.lines, buildPrLine((workspace.lines.length + 1) * 10)] });
+  };
+
+  const removeLine = (lineIndex: number) => {
+    if (!workspace) {
+      return;
+    }
+
+    setWorkspace({
+      ...workspace,
+      lines: renumberPrLines(workspace.lines.filter((_, index) => index !== lineIndex))
+    });
+  };
+
   return (
     <>
       <ListPageShell
@@ -430,7 +460,29 @@ export function PurchaseRequisitionPage() {
         title={workspace?.purchaseRequisitionNo ?? "Purchase requisition"}
         validation={<ErpValidationSummary errors={validationErrors} />}
       >
-        {workspace ? <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.purchaseRequisitionNo}`} title="Purchase requisition controls"><label><span>Purchase requisition number</span><input aria-label="Purchase requisition number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, purchaseRequisitionNo: event.target.value })} value={workspace.purchaseRequisitionNo} /></label><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing source type."} label="Source type" onChange={(value) => setWorkspace({ ...workspace, sourceDocumentType: value })} options={sourceDocumentOptions} required value={workspace.sourceDocumentType} /><ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before assigning a source id."} label="Source document id" min={1} onChange={(value) => setWorkspace({ ...workspace, sourceDocumentId: value })} value={workspace.sourceDocumentId} /><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={prStatusOptions} required value={workspace.status} /><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => setWorkspace({ ...workspace, itemId: numberValue(value) })} options={itemOptions} required value={workspace.itemId ? String(workspace.itemId) : ""} /><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => setWorkspace({ ...workspace, orderUomId: numberValue(value) })} options={uomOptions} required value={workspace.orderUomId ? String(workspace.orderUomId) : ""} /><ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Required quantity" min={0.001} onChange={(value) => setWorkspace({ ...workspace, requiredQuantity: value })} required value={workspace.requiredQuantity} /><label><span>Need by</span><input aria-label="Need by" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, needByDate: event.target.value })} required type="date" value={dateControlValue(workspace.needByDate)} /></label></FormShell> : null}
+        {workspace ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.purchaseRequisitionNo}`} title="Purchase requisition controls">
+              <label><span>Purchase requisition number</span><input aria-label="Purchase requisition number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, purchaseRequisitionNo: event.target.value })} value={workspace.purchaseRequisitionNo} /></label>
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing source type."} label="Source type" onChange={(value) => setWorkspace({ ...workspace, sourceDocumentType: value })} options={sourceDocumentOptions} required value={workspace.sourceDocumentType} />
+              <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before assigning a source id."} label="Source document id" min={1} onChange={(value) => setWorkspace({ ...workspace, sourceDocumentId: value })} value={workspace.sourceDocumentId} />
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={prStatusOptions} required value={workspace.status} />
+            </FormShell>
+            <Card title="Purchase requisition lines" description="Add every required material or service line before approval.">
+              <ErpActionBar secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding lines." }]} />
+              {workspace.lines.map((line, index) => (
+                <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
+                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Required quantity" min={0.001} onChange={(value) => updateLine(index, { requiredQuantity: value ?? 0 })} required value={line.requiredQuantity} />
+                  <label><span>Need by</span><input aria-label="Need by" disabled={!live} onChange={(event) => updateLine(index, { needByDate: event.target.value })} required type="date" value={dateControlValue(line.needByDate)} /></label>
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={prStatusOptions} value={line.status} />
+                  <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one requisition line is required." : undefined }]} />
+                </FormShell>
+              ))}
+            </Card>
+          </div>
+        ) : null}
       </ErpModalWorkspace>
     </>
   );
@@ -514,6 +566,36 @@ export function PurchaseOrderPage() {
           ? "Purchase order approval is in progress."
           : undefined;
 
+  const updateLine = (lineIndex: number, patch: Partial<PurchaseOrderUpsertRequest["lines"][number]>) => {
+    if (!workspace) {
+      return;
+    }
+
+    setWorkspace({
+      ...workspace,
+      lines: workspace.lines.map((line, index) => (index === lineIndex ? { ...line, ...patch } : line))
+    });
+  };
+
+  const addLine = () => {
+    if (!workspace) {
+      return;
+    }
+
+    setWorkspace({ ...workspace, lines: [...workspace.lines, buildPoLine((workspace.lines.length + 1) * 10)] });
+  };
+
+  const removeLine = (lineIndex: number) => {
+    if (!workspace) {
+      return;
+    }
+
+    setWorkspace({
+      ...workspace,
+      lines: renumberPoLines(workspace.lines.filter((_, index) => index !== lineIndex))
+    });
+  };
+
   return (
     <>
       <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New PO draft", onClick: () => { setMessage(null); setWorkspace(buildPoWorkspace(null)); } }, { disabled: Boolean(approveReason), label: approvePurchaseOrder.isPending ? "Approving PO" : "Approve PO", onClick: approveReason || !workspace?.record ? undefined : () => approvePurchaseOrder.mutate(workspace.record!.purchaseOrderId), reason: approveReason }]} secondary={[{ disabled: true, label: "Export PO follow-up", reason: "PO export is pending the approved reporting workflow." }]} testId="purchase-order-action-bar" /></>} description="PO list with status, overdue follow-up, receipts context, and source linkage." filters={<FilterBar><input aria-label="Search purchase orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search PO, supplier, item, follow-up" value={search} /><select aria-label="Purchase order status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Open">Open</option><option value="Late">Late</option><option value="Approved">Approved</option></select></FilterBar>} title="Purchase Order List / Detail">
@@ -537,7 +619,31 @@ export function PurchaseOrderPage() {
         title={workspace?.purchaseOrderNo ?? "Purchase order"}
         validation={<ErpValidationSummary errors={validationErrors} />}
       >
-        {workspace ? <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.purchaseOrderNo}`} title="Purchase order follow-up"><label><span>Purchase order number</span><input aria-label="Purchase order number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, purchaseOrderNo: event.target.value })} value={workspace.purchaseOrderNo} /></label><ErpLookupField disabled={!live || workspace.mode === "edit"} disabledReason={workspace.mode === "edit" ? "Supplier cannot be changed after the purchase order is saved." : live ? undefined : "Live procurement sign-in is required before selecting a supplier."} label="Supplier" onChange={(value) => setWorkspace({ ...workspace, supplierId: numberValue(value) })} options={supplierOptions} required value={workspace.supplierId ? String(workspace.supplierId) : ""} /><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={poStatusOptions} required value={workspace.status} /><label><span>Expected receipt</span><input aria-label="Expected receipt" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, expectedReceiptDate: event.target.value })} type="date" value={dateControlValue(workspace.expectedReceiptDate)} /></label><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => setWorkspace({ ...workspace, itemId: numberValue(value) })} options={itemOptions} required value={workspace.itemId ? String(workspace.itemId) : ""} /><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => setWorkspace({ ...workspace, orderUomId: numberValue(value) })} options={uomOptions} required value={workspace.orderUomId ? String(workspace.orderUomId) : ""} /><ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Ordered quantity" min={0.001} onChange={(value) => setWorkspace({ ...workspace, orderedQuantity: value })} required value={workspace.orderedQuantity} /><label><span>Expected line date</span><input aria-label="Expected line date" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, expectedDate: event.target.value })} required type="date" value={dateControlValue(workspace.expectedDate)} /></label></FormShell> : null}
+        {workspace ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.purchaseOrderNo}`} title="Purchase order follow-up">
+              <label><span>Purchase order number</span><input aria-label="Purchase order number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, purchaseOrderNo: event.target.value })} value={workspace.purchaseOrderNo} /></label>
+              <ErpLookupField disabled={!live || workspace.mode === "edit"} disabledReason={workspace.mode === "edit" ? "Supplier cannot be changed after the purchase order is saved." : live ? undefined : "Live procurement sign-in is required before selecting a supplier."} label="Supplier" onChange={(value) => setWorkspace({ ...workspace, supplierId: numberValue(value) })} options={supplierOptions} required value={workspace.supplierId ? String(workspace.supplierId) : ""} />
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={poStatusOptions} required value={workspace.status} />
+              <label><span>Expected receipt</span><input aria-label="Expected receipt" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, expectedReceiptDate: event.target.value })} type="date" value={dateControlValue(workspace.expectedReceiptDate)} /></label>
+            </FormShell>
+            <Card title="Purchase order lines" description="Add every supplier commitment line before saving the purchase order.">
+              <ErpActionBar secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding lines." }]} />
+              {workspace.lines.map((line, index) => (
+                <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
+                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Ordered quantity" min={0.001} onChange={(value) => updateLine(index, { orderedQuantity: value ?? 0 })} required value={line.orderedQuantity} />
+                  <ErpMoneyField disabled disabledReason="Purchase order rate save requires the approved pricing and landed-cost contract for procurement lines." label="Unit price" onChange={() => undefined} value={null} />
+                  <ErpDecimalField disabled disabledReason="Purchase order tax calculation requires the approved tax engine for procurement lines." label="Tax %" onChange={() => undefined} scale={2} unit="%" value={null} />
+                  <label><span>Expected line date</span><input aria-label="Expected line date" disabled={!live} onChange={(event) => updateLine(index, { expectedDate: event.target.value })} required type="date" value={dateControlValue(line.expectedDate)} /></label>
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={poStatusOptions} value={line.status} />
+                  <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one purchase order line is required." : undefined }]} />
+                </FormShell>
+              ))}
+            </Card>
+          </div>
+        ) : null}
       </ErpModalWorkspace>
     </>
   );

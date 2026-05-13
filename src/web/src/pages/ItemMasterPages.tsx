@@ -949,7 +949,7 @@ export function ReasonCodeRulesPage() {
         {selected ? (
           <FormShell initialFingerprint={selected.id} title="Reason-code setup">
             <label>
-              <span>Reason code</span>
+              <span>Reason identifier</span>
               <input defaultValue={selected.code} />
             </label>
             <label>

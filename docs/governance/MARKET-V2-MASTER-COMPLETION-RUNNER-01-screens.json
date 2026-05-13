@@ -1,0 +1,60 @@
+{
+  "wave_id": "MARKET-V2-MASTER-COMPLETION-RUNNER-01",
+  "wave_name": "Market V2 Master Completion Runner",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173"
+  },
+  "requires_backend_validation": true,
+  "requires_db_validation": false,
+  "requires_mobile_validation": false,
+  "screenshot_mode": "top_only",
+  "stop_after_completion": true,
+  "expected_outputs": [
+    "docs/market-benchmark/MANUFACTURING_ERP_MARKET_FIT_GAP_V2.xlsx",
+    "docs/market-benchmark/MARKET_V2_EXECUTION_QUEUE.csv",
+    "docs/codex-progress/MARKET-BENCHMARK-V2-FIT-GAP-AND-CODEX-EXECUTION-PACK-01-output.md"
+  ],
+  "routes_to_capture": [
+    {
+      "route": "/sales/quotes",
+      "ready_text": "Estimate / Quote List",
+      "output_prefix": "quote-list"
+    },
+    {
+      "route": "/procurement/requisitions",
+      "ready_text": "Purchase Requisition List / Detail",
+      "output_prefix": "purchase-requisition-list"
+    },
+    {
+      "route": "/procurement/purchase-orders",
+      "ready_text": "Purchase Order List / Detail",
+      "output_prefix": "purchase-order-list"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/sales/quotes",
+      "ready_text": "Estimate / Quote List",
+      "open_action_label": "New quote draft",
+      "modal_ready_text": "Quote lines",
+      "output_prefix": "quote-draft-modal",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/procurement/requisitions",
+      "ready_text": "Purchase Requisition List / Detail",
+      "open_action_label": "New PR draft",
+      "modal_ready_text": "Purchase requisition lines",
+      "output_prefix": "purchase-requisition-draft-modal",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/procurement/purchase-orders",
+      "ready_text": "Purchase Order List / Detail",
+      "open_action_label": "New PO draft",
+      "modal_ready_text": "Purchase order lines",
+      "output_prefix": "purchase-order-draft-modal",
+      "screenshot_mode": "top_mid_bottom"
+    }
+  ]
+}

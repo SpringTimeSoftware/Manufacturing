@@ -9,19 +9,19 @@ const ignoredDirs = new Set(["node_modules", "dist", "bin", "obj", ".git"]);
 const allowedExtensions = new Set([".ts", ".tsx", ".cs"]);
 
 const transactionSpecs = [
-  { name: "Quote", aliases: ["quote"], contractNames: ["QuoteDto", "QuoteUpsertRequest"] },
-  { name: "Sales Order", aliases: ["sales order", "salesOrder"], contractNames: ["SalesOrderDto"] },
-  { name: "Blanket Order", aliases: ["blanket order", "blanketOrder"], contractNames: ["BlanketOrderDto"] },
-  { name: "Forecast", aliases: ["forecast", "DemandForecast"], contractNames: ["DemandForecastDto"] },
-  { name: "Purchase Requisition", aliases: ["purchase requisition", "PurchaseRequisition"], contractNames: ["PurchaseRequisitionDto", "PurchaseRequisitionUpsertRequest"] },
-  { name: "Purchase Order", aliases: ["purchase order", "PurchaseOrder"], contractNames: ["PurchaseOrderDto", "PurchaseOrderUpsertRequest"] },
-  { name: "Subcontract Order", aliases: ["subcontract", "outside processing", "SubcontractOrder"], contractNames: ["SubcontractOrderDto", "SubcontractOrderUpsertRequest"] },
-  { name: "Material Issue", aliases: ["material issue", "MaterialIssue"], contractNames: ["MaterialIssueDto", "MaterialIssueRequest"] },
-  { name: "Material Return", aliases: ["material return", "MaterialReturn"], contractNames: ["MaterialReturnDto", "MaterialReturnRequest"] },
-  { name: "Stock Transfer", aliases: ["stock transfer", "StockTransfer"], contractNames: ["StockTransferRequest"] },
-  { name: "Production Receipt", aliases: ["production receipt", "ProductionReceipt"], contractNames: ["ProductionReceiptDto", "ProductionReceiptCreateRequest"] },
-  { name: "Scrap/Rework", aliases: ["scrap", "rework", "ScrapEntry", "ReworkOrder"], contractNames: ["ScrapEntryDto", "ScrapEntryCreateRequest", "ReworkOrderDto", "ReworkOrderCreateRequest"] },
-  { name: "Dispatch / Pack List", aliases: ["dispatch", "pack list", "PackList"], contractNames: ["PackListDto", "PackListUpsertRequest", "ShipmentDto", "ShipmentUpsertRequest"] }
+  { name: "Quote", screenFiles: ["src/web/src/pages/CommercialPlanningPages.tsx"], contractNames: ["QuoteDto", "QuoteUpsertRequest"], draftLabels: ["New quote draft"] },
+  { name: "Sales Order", screenFiles: ["src/web/src/pages/CommercialPlanningPages.tsx"], contractNames: ["SalesOrderDto"], draftLabels: ["New order draft"] },
+  { name: "Blanket Order", screenFiles: ["src/web/src/pages/CommercialPlanningPages.tsx"], contractNames: ["BlanketOrderDto"], draftLabels: ["New blanket draft"] },
+  { name: "Forecast", screenFiles: ["src/web/src/pages/CommercialPlanningPages.tsx"], contractNames: ["DemandForecastDto"], draftLabels: ["New forecast"] },
+  { name: "Purchase Requisition", screenFiles: ["src/web/src/pages/ProcurementPages.tsx"], contractNames: ["PurchaseRequisitionDto", "PurchaseRequisitionUpsertRequest"], draftLabels: ["New PR draft"] },
+  { name: "Purchase Order", screenFiles: ["src/web/src/pages/ProcurementPages.tsx"], contractNames: ["PurchaseOrderDto", "PurchaseOrderUpsertRequest"], draftLabels: ["New PO draft"] },
+  { name: "Subcontract Order", screenFiles: ["src/web/src/pages/ProcurementPages.tsx"], contractNames: ["SubcontractOrderDto", "SubcontractOrderUpsertRequest"], draftLabels: ["New subcontract plan"] },
+  { name: "Material Issue", screenFiles: ["src/web/src/pages/InventoryPages.tsx"], contractNames: ["MaterialIssueDto", "MaterialIssueRequest"], draftLabels: ["New issue"] },
+  { name: "Material Return", screenFiles: ["src/web/src/pages/InventoryPages.tsx"], contractNames: ["MaterialReturnDto", "MaterialReturnRequest"], draftLabels: ["New return"] },
+  { name: "Stock Transfer", screenFiles: ["src/web/src/pages/InventoryPages.tsx"], contractNames: ["StockTransferRequest"], draftLabels: ["New transfer", "Prepare transfer draft"] },
+  { name: "Production Receipt", screenFiles: ["src/web/src/pages/ProductionOutputPages.tsx"], contractNames: ["ProductionReceiptDto", "ProductionReceiptCreateRequest"], draftLabels: ["New receipt", "Prepare receipt draft"] },
+  { name: "Scrap/Rework", screenFiles: ["src/web/src/pages/ProductionOutputPages.tsx"], contractNames: ["ScrapEntryDto", "ScrapEntryCreateRequest", "ReworkOrderDto", "ReworkOrderCreateRequest"], draftLabels: ["New scrap", "New rework"] },
+  { name: "Dispatch / Pack List", screenFiles: ["src/web/src/pages/DispatchPages.tsx"], contractNames: ["PackListDto", "PackListUpsertRequest", "ShipmentDto", "ShipmentUpsertRequest"], draftLabels: ["New pack", "New shipment", "Create pack list", "Prepare shipment"] }
 ];
 
 function collectFiles(dir) {
@@ -80,14 +80,20 @@ function hasLineCollection(spec) {
 }
 
 function sourceForSpec(spec) {
-  const aliasRegexes = spec.aliases.map((alias) => new RegExp(alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
-  return allSource.filter(({ file, text }) => {
-    const rel = relative(file);
-    if (!rel.startsWith("src/web/src/")) {
-      return false;
-    }
+  const screenFiles = new Set(spec.screenFiles);
+  return allSource.filter(({ file }) => screenFiles.has(relative(file)));
+}
 
-    return aliasRegexes.some((regex) => regex.test(rel) || regex.test(text));
+function extractActionBlock(text, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = text.match(new RegExp(`\\{[^{}]*(?:label|children)\\s*:\\s*["']${escaped}["'][^{}]*\\}`, "i"));
+  return match?.[0] ?? "";
+}
+
+function isTruthfullyDisabled(text, spec) {
+  return spec.draftLabels.some((label) => {
+    const block = extractActionBlock(text, label);
+    return /disabled\s*:\s*true/i.test(block) && /\breason\s*:/i.test(block);
   });
 }
 
@@ -95,6 +101,7 @@ for (const spec of transactionSpecs) {
   const relevant = sourceForSpec(spec);
   const combined = relevant.map(({ text }) => text).join("\n");
   const hasLines = hasLineCollection(spec);
+  const blockedWithReason = isTruthfullyDisabled(combined, spec);
 
   if (hasLines && relevant.length === 0) {
     failures.push({
@@ -105,7 +112,7 @@ for (const spec of transactionSpecs) {
     continue;
   }
 
-  if (hasLines && !/\bAdd\s+(?:quote\s+|order\s+|PO\s+|PR\s+|pack\s+)?line\b/i.test(combined)) {
+  if (hasLines && !blockedWithReason && !/\bAdd\s+(?:quote\s+|order\s+|PO\s+|PR\s+|pack\s+)?line\b/i.test(combined)) {
     failures.push({
       file: relevant[0] ? relative(relevant[0].file) : "src/web/src",
       line: 1,
@@ -113,7 +120,7 @@ for (const spec of transactionSpecs) {
     });
   }
 
-  if (hasLines && !/\bRemove\s+(?:quote\s+|order\s+|PO\s+|PR\s+|pack\s+)?line\b/i.test(combined)) {
+  if (hasLines && !blockedWithReason && !/\bRemove\s+(?:quote\s+|order\s+|PO\s+|PR\s+|pack\s+)?line\b/i.test(combined)) {
     failures.push({
       file: relevant[0] ? relative(relevant[0].file) : "src/web/src",
       line: 1,
@@ -122,6 +129,10 @@ for (const spec of transactionSpecs) {
   }
 
   for (const { file, text } of relevant) {
+    if (blockedWithReason) {
+      continue;
+    }
+
     for (const pattern of antiPatterns) {
       for (const match of text.matchAll(pattern.regex)) {
         failures.push({

@@ -9,6 +9,8 @@
 - `npm run audit:numeric-fields`
 - `npm run audit:action-truth`
 - `npm run audit:live-data-truth`
+- `npm run audit:upload-truth`
+- `npm run audit:menu-route-truth`
 - `npm run audit:erp-completion`
 - `npm test`
 
@@ -57,6 +59,22 @@ Script: `scripts/audit-live-data-truth.mjs`
 This gate fails when live authenticated operational experiences silently fall back to seeded/demo data. Covered areas include notifications, approvals, dashboards, work queues, planning alerts, production alerts, and dispatch alerts.
 
 Failure means live users may see operational-looking rows that are not trustworthy. Demo rows must be isolated to explicit demo/no-live sessions or replaced by a business-safe empty/unavailable state.
+
+### Upload Truth
+
+Script: `scripts/audit-upload-truth.mjs`
+
+This gate fails when upload, media, document, attachment, or proof actions are visible without a real handler/file control or a disabled reason. Navigation labels, KPI labels, and non-action metadata are ignored.
+
+Failure means the UI is implying a file workflow exists when the code cannot prove storage, preview, download, or an explicit business-safe disabled state.
+
+### Menu Route Truth
+
+Script: `scripts/audit-menu-route-truth.mjs`
+
+This gate compares `navigationItems` with guarded routes in `router.tsx`. It fails when a user-facing route is registered without a role-aware navigation mapping, or when navigation points to a missing route. Auth and help subroutes are excluded because they are entry or content pages reached from the Help Center.
+
+Failure means route/menu completeness or role-aware access mapping has drifted.
 
 ## Web Tests
 

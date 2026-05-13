@@ -41,6 +41,7 @@ import {
   ErpFilterBar,
   ErpGrid,
   ErpLookupField,
+  ErpMoneyField,
   ErpModalWorkspace,
   ErpNumberField,
   ErpStatusChip,
@@ -177,6 +178,8 @@ function buildDraftQuoteNo() {
 }
 
 function buildQuoteDraft(companyId: number, branchId: number): QuoteUpsertRequest {
+  const initialLine = buildQuoteDraftLine(10);
+
   return {
     companyId,
     branchId,
@@ -188,20 +191,22 @@ function buildQuoteDraft(companyId: number, branchId: number): QuoteUpsertReques
     priorityCode: "Medium",
     status: "Draft",
     customerSpecRef: "",
-    lines: [
-      {
-        lineNo: 10,
-        itemId: 0,
-        itemVariantId: null,
-        orderUomId: 0,
-        quantity: 1,
-        makeType: "Make",
-        promisedDate: addDaysIso(14),
-        priorityCode: "Medium",
-        customerSpecRef: "",
-        status: "Draft"
-      }
-    ]
+    lines: [initialLine]
+  };
+}
+
+function buildQuoteDraftLine(lineNo: number): QuoteUpsertRequest["lines"][number] {
+  return {
+    lineNo,
+    itemId: 0,
+    itemVariantId: null,
+    orderUomId: 0,
+    quantity: 1,
+    makeType: "Make",
+    promisedDate: addDaysIso(14),
+    priorityCode: "Medium",
+    customerSpecRef: "",
+    status: "Draft"
   };
 }
 
@@ -816,15 +821,17 @@ export function QuoteEstimateListPage() {
   const customerOptions = (customersQuery.data ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
   const itemOptions = (itemsQuery.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
   const uomOptions = (uomsQuery.data ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));
-  const draftLine = draft?.lines[0] ?? null;
   const validation = draft
     ? [
         !draft.quoteNo.trim() ? "Quote number is required." : "",
         !draft.customerId ? "Customer is required." : "",
         !draft.quoteDate ? "Quote date is required." : "",
-        !draftLine?.itemId ? "At least one quote line item is required." : "",
-        !draftLine?.orderUomId ? "Order UOM is required." : "",
-        draftLine && draftLine.quantity <= 0 ? "Line quantity must be greater than zero." : ""
+        draft.lines.length === 0 ? "At least one quote line item is required." : "",
+        ...draft.lines.flatMap((line, index) => [
+          !line.itemId ? `Line ${index + 1} item is required.` : "",
+          !line.orderUomId ? `Line ${index + 1} order UOM is required.` : "",
+          line.quantity <= 0 ? `Line ${index + 1} quantity must be greater than zero.` : ""
+        ])
       ].filter(Boolean)
     : [];
   const saveReason = !draft
@@ -857,12 +864,27 @@ export function QuoteEstimateListPage() {
     setSaveMessage(null);
   };
 
-  const updateLine = (patch: Partial<QuoteUpsertRequest["lines"][number]>) => {
+  const updateLine = (lineIndex: number, patch: Partial<QuoteUpsertRequest["lines"][number]>) => {
     setDraft((current) =>
       current
         ? {
             ...current,
-            lines: current.lines.map((line, index) => (index === 0 ? { ...line, ...patch } : line))
+            lines: current.lines.map((line, index) => (index === lineIndex ? { ...line, ...patch } : line))
+          }
+        : current
+    );
+  };
+
+  const addQuoteLine = () => {
+    setDraft((current) => current ? { ...current, lines: [...current.lines, buildQuoteDraftLine((current.lines.length + 1) * 10)] } : current);
+  };
+
+  const removeQuoteLine = (lineIndex: number) => {
+    setDraft((current) =>
+      current
+        ? {
+            ...current,
+            lines: current.lines.filter((_, index) => index !== lineIndex).map((line, index) => ({ ...line, lineNo: (index + 1) * 10 }))
           }
         : current
     );
@@ -934,18 +956,23 @@ export function QuoteEstimateListPage() {
                 <label><span>Customer spec reference</span><input onChange={(event) => setDraft({ ...draft, customerSpecRef: event.target.value })} value={draft.customerSpecRef ?? ""} /></label>
               </FormShell>
             </Card>
-            <Card title="First quote line" description="A quote draft needs one governed line before it can be saved.">
-              {draftLine ? (
-                <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${draftLine.lineNo}`} title="Line">
-                  <ErpLookupField label="Item" onChange={(value) => updateLine({ itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(draftLine.itemId || "")} />
-                  <ErpLookupField label="Order UOM" onChange={(value) => updateLine({ orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(draftLine.orderUomId || "")} />
-                  <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine({ quantity: value ?? 0 })} required scale={3} value={draftLine.quantity} />
-                  <ErpLookupField label="Make type" onChange={(value) => updateLine({ makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={draftLine.makeType} />
-                  <label><span>Promised date</span><input onChange={(event) => updateLine({ promisedDate: event.target.value || null })} type="date" value={draftLine.promisedDate ?? ""} /></label>
-                  <ErpLookupField label="Line priority" onChange={(value) => updateLine({ priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draftLine.priorityCode} />
-                  <ErpLookupField label="Line status" onChange={(value) => updateLine({ status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={draftLine.status} />
+            <Card title="Quote lines" description="Add every customer demand line before saving the quote draft.">
+              <ErpActionBar secondary={[{ label: "Add Line", onClick: addQuoteLine }]} />
+              {draft.lines.map((line, index) => (
+                <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
+                  <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
+                  <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} />
+                  <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} />
+                  <ErpMoneyField disabled disabledReason="Quote pricing save requires the commercial pricing engine to be enabled for quote lines." label="Unit price" onChange={() => undefined} value={null} />
+                  <ErpDecimalField disabled disabledReason="Quote line discount save requires the commercial pricing engine to be enabled for quote lines." label="Discount %" onChange={() => undefined} scale={2} unit="%" value={null} />
+                  <ErpDecimalField disabled disabledReason="Quote tax calculation requires the approved tax engine for quote lines." label="Tax %" onChange={() => undefined} scale={2} unit="%" value={null} />
+                  <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} />
+                  <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label>
+                  <ErpLookupField label="Line priority" onChange={(value) => updateLine(index, { priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={line.priorityCode} />
+                  <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={line.status} />
+                  <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeQuoteLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one quote line is required." : undefined }]} />
                 </FormShell>
-              ) : null}
+              ))}
             </Card>
           </div>
         ) : null}

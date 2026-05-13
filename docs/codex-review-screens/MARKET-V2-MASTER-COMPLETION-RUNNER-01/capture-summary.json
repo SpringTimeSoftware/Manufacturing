@@ -1,0 +1,45 @@
+{
+  "wave_id": "MARKET-V2-MASTER-COMPLETION-RUNNER-01",
+  "screenshot_mode": "top_only",
+  "captures": [
+    {
+      "route": "/sales/quotes",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\MARKET-V2-MASTER-COMPLETION-RUNNER-01\\quote-list-top.png"
+      ]
+    },
+    {
+      "route": "/procurement/requisitions",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\MARKET-V2-MASTER-COMPLETION-RUNNER-01\\purchase-requisition-list-top.png"
+      ]
+    },
+    {
+      "route": "/procurement/purchase-orders",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\MARKET-V2-MASTER-COMPLETION-RUNNER-01\\purchase-order-list-top.png"
+      ]
+    },
+    {
+      "route": "/sales/quotes",
+      "modal": "New quote draft",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\MARKET-V2-MASTER-COMPLETION-RUNNER-01\\quote-draft-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/procurement/requisitions",
+      "modal": "New PR draft",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\MARKET-V2-MASTER-COMPLETION-RUNNER-01\\purchase-requisition-draft-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/procurement/purchase-orders",
+      "modal": "New PO draft",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\MARKET-V2-MASTER-COMPLETION-RUNNER-01\\purchase-order-draft-modal-overview.png"
+      ]
+    }
+  ]
+}

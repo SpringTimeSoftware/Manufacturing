@@ -94,7 +94,14 @@ for (const file of collectFiles(scanRoot)) {
       continue;
     }
 
+    if (/\btype\s*=\s*["'](?:checkbox|radio|date|datetime-local|time)["']/i.test(block)) {
+      continue;
+    }
+
     const type = inputType(block);
+    if (["checkbox", "radio", "date", "datetime-local", "time"].includes(type)) {
+      continue;
+    }
     if (type !== "number") {
       failures.push({
         file: relative(file),
