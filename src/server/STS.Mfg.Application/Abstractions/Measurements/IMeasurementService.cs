@@ -34,6 +34,11 @@ public interface IMeasurementService
     Task<ItemDto> UpdateItemAsync(long id, ItemUpsertRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<ItemLookupDto>> LookupItemsAsync(long? companyId, string? search, CancellationToken cancellationToken = default);
 
+    Task<PagedResult<ItemAttributeDto>> ListItemAttributesAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default);
+    Task<ItemAttributeDto> GetItemAttributeAsync(long id, CancellationToken cancellationToken = default);
+    Task<ItemAttributeDto> CreateItemAttributeAsync(ItemAttributeUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<ItemAttributeDto> UpdateItemAttributeAsync(long id, ItemAttributeUpsertRequest request, CancellationToken cancellationToken = default);
+
     Task<PagedResult<ItemVariantDto>> ListItemVariantsAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default);
     Task<ItemVariantDto> CreateItemVariantAsync(ItemVariantUpsertRequest request, CancellationToken cancellationToken = default);
     Task<ItemVariantDto> UpdateItemVariantAsync(long id, ItemVariantUpsertRequest request, CancellationToken cancellationToken = default);

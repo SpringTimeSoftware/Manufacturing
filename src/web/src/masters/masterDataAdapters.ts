@@ -8,6 +8,8 @@ import type {
   CustomerUpsertRequest,
   ItemBarcodeDto,
   ItemDto,
+  ItemAttributeDto,
+  ItemAttributeUpsertRequest,
   ItemMasterProfileDto,
   ItemMasterProfileUpsertRequest,
   ItemUpsertRequest,
@@ -108,14 +110,28 @@ export interface ItemGroupSetupItem {
   source: MasterDataSource;
 }
 
-export interface ItemAttributeSetupItem {
+export interface ItemAttributeAllowedValueSetupItem {
   id: string;
+  valueId: number;
   code: string;
   name: string;
+  sortOrder: number;
+  status: string;
+}
+
+export interface ItemAttributeSetupItem {
+  id: string;
+  attributeId: number;
+  companyId: number | null;
+  code: string;
+  name: string;
+  dataType: string;
+  unitUomId: number | null;
   valueCount: number;
   sampleValues: string;
   usedForVariants: boolean;
   status: string;
+  values: ItemAttributeAllowedValueSetupItem[];
   source: MasterDataSource;
 }
 
@@ -752,32 +768,62 @@ const seededItemGroups: ItemGroupSetupItem[] = [
 const seededItemAttributes: ItemAttributeSetupItem[] = [
   {
     id: "attr-thickness",
+    attributeId: 9001,
+    companyId: 1,
     code: "THICKNESS",
     name: "Thickness",
+    dataType: "List",
+    unitUomId: null,
     valueCount: 4,
     sampleValues: "3mm, 6mm, 8mm, 10mm",
     usedForVariants: true,
     status: "Active",
+    values: [
+      { id: "attr-thickness-3mm", valueId: 9101, code: "3MM", name: "3mm", sortOrder: 10, status: "Active" },
+      { id: "attr-thickness-6mm", valueId: 9102, code: "6MM", name: "6mm", sortOrder: 20, status: "Active" },
+      { id: "attr-thickness-8mm", valueId: 9103, code: "8MM", name: "8mm", sortOrder: 30, status: "Active" },
+      { id: "attr-thickness-10mm", valueId: 9104, code: "10MM", name: "10mm", sortOrder: 40, status: "Active" }
+    ],
     source: "Deferred"
   },
   {
     id: "attr-finish",
+    attributeId: 9002,
+    companyId: 1,
     code: "FINISH",
     name: "Surface Finish",
+    dataType: "List",
+    unitUomId: null,
     valueCount: 3,
     sampleValues: "Brushed, Painted, Powder coated",
     usedForVariants: true,
     status: "Active",
+    values: [
+      { id: "attr-finish-brushed", valueId: 9201, code: "BRUSHED", name: "Brushed", sortOrder: 10, status: "Active" },
+      { id: "attr-finish-painted", valueId: 9202, code: "PAINTED", name: "Painted", sortOrder: 20, status: "Active" },
+      { id: "attr-finish-powder", valueId: 9203, code: "POWDER-COATED", name: "Powder coated", sortOrder: 30, status: "Active" }
+    ],
     source: "Deferred"
   },
   {
     id: "attr-grade",
+    attributeId: 9003,
+    companyId: 1,
     code: "GRADE",
     name: "Material Grade",
+    dataType: "List",
+    unitUomId: null,
     valueCount: 5,
     sampleValues: "SS304, SS316, MS, EN8",
     usedForVariants: true,
     status: "Draft",
+    values: [
+      { id: "attr-grade-ss304", valueId: 9301, code: "SS304", name: "SS304", sortOrder: 10, status: "Active" },
+      { id: "attr-grade-ss316", valueId: 9302, code: "SS316", name: "SS316", sortOrder: 20, status: "Active" },
+      { id: "attr-grade-ms", valueId: 9303, code: "MS", name: "MS", sortOrder: 30, status: "Active" },
+      { id: "attr-grade-en8", valueId: 9304, code: "EN8", name: "EN8", sortOrder: 40, status: "Active" },
+      { id: "attr-grade-al", valueId: 9305, code: "AL", name: "Aluminium", sortOrder: 50, status: "Draft" }
+    ],
     source: "Deferred"
   }
 ];
@@ -2106,6 +2152,37 @@ function mapMeasurementFormula(dto: MeasurementFormulaDto, uoms: UomDto[], sourc
   };
 }
 
+function mapItemAttribute(dto: ItemAttributeDto, source: MasterDataSource): ItemAttributeSetupItem {
+  const values = dto.values
+    .slice()
+    .sort((left, right) => left.sortOrder - right.sortOrder || left.attributeValueCode.localeCompare(right.attributeValueCode))
+    .map((value) => ({
+      id: `item-attribute-value-${value.id}`,
+      valueId: value.id,
+      code: value.attributeValueCode,
+      name: value.attributeValueName,
+      sortOrder: value.sortOrder,
+      status: value.status
+    }));
+  const sampleValues = values.slice(0, 5).map((value) => value.name).join(", ");
+
+  return {
+    id: `item-attribute-${dto.id}`,
+    attributeId: dto.id,
+    companyId: dto.companyId,
+    code: dto.attributeCode,
+    name: dto.attributeName,
+    dataType: dto.dataType,
+    unitUomId: dto.unitUomId,
+    valueCount: values.length,
+    sampleValues,
+    usedForVariants: dto.isVariantAxis,
+    status: dto.status,
+    values,
+    source
+  };
+}
+
 function mapItem(dto: ItemDto, uoms: UomDto[], profiles: MeasurementProfileSetupItem[], source: MasterDataSource): ItemMasterSetupItem {
   return enrichItem({
     id: `item-${dto.id}`,
@@ -2744,8 +2821,59 @@ export async function listItemGroupSetup(filter: QueryFilter): Promise<ItemGroup
   return filterSeeded(seededItemGroups, filter, (item) => `${item.code} ${item.name} ${item.reportingBucket}`);
 }
 
-export async function listItemAttributeSetup(filter: QueryFilter): Promise<ItemAttributeSetupItem[]> {
-  return filterSeeded(seededItemAttributes, filter, (item) => `${item.code} ${item.name} ${item.sampleValues}`);
+export async function listItemAttributeSetup(
+  session: AuthSessionResponse | null | undefined,
+  filter: QueryFilter
+): Promise<ItemAttributeSetupItem[]> {
+  if (!hasLiveSession(session)) {
+    return filterSeeded(seededItemAttributes, filter, (item) => `${item.code} ${item.name} ${item.sampleValues}`);
+  }
+
+  try {
+    const response = await apiClient.masters.itemAttributes(filter);
+    return response.items.map((item) => mapItemAttribute(item, "Live"));
+  } catch {
+    throw liveDataUnavailable("Item attribute");
+  }
+}
+
+export function buildItemAttributeRequest(attribute: ItemAttributeSetupItem, fallbackCompanyId: number | null | undefined): ItemAttributeUpsertRequest {
+  return {
+    companyId: attribute.companyId ?? fallbackCompanyId ?? null,
+    attributeCode: attribute.code,
+    attributeName: attribute.name,
+    dataType: attribute.dataType,
+    isVariantAxis: attribute.usedForVariants,
+    unitUomId: attribute.unitUomId,
+    status: attribute.status,
+    values: attribute.values
+      .filter((value) => value.code.trim().length > 0 || value.name.trim().length > 0)
+      .map((value, index) => ({
+        id: value.valueId > 0 ? value.valueId : null,
+        attributeValueCode: value.code,
+        attributeValueName: value.name,
+        sortOrder: Number.isFinite(value.sortOrder) ? value.sortOrder : (index + 1) * 10,
+        status: value.status
+      }))
+  };
+}
+
+export async function saveItemAttributeSetup(
+  session: AuthSessionResponse | null | undefined,
+  attribute: ItemAttributeSetupItem,
+  fallbackCompanyId: number | null | undefined
+): Promise<ItemAttributeSetupItem> {
+  if (!hasLiveSession(session)) {
+    throw new Error("Sign in with item attribute write access to save value-set changes.");
+  }
+
+  const request = buildItemAttributeRequest(attribute, fallbackCompanyId);
+  const response =
+    attribute.attributeId > 0
+      ? await apiClient.masters.updateItemAttribute(attribute.attributeId, request)
+      : await apiClient.masters.createItemAttribute(request);
+
+  return mapItemAttribute(response, "Live");
 }
 
 export async function listReasonCodeSetup(filter: QueryFilter): Promise<ReasonCodeSetupItem[]> {

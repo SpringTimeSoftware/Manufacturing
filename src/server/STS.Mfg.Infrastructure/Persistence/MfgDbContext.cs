@@ -46,6 +46,8 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<MeasurementFormula> MeasurementFormulas => Set<MeasurementFormula>();
 
     public DbSet<ItemGroup> ItemGroups => Set<ItemGroup>();
+    public DbSet<ItemAttribute> ItemAttributes => Set<ItemAttribute>();
+    public DbSet<ItemAttributeValue> ItemAttributeValues => Set<ItemAttributeValue>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemVariant> ItemVariants => Set<ItemVariant>();
     public DbSet<ItemUom> ItemUoms => Set<ItemUom>();

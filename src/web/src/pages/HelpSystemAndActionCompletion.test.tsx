@@ -86,9 +86,9 @@ describe("HELP-SYSTEM-AND-ACTION-COMPLETION-01", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Attribute detail" });
     expect(within(dialog).getByRole("button", { name: "Save attribute draft" })).toBeDisabled();
-    expect(within(dialog).getByText("Save is not enabled for this setup workflow yet.")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Add allowed value" })).toBeDisabled();
-    expect(within(dialog).getByText("Allowed-value maintenance is disabled until value versioning and item-usage checks are enabled.")).toBeInTheDocument();
+    expect(within(dialog).getByText("Sign in with item attribute write access to save value-set changes.")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add allowed value" }));
+    expect(within(dialog).getByLabelText("Allowed value 1 code")).toBeInTheDocument();
   });
 
   it("keeps quick help grounded and returns a bounded answer when content is missing", () => {

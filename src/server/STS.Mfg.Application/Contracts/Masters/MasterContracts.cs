@@ -63,6 +63,42 @@ public sealed record ItemUpsertRequest(
 
 public sealed record ItemLookupDto(long Id, string ItemCode, string ItemName, string ItemType, string Status);
 
+public sealed record ItemAttributeDto(
+    long Id,
+    long? CompanyId,
+    string AttributeCode,
+    string AttributeName,
+    string DataType,
+    bool IsVariantAxis,
+    long? UnitUomId,
+    string Status,
+    IReadOnlyCollection<ItemAttributeValueDto> Values);
+
+public sealed record ItemAttributeUpsertRequest(
+    long? CompanyId,
+    string AttributeCode,
+    string AttributeName,
+    string DataType,
+    bool IsVariantAxis,
+    long? UnitUomId,
+    string Status,
+    IReadOnlyCollection<ItemAttributeValueUpsertRequest> Values);
+
+public sealed record ItemAttributeValueDto(
+    long Id,
+    long ItemAttributeId,
+    string AttributeValueCode,
+    string AttributeValueName,
+    int SortOrder,
+    string Status);
+
+public sealed record ItemAttributeValueUpsertRequest(
+    long? Id,
+    string AttributeValueCode,
+    string AttributeValueName,
+    int SortOrder,
+    string Status);
+
 public sealed record ItemVariantDto(
     long Id,
     long CompanyId,

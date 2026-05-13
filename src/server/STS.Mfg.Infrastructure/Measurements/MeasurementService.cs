@@ -541,6 +541,95 @@ internal sealed class MeasurementService(
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<PagedResult<ItemAttributeDto>> ListItemAttributesAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.ItemAttributes.AsNoTracking().ApplyCompanyScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        query = ApplyItemAttributeFilters(query, filter);
+
+        var page = await query.OrderBy(entity => entity.AttributeCode).ToPagedResultAsync(filter, cancellationToken);
+        var attributeIds = page.Items.Select(attribute => attribute.Id).ToArray();
+        var values = await DbContext.ItemAttributeValues.AsNoTracking()
+            .Where(value => attributeIds.Contains(value.ItemAttributeId))
+            .OrderBy(value => value.SortOrder)
+            .ThenBy(value => value.AttributeValueCode)
+            .ToArrayAsync(cancellationToken);
+        var valuesByAttribute = values.GroupBy(value => value.ItemAttributeId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyCollection<ItemAttributeValueDto>)group.Select(MapItemAttributeValue).ToArray());
+
+        return MapPage(page, attribute => MapItemAttribute(attribute, valuesByAttribute.GetValueOrDefault(attribute.Id) ?? Array.Empty<ItemAttributeValueDto>()));
+    }
+
+    public async Task<ItemAttributeDto> GetItemAttributeAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.ItemAttributes.AsNoTracking()
+            .ApplyCompanyScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "Item attribute was not found in the active scope.", "master.itemattribute_not_found");
+
+        var valueEntities = await DbContext.ItemAttributeValues.AsNoTracking()
+            .Where(value => value.ItemAttributeId == id)
+            .OrderBy(value => value.SortOrder)
+            .ThenBy(value => value.AttributeValueCode)
+            .ToArrayAsync(cancellationToken);
+
+        return MapItemAttribute(entity, valueEntities.Select(MapItemAttributeValue).ToArray());
+    }
+
+    public async Task<ItemAttributeDto> CreateItemAttributeAsync(ItemAttributeUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateItemAttribute(request);
+        EnsureContextAccess(request.CompanyId, null);
+
+        var entity = ItemAttribute.Create(
+            request.CompanyId,
+            request.AttributeCode,
+            request.AttributeName,
+            request.DataType,
+            request.IsVariantAxis,
+            request.UnitUomId,
+            request.Status,
+            GetUserId());
+
+        DbContext.ItemAttributes.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        await ReplaceItemAttributeValuesAsync(entity.Id, request.Values, GetUserId(), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = await GetItemAttributeAsync(entity.Id, cancellationToken);
+        await WriteAuditAsync("masters", nameof(ItemAttribute), "itemattribute.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<ItemAttributeDto> UpdateItemAttributeAsync(long id, ItemAttributeUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateItemAttribute(request);
+
+        var scope = GetScope();
+        var entity = await DbContext.ItemAttributes.ApplyCompanyScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Item attribute was not found in the active scope.", "master.itemattribute_not_found");
+        ThrowIfInvalid(Immutable(entity.CompanyId, request.CompanyId, nameof(request.CompanyId), "Attribute company cannot be changed."));
+
+        var before = await GetItemAttributeAsync(id, cancellationToken);
+        entity.Update(request.AttributeCode, request.AttributeName, request.DataType, request.IsVariantAxis, request.UnitUomId, request.Status, GetUserId());
+        await ReplaceItemAttributeValuesAsync(entity.Id, request.Values, GetUserId(), cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = await GetItemAttributeAsync(id, cancellationToken);
+        await WriteAuditAsync("masters", nameof(ItemAttribute), "itemattribute.update", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
     public async Task<PagedResult<ItemVariantDto>> ListItemVariantsAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default)
     {
         var scope = GetScope();
@@ -815,6 +904,26 @@ internal sealed class MeasurementService(
             .FirstOrDefaultAsync(record => record.Id == itemId, cancellationToken);
 
         return EnsureFound(entity, "Parent item was not found in the active scope.", "master.item_not_found");
+    }
+
+    private async Task ReplaceItemAttributeValuesAsync(long itemAttributeId, IReadOnlyCollection<ItemAttributeValueUpsertRequest> requests, long? userId, CancellationToken cancellationToken)
+    {
+        var existing = await DbContext.ItemAttributeValues
+            .Where(entity => entity.ItemAttributeId == itemAttributeId)
+            .ToArrayAsync(cancellationToken);
+
+        DbContext.ItemAttributeValues.RemoveRange(existing);
+
+        foreach (var request in requests.Where(entry => !string.IsNullOrWhiteSpace(entry.AttributeValueCode)))
+        {
+            DbContext.ItemAttributeValues.Add(ItemAttributeValue.Create(
+                itemAttributeId,
+                request.AttributeValueCode,
+                request.AttributeValueName,
+                request.SortOrder,
+                request.Status,
+                userId));
+        }
     }
 
     private async Task ReplaceItemAliasesAsync(long companyId, long itemId, IReadOnlyCollection<ItemAliasUpsertRequest> requests, long? userId, CancellationToken cancellationToken)
@@ -1145,6 +1254,26 @@ internal sealed class MeasurementService(
         return query;
     }
 
+    private static IQueryable<ItemAttribute> ApplyItemAttributeFilters(IQueryable<ItemAttribute> query, CompanyScopedFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity =>
+                entity.AttributeCode.Contains(search) ||
+                entity.AttributeName.Contains(search) ||
+                entity.DataType.Contains(search));
+        }
+
+        return query;
+    }
+
     private static void ValidateUomClass(UomClassUpsertRequest request) =>
         ThrowIfInvalid(
             Required(request.ClassCode, nameof(request.ClassCode), "Class code is required."),
@@ -1270,6 +1399,32 @@ internal sealed class MeasurementService(
             Required(request.Status, nameof(request.Status), "Status is required."),
             NonNegative(request.LeadTimeDays, nameof(request.LeadTimeDays), "Lead time cannot be negative."));
 
+    private static void ValidateItemAttribute(ItemAttributeUpsertRequest request)
+    {
+        var errors = new List<ApiError?>
+        {
+            Required(request.AttributeCode, nameof(request.AttributeCode), "Attribute code is required."),
+            Required(request.AttributeName, nameof(request.AttributeName), "Attribute name is required."),
+            Required(request.DataType, nameof(request.DataType), "Data type is required."),
+            Required(request.Status, nameof(request.Status), "Status is required.")
+        };
+
+        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var value in request.Values.Where(entry => !string.IsNullOrWhiteSpace(entry.AttributeValueCode)))
+        {
+            errors.Add(Required(value.AttributeValueName, nameof(value.AttributeValueName), "Allowed value name is required."));
+            errors.Add(Required(value.Status, nameof(value.Status), "Allowed value status is required."));
+            errors.Add(NonNegative(value.SortOrder, nameof(value.SortOrder), "Allowed value sort order cannot be negative."));
+
+            if (!seenCodes.Add(value.AttributeValueCode.Trim()))
+            {
+                errors.Add(new ApiError("validation.duplicate", nameof(value.AttributeValueCode), "Allowed value codes must be unique within the attribute."));
+            }
+        }
+
+        ThrowIfInvalid(errors);
+    }
+
     private static void ValidateItemVariant(ItemVariantUpsertRequest request) =>
         ThrowIfInvalid(
             Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
@@ -1356,6 +1511,21 @@ internal sealed class MeasurementService(
             entity.LeadTimeDays,
             entity.ReorderPolicy,
             entity.Status);
+
+    private static ItemAttributeDto MapItemAttribute(ItemAttribute entity, IReadOnlyCollection<ItemAttributeValueDto> values) =>
+        new(
+            entity.Id,
+            entity.CompanyId,
+            entity.AttributeCode,
+            entity.AttributeName,
+            entity.DataType,
+            entity.IsVariantAxis,
+            entity.UnitUomId,
+            entity.Status,
+            values);
+
+    private static ItemAttributeValueDto MapItemAttributeValue(ItemAttributeValue entity) =>
+        new(entity.Id, entity.ItemAttributeId, entity.AttributeValueCode, entity.AttributeValueName, entity.SortOrder, entity.Status);
 
     private static ItemVariantDto MapItemVariant(ItemVariant entity) =>
         new(

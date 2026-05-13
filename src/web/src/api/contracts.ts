@@ -868,6 +868,46 @@ export interface ItemLookupDto {
   status: string;
 }
 
+export interface ItemAttributeValueDto {
+  id: number;
+  itemAttributeId: number;
+  attributeValueCode: string;
+  attributeValueName: string;
+  sortOrder: number;
+  status: string;
+}
+
+export interface ItemAttributeDto {
+  id: number;
+  companyId: number | null;
+  attributeCode: string;
+  attributeName: string;
+  dataType: string;
+  isVariantAxis: boolean;
+  unitUomId: number | null;
+  status: string;
+  values: ItemAttributeValueDto[];
+}
+
+export interface ItemAttributeValueUpsertRequest {
+  id?: number | null;
+  attributeValueCode: string;
+  attributeValueName: string;
+  sortOrder: number;
+  status: string;
+}
+
+export interface ItemAttributeUpsertRequest {
+  companyId?: number | null;
+  attributeCode: string;
+  attributeName: string;
+  dataType: string;
+  isVariantAxis: boolean;
+  unitUomId?: number | null;
+  status: string;
+  values: ItemAttributeValueUpsertRequest[];
+}
+
 export interface ItemVariantDto {
   id: number;
   companyId: number;

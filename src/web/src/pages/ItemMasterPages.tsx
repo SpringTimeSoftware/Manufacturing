@@ -13,9 +13,11 @@ import {
   listItemMasterSetup,
   listItemVariantSetup,
   listReasonCodeSetup,
+  saveItemAttributeSetup,
   updateItemMasterCore,
   updateItemMasterProfile,
   type BarcodeSetupItem,
+  type ItemAttributeAllowedValueSetupItem,
   type ItemAttributeSetupItem,
   type ItemGroupSetupItem,
   type ItemMasterSetupItem,
@@ -364,14 +366,76 @@ function buildItemGroupDraft(records: ItemGroupSetupItem[]): ItemGroupSetupItem 
 function buildItemAttributeDraft(): ItemAttributeSetupItem {
   return {
     id: newItemAttributeDraftId,
+    attributeId: 0,
+    companyId: null,
     code: "",
     name: "",
+    dataType: "List",
+    unitUomId: null,
     sampleValues: "",
     valueCount: 0,
     usedForVariants: false,
     status: "Draft",
+    values: [],
     source: "Deferred"
   };
+}
+
+function cloneItemAttribute(attribute: ItemAttributeSetupItem): ItemAttributeSetupItem {
+  return {
+    ...attribute,
+    values: attribute.values.map((value) => ({ ...value }))
+  };
+}
+
+function buildAllowedValueDraft(values: ItemAttributeAllowedValueSetupItem[]): ItemAttributeAllowedValueSetupItem {
+  const nextSortOrder = values.length > 0 ? Math.max(...values.map((value) => value.sortOrder)) + 10 : 10;
+  return {
+    id: `new-attribute-value-${Date.now()}-${values.length}`,
+    valueId: 0,
+    code: "",
+    name: "",
+    sortOrder: nextSortOrder,
+    status: "Draft"
+  };
+}
+
+function itemAttributeValidation(attribute: ItemAttributeSetupItem) {
+  const errors: string[] = [];
+  if (!attribute.code.trim()) {
+    errors.push("Attribute code is required.");
+  }
+  if (!attribute.name.trim()) {
+    errors.push("Attribute name is required.");
+  }
+  if (!attribute.dataType.trim()) {
+    errors.push("Data type is required.");
+  }
+  if (!attribute.status.trim()) {
+    errors.push("Status is required.");
+  }
+
+  const seenCodes = new Set<string>();
+  attribute.values
+    .filter((value) => value.code.trim() || value.name.trim())
+    .forEach((value) => {
+      if (!value.code.trim()) {
+        errors.push("Allowed value code is required.");
+      }
+      if (!value.name.trim()) {
+        errors.push("Allowed value name is required.");
+      }
+      if (value.sortOrder < 0) {
+        errors.push("Allowed value order cannot be negative.");
+      }
+      const normalized = value.code.trim().toLowerCase();
+      if (normalized && seenCodes.has(normalized)) {
+        errors.push(`Allowed value ${value.code} is duplicated.`);
+      }
+      seenCodes.add(normalized);
+    });
+
+  return errors;
 }
 
 function buildReasonDraft(): ReasonCodeSetupItem {
@@ -530,30 +594,89 @@ export function ItemGroupMasterPage() {
 }
 
 export function ItemAttributeMasterPage() {
+  const { session } = useAuth();
   const { deferredSearch, filter, search, setSearch, setStatus, status, user } = useCommonFilter();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editorDraft, setEditorDraft] = useState<ItemAttributeSetupItem | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveTone, setSaveTone] = useState<"success" | "error" | "info">("info");
   const query = useApiQuery(
     queryKeys.masters.itemAttributes(user?.activeContext.companyId, deferredSearch, status),
-    () => listItemAttributeSetup(filter),
+    () => listItemAttributeSetup(session, filter),
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const selected = selectedId === newItemAttributeDraftId ? buildItemAttributeDraft() : records.find((record) => record.id === selectedId) ?? null;
+  const source = records[0]?.source ?? "Deferred";
+  const selected = editorDraft;
+  const persistenceReady = canPersistMasterData(session);
+  const validationErrors = selected ? itemAttributeValidation(selected) : [];
+  const saveDisabledReason = !persistenceReady
+    ? "Sign in with item attribute write access to save value-set changes."
+    : isSaving
+      ? "Attribute values are being saved."
+      : validationErrors.length > 0
+        ? validationErrors[0]
+        : undefined;
+
+  const openCreateEditor = () => {
+    setEditorDraft({ ...buildItemAttributeDraft(), companyId: user?.activeContext.companyId ?? null });
+    setSaveMessage(null);
+    setSaveTone("info");
+  };
+
+  const openEditEditor = (record: ItemAttributeSetupItem) => {
+    setEditorDraft(cloneItemAttribute(record));
+    setSaveMessage(null);
+    setSaveTone("info");
+  };
+
+  const updateEditor = (updater: (attribute: ItemAttributeSetupItem) => ItemAttributeSetupItem) => {
+    setEditorDraft((current) => (current ? updater(current) : current));
+  };
+
+  const saveEditor = async () => {
+    if (!selected || isSaving || saveDisabledReason) {
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage("Saving item attribute value set...");
+    setSaveTone("info");
+
+    try {
+      const saved = await saveItemAttributeSetup(session, selected, user?.activeContext.companyId);
+      await query.refetch();
+      setEditorDraft(cloneItemAttribute(saved));
+      setSaveMessage("Item attribute value set saved.");
+      setSaveTone("success");
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? [error.message, ...error.details.filter((detail) => detail !== error.message)].join(" ")
+          : error instanceof Error
+            ? error.message
+            : "Unable to save item attribute values.";
+      setSaveMessage(message);
+      setSaveTone("error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <>
       <ListPageShell
         actions={
           <>
-            <SourceBadge source="Deferred" />
-            <MasterPageActionBar exportLabel="Export attributes" onCreate={() => setSelectedId(newItemAttributeDraftId)} primaryLabel="New attribute draft" testId="item-attribute-action-bar" />
+            <SourceBadge source={source} />
+            <MasterPageActionBar exportLabel="Export attributes" onCreate={openCreateEditor} primaryLabel="New attribute draft" testId="item-attribute-action-bar" />
           </>
         }
         aside={
           <MasterAside
-            description="Use attributes to organize item specifications and comparison filters."
-            endpoint="Deferred: item attribute API"
-            source="Deferred"
+            description="Use attributes to organize controlled item specifications, variant axes, and comparison filters."
+            endpoint="/api/item-attributes"
+            source={source}
           />
         }
         description="Variant-driving item attributes such as size, grade, color, thickness, GSM, and finish."
@@ -587,7 +710,7 @@ export function ItemAttributeMasterPage() {
             columns={attributeColumns}
             getRowId={(record) => record.id}
             isLoading={query.isLoading}
-            onRowSelect={(record) => setSelectedId(record.id)}
+            onRowSelect={openEditEditor}
             records={records}
             rowLabel={(record) => `${record.code} item attribute`}
             testId="item-attribute-grid"
@@ -595,42 +718,155 @@ export function ItemAttributeMasterPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Attribute detail keeps variant-driving values controlled by the master-data process."
-        footer={<MasterModalFooter onClose={() => setSelectedId(null)} saveLabel="Save attribute draft" />}
+        description="Maintain controlled values that item variants, filters, and specifications can reuse."
+        footer={
+          <ErpActionBar
+            primary={[{ disabled: Boolean(saveDisabledReason), label: "Save attribute draft", onClick: saveEditor, reason: saveDisabledReason }]}
+            secondary={[
+              { disabled: true, label: "Inactivate / activate", reason: "Lifecycle changes require item-usage checks before activation." },
+              { disabled: true, label: "Review audit", reason: "Audit history is available after live attribute changes are recorded." }
+            ]}
+            utility={[{ label: "Close", onClick: () => setEditorDraft(null), variant: "quiet" }]}
+          />
+        }
         isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
+        onClose={() => setEditorDraft(null)}
         title={selected?.name || "Attribute detail"}
       >
         {selected ? (
           <>
-            <ErpActionBar secondary={[{ disabled: true, label: "Add allowed value", reason: "Allowed-value maintenance is disabled until value versioning and item-usage checks are enabled." }]} />
+            {saveMessage ? (
+              <div className={`form-message form-message--${saveTone}`} role="status">
+                {saveMessage}
+              </div>
+            ) : null}
+            <ErpActionBar
+              secondary={[
+                {
+                  label: "Add allowed value",
+                  onClick: () =>
+                    updateEditor((attribute) => ({
+                      ...attribute,
+                      values: [...attribute.values, buildAllowedValueDraft(attribute.values)]
+                    }))
+                }
+              ]}
+            />
             <FormShell initialFingerprint={selected.id} title="Attribute setup">
               <label>
                 <span>Attribute code</span>
-                <input defaultValue={selected.code} />
+                <input
+                  aria-label="Attribute code"
+                  onChange={(event) => updateEditor((attribute) => ({ ...attribute, code: event.target.value }))}
+                  value={selected.code}
+                />
               </label>
               <label>
                 <span>Attribute name</span>
-                <input defaultValue={selected.name} />
+                <input
+                  aria-label="Attribute name"
+                  onChange={(event) => updateEditor((attribute) => ({ ...attribute, name: event.target.value }))}
+                  value={selected.name}
+                />
               </label>
               <ErpLookupField
                 label="Data type"
-                onChange={() => undefined}
-                options={["Text", "Number", "Decimal", "Date", "Boolean", "Lookup"].map((value) => ({ label: value, value }))}
-                value="Text"
+                onChange={(value) => updateEditor((attribute) => ({ ...attribute, dataType: value }))}
+                options={["Text", "Number", "Decimal", "Date", "Boolean", "List"].map((value) => ({ label: value, value }))}
+                value={selected.dataType}
               />
               <ErpLookupField
                 label="Status"
-                onChange={() => undefined}
+                onChange={(value) => updateEditor((attribute) => ({ ...attribute, status: value }))}
                 options={["Active", "Draft", "Inactive"].map((value) => ({ label: value, value }))}
                 value={selected.status}
               />
-              <ErpNumberField disabled disabledReason="Allowed-value count is calculated from the attribute registry." label="Allowed values" onChange={() => undefined} value={selected.valueCount} />
-              <label>
-                <span>Sample values</span>
-                <textarea defaultValue={selected.sampleValues} rows={3} />
+              <label className="form-checkbox">
+                <input
+                  checked={selected.usedForVariants}
+                  onChange={(event) => updateEditor((attribute) => ({ ...attribute, usedForVariants: event.target.checked }))}
+                  type="checkbox"
+                />
+                <span>Use as variant axis</span>
               </label>
+              <ErpNumberField disabled disabledReason="Allowed-value count is calculated from the maintained value rows." label="Allowed values" onChange={() => undefined} value={selected.values.length} />
             </FormShell>
+            <Card title="Allowed values" description="Codes are unique within the attribute and ordered for variant and item-entry selectors.">
+              <div className="utility-grid">
+                {selected.values.length === 0 ? (
+                  <div className="empty-state">
+                    <strong>No allowed values yet</strong>
+                    <p>Add value rows for list-based attributes before using them as variant axes.</p>
+                  </div>
+                ) : (
+                  selected.values.map((value, index) => (
+                    <div className="notification-item" key={value.id}>
+                      <div className="form-grid">
+                        <label>
+                          <span>Value code</span>
+                          <input
+                            aria-label={`Allowed value ${index + 1} code`}
+                            onChange={(event) =>
+                              updateEditor((attribute) => ({
+                                ...attribute,
+                                values: attribute.values.map((entry) => entry.id === value.id ? { ...entry, code: event.target.value } : entry)
+                              }))
+                            }
+                            value={value.code}
+                          />
+                        </label>
+                        <label>
+                          <span>Value name</span>
+                          <input
+                            aria-label={`Allowed value ${index + 1} name`}
+                            onChange={(event) =>
+                              updateEditor((attribute) => ({
+                                ...attribute,
+                                values: attribute.values.map((entry) => entry.id === value.id ? { ...entry, name: event.target.value } : entry)
+                              }))
+                            }
+                            value={value.name}
+                          />
+                        </label>
+                        <ErpNumberField
+                          label="Sort order"
+                          onChange={(nextValue) =>
+                            updateEditor((attribute) => ({
+                              ...attribute,
+                              values: attribute.values.map((entry) => entry.id === value.id ? { ...entry, sortOrder: nextValue ?? 0 } : entry)
+                            }))
+                          }
+                          value={value.sortOrder}
+                        />
+                        <ErpLookupField
+                          label="Value status"
+                          onChange={(nextValue) =>
+                            updateEditor((attribute) => ({
+                              ...attribute,
+                              values: attribute.values.map((entry) => entry.id === value.id ? { ...entry, status: nextValue } : entry)
+                            }))
+                          }
+                          options={["Active", "Draft", "Inactive"].map((option) => ({ label: option, value: option }))}
+                          value={value.status}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() =>
+                          updateEditor((attribute) => ({
+                            ...attribute,
+                            values: attribute.values.filter((entry) => entry.id !== value.id)
+                          }))
+                        }
+                      >
+                        Remove value
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
           </>
         ) : null}
       </ErpModalWorkspace>

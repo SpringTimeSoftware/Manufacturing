@@ -261,6 +261,49 @@ public sealed class ItemsController(IMeasurementService measurementService) : Ap
 
 [ApiController]
 [Authorize(Policy = AppPolicies.AuthenticatedUser)]
+[Route("api/item-attributes")]
+public sealed class ItemAttributesController(IMeasurementService measurementService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<ItemAttributeDto>>>> List(
+        [FromQuery] CompanyScopedFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await measurementService.ListItemAttributesAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<ItemAttributeDto>>> Get(long id, CancellationToken cancellationToken)
+    {
+        var response = await measurementService.GetItemAttributeAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [Authorize(Policy = AppPolicies.CompanyAdministration)]
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<ItemAttributeDto>>> Create(
+        [FromBody] ItemAttributeUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await measurementService.CreateItemAttributeAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(Get), new { id = response.Id }, response, "Item attribute created.");
+    }
+
+    [Authorize(Policy = AppPolicies.CompanyAdministration)]
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<ItemAttributeDto>>> Update(
+        long id,
+        [FromBody] ItemAttributeUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await measurementService.UpdateItemAttributeAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Item attribute updated.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.AuthenticatedUser)]
 [Route("api/item-variants")]
 public sealed class ItemVariantsController(IMeasurementService measurementService) : ApiControllerBase
 {

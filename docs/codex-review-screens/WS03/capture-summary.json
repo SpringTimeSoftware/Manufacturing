@@ -1,0 +1,118 @@
+{
+  "wave_id": "WS03",
+  "screenshot_mode": "top_only",
+  "captures": [
+    {
+      "route": "/masters/item-groups",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\item-group-category-top.png"
+      ]
+    },
+    {
+      "route": "/masters/item-attributes",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\item-attributes-top.png"
+      ]
+    },
+    {
+      "route": "/masters/items",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\item-master-top.png"
+      ]
+    },
+    {
+      "route": "/partners/customers",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\customer-master-top.png"
+      ]
+    },
+    {
+      "route": "/partners/suppliers",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\supplier-master-top.png"
+      ]
+    },
+    {
+      "route": "/measurements/uom-classes",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\uom-classes-top.png"
+      ]
+    },
+    {
+      "route": "/measurements/uom-conversions",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\uom-conversions-top.png"
+      ]
+    },
+    {
+      "route": "/measurements/profiles",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\measurement-profiles-top.png"
+      ]
+    },
+    {
+      "route": "/resources/work-centers",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\work-centers-top.png"
+      ]
+    },
+    {
+      "route": "/resources/machines",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\machines-top.png"
+      ]
+    },
+    {
+      "route": "/resources/tools",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\tools-resources-top.png"
+      ]
+    },
+    {
+      "route": "/commercial/price-lists",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\price-lists-top.png"
+      ]
+    },
+    {
+      "route": "/commercial/discount-schemes",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\discount-schemes-top.png"
+      ]
+    },
+    {
+      "route": "/commercial/tax-currency-terms",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\tax-currency-terms-top.png"
+      ]
+    },
+    {
+      "route": "/masters/items",
+      "modal": "New item draft",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\item-master-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/commercial/price-lists",
+      "modal": "New price list",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\price-list-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/commercial/discount-schemes",
+      "modal": "New discount scheme",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\discount-scheme-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/masters/item-attributes",
+      "modal": "New attribute draft",
+      "files": [
+        "docs\\codex-review-screens\\WS03\\new-attribute-modal-overview.png"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "wave_id": "WS03",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173"
+  },
+  "screenshot_mode": "top_only",
+  "routes_to_capture": [
+    {
+      "route": "/masters/item-groups",
+      "ready_text": "Item Group / Category Master",
+      "output_prefix": "item-group-category"
+    },
+    {
+      "route": "/masters/item-attributes",
+      "ready_text": "Item Attribute Master",
+      "output_prefix": "item-attributes"
+    },
+    {
+      "route": "/masters/items",
+      "ready_text": "Item List",
+      "output_prefix": "item-master"
+    },
+    {
+      "route": "/partners/customers",
+      "ready_text": "Customer List & Detail",
+      "output_prefix": "customer-master"
+    },
+    {
+      "route": "/partners/suppliers",
+      "ready_text": "Supplier List & Detail",
+      "output_prefix": "supplier-master"
+    },
+    {
+      "route": "/measurements/uom-classes",
+      "ready_text": "UOM Class Master",
+      "output_prefix": "uom-classes"
+    },
+    {
+      "route": "/measurements/uom-conversions",
+      "ready_text": "UOM Conversion Master",
+      "output_prefix": "uom-conversions"
+    },
+    {
+      "route": "/measurements/profiles",
+      "ready_text": "Measurement Profile Master",
+      "output_prefix": "measurement-profiles"
+    },
+    {
+      "route": "/resources/work-centers",
+      "ready_text": "Work Centers",
+      "output_prefix": "work-centers"
+    },
+    {
+      "route": "/resources/machines",
+      "ready_text": "Machines",
+      "output_prefix": "machines"
+    },
+    {
+      "route": "/resources/tools",
+      "ready_text": "Tools / Resources",
+      "output_prefix": "tools-resources"
+    },
+    {
+      "route": "/commercial/price-lists",
+      "ready_text": "Price Lists",
+      "output_prefix": "price-lists"
+    },
+    {
+      "route": "/commercial/discount-schemes",
+      "ready_text": "Discount Schemes",
+      "output_prefix": "discount-schemes"
+    },
+    {
+      "route": "/commercial/tax-currency-terms",
+      "ready_text": "Tax, Currency & Terms",
+      "output_prefix": "tax-currency-terms"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/masters/items",
+      "ready_text": "Item List",
+      "open_action_label": "New item draft",
+      "modal_ready_text": "New item draft",
+      "output_prefix": "item-master-modal"
+    },
+    {
+      "route": "/commercial/price-lists",
+      "ready_text": "Price Lists",
+      "open_action_label": "New price list",
+      "modal_ready_text": "New price list draft",
+      "output_prefix": "price-list-modal"
+    },
+    {
+      "route": "/commercial/discount-schemes",
+      "ready_text": "Discount Schemes",
+      "open_action_label": "New discount scheme",
+      "modal_ready_text": "New discount scheme draft",
+      "output_prefix": "discount-scheme-modal"
+    },
+    {
+      "route": "/masters/item-attributes",
+      "ready_text": "Item Attribute Master",
+      "open_action_label": "New attribute draft",
+      "modal_ready_text": "New attribute draft",
+      "output_prefix": "new-attribute-modal"
+    }
+  ]
+}

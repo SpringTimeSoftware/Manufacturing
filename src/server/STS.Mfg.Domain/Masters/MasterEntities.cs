@@ -49,6 +49,88 @@ public sealed class ItemGroup : AuditableEntity, ICompanyScoped
     }
 }
 
+public sealed class ItemAttribute : AuditableEntity, ICompanyScoped
+{
+    private ItemAttribute()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public string AttributeCode { get; private set; } = string.Empty;
+    public string AttributeName { get; private set; } = string.Empty;
+    public string DataType { get; private set; } = string.Empty;
+    public bool IsVariantAxis { get; private set; }
+    public long? UnitUomId { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static ItemAttribute Create(
+        long? companyId,
+        string attributeCode,
+        string attributeName,
+        string dataType,
+        bool isVariantAxis,
+        long? unitUomId,
+        string status,
+        long? userId)
+    {
+        var entity = new ItemAttribute { CompanyId = companyId };
+        entity.Update(attributeCode, attributeName, dataType, isVariantAxis, unitUomId, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string attributeCode, string attributeName, string dataType, bool isVariantAxis, long? unitUomId, string status, long? userId)
+    {
+        AttributeCode = attributeCode.Trim();
+        AttributeName = attributeName.Trim();
+        DataType = dataType.Trim();
+        IsVariantAxis = isVariantAxis;
+        UnitUomId = unitUomId;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class ItemAttributeValue : AuditableEntity
+{
+    private ItemAttributeValue()
+    {
+    }
+
+    public long ItemAttributeId { get; private set; }
+    public string AttributeValueCode { get; private set; } = string.Empty;
+    public string AttributeValueName { get; private set; } = string.Empty;
+    public int SortOrder { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static ItemAttributeValue Create(
+        long itemAttributeId,
+        string attributeValueCode,
+        string attributeValueName,
+        int sortOrder,
+        string status,
+        long? userId)
+    {
+        var entity = new ItemAttributeValue { ItemAttributeId = itemAttributeId };
+        entity.Update(attributeValueCode, attributeValueName, sortOrder, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string attributeValueCode, string attributeValueName, int sortOrder, string status, long? userId)
+    {
+        AttributeValueCode = attributeValueCode.Trim();
+        AttributeValueName = attributeValueName.Trim();
+        SortOrder = sortOrder;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
 public sealed class Item : AuditableEntity, ICompanyScoped, IBranchScoped, IWarehouseScoped
 {
     private Item()

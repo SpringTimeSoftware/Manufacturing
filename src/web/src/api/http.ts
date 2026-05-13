@@ -45,6 +45,8 @@ import type {
   ExchangeRateSetupDto,
   ExchangeRateSetupUpsertRequest,
   ExecutiveCockpitSummary,
+  ItemAttributeDto,
+  ItemAttributeUpsertRequest,
   ItemBarcodeDto,
   ItemBarcodeUpsertRequest,
   ItemDto,
@@ -482,6 +484,20 @@ export const apiClient = {
     itemProfile: (itemId: number) => request<ItemMasterProfileDto>(`/api/items/${itemId}/profile`),
     updateItemProfile: (itemId: number, body: ItemMasterProfileUpsertRequest) =>
       request<ItemMasterProfileDto>(`/api/items/${itemId}/profile`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    itemAttributes: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ItemAttributeDto>>(`/api/item-attributes?${query}`);
+    },
+    createItemAttribute: (body: ItemAttributeUpsertRequest) =>
+      request<ItemAttributeDto>("/api/item-attributes", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateItemAttribute: (attributeId: number, body: ItemAttributeUpsertRequest) =>
+      request<ItemAttributeDto>(`/api/item-attributes/${attributeId}`, {
         method: "PUT",
         body: JSON.stringify(body)
       }),

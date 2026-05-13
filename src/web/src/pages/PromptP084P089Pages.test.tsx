@@ -77,6 +77,22 @@ describe("Prompt P084-P089 master-data pages", () => {
     expect(screen.getAllByText("Review mode").length).toBeGreaterThan(0);
   });
 
+  it("opens item attribute allowed-value maintenance instead of disabling the value action", async () => {
+    renderWithApp(
+      <Routes>
+        <Route path="/masters/item-attributes" element={<ItemAttributeMasterPage />} />
+      </Routes>,
+      { route: "/masters/item-attributes" }
+    );
+
+    expect(await screen.findByText("Item Attribute Master")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("row", { name: "THICKNESS item attribute" }));
+    expect((await screen.findAllByText("Allowed values")).length).toBeGreaterThan(0);
+    expect(screen.getByDisplayValue("6MM")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add allowed value" }));
+    expect(screen.getByLabelText("Allowed value 5 code")).toBeInTheDocument();
+  });
+
   it("renders P087 item list and detail editor", async () => {
     renderWithApp(
       <Routes>

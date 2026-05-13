@@ -189,6 +189,34 @@ public sealed class ItemGroupConfiguration : IEntityTypeConfiguration<ItemGroup>
     }
 }
 
+public sealed class ItemAttributeConfiguration : IEntityTypeConfiguration<ItemAttribute>
+{
+    public void Configure(EntityTypeBuilder<ItemAttribute> builder)
+    {
+        builder.ToTable("ItemAttributes", "master");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.AttributeCode).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.AttributeName).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.DataType).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(16).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.AttributeCode }).IsUnique();
+    }
+}
+
+public sealed class ItemAttributeValueConfiguration : IEntityTypeConfiguration<ItemAttributeValue>
+{
+    public void Configure(EntityTypeBuilder<ItemAttributeValue> builder)
+    {
+        builder.ToTable("ItemAttributeValues", "master");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.AttributeValueCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.AttributeValueName).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(16).IsRequired();
+        builder.HasIndex(entity => new { entity.ItemAttributeId, entity.AttributeValueCode }).IsUnique();
+        builder.HasOne<ItemAttribute>().WithMany().HasForeignKey(entity => entity.ItemAttributeId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public sealed class ItemConfiguration : IEntityTypeConfiguration<Item>
 {
     public void Configure(EntityTypeBuilder<Item> builder)

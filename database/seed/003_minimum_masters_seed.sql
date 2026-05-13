@@ -70,6 +70,69 @@ BEGIN
     SET IDENTITY_INSERT [master].[ItemGroups] OFF;
 END;
 
+IF OBJECT_ID(N'[master].[ItemAttributes]', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM [master].[ItemAttributes] WHERE Id = 9001 OR (CompanyId = 1 AND AttributeCode = N'THICKNESS'))
+BEGIN
+    SET IDENTITY_INSERT [master].[ItemAttributes] ON;
+    INSERT INTO [master].[ItemAttributes]
+        (Id, CompanyId, AttributeCode, AttributeName, DataType, IsVariantAxis, UnitUomId, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+    VALUES
+        (9001, 1, N'THICKNESS', N'Thickness', N'List', 1, NULL, N'Active', @now, NULL, @now, NULL);
+    SET IDENTITY_INSERT [master].[ItemAttributes] OFF;
+END;
+
+IF OBJECT_ID(N'[master].[ItemAttributes]', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM [master].[ItemAttributes] WHERE Id = 9002 OR (CompanyId = 1 AND AttributeCode = N'FINISH'))
+BEGIN
+    SET IDENTITY_INSERT [master].[ItemAttributes] ON;
+    INSERT INTO [master].[ItemAttributes]
+        (Id, CompanyId, AttributeCode, AttributeName, DataType, IsVariantAxis, UnitUomId, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+    VALUES
+        (9002, 1, N'FINISH', N'Surface Finish', N'List', 1, NULL, N'Active', @now, NULL, @now, NULL);
+    SET IDENTITY_INSERT [master].[ItemAttributes] OFF;
+END;
+
+IF OBJECT_ID(N'[master].[ItemAttributeValues]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9001 AND AttributeValueCode = N'3MM')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9001, N'3MM', N'3mm', 10, N'Active', @now, NULL, @now, NULL);
+
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9001 AND AttributeValueCode = N'6MM')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9001, N'6MM', N'6mm', 20, N'Active', @now, NULL, @now, NULL);
+
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9001 AND AttributeValueCode = N'8MM')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9001, N'8MM', N'8mm', 30, N'Active', @now, NULL, @now, NULL);
+
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9001 AND AttributeValueCode = N'10MM')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9001, N'10MM', N'10mm', 40, N'Active', @now, NULL, @now, NULL);
+END;
+
+IF OBJECT_ID(N'[master].[ItemAttributeValues]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9002 AND AttributeValueCode = N'BRUSHED')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9002, N'BRUSHED', N'Brushed', 10, N'Active', @now, NULL, @now, NULL);
+
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9002 AND AttributeValueCode = N'PAINTED')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9002, N'PAINTED', N'Painted', 20, N'Active', @now, NULL, @now, NULL);
+
+    IF NOT EXISTS (SELECT 1 FROM [master].[ItemAttributeValues] WHERE ItemAttributeId = 9002 AND AttributeValueCode = N'POWDER-COATED')
+        INSERT INTO [master].[ItemAttributeValues]
+            (ItemAttributeId, AttributeValueCode, AttributeValueName, SortOrder, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+        VALUES (9002, N'POWDER-COATED', N'Powder coated', 30, N'Active', @now, NULL, @now, NULL);
+END;
+
 IF NOT EXISTS (SELECT 1 FROM [master].[Items] WHERE Id = 10001 OR (CompanyId = 1 AND ItemCode = N'RM-PLATE-001'))
 BEGIN
     SET IDENTITY_INSERT [master].[Items] ON;

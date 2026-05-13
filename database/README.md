@@ -23,17 +23,18 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 5. `ddl/10-master-data/010_master_resource_engineering_tables.sql`
 6. `ddl/10-master-data/020_item_master_v2_extension_tables.sql`
 7. `ddl/10-master-data/030_partner_master_v2_extension_tables.sql`
-8. `ddl/20-commercial/010_sales_planning_procurement_inventory_tables.sql`
-9. `ddl/20-commercial/020_commercial_master_v2_tables.sql`
-10. `ddl/00-foundation/009_production_execution_tables.sql`
-11. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
-12. `ddl/00-foundation/020_integration_ai_tables.sql`
-13. `procedures/production/001_machine_board.sql`
-14. `seed/001_minimum_platform_seed.sql`
-15. `seed/002_minimum_org_seed.sql`
-16. `seed/003_minimum_masters_seed.sql`
-17. `seed/005_uat_runtime_seed.sql`
-18. future backfill, seed, and procedure packs in numeric order
+8. `ddl/10-master-data/040_item_attribute_value_set_tables.sql`
+9. `ddl/20-commercial/010_sales_planning_procurement_inventory_tables.sql`
+10. `ddl/20-commercial/020_commercial_master_v2_tables.sql`
+11. `ddl/00-foundation/009_production_execution_tables.sql`
+12. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
+13. `ddl/00-foundation/020_integration_ai_tables.sql`
+14. `procedures/production/001_machine_board.sql`
+15. `seed/001_minimum_platform_seed.sql`
+16. `seed/002_minimum_org_seed.sql`
+17. `seed/003_minimum_masters_seed.sql`
+18. `seed/005_uat_runtime_seed.sql`
+19. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 
@@ -44,7 +45,7 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 - platform extensibility UDF definitions and values with audit-ready company scoping;
 - organization, warehouse, bin, and shift setup;
 - measurement/UOM setup;
-- item/customer/supplier compatibility records;
+- item/customer/supplier compatibility records and item attribute value-set maintenance;
 - item master media, document, catalog, packaging, physical spec, alias, customer reference, vendor reference, manufacturing policy, planning policy, inventory policy, and quality policy extension tables;
 - customer/supplier partner profiles, controlled contact points, item/vendor references, document metadata, and audit-linked partner master extension tables;
 - commercial master setup for currencies, exchange-rate setup, tax categories/codes, payment terms, trade terms, price lists, price list lines, price assignments, discount schemes, and discount rules;
