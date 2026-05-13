@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-05-13T11:50:59.886Z",
+  "summary": [
+    {
+      "evidence": "dashboard-navigation-no-service-suite.png",
+      "foundBlockedLabels": []
+    },
+    {
+      "evidence": "service-route-not-found.png",
+      "route": "/service",
+      "state": "Route not found"
+    }
+  ]
+}

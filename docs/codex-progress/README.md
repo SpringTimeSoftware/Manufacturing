@@ -294,6 +294,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - WS07 Mobile/Integrations/AI/Reporting completed on 2026-05-13. Output: `/docs/codex-progress/WS07-output.md`
 - WS08 Finance/Accounting/GL/AP/AR blocked on 2026-05-13 by explicit V1 scope exclusions. Output: `/docs/codex-progress/WS08-output.md`
 - WS09 Procure-to-Pay Deepening completed for implemented V1 procurement screens and blocked on full P2P modules outside current scope on 2026-05-13. Output: `/docs/codex-progress/WS09-output.md`
+- WS10 Service/Warranty/AMC blocked on 2026-05-13 by explicit V1 field-service, warranty, and customer-support suite exclusion. Output: `/docs/codex-progress/WS10-output.md`
 
 ## Remediation Log
 

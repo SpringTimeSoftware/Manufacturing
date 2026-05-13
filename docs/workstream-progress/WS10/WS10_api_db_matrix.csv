@@ -1,0 +1,8 @@
+"Area","APIOrDbObject","Status","Evidence","RemainingDependency"
+"Service Ticket / Complaint","service.ServiceTickets; /api/service/tickets","BLOCKED","No API, table, entity, or controller exists; not introduced because field service/customer support is excluded from V1.","Product owner scope change required."
+"Warranty Lookup","service.WarrantyEntitlements; /api/service/warranty","BLOCKED","No API/table exists; not introduced because warranty suite is excluded from V1.","Product owner scope change and serial warranty model required."
+"AMC Contracts","service.AmcContracts; /api/service/amc-contracts","BLOCKED","No API/table exists; not introduced because AMC is excluded from V1.","Product owner scope change and contract model required."
+"Service Visits / Tasks","service.ServiceVisits; service.ServiceTasks; /api/service/visits","BLOCKED","No API/table exists; not introduced because field-service dispatch is excluded from V1.","Product owner scope change required."
+"Service Spare Consumption","service.ServiceSpareIssues; /api/service/spares","BLOCKED","No API/table exists; not introduced because field-service spare consumption is outside V1.","Product owner scope change and inventory posting design required."
+"RMA / Repair / Replacement","service.RmaRequests; service.RepairOrders; /api/service/rma","BLOCKED","No API/table exists; not introduced because customer support/RMA suite is excluded from V1.","Product owner scope change required."
+"Service Dashboard","/api/service/dashboard","BLOCKED","No API exists; no seeded service dashboard rows were introduced.","Product owner scope change and live service data source required."

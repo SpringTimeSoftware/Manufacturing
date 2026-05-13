@@ -1,0 +1,8 @@
+"Screen","Route","Action","FinalState","Evidence","RemainingDependency"
+"Service Ticket / Complaint","/service/tickets","New service ticket / Save complaint","HIDDEN","No service-ticket screen or action is exposed because the module is excluded from V1.","Product owner scope change required."
+"Warranty Lookup","/service/warranty","Search warranty / Open entitlement","HIDDEN","No warranty lookup action is exposed because warranty suite is excluded from V1.","Product owner scope change required."
+"AMC Contracts","/service/amc-contracts","New AMC contract / Save AMC","HIDDEN","No AMC action is exposed because AMC is excluded with service/warranty suite.","Product owner scope change required."
+"Service Visit / Task Lifecycle","/service/visits","Create visit / Start task / Complete task","HIDDEN","No service visit action is exposed; adding it would introduce a field-service module.","Product owner scope change required."
+"Spare Issue / Return","/service/spares","Issue spare / Return spare","HIDDEN","No service spare action is exposed; inventory actions remain in manufacturing stores scope only.","Product owner scope change and inventory posting design required."
+"RMA / Repair / Replacement","/service/rma","Create RMA / Receive repair / Replace item","HIDDEN","No RMA or repair action is exposed because customer support suite is excluded from V1.","Product owner scope change required."
+"Service Dashboard","/service/dashboard","Refresh service dashboard / Export","HIDDEN","No service dashboard action is exposed and no fake service KPI rows were introduced.","Product owner scope change required."

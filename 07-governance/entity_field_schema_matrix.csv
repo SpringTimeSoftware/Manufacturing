@@ -276,3 +276,7 @@
 "SubcontractOrder","workOrderId","Work order","lookup","ErpLookupField","/api/work-orders","No","","","No","Save outside plan","WS09 governed work order selector."
 "SubcontractOrder","operationId","Operation","lookup","ErpLookupField","/api/operations","No","","","No","Save outside plan","WS09 governed operation selector."
 "SubcontractOrder","expectedReturnDate","Expected return","date","Date input","","No","","","No","Save outside plan","WS09 date control."
+"ServiceTicket","customerId/itemId/serialNo/status","Service ticket governed fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 field-service/customer-support exclusion; no free-text scaffold introduced."
+"WarrantyEntitlement","serialNo/customerId/itemId/expiryDate","Warranty governed fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 warranty exclusion."
+"AmcContract","customerId/contractAmount/startDate/endDate","AMC governed and numeric fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 service/warranty/AMC exclusion."
+"RmaRequest","customerId/itemId/serialNo/reason/status","RMA governed fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 customer-support exclusion."
