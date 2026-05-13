@@ -95,7 +95,7 @@
 "/inventory/balances","Catch-weight basis","free text instead of lookup","Medium","Replaced review value with disabled ErpLookupField","Catch-weight decimal persistence remains partial"
 "/sales/blanket-orders","Horizon","free text instead of lookup","Medium","Replaced review value with disabled ErpLookupField","Editable blanket horizon workflow remains partial"
 "/sales/blanket-orders","Next release","layout violation","Medium","Replaced generic disabled text field with governed disabled selector/date-control placeholder","Editable release calendar workflow remains partial"
-"/planning/mps","Horizon","free text instead of lookup","Medium","Replaced review value with disabled ErpLookupField","MPS draft edit workflow remains partial"
+"/planning/mps","MPS header and schedule lines","free text instead of lookup","Medium","WS04 replaced review-only MPS detail with governed draft/edit controls for status, item, planning UOM, date, and quantity fields","Resolved in touched scope"
 "/planning/mrp","Planning horizon","free text instead of lookup","Medium","Replaced selected-run review value with disabled ErpLookupField","MRP horizon source should bind planning calendar API"
 "/masters/uom-classes","Live setup rows","seeded/live data issue","High","Live adapter now throws unavailable instead of seeded setup rows on API failure","Page-specific error state can be improved"
 "/masters/uom-conversions","Live setup rows","seeded/live data issue","High","Live adapter now throws unavailable instead of seeded setup rows on API failure","Formula editor numeric migration remains partial"

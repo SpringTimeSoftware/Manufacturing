@@ -158,9 +158,9 @@ describe("Wave 5A engineering and planning depth", () => {
 
     fireEvent.click(await screen.findByRole("row", { name: "MPS-2026-M03 mps" }));
     expect(await screen.findByText("MPS setup")).toBeInTheDocument();
-    expect(screen.getByLabelText("Horizon")).toBeDisabled();
-    expect(screen.getByText("MPS save requires planning workflow enablement.")).toBeInTheDocument();
-    expect(screen.getByLabelText("First bucket")).toBeDisabled();
+    expect(screen.getAllByLabelText("MPS status").some((field) => field.hasAttribute("disabled"))).toBe(true);
+    expect(screen.getByText("Live planning sign-in is required before saving MPS drafts.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Item")).toBeDisabled();
     expect(document.body.textContent ?? "").not.toMatch(internalTerms);
   });
 });

@@ -1800,6 +1800,16 @@ export interface MpsLineDto {
   planningUomId: number;
 }
 
+export interface MpsLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  periodStart: string;
+  periodEnd: string;
+  plannedQuantity: number;
+  planningUomId: number;
+  itemCode?: string | null;
+}
+
 export interface MasterProductionScheduleDto {
   id: number;
   companyId: number;
@@ -1809,6 +1819,16 @@ export interface MasterProductionScheduleDto {
   planningHorizonEnd: string;
   status: string;
   lines: MpsLineDto[];
+}
+
+export interface MasterProductionScheduleUpsertRequest {
+  companyId: number;
+  branchId: number;
+  mpsCode: string;
+  planningHorizonStart: string;
+  planningHorizonEnd: string;
+  status: string;
+  lines: MpsLineUpsertRequest[];
 }
 
 export interface BomLineDto {

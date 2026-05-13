@@ -4,6 +4,7 @@ import type {
   BlanketOrderDto,
   DemandForecastDto,
   MasterProductionScheduleDto,
+  MasterProductionScheduleUpsertRequest,
   QueryFilter,
   QuoteDto,
   QuoteUpsertRequest,
@@ -87,14 +88,32 @@ export interface DemandForecastSetupItem {
 
 export interface MpsPlannerItem {
   id: string;
+  companyId: number;
+  branchId: number;
   mpsId: number;
   mpsCode: string;
+  planningHorizonStart: string;
+  planningHorizonEnd: string;
   horizon: string;
   status: string;
   lineCount: number;
   plannedQuantity: number;
   firstBucket: string;
+  lines: MpsPlannerLineItem[];
   source: MasterDataSource;
+}
+
+export interface MpsPlannerLineItem {
+  id: string;
+  lineId: number | null;
+  lineNo: number;
+  itemId: number;
+  itemLabel: string;
+  periodStart: string;
+  periodEnd: string;
+  plannedQuantity: number;
+  planningUomId: number;
+  planningUomLabel: string;
 }
 
 export interface AvailablePromiseItem {
@@ -308,24 +327,60 @@ const seededForecasts: DemandForecastSetupItem[] = [
 const seededMps: MpsPlannerItem[] = [
   {
     id: "mps-march",
+    companyId: 1,
+    branchId: 10,
     mpsId: 5001,
     mpsCode: "MPS-2026-M03",
+    planningHorizonStart: "2026-03-01",
+    planningHorizonEnd: "2026-03-31",
     horizon: "2026-03-01 to 2026-03-31",
     status: "Firm",
     lineCount: 6,
     plannedQuantity: 118,
     firstBucket: "FG-OZ-50 / 20",
+    lines: [
+      {
+        id: "mps-march-line-10",
+        lineId: null,
+        lineNo: 10,
+        itemId: 10001,
+        itemLabel: "FG-OZ-50",
+        periodStart: "2026-03-01",
+        periodEnd: "2026-03-07",
+        plannedQuantity: 20,
+        planningUomId: 1,
+        planningUomLabel: "PCS"
+      }
+    ],
     source: "Seeded"
   },
   {
     id: "mps-april",
+    companyId: 1,
+    branchId: 10,
     mpsId: 5002,
     mpsCode: "MPS-2026-M04",
+    planningHorizonStart: "2026-04-01",
+    planningHorizonEnd: "2026-04-30",
     horizon: "2026-04-01 to 2026-04-30",
     status: "Draft",
     lineCount: 5,
     plannedQuantity: 94,
     firstBucket: "WIP-OZG-MOD / 30",
+    lines: [
+      {
+        id: "mps-april-line-10",
+        lineId: null,
+        lineNo: 10,
+        itemId: 10002,
+        itemLabel: "WIP-OZG-MOD",
+        periodStart: "2026-04-01",
+        periodEnd: "2026-04-07",
+        plannedQuantity: 30,
+        planningUomId: 1,
+        planningUomLabel: "PCS"
+      }
+    ],
     source: "Seeded"
   }
 ];
@@ -451,16 +506,33 @@ function mapForecast(dto: DemandForecastDto, source: MasterDataSource): DemandFo
 
 function mapMps(dto: MasterProductionScheduleDto, source: MasterDataSource): MpsPlannerItem {
   const firstLine = dto.lines[0];
+  const lines = dto.lines.map((line) => ({
+    id: `mps-line-${line.id}`,
+    lineId: line.id,
+    lineNo: line.lineNo,
+    itemId: line.itemId,
+    itemLabel: `Item ${line.itemId}`,
+    periodStart: line.periodStart,
+    periodEnd: line.periodEnd,
+    plannedQuantity: line.plannedQuantity,
+    planningUomId: line.planningUomId,
+    planningUomLabel: `UOM ${line.planningUomId}`
+  }));
 
   return {
     id: `mps-${dto.id}`,
+    companyId: dto.companyId,
+    branchId: dto.branchId,
     mpsId: dto.id,
     mpsCode: dto.mpsCode,
+    planningHorizonStart: dto.planningHorizonStart,
+    planningHorizonEnd: dto.planningHorizonEnd,
     horizon: formatHorizon(dto.planningHorizonStart, dto.planningHorizonEnd),
     status: dto.status,
     lineCount: dto.lines.length,
     plannedQuantity: sumQuantities(dto.lines),
     firstBucket: firstLine ? `Item ${firstLine.itemId} / ${firstLine.plannedQuantity}` : "No lines",
+    lines,
     source
   };
 }
@@ -510,6 +582,15 @@ export async function saveQuoteDraft(
 ) {
   requireLiveSession(session, "quote drafts");
   return quoteId ? apiClient.salesPlanning.updateQuote(quoteId, request) : apiClient.salesPlanning.createQuote(request);
+}
+
+export async function saveMpsDraft(
+  session: AuthSessionResponse | null | undefined,
+  mpsId: number | null,
+  request: MasterProductionScheduleUpsertRequest
+) {
+  requireLiveSession(session, "MPS drafts");
+  return mpsId ? apiClient.salesPlanning.updateMps(mpsId, request) : apiClient.salesPlanning.createMps(request);
 }
 
 export async function listSalesOrderSetup(

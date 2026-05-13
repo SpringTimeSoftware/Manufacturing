@@ -1,0 +1,123 @@
+{
+  "wave_id": "WS04",
+  "screenshot_mode": "top_only",
+  "captures": [
+    {
+      "route": "/engineering/boms",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\bom-library-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/bom-editor",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\bom-editor-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/bom-comparison",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\bom-comparison-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/eco-revisions",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\eco-revisions-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/routings",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\routing-library-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/operations",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\operation-standards-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/alternate-items",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\alternate-items-top.png"
+      ]
+    },
+    {
+      "route": "/engineering/documents",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\engineering-documents-top.png"
+      ]
+    },
+    {
+      "route": "/planning/mps",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\mps-planner-top.png"
+      ]
+    },
+    {
+      "route": "/planning/mrp",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\mrp-run-console-top.png"
+      ]
+    },
+    {
+      "route": "/planning/mrp-results",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\mrp-results-top.png"
+      ]
+    },
+    {
+      "route": "/planning/boq-requirements",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\boq-requirements-top.png"
+      ]
+    },
+    {
+      "route": "/planning/capacity",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\capacity-planning-top.png"
+      ]
+    },
+    {
+      "route": "/sales/available-to-promise",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\available-to-promise-top.png"
+      ]
+    },
+    {
+      "route": "/production/machine-board",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\machine-board-top.png"
+      ]
+    },
+    {
+      "route": "/production/occupancy",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\occupancy-calendar-top.png"
+      ]
+    },
+    {
+      "route": "/planning/mps",
+      "modal": "New MPS draft",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\mps-draft-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/engineering/boms",
+      "modal": "New BOM draft",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\bom-draft-modal-overview.png"
+      ]
+    },
+    {
+      "route": "/planning/mrp",
+      "modal": "Run MRP draft",
+      "files": [
+        "docs\\codex-review-screens\\WS04\\mrp-run-modal-overview.png"
+      ]
+    }
+  ]
+}

@@ -70,6 +70,7 @@ import type {
   MeasurementFormulaDto,
   MeasurementProfileDto,
   MeasurementProfileUpsertRequest,
+  MasterProductionScheduleUpsertRequest,
   MrpRunDto,
   MrpRunStartRequest,
   NonConformanceDto,
@@ -810,7 +811,17 @@ export const apiClient = {
     mps: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<MasterProductionScheduleDto>>(`/api/mps?${query}`);
-    }
+    },
+    createMps: (body: MasterProductionScheduleUpsertRequest) =>
+      request<MasterProductionScheduleDto>("/api/mps", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateMps: (id: number, body: MasterProductionScheduleUpsertRequest) =>
+      request<MasterProductionScheduleDto>(`/api/mps/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      })
   },
   engineering: {
     createRouting: (body: RoutingUpsertRequest) =>

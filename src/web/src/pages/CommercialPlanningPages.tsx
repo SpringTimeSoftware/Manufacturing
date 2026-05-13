@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { QuoteDto, QuoteUpsertRequest, SupplierLeadTimeUpsertRequest } from "../api/contracts";
+import type { MasterProductionScheduleUpsertRequest, QuoteDto, QuoteUpsertRequest, SupplierLeadTimeUpsertRequest } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { hasLiveSession } from "../api/liveData";
@@ -13,12 +13,14 @@ import {
   listMpsPlannerSetup,
   listQuoteSetup,
   listSalesOrderSetup,
+  saveMpsDraft,
   saveQuoteDraft,
   type AttachmentViewerItem,
   type AvailablePromiseItem,
   type BlanketOrderSetupItem,
   type DemandForecastSetupItem,
   type MpsPlannerItem,
+  type MpsPlannerLineItem,
   type QuoteSetupItem,
   type SalesOrderSetupItem
 } from "../commercial/commercialPlanningAdapters";
@@ -261,6 +263,19 @@ const mpsColumns: DataGridColumn<MpsPlannerItem>[] = [
   { key: "bucket", header: "First bucket", width: "20%", render: (record) => record.firstBucket },
   { key: "qty", header: "Planned qty", width: "14%", render: (record) => record.plannedQuantity },
   { key: "status", header: "Status", width: "12%", render: (record) => <StatusBadge status={record.status} /> }
+];
+
+type MpsDraftState = MasterProductionScheduleUpsertRequest & {
+  mpsId: number | null;
+  source: MasterDataSource | "Draft";
+};
+
+const mpsLineColumns: DataGridColumn<MpsPlannerLineItem>[] = [
+  { key: "line", header: "Line", width: "10%", render: (record) => record.lineNo },
+  { key: "item", header: "Item", render: (record) => <strong>{record.itemLabel}</strong> },
+  { key: "period", header: "Period", width: "24%", render: (record) => `${record.periodStart} to ${record.periodEnd}` },
+  { key: "qty", header: "Quantity", width: "14%", render: (record) => record.plannedQuantity },
+  { key: "uom", header: "UOM", width: "12%", render: (record) => record.planningUomLabel }
 ];
 
 const promiseColumns: DataGridColumn<AvailablePromiseItem>[] = [
@@ -1032,27 +1047,248 @@ export function DemandForecastPage() {
   );
 }
 
+function buildDraftMpsCode() {
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
+  return `MPS-DRAFT-${stamp}`;
+}
+
+function buildMpsDraft(companyId: number, branchId: number): MpsDraftState {
+  const start = todayIso();
+  const end = addDaysIso(30);
+
+  return {
+    mpsId: null,
+    source: "Draft",
+    companyId,
+    branchId,
+    mpsCode: buildDraftMpsCode(),
+    planningHorizonStart: start,
+    planningHorizonEnd: end,
+    status: "Draft",
+    lines: [
+      {
+        lineNo: 10,
+        itemId: 0,
+        periodStart: start,
+        periodEnd: end,
+        plannedQuantity: 1,
+        planningUomId: 0
+      }
+    ]
+  };
+}
+
+function toMpsDraft(record: MpsPlannerItem): MpsDraftState {
+  return {
+    mpsId: record.mpsId,
+    source: record.source,
+    companyId: record.companyId,
+    branchId: record.branchId,
+    mpsCode: record.mpsCode,
+    planningHorizonStart: record.planningHorizonStart,
+    planningHorizonEnd: record.planningHorizonEnd,
+    status: record.status,
+    lines: record.lines.map((line) => ({
+      lineNo: line.lineNo,
+      itemId: line.itemId,
+      periodStart: line.periodStart,
+      periodEnd: line.periodEnd,
+      plannedQuantity: line.plannedQuantity,
+      planningUomId: line.planningUomId
+    }))
+  };
+}
+
+function mpsValidation(draft: MpsDraftState | null) {
+  if (!draft) {
+    return [];
+  }
+
+  return [
+    !draft.mpsCode.trim() ? "MPS code is required." : "",
+    !draft.planningHorizonStart ? "Planning horizon start is required." : "",
+    !draft.planningHorizonEnd ? "Planning horizon end is required." : "",
+    draft.planningHorizonStart && draft.planningHorizonEnd && draft.planningHorizonEnd < draft.planningHorizonStart ? "Planning horizon end must be on or after the start date." : "",
+    draft.lines.length === 0 ? "At least one MPS line is required." : "",
+    ...draft.lines.flatMap((line) => [
+      line.lineNo <= 0 ? "Each MPS line needs a positive line number." : "",
+      !line.itemId ? "Each MPS line needs an item." : "",
+      !line.periodStart ? "Each MPS line needs a period start date." : "",
+      !line.periodEnd ? "Each MPS line needs a period end date." : "",
+      line.periodStart && line.periodEnd && line.periodEnd < line.periodStart ? "Each MPS line period end must be on or after the start date." : "",
+      line.plannedQuantity <= 0 ? "Each MPS line quantity must be greater than zero." : "",
+      !line.planningUomId ? "Each MPS line needs a planning UOM." : ""
+    ])
+  ].filter(Boolean);
+}
+
+function toMpsLinePreview(line: MpsDraftState["lines"][number], itemLabel: string, uomLabel: string): MpsPlannerLineItem {
+  return {
+    id: `draft-mps-line-${line.lineNo}`,
+    lineId: null,
+    lineNo: line.lineNo,
+    itemId: line.itemId,
+    itemLabel,
+    periodStart: line.periodStart,
+    periodEnd: line.periodEnd,
+    plannedQuantity: line.plannedQuantity,
+    planningUomId: line.planningUomId,
+    planningUomLabel: uomLabel
+  };
+}
+
 export function MpsPlannerPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<MpsDraftState | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), [deferredSearch, status, user?.activeContext.branchId, user?.activeContext.companyId]);
   const query = useApiQuery(queryKeys.salesPlanning.mps(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listMpsPlannerSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const canSave = hasLiveSession(session);
+  const itemQuery = useApiQuery(
+    ["sales-planning", "mps-item-options", user?.activeContext.companyId ?? 0],
+    () => (canSave ? apiClient.masters.itemLookup(user?.activeContext.companyId) : Promise.resolve([])),
+    { staleTime: 60_000 }
+  );
+  const uomQuery = useApiQuery(
+    queryKeys.measurements.uoms(user?.activeContext.companyId, "", "all"),
+    () => (canSave ? apiClient.measurements.uoms({ companyId: user?.activeContext.companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([])),
+    { staleTime: 60_000 }
+  );
+  const itemOptionMap = new Map(records.flatMap((record) => record.lines.map((line) => [String(line.itemId), line.itemLabel])));
+  (itemQuery.data ?? []).forEach((item) => itemOptionMap.set(String(item.id), `${item.itemCode} / ${item.itemName}`));
+  const itemOptions = Array.from(itemOptionMap.entries()).map(([value, label]) => ({ label, value }));
+  const uomOptionMap = new Map(records.flatMap((record) => record.lines.map((line) => [String(line.planningUomId), line.planningUomLabel])));
+  (uomQuery.data ?? []).forEach((uom) => uomOptionMap.set(String(uom.id), `${uom.uomCode} / ${uom.uomName}`));
+  const uomOptions = Array.from(uomOptionMap.entries()).map(([value, label]) => ({ label, value }));
+  const validation = mpsValidation(draft);
+  const saveReason = !draft
+    ? "Open an MPS draft before saving."
+    : !canSave
+      ? "Live planning sign-in is required before saving MPS drafts."
+      : validation[0];
+  const editDisabledReason = draft && draft.source !== "Draft" && draft.source !== "Live"
+    ? "Reference MPS rows are read-only. Open a new MPS draft to create a live schedule."
+    : undefined;
+  const canEdit = Boolean(draft && !editDisabledReason);
+  const draftLines = draft?.lines.map((line) => {
+    const itemLabel = itemOptions.find((option) => option.value === String(line.itemId))?.label ?? (line.itemId ? `Item ${line.itemId}` : "Item pending");
+    const uomLabel = uomOptions.find((option) => option.value === String(line.planningUomId))?.label ?? (line.planningUomId ? `UOM ${line.planningUomId}` : "UOM pending");
+    return toMpsLinePreview(line, itemLabel, uomLabel);
+  }) ?? [];
+  const saveMutation = useApiMutation(
+    (request: { mpsId: number | null; body: MasterProductionScheduleUpsertRequest }) => saveMpsDraft(session, request.mpsId, request.body),
+    {
+      onError: (error) => setActionMessage(error.message),
+      onSuccess: (saved) => {
+        setDraft(null);
+        setActionMessage(`MPS ${saved.mpsCode} was saved.`);
+      }
+    }
+  );
+  const openNewMps = () => {
+    if (!user?.activeContext.companyId || !user?.activeContext.branchId) {
+      setActionMessage("Select a company and branch before creating an MPS draft.");
+      return;
+    }
+
+    setDraft(buildMpsDraft(user.activeContext.companyId, user.activeContext.branchId));
+    setActionMessage(null);
+  };
+  const updateDraft = (updater: (current: MpsDraftState) => MpsDraftState) => setDraft((current) => (current ? updater(current) : current));
+  const updateLine = (index: number, patch: Partial<MpsDraftState["lines"][number]>) =>
+    updateDraft((current) => ({
+      ...current,
+      lines: current.lines.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line))
+    }));
+  const addLine = () =>
+    updateDraft((current) => ({
+      ...current,
+      lines: [
+        ...current.lines,
+        {
+          lineNo: Math.max(0, ...current.lines.map((line) => line.lineNo)) + 10,
+          itemId: 0,
+          periodStart: current.planningHorizonStart,
+          periodEnd: current.planningHorizonEnd,
+          plannedQuantity: 1,
+          planningUomId: 0
+        }
+      ]
+    }));
+  const removeLine = (index: number) =>
+    updateDraft((current) => ({
+      ...current,
+      lines: current.lines.filter((_, lineIndex) => lineIndex !== index)
+    }));
+  const saveDraft = () => {
+    if (!draft || saveReason || validation.length > 0) {
+      return;
+    }
+
+    saveMutation.mutate({
+      mpsId: draft.mpsId,
+      body: {
+        companyId: draft.companyId,
+        branchId: draft.branchId,
+        mpsCode: draft.mpsCode,
+        planningHorizonStart: draft.planningHorizonStart,
+        planningHorizonEnd: draft.planningHorizonEnd,
+        status: draft.status,
+        lines: draft.lines
+      }
+    });
+  };
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New MPS draft", reason: "MPS drafting requires planning workflow enablement." }]} secondary={[{ disabled: true, label: "Export MPS", reason: "MPS export is pending the approved reporting workflow." }]} testId="mps-action-bar" /></>} aside={<WorkbenchAside description="MPS planning is web setup/planning scope and does not execute shop-floor actions." endpoint="/api/mps" source={source} />} description="Master production schedule by item, period, and planning horizon." filters={<ErpFilterBar ariaLabel="MPS filters" onClear={() => { setSearch(""); setStatus("all"); }} testId="mps-filter-bar"><input aria-label="Search MPS" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search MPS, horizon, item" value={search} /><select aria-label="MPS status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Firm">Firm</option><option value="Draft">Draft</option></select></ErpFilterBar>} title="MPS Planner">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New MPS draft", onClick: openNewMps }]} secondary={[{ disabled: true, label: "Export MPS", reason: "MPS export is pending the approved reporting workflow." }]} testId="mps-action-bar" /></>} aside={<WorkbenchAside description="MPS planning is web setup/planning scope and does not execute shop-floor actions." endpoint="/api/mps" source={source} />} description="Master production schedule by item, period, and planning horizon." filters={<ErpFilterBar ariaLabel="MPS filters" onClear={() => { setSearch(""); setStatus("all"); }} testId="mps-filter-bar"><input aria-label="Search MPS" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search MPS, horizon, item" value={search} /><select aria-label="MPS status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Firm">Firm</option><option value="Draft">Draft</option></select></ErpFilterBar>} title="MPS Planner">
         <KpiStrip items={[{ label: "Plans", value: String(records.length) }, { label: "Lines", value: String(records.reduce((total, record) => total + record.lineCount, 0)) }, { label: "Planned qty", value: String(records.reduce((total, record) => total + record.plannedQuantity, 0)) }, { label: "Firm", value: String(records.filter((record) => record.status === "Firm").length) }]} />
         <Card title="MPS planning board" description="Schedule buckets remain visible without entering MRP console scope.">
-          <ErpGrid ariaLabel="MPS planner list" columns={mpsColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.mpsCode} mps`} testId="mps-grid" virtualization={{ enabled: true }} />
+          <ErpGrid ariaLabel="MPS planner list" columns={mpsColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => { setDraft(toMpsDraft(record)); setActionMessage(null); }} records={records} rowLabel={(record) => `${record.mpsCode} mps`} testId="mps-grid" virtualization={{ enabled: true }} />
         </Card>
+        {actionMessage ? <Card title="MPS action status" description={actionMessage}><StatusBadge status={actionMessage.includes("saved") ? "Completed" : "Review"} /></Card> : null}
       </ListPageShell>
-      <ErpModalWorkspace description="MPS detail is review-only until MPS drafting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save MPS draft", reason: "MPS save requires planning workflow enablement." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.mpsCode ?? "MPS detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="MPS setup"><ErpLookupField disabled disabledReason="MPS horizon is controlled by the approved planning cycle." label="Horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} /><ErpLookupField disabled disabledReason="MPS bucket item is controlled by Item Master and planning UOM setup." label="First bucket" onChange={() => undefined} options={[{ label: selected.firstBucket, value: selected.firstBucket }]} value={selected.firstBucket} /></FormShell> : null}</ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Create and maintain MPS schedule buckets with governed item, UOM, date, and quantity controls."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || saveMutation.isPending || validation.length > 0, label: saveMutation.isPending ? "Saving MPS draft" : "Save MPS draft", onClick: saveReason || validation.length > 0 ? undefined : saveDraft, reason: saveReason ?? validation[0] }]} secondary={[{ disabled: !canEdit, label: "Add schedule line", onClick: canEdit ? addLine : undefined, reason: editDisabledReason }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />}
+        isOpen={Boolean(draft)}
+        onClose={() => setDraft(null)}
+        panelClassName="ui-modal__panel--item-master"
+        title={draft?.mpsCode || "MPS draft"}
+        validation={<ErpValidationSummary errors={validation} title="MPS checks" />}
+      >
+        {draft ? (
+          <>
+            <FormShell initialFingerprint={`${draft.mpsId ?? "draft"}-${draft.source}`} title="MPS setup">
+              <label><span>MPS code</span><input disabled={!canEdit} onChange={(event) => updateDraft((current) => ({ ...current, mpsCode: event.target.value }))} value={draft.mpsCode} /></label>
+              <label><span>Planning horizon start</span><input disabled={!canEdit} onChange={(event) => updateDraft((current) => ({ ...current, planningHorizonStart: event.target.value }))} type="date" value={dateControlValue(draft.planningHorizonStart)} /></label>
+              <label><span>Planning horizon end</span><input disabled={!canEdit} onChange={(event) => updateDraft((current) => ({ ...current, planningHorizonEnd: event.target.value }))} type="date" value={dateControlValue(draft.planningHorizonEnd)} /></label>
+              <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="MPS status" onChange={(value) => updateDraft((current) => ({ ...current, status: value }))} options={[{ label: "Draft", value: "Draft" }, { label: "Firm", value: "Firm" }, { label: "Frozen", value: "Frozen" }]} value={draft.status} />
+            </FormShell>
+            <Card title="Schedule lines" description="Each line uses controlled Item Master, planning UOM, date, and quantity fields.">
+              <ErpGrid ariaLabel="MPS schedule line preview" columns={mpsLineColumns} getRowId={(record) => record.id} records={draftLines} rowLabel={(record) => `${record.lineNo} mps line`} />
+            </Card>
+            {draft.lines.map((line, index) => (
+              <FormShell initialFingerprint={`${draft.mpsCode}-${line.lineNo}-${index}`} key={`${line.lineNo}-${index}`} title={`Schedule line ${line.lineNo}`}>
+                <ErpNumberField disabled={!canEdit} disabledReason={editDisabledReason} label="Line number" min={1} onChange={(value) => updateLine(index, { lineNo: value ?? 0 })} value={line.lineNo} />
+                <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
+                <label><span>Period start</span><input disabled={!canEdit} onChange={(event) => updateLine(index, { periodStart: event.target.value })} type="date" value={dateControlValue(line.periodStart)} /></label>
+                <label><span>Period end</span><input disabled={!canEdit} onChange={(event) => updateLine(index, { periodEnd: event.target.value })} type="date" value={dateControlValue(line.periodEnd)} /></label>
+                <ErpDecimalField disabled={!canEdit} disabledReason={editDisabledReason} label="Planned quantity" min={0} onChange={(value) => updateLine(index, { plannedQuantity: value ?? 0 })} scale={3} value={line.plannedQuantity} />
+                <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="Planning UOM" onChange={(value) => updateLine(index, { planningUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.planningUomId || "")} />
+                <div className="form-action-row">
+                  <button disabled={!canEdit || draft.lines.length <= 1} onClick={() => removeLine(index)} title={draft.lines.length <= 1 ? "At least one MPS line is required." : editDisabledReason} type="button">Remove line</button>
+                </div>
+              </FormShell>
+            ))}
+          </>
+        ) : null}
+      </ErpModalWorkspace>
     </>
   );
 }

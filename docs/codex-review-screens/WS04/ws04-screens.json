@@ -1,0 +1,113 @@
+{
+  "wave_id": "WS04",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173"
+  },
+  "screenshot_mode": "top_only",
+  "routes_to_capture": [
+    {
+      "route": "/engineering/boms",
+      "ready_text": "BOM Library",
+      "output_prefix": "bom-library"
+    },
+    {
+      "route": "/engineering/bom-editor",
+      "ready_text": "BOM Detail / Editor",
+      "output_prefix": "bom-editor"
+    },
+    {
+      "route": "/engineering/bom-comparison",
+      "ready_text": "BOM Comparison",
+      "output_prefix": "bom-comparison"
+    },
+    {
+      "route": "/engineering/eco-revisions",
+      "ready_text": "ECO / Revision Control",
+      "output_prefix": "eco-revisions"
+    },
+    {
+      "route": "/engineering/routings",
+      "ready_text": "Routing Library",
+      "output_prefix": "routing-library"
+    },
+    {
+      "route": "/engineering/operations",
+      "ready_text": "Operation Standard / Cycle Times",
+      "output_prefix": "operation-standards"
+    },
+    {
+      "route": "/engineering/alternate-items",
+      "ready_text": "Alternate Item / Replacement Rules",
+      "output_prefix": "alternate-items"
+    },
+    {
+      "route": "/engineering/documents",
+      "ready_text": "Engineering Attachment / Document Viewer",
+      "output_prefix": "engineering-documents"
+    },
+    {
+      "route": "/planning/mps",
+      "ready_text": "MPS Planner",
+      "output_prefix": "mps-planner"
+    },
+    {
+      "route": "/planning/mrp",
+      "ready_text": "MRP Run Console",
+      "output_prefix": "mrp-run-console"
+    },
+    {
+      "route": "/planning/mrp-results",
+      "ready_text": "MRP Results / Exceptions",
+      "output_prefix": "mrp-results"
+    },
+    {
+      "route": "/planning/boq-requirements",
+      "ready_text": "BOQ / Requirements",
+      "output_prefix": "boq-requirements"
+    },
+    {
+      "route": "/planning/capacity",
+      "ready_text": "Capacity Planning Board",
+      "output_prefix": "capacity-planning"
+    },
+    {
+      "route": "/sales/available-to-promise",
+      "ready_text": "Available to Promise / Order Promise",
+      "output_prefix": "available-to-promise"
+    },
+    {
+      "route": "/production/machine-board",
+      "ready_text": "Machine Schedule Board",
+      "output_prefix": "machine-board"
+    },
+    {
+      "route": "/production/occupancy",
+      "ready_text": "PPS Machine Occupancy Calendar",
+      "output_prefix": "occupancy-calendar"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/planning/mps",
+      "ready_text": "MPS Planner",
+      "open_action_label": "New MPS draft",
+      "modal_ready_text": "MPS setup",
+      "output_prefix": "mps-draft-modal",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/engineering/boms",
+      "ready_text": "BOM Library",
+      "open_action_label": "New BOM draft",
+      "modal_ready_text": "New BOM draft",
+      "output_prefix": "bom-draft-modal"
+    },
+    {
+      "route": "/planning/mrp",
+      "ready_text": "MRP Run Console",
+      "open_action_label": "Run MRP draft",
+      "modal_ready_text": "MRP run draft",
+      "output_prefix": "mrp-run-modal"
+    }
+  ]
+}

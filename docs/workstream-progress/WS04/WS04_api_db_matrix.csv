@@ -1,0 +1,8 @@
+"Item","BaselineState","FinalState","Evidence","Notes"
+"MPS web API contracts","MISSING","COMPLETE","src/web/src/api/contracts.ts","Added MasterProductionScheduleUpsertRequest and line request shape for live draft saves."
+"MPS API client methods","MISSING","COMPLETE","src/web/src/api/http.ts","Added createMps and updateMps wrappers for existing /api/mps endpoints."
+"MPS planning adapter save path","MISSING","COMPLETE","src/web/src/commercial/commercialPlanningAdapters.ts","Live authenticated sessions call /api/mps; demo/no-live sessions remain read-only with explicit sign-in reason."
+"MPS seeded/demo mapping","PARTIAL","COMPLETE","src/web/src/commercial/commercialPlanningAdapters.ts","Reference rows include line metadata for inspectable editor preview without silent live fallback."
+"Backend MPS endpoints","EXISTING","UNCHANGED","src/server/STS.Mfg.Api/Controllers/PlanningControllers.cs","Existing live create/update endpoints were reused; no backend schema change required."
+"Database schema","EXISTING","UNCHANGED","database/README.md","No destructive or additive database change was required for WS04 MPS closure."
+"Host publish assets","STALE","COMPLETE","src/server/STS.Mfg.Host/wwwroot/index.html; src/server/STS.Mfg.Host/wwwroot/assets/index-DwTMGqUE.js","Publish-folder web assets refreshed by validation build/publish."
