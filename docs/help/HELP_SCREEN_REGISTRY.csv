@@ -75,6 +75,7 @@
 "Audit Trail","/platform/audit-trail","src/web/src/pages/AdminPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Language Setup","/platform/translations","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Workflow & Numbering","/platform/workflow-numbering","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
+"Extensibility","/platform/extensibility","src/web/src/pages/PlatformExtensibilityPage.tsx","Platform","Yes","No","Yes","Yes","Yes","Implemented","Screen help available from page header and modal workspace."
 "Platform Settings","/platform/settings","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Tenant Settings","/platform/tenant-settings","src/web/src/pages/MasterPages.tsx","Platform","Yes","No","No","Yes","No","Implemented","Screen help available from page header."
 "Runtime UAT","/platform/runtime-uat","src/web/src/pages/RuntimeUatPage.tsx","Platform","Yes","No","No","Yes","No","Implemented","Runtime, role, data-truth, and publish-readiness help available from page header."

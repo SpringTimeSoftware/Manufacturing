@@ -121,31 +121,13 @@ export async function requestForgotPassword(
 ): Promise<ForgotPasswordResponse> {
   try {
     return await apiClient.auth.forgotPassword(request);
-  } catch {
-    // Keep the guarded recovery UX usable before the database pack is applied.
+  } catch (error) {
+    throw new Error(
+      error instanceof Error
+        ? error.message
+        : "Recovery request could not be submitted. Retry after the account recovery service is available."
+    );
   }
-
-  await wait();
-
-  const channelSummary =
-    request.channel === "Email"
-      ? "If the account can be verified, reset guidance will be sent to the registered mailbox."
-      : request.channel === "SMS"
-        ? "If the account can be verified, recovery guidance will be sent to the registered mobile number."
-        : "If the account can be verified, authenticator recovery guidance will be prepared for the next sign-in.";
-
-  return {
-    requestToken: `reset-${Date.now()}`,
-    message: "Recovery guidance was prepared if the account details are valid.",
-    deliverySummary: channelSummary,
-    availableChallenges: [
-      "Password reset link",
-      "Recovery code rotation",
-      "Helpdesk callback verification"
-    ],
-    expiresOnUtc: new Date(Date.now() + 1000 * 60 * 20).toISOString(),
-    pendingEndpoint: "/api/auth/forgot-password"
-  };
 }
 
 export async function listApprovalWorkItems(): Promise<ApprovalWorkItem[]> {

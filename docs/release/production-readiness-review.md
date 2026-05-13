@@ -31,17 +31,19 @@ STS Manufacturing ERP is ready for controlled demo/UAT packaging after P149, wit
 | Rate limiting | Backend/API | Closed for Wave 2 baseline; monitor and tune bucket thresholds during UAT. |
 | Real provider adapters | Integrations | Bind Email/Sms/WhatsApp and AI providers to approved production secret store. |
 | Attachment authorization tests | Security | Closed for Wave 2 baseline attachment list/read scoping; add new tests as preview/download surfaces expand. |
+| Platform extensibility foundation | Platform/Admin | Closed for WS02 baseline with additive UDF definition/value tables, APIs, governed web screen, validation metadata, and screenshot evidence. |
 | Mobile RN test harness | Mobile | Install real mobile dependencies and component/device test stack before app-store style release. |
 | Row-level import repair | Integrations | Add failed-row persistence if pilot users need row-by-row import correction. |
 | Demo data breadth | UAT | Promote full scenario records into executable guarded seed/reset scripts. |
 
 ## Final Backlog
 
-- Tune security rate limiting and expand audit viewer boundary tests during UAT hardening.
+- Tune security rate limiting and expand audit/UDF boundary tests during UAT hardening.
 - Add real provider delivery adapters behind the P138 abstraction.
 - Expand AI assistant execution from safe plan generation to controlled stored-procedure execution only after approval and telemetry are in place.
 - Add React Native Testing Library or equivalent when the mobile dependency tree is installed.
 - Expand UAT seed data for make-to-order, mixed UOM, outside processing, and delayed-order scenarios.
+- Embed UDF value panels into future domain workspaces where business owners approve the field layout.
 
 ## Stop Boundary
 

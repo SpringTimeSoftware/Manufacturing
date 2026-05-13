@@ -1,0 +1,100 @@
+{
+  "wave_id": "WS02",
+  "captures": [
+    {
+      "route": "/platform/users",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\users-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\users-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/roles",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\roles-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\roles-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/audit-trail",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\audit-trail-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\audit-trail-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/notifications",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\notifications-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\notifications-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/approvals",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\approvals-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\approvals-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/attachments",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\attachments-top.png"
+      ],
+      "modalFiles": []
+    },
+    {
+      "route": "/platform/translations",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\translations-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\translations-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/workflow-numbering",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\workflow-numbering-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\workflow-numbering-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/tenant-settings",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\tenant-settings-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\tenant-settings-modal.png"
+      ]
+    },
+    {
+      "route": "/platform/settings",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\platform-settings-top.png"
+      ],
+      "modalFiles": []
+    },
+    {
+      "route": "/platform/extensibility",
+      "files": [
+        "docs\\codex-review-screens\\WS02\\extensibility-top.png"
+      ],
+      "modalFiles": [
+        "docs\\codex-review-screens\\WS02\\extensibility-modal.png"
+      ]
+    }
+  ]
+}

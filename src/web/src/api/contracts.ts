@@ -288,17 +288,48 @@ export interface ApprovalDecisionRequest {
   remarks?: string;
 }
 
+export interface ApprovalDecisionDto {
+  id: number;
+  decision: string;
+  remarks?: string | null;
+  decidedOn: string;
+  decidedByUserId?: number | null;
+}
+
+export interface ApprovalDetailDto {
+  workItem: ApprovalWorkItem;
+  decisions: ApprovalDecisionDto[];
+}
+
 export interface UserDirectoryItemDto {
   id: string;
   userName: string;
   displayName: string;
   email: string;
-  roles: RoleCode[];
+  roles: string[];
   branchAccess: string[];
   status: "Active" | "Pending Invite" | "Locked" | "Suspended";
   loginPolicy: string;
   lastLogin: string;
   deviceBinding: string;
+}
+
+export interface UserRoleAssignmentRequest {
+  roleCode: string;
+  companyId?: number | null;
+  branchId?: number | null;
+}
+
+export interface UserAccessPolicyUpdateRequest {
+  displayName: string;
+  email?: string | null;
+  languageCode: string;
+  defaultCompanyId?: number | null;
+  defaultBranchId?: number | null;
+  status: string;
+  loginPolicy: string;
+  deviceBinding: string;
+  roles: UserRoleAssignmentRequest[];
 }
 
 export interface RolePermissionDto {
@@ -307,27 +338,63 @@ export interface RolePermissionDto {
   dataScope: string;
 }
 
+export interface PermissionCatalogItemDto {
+  id: string;
+  permissionCode: string;
+  module: string;
+  access: string;
+  dataScope: string;
+  status: string;
+}
+
 export interface RoleMatrixItemDto {
   id: string;
-  roleCode: RoleCode;
+  roleCode: string;
   label: string;
   audience: string;
   scopeMode: string;
   activeUsers: number;
   mobileSurface: string;
-  status: "Standard" | "Custom";
+  status: string;
   permissions: RolePermissionDto[];
+}
+
+export interface RolePermissionAssignmentRequest {
+  permissionCode: string;
+}
+
+export interface RoleUpsertRequest {
+  roleCode: string;
+  label: string;
+  audience: string;
+  scopeMode: string;
+  status: string;
+  permissions: RolePermissionAssignmentRequest[];
 }
 
 export interface WorkflowNumberingItemDto {
   id: string;
   documentType: string;
   seriesPattern: string;
-  workflowOwner: RoleCode;
+  workflowOwner: string;
   approvalChain: string;
   transitionCount: number;
   status: "Active" | "Draft";
   notes: string;
+}
+
+export interface WorkflowRuleUpsertRequest {
+  companyId?: number | null;
+  branchId?: number | null;
+  workflowCode: string;
+  documentType: string;
+  seriesPattern: string;
+  currentNumber: number;
+  resetPolicy: string;
+  workflowOwner: string;
+  approvalChain: string;
+  status: string;
+  notes?: string | null;
 }
 
 export interface TenantSettingItemDto {
@@ -338,6 +405,84 @@ export interface TenantSettingItemDto {
   value: string;
   status: "Applied" | "Pending";
   description: string;
+}
+
+export interface TenantSettingUpdateRequest {
+  value: string;
+  status: string;
+  description?: string | null;
+}
+
+export interface TranslationResourceUpsertRequest {
+  languageCode: string;
+  module?: string | null;
+  translationKey: string;
+  translationValue: string;
+  companyId?: number | null;
+  branchId?: number | null;
+}
+
+export interface UdfDefinitionFilter extends QueryFilter {
+  entityType?: string;
+}
+
+export interface UdfDefinitionDto {
+  id: number;
+  companyId?: number | null;
+  entityType: string;
+  fieldKey: string;
+  label: string;
+  dataType: string;
+  controlType: string;
+  lookupSource?: string | null;
+  isRequired: boolean;
+  minNumber?: number | null;
+  maxNumber?: number | null;
+  maxLength?: number | null;
+  decimalScale?: number | null;
+  roleVisibility: string;
+  status: string;
+  createdOn: string;
+  modifiedOn?: string | null;
+}
+
+export interface UdfDefinitionUpsertRequest {
+  companyId?: number | null;
+  entityType: string;
+  fieldKey: string;
+  label: string;
+  dataType: string;
+  controlType: string;
+  lookupSource?: string | null;
+  isRequired: boolean;
+  minNumber?: number | null;
+  maxNumber?: number | null;
+  maxLength?: number | null;
+  decimalScale?: number | null;
+  roleVisibility: string;
+  status: string;
+}
+
+export interface UdfValueDto {
+  id: number;
+  definitionId: number;
+  entityType: string;
+  entityId: number;
+  valueText?: string | null;
+  valueNumber?: number | null;
+  valueDate?: string | null;
+  valueBoolean?: boolean | null;
+  createdOn: string;
+  modifiedOn?: string | null;
+}
+
+export interface UdfValueUpsertRequest {
+  definitionId: number;
+  entityId: number;
+  valueText?: string | null;
+  valueNumber?: number | null;
+  valueDate?: string | null;
+  valueBoolean?: boolean | null;
 }
 
 export interface AuditTrailItemDto {

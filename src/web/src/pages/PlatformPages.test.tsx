@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { apiClient } from "../api/http";
 import { renderWithApp } from "../test/render";
 import {
   ApprovalWorkbenchPage,
@@ -9,6 +10,10 @@ import {
 } from "./PlatformPages";
 
 describe("PlatformPages", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders the context switch preview with warehouse data", async () => {
     renderWithApp(
       <Routes>
@@ -47,6 +52,15 @@ describe("PlatformPages", () => {
   });
 
   it("renders forgot-password recovery options for anonymous users", async () => {
+    vi.spyOn(apiClient.auth, "forgotPassword").mockResolvedValue({
+      requestToken: "reset-test",
+      message: "Recovery guidance was prepared if the account details are valid.",
+      deliverySummary: "Recovery guidance was queued through the selected channel.",
+      availableChallenges: ["Password reset link"],
+      expiresOnUtc: new Date(Date.now() + 1000 * 60 * 20).toISOString(),
+      pendingEndpoint: "/api/auth/forgot-password"
+    });
+
     renderWithApp(
       <Routes>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

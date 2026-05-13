@@ -1,4 +1,16 @@
-import type { AuditTrailItemDto, AuthSessionResponse, RoleCode } from "../api/contracts";
+import type {
+  AuditTrailItemDto,
+  AuthSessionResponse,
+  PermissionCatalogItemDto,
+  RoleUpsertRequest,
+  TenantSettingUpdateRequest,
+  TranslationResourceUpsertRequest,
+  UdfDefinitionDto,
+  UdfDefinitionFilter,
+  UdfDefinitionUpsertRequest,
+  UserAccessPolicyUpdateRequest,
+  WorkflowRuleUpsertRequest
+} from "../api/contracts";
 import { apiClient } from "../api/http";
 import { liveDataUnavailable } from "../api/liveData";
 import { translationRecords } from "../api/mockData";
@@ -9,7 +21,7 @@ export interface UserDirectoryItem {
   userName: string;
   displayName: string;
   email: string;
-  roles: RoleCode[];
+  roles: string[];
   branchAccess: string[];
   status: "Active" | "Pending Invite" | "Locked" | "Suspended";
   loginPolicy: string;
@@ -19,13 +31,13 @@ export interface UserDirectoryItem {
 
 export interface RoleMatrixItem {
   id: string;
-  roleCode: RoleCode;
+  roleCode: string;
   label: string;
   audience: string;
   scopeMode: string;
   activeUsers: number;
   mobileSurface: string;
-  status: "Standard" | "Custom";
+  status: string;
   permissions: Array<{
     module: string;
     access: "Read" | "Manage" | "Approve";
@@ -47,7 +59,7 @@ export interface WorkflowNumberingItem {
   id: string;
   documentType: string;
   seriesPattern: string;
-  workflowOwner: RoleCode;
+  workflowOwner: string;
   approvalChain: string;
   transitionCount: number;
   status: "Active" | "Draft";
@@ -65,6 +77,8 @@ export interface TenantSettingItem {
 }
 
 export type AuditTrailItem = AuditTrailItemDto;
+export type PermissionCatalogItem = PermissionCatalogItemDto;
+export type UdfDefinitionItem = UdfDefinitionDto;
 
 export interface AuditTrailQuery {
   search?: string;
@@ -241,6 +255,47 @@ const seededWorkflowRules: WorkflowNumberingItem[] = [
   }
 ];
 
+const seededUdfDefinitions: UdfDefinitionItem[] = [
+  {
+    id: 1,
+    companyId: 1,
+    entityType: "Item",
+    fieldKey: "customerDrawingNo",
+    label: "Customer drawing number",
+    dataType: "Text",
+    controlType: "Text",
+    lookupSource: null,
+    isRequired: false,
+    minNumber: null,
+    maxNumber: null,
+    maxLength: 64,
+    decimalScale: null,
+    roleVisibility: "CompanyAdmin,EngineeringManager,SalesCoordinator",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
+  },
+  {
+    id: 2,
+    companyId: 1,
+    entityType: "Customer",
+    fieldKey: "preferredDispatchWindow",
+    label: "Preferred dispatch window",
+    dataType: "Lookup",
+    controlType: "Select",
+    lookupSource: "DispatchWindow",
+    isRequired: false,
+    minNumber: null,
+    maxNumber: null,
+    maxLength: 48,
+    decimalScale: null,
+    roleVisibility: "CompanyAdmin,SalesCoordinator,DispatchManager",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
+  }
+];
+
 const seededTenantSettingsBase: TenantSettingItem[] = [
   {
     id: "setting-iis",
@@ -350,6 +405,108 @@ export async function listRoleMatrix(_session: AuthSessionResponse | null | unde
   return seededRoles;
 }
 
+export async function listPermissionCatalog(session: AuthSessionResponse | null | undefined) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.permissions();
+    } catch {
+      throw liveDataUnavailable("Permission catalog");
+    }
+  }
+
+  return seededRoles.flatMap((role) =>
+    role.permissions.map((permission, index) => ({
+      id: `${role.id}-permission-${index}`,
+      permissionCode: `${permission.module}.${permission.access}.${permission.dataScope}`.replace(/\s+/g, ""),
+      module: permission.module,
+      access: permission.access,
+      dataScope: permission.dataScope,
+      status: "Active"
+    }))
+  );
+}
+
+export async function saveUserAccessPolicy(
+  session: AuthSessionResponse | null | undefined,
+  id: string,
+  request: UserAccessPolicyUpdateRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.updateUserAccessPolicy(id, request);
+    } catch {
+      throw liveDataUnavailable("User access policy save");
+    }
+  }
+
+  return {
+    id,
+    userName: request.displayName.toLowerCase().replace(/\s+/g, "."),
+    displayName: request.displayName,
+    email: request.email ?? "",
+    roles: request.roles.map((role) => role.roleCode),
+    branchAccess: request.roles.map((role) => role.branchId?.toString() ?? role.companyId?.toString() ?? "Tenant"),
+    status: request.status as UserDirectoryItem["status"],
+    loginPolicy: request.loginPolicy,
+    lastLogin: "Demo review",
+    deviceBinding: request.deviceBinding
+  };
+}
+
+export async function requestUserAccessReset(session: AuthSessionResponse | null | undefined, id: string) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.requestUserAccessReset(id);
+    } catch {
+      throw liveDataUnavailable("User access reset");
+    }
+  }
+
+  return { id, status: "ResetRequested", referenceNo: id, warnings: [] };
+}
+
+export async function saveRole(
+  session: AuthSessionResponse | null | undefined,
+  id: string | null,
+  request: RoleUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id ? await apiClient.platform.updateRole(id, request) : await apiClient.platform.createRole(request);
+    } catch {
+      throw liveDataUnavailable("Role save");
+    }
+  }
+
+  return {
+    id: id ?? `role-${request.roleCode}`,
+    roleCode: request.roleCode,
+    label: request.label,
+    audience: request.audience,
+    scopeMode: request.scopeMode,
+    activeUsers: 0,
+    mobileSurface: "None",
+    status: request.status,
+    permissions: []
+  };
+}
+
+export async function cloneRole(
+  session: AuthSessionResponse | null | undefined,
+  id: string,
+  request: RoleUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.cloneRole(id, request);
+    } catch {
+      throw liveDataUnavailable("Role clone");
+    }
+  }
+
+  return saveRole(session, null, request);
+}
+
 export async function listWorkflowRules(_session: AuthSessionResponse | null | undefined) {
   if (!isDemoSession(_session)) {
     try {
@@ -360,6 +517,33 @@ export async function listWorkflowRules(_session: AuthSessionResponse | null | u
   }
 
   return seededWorkflowRules;
+}
+
+export async function saveWorkflowRule(
+  session: AuthSessionResponse | null | undefined,
+  id: string | null,
+  request: WorkflowRuleUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id
+        ? await apiClient.platform.updateWorkflowRule(id, request)
+        : await apiClient.platform.createWorkflowRule(request);
+    } catch {
+      throw liveDataUnavailable("Workflow rule save");
+    }
+  }
+
+  return {
+    id: id ?? `wf-${request.workflowCode}`,
+    documentType: request.documentType,
+    seriesPattern: request.seriesPattern,
+    workflowOwner: request.workflowOwner,
+    approvalChain: request.approvalChain,
+    transitionCount: 0,
+    status: request.status as WorkflowNumberingItem["status"],
+    notes: request.notes ?? ""
+  };
 }
 
 export async function listTenantSettings(
@@ -408,6 +592,30 @@ export async function listTenantSettings(
       description: "Shows curated workflow shortcuts for common manufacturing reviews."
     }
   ];
+}
+
+export async function saveTenantSetting(
+  session: AuthSessionResponse | null | undefined,
+  id: string,
+  request: TenantSettingUpdateRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.updateTenantSetting(id, request);
+    } catch {
+      throw liveDataUnavailable("Tenant setting save");
+    }
+  }
+
+  return {
+    id,
+    group: "Demo",
+    key: "showSeededNavigation" as TenantSettingItem["key"],
+    label: id,
+    value: request.value,
+    status: request.status as TenantSettingItem["status"],
+    description: request.description ?? ""
+  };
 }
 
 export async function listAuditTrail(
@@ -500,4 +708,74 @@ export async function listTranslationRegistry(
   } catch {
     throw liveDataUnavailable("Translation registry");
   }
+}
+
+export async function saveTranslationResource(
+  session: AuthSessionResponse | null | undefined,
+  request: TranslationResourceUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.localization.upsertResource(request);
+    } catch {
+      throw liveDataUnavailable("Translation resource save");
+    }
+  }
+
+  return {
+    id: request.translationKey,
+    status: "Saved",
+    referenceNo: request.translationKey,
+    warnings: []
+  };
+}
+
+export async function listUdfDefinitions(
+  session: AuthSessionResponse | null | undefined,
+  filter: UdfDefinitionFilter
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.udfDefinitions(filter);
+    } catch {
+      throw liveDataUnavailable("Extensibility field definitions");
+    }
+  }
+
+  const search = filter.search?.trim().toLowerCase() ?? "";
+  return seededUdfDefinitions.filter((definition) => {
+    const matchesEntity =
+      !filter.entityType || filter.entityType === "all" || definition.entityType === filter.entityType;
+    const matchesStatus = !filter.status || filter.status === "all" || definition.status === filter.status;
+    const matchesSearch =
+      search.length === 0 ||
+      `${definition.entityType} ${definition.fieldKey} ${definition.label} ${definition.roleVisibility}`
+        .toLowerCase()
+        .includes(search);
+
+    return matchesEntity && matchesStatus && matchesSearch;
+  });
+}
+
+export async function saveUdfDefinition(
+  session: AuthSessionResponse | null | undefined,
+  id: number | null,
+  request: UdfDefinitionUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id
+        ? await apiClient.platform.updateUdfDefinition(id, request)
+        : await apiClient.platform.createUdfDefinition(request);
+    } catch {
+      throw liveDataUnavailable("Extensibility field definition save");
+    }
+  }
+
+  return {
+    id: id ?? Date.now(),
+    ...request,
+    createdOn: new Date().toISOString(),
+    modifiedOn: new Date().toISOString()
+  };
 }

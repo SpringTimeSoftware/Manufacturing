@@ -157,7 +157,7 @@ function getNavigationParent(item: NavigationItem, groupLabel: string) {
       return "Access Control";
     }
 
-    if (item.path.includes("workflow") || item.path.includes("audit") || item.path.includes("translations")) {
+    if (item.path.includes("workflow") || item.path.includes("audit") || item.path.includes("translations") || item.path.includes("extensibility")) {
       return "Governance";
     }
 
@@ -240,6 +240,7 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/platform/attachments": "attachment",
     "/platform/audit-trail": "audit",
     "/platform/context-switch": "settings",
+    "/platform/extensibility": "platform",
     "/platform/notifications": "bell",
     "/platform/roles": "roles",
     "/platform/runtime-uat": "audit",

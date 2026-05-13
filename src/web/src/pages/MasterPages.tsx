@@ -698,6 +698,12 @@ export function PlatformSettingsPage() {
       summary: "Language resource preview, translation review, and localization status."
     },
     {
+      id: "extensibility",
+      label: "Extensibility",
+      route: "/platform/extensibility",
+      summary: "Controlled field definitions, role visibility, and validation metadata."
+    },
+    {
       id: "access",
       label: "Users and roles",
       route: "/platform/users",
@@ -740,7 +746,7 @@ export function PlatformSettingsPage() {
           { label: "Documents", value: "Scoped" }
         ]}
       />
-      <Card title="Platform administration areas" description="Open the governed setup area needed for the current administration task.">
+      <Card title="Platform administration areas" description="Open the administration area needed for the current task.">
         <div className="utility-grid">
           {setupAreas.map((area) => (
             <Tile eyebrow="Platform" key={area.id} label={area.label} meta="Open setup" onClick={() => navigate(area.route)}>

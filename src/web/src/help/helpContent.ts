@@ -366,7 +366,7 @@ function defaultRelatedScreens(section: string) {
     Masters: ["Items", "UOM Classes", "Price Lists", "Work Orders"],
     Measurement: ["Items", "Price Lists", "BOM Library", "Production Receipt"],
     Resources: ["Routings", "Operation Standards", "Capacity Planning", "Work Orders"],
-    Platform: ["Users", "Roles & Permissions", "Workflow & Numbering", "Audit Trail"]
+    Platform: ["Users", "Roles & Permissions", "Workflow & Numbering", "Extensibility", "Audit Trail"]
   };
 
   return related[section] ?? ["Home Dashboard"];
@@ -663,6 +663,47 @@ const explicitScreens: Record<string, Partial<HelpScreenRecord>> = {
     purpose: "Use Workflow & Numbering to review approval chains, document numbering policy, and workflow state controls.",
     relatedScreens: ["Approvals", "Roles & Permissions", "Audit Trail", "Tenant Settings"],
     title: "Workflow & Numbering"
+  },
+  "/platform/extensibility": {
+    actions: [
+      ...genericActions,
+      {
+        action: "Save definition",
+        allowedWhen: "Required field metadata is complete and the user has platform or company administration rights.",
+        dependencies: ["Entity type", "field key", "label", "data type", "control type", "role visibility"],
+        disabledReason: "Save is disabled until required metadata and lookup-source requirements are complete.",
+        purpose: "Create or update a controlled extension field definition."
+      }
+    ],
+    commonMistakes: ["Creating a lookup field without choosing a lookup source", "Using free text for a value that should reference a master source"],
+    fields: [
+      {
+        controlType: "lookup",
+        examples: ["Item", "Customer", "WorkOrder"],
+        fieldId: "udf-entity-type",
+        label: "Entity type",
+        lookupSource: "Implemented business record types",
+        meaning: "Defines which business record the extension field can be used with.",
+        screenOrTab: "Extensibility",
+        validation: "Required."
+      },
+      {
+        controlType: "number",
+        examples: ["64", "256"],
+        fieldId: "udf-max-length",
+        label: "Maximum text length",
+        meaning: "Limits text field length so downstream forms can validate consistently.",
+        screenOrTab: "Extensibility",
+        validation: "Must be greater than zero when provided."
+      }
+    ],
+    keyActions: ["Create field definition", "Edit definition", "Filter by entity", "Save validation metadata"],
+    prerequisites: ["Platform or company administrator access", "Confirmed entity and role visibility requirements"],
+    purpose: "Use Extensibility to define controlled user-defined fields with validation, lookup sources, and role visibility.",
+    relatedScreens: ["Users", "Roles & Permissions", "Item Master", "Customer Master", "Work Orders"],
+    statuses: ["Active", "Draft", "Inactive"],
+    targetRoles: ["PlatformAdmin", "CompanyAdmin"],
+    title: "Extensibility"
   },
   "/platform/tenant-settings": {
     purpose: "Use Tenant Settings to review company-wide controls, localization, security, and operational policy.",

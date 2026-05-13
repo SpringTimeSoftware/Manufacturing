@@ -445,6 +445,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["PlatformAdmin", "CompanyAdmin"]
   },
   {
+    label: "Extensibility",
+    path: "/platform/extensibility",
+    section: "Platform",
+    roles: ["PlatformAdmin", "CompanyAdmin"]
+  },
+  {
     label: "Platform Settings",
     path: "/platform/settings",
     section: "Platform",

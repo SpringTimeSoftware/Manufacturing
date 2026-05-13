@@ -18,6 +18,7 @@ Prompt P146 reviewed auth, authorization, attachment access, secret handling, pr
 | Health checks | Present | Live and ready health endpoints are exposed under `/api/health/*`. |
 | Rate limiting | Present | Wave 2 adds global ASP.NET Core rate limiting with stricter buckets for authentication, AI, integration, and import/export APIs. |
 | Audit viewer | Present | Wave 2 adds a least-privilege audit read API and a scoped platform audit viewer. |
+| Extensibility | Present | WS02 adds additive UDF definition/value APIs with company scope, role visibility metadata, validation, and audit writes. |
 
 ## Production Gaps To Close Before Pilot
 
@@ -27,6 +28,7 @@ Prompt P146 reviewed auth, authorization, attachment access, secret handling, pr
 | Attachment authorization | Closed for Wave 2 baseline list/read access; additional endpoint-specific cases can be expanded during pilot hardening. | Keep adding regression tests when new attachment preview/download surfaces are introduced. |
 | Secret rotation | Credential references avoid hard-coded secrets, but rotation procedure is not scripted. | Document Key Vault/Windows secret-store rotation and provider disable process. |
 | Audit read model | Closed for Wave 2 baseline API/UI; deeper role-boundary tests remain useful before pilot. | Expand authorization tests for PlatformAdmin, CompanyAdmin, and PlantHead boundaries. |
+| UDF role visibility | Closed for WS02 definition listing; downstream UDF value panels need per-screen authorization as they are embedded. | Keep UDF panels behind existing role policies and add boundary tests as each domain screen adopts UDF values. |
 | Provider outbound delivery | Email/Sms/WhatsApp adapters are vendor-neutral placeholders. | Bind real providers through environment configuration and run redacted delivery tests. |
 | Mobile device trust | Device binding is represented, but production revocation policy is not complete. | Add device revoke and lost-device procedures before pilot. |
 
@@ -34,4 +36,4 @@ Prompt P146 reviewed auth, authorization, attachment access, secret handling, pr
 
 - No destructive schema or scope changes were made.
 - No HR, payroll, accounting, or unrelated modules were introduced.
-- Wave 2 closes the baseline rate limiting, audit viewer, attachment visibility test, and masked provider reference gaps while keeping provider rotation and device trust as explicit pilot blockers.
+- Wave 2 and WS02 close the baseline rate limiting, audit viewer, attachment visibility test, UDF foundation, and masked provider reference gaps while keeping provider rotation and device trust as explicit pilot blockers.

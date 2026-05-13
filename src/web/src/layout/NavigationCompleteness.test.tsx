@@ -79,6 +79,7 @@ const implementedProtectedRoutes = [
   "/platform/audit-trail",
   "/platform/translations",
   "/platform/workflow-numbering",
+  "/platform/extensibility",
   "/platform/settings",
   "/platform/tenant-settings",
   "/platform/runtime-uat",
@@ -159,6 +160,7 @@ describe("Super Admin navigation completeness", () => {
     expect(screen.getByRole("link", { name: "Item Attributes" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Platform/i }));
+    expect(screen.getByRole("link", { name: "Extensibility" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Platform Settings" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tenant Settings" })).toBeInTheDocument();
   });

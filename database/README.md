@@ -19,20 +19,21 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 1. `ddl/00-foundation/001_create_extension_schemas.sql`
 2. `ddl/00-foundation/002_platform_org_measurement_tables.sql`
 3. `ddl/00-foundation/003_platform_admin_runtime_tables.sql`
-4. `ddl/10-master-data/010_master_resource_engineering_tables.sql`
-5. `ddl/10-master-data/020_item_master_v2_extension_tables.sql`
-6. `ddl/10-master-data/030_partner_master_v2_extension_tables.sql`
-7. `ddl/20-commercial/010_sales_planning_procurement_inventory_tables.sql`
-8. `ddl/20-commercial/020_commercial_master_v2_tables.sql`
-9. `ddl/00-foundation/009_production_execution_tables.sql`
-10. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
-11. `ddl/00-foundation/020_integration_ai_tables.sql`
-12. `procedures/production/001_machine_board.sql`
-13. `seed/001_minimum_platform_seed.sql`
-14. `seed/002_minimum_org_seed.sql`
-15. `seed/003_minimum_masters_seed.sql`
-16. `seed/005_uat_runtime_seed.sql`
-17. future backfill, seed, and procedure packs in numeric order
+4. `ddl/00-foundation/004_platform_extensibility_tables.sql`
+5. `ddl/10-master-data/010_master_resource_engineering_tables.sql`
+6. `ddl/10-master-data/020_item_master_v2_extension_tables.sql`
+7. `ddl/10-master-data/030_partner_master_v2_extension_tables.sql`
+8. `ddl/20-commercial/010_sales_planning_procurement_inventory_tables.sql`
+9. `ddl/20-commercial/020_commercial_master_v2_tables.sql`
+10. `ddl/00-foundation/009_production_execution_tables.sql`
+11. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
+12. `ddl/00-foundation/020_integration_ai_tables.sql`
+13. `procedures/production/001_machine_board.sql`
+14. `seed/001_minimum_platform_seed.sql`
+15. `seed/002_minimum_org_seed.sql`
+16. `seed/003_minimum_masters_seed.sql`
+17. `seed/005_uat_runtime_seed.sql`
+18. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 
@@ -40,6 +41,7 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 
 - platform audit/localization/notification outbox;
 - platform user, role, permission, notification inbox, approval workbench, workflow, numbering, password recovery request, and tenant setting foundations;
+- platform extensibility UDF definitions and values with audit-ready company scoping;
 - organization, warehouse, bin, and shift setup;
 - measurement/UOM setup;
 - item/customer/supplier compatibility records;

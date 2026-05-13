@@ -12,6 +12,7 @@ public sealed class ApiRateLimitingTests
     [InlineData("/api/integration/providers", ApiRateLimiting.IntegrationBucket, 45)]
     [InlineData("/api/exports", ApiRateLimiting.ImportExportBucket, 30)]
     [InlineData("/api/users", ApiRateLimiting.DefaultBucket, 600)]
+    [InlineData("/api/platform/udf-definitions", ApiRateLimiting.DefaultBucket, 600)]
     public void ResolveBucket_ShouldApplyExpectedRatePolicy(string path, string bucket, int permitLimit)
     {
         var resolved = ApiRateLimiting.ResolveBucket(new PathString(path));

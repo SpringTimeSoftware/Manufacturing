@@ -325,6 +325,45 @@ SELECT 1, NULL, s.SettingGroup, s.SettingKey, s.SettingLabel, s.SettingValue, s.
 FROM @settings s
 WHERE NOT EXISTS (SELECT 1 FROM platform.PlatformSettings existing WHERE existing.CompanyId = 1 AND existing.BranchId IS NULL AND existing.SettingKey = s.SettingKey);
 
+IF OBJECT_ID(N'platform.UdfDefinitions', N'U') IS NOT NULL
+BEGIN
+    DECLARE @udfDefinitions TABLE
+    (
+        EntityType NVARCHAR(64),
+        FieldKey NVARCHAR(64),
+        Label NVARCHAR(128),
+        DataType NVARCHAR(32),
+        ControlType NVARCHAR(32),
+        LookupSource NVARCHAR(128),
+        IsRequired BIT,
+        MinNumber DECIMAL(18,6),
+        MaxNumber DECIMAL(18,6),
+        MaxLength INT,
+        DecimalScale INT,
+        RoleVisibility NVARCHAR(512),
+        Status NVARCHAR(32)
+    );
+
+    INSERT INTO @udfDefinitions
+        (EntityType, FieldKey, Label, DataType, ControlType, LookupSource, IsRequired, MinNumber, MaxNumber, MaxLength, DecimalScale, RoleVisibility, Status)
+    VALUES
+        (N'Item', N'customerDrawingNo', N'Customer drawing number', N'Text', N'Text', NULL, 0, NULL, NULL, 64, NULL, N'CompanyAdmin,EngineeringManager,SalesCoordinator', N'Active'),
+        (N'Customer', N'preferredDispatchWindow', N'Preferred dispatch window', N'Lookup', N'Select', N'DispatchWindow', 0, NULL, NULL, 48, NULL, N'CompanyAdmin,SalesCoordinator,DispatchManager', N'Active'),
+        (N'WorkOrder', N'specialInspectionNote', N'Special inspection note', N'Text', N'Text', NULL, 0, NULL, NULL, 256, NULL, N'CompanyAdmin,PlanningManager,QualityManager', N'Active');
+
+    INSERT INTO platform.UdfDefinitions
+        (CompanyId, EntityType, FieldKey, Label, DataType, ControlType, LookupSource, IsRequired, MinNumber, MaxNumber, MaxLength, DecimalScale, RoleVisibility, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+    SELECT 1, d.EntityType, d.FieldKey, d.Label, d.DataType, d.ControlType, d.LookupSource, d.IsRequired, d.MinNumber, d.MaxNumber, d.MaxLength, d.DecimalScale, d.RoleVisibility, d.Status, @now, NULL, @now, NULL
+    FROM @udfDefinitions d
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM platform.UdfDefinitions existing
+        WHERE existing.CompanyId = 1
+          AND existing.EntityType = d.EntityType
+          AND existing.FieldKey = d.FieldKey
+    );
+END;
+
 DECLARE @notifications TABLE
 (
     NotificationKey NVARCHAR(128),

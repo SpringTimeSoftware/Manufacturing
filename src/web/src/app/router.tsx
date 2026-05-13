@@ -51,6 +51,7 @@ import {
   TranslationSetupPage,
   WorkflowNumberingPage
 } from "../pages/MasterPages";
+import { PlatformExtensibilityPage } from "../pages/PlatformExtensibilityPage";
 import {
   BarcodeLabelSetupPage,
   ClassificationSetupPage,
@@ -221,6 +222,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("platform/audit-trail", <AuditTrailPage />),
       guardedRoute("platform/translations", <TranslationSetupPage />),
       guardedRoute("platform/workflow-numbering", <WorkflowNumberingPage />),
+      guardedRoute("platform/extensibility", <PlatformExtensibilityPage />),
       guardedRoute("platform/tenant-settings", <TenantSettingsPage />),
       guardedRoute("platform/settings", <PlatformSettingsPage />),
       guardedRoute("platform/runtime-uat", <RuntimeUatPage />),

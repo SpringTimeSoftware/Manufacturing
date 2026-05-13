@@ -90,6 +90,7 @@ import type {
   QuoteDto,
   QuoteUpsertRequest,
   RefreshTokenRequest,
+  ApprovalDetailDto,
   ApprovalDecisionRequest,
   ApprovalWorkItem,
   ForgotPasswordRequest,
@@ -105,14 +106,25 @@ import type {
   WarehouseDto,
   WarehouseUpsertRequest,
   TranslationBundleResponse,
+  TranslationResourceUpsertRequest,
   UserDirectoryItemDto,
+  UserAccessPolicyUpdateRequest,
   WorkCenterDto,
   WorkCenterUpsertRequest,
+  PermissionCatalogItemDto,
   RoleMatrixItemDto,
+  RoleUpsertRequest,
   RoutingDto,
   RoutingUpsertRequest,
   WorkflowNumberingItemDto,
+  WorkflowRuleUpsertRequest,
   TenantSettingItemDto,
+  TenantSettingUpdateRequest,
+  UdfDefinitionDto,
+  UdfDefinitionFilter,
+  UdfDefinitionUpsertRequest,
+  UdfValueDto,
+  UdfValueUpsertRequest,
   SupplierAddressDto,
   SupplierAddressUpsertRequest,
   SupplierDto,
@@ -286,7 +298,12 @@ export const apiClient = {
       });
 
       return request<TranslationBundleResponse>(`/api/localization/resources?${query}`);
-    }
+    },
+    upsertResource: (body: TranslationResourceUpsertRequest) =>
+      request<ActionResponse>("/api/localization/resources", {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
   },
   dashboards: {
     stageWise: (filter: DashboardFilter = {}) => {
@@ -1007,6 +1024,7 @@ export const apiClient = {
   },
   approvals: {
     list: () => request<ApprovalWorkItem[]>("/api/approvals"),
+    detail: (id: string) => request<ApprovalDetailDto>(`/api/approvals/${encodeURIComponent(id)}`),
     decide: (id: string, body: ApprovalDecisionRequest) =>
       request<ActionResponse>(`/api/approvals/${encodeURIComponent(id)}/decision`, {
         method: "POST",
@@ -1015,9 +1033,75 @@ export const apiClient = {
   },
   platform: {
     users: () => request<UserDirectoryItemDto[]>("/api/users"),
+    updateUserAccessPolicy: (id: string, body: UserAccessPolicyUpdateRequest) =>
+      request<UserDirectoryItemDto>(`/api/users/${encodeURIComponent(id)}/access-policy`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    requestUserAccessReset: (id: string) =>
+      request<ActionResponse>(`/api/users/${encodeURIComponent(id)}/reset-request`, {
+        method: "POST"
+      }),
     roles: () => request<RoleMatrixItemDto[]>("/api/roles"),
+    permissions: () => request<PermissionCatalogItemDto[]>("/api/permissions"),
+    createRole: (body: RoleUpsertRequest) =>
+      request<RoleMatrixItemDto>("/api/roles", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateRole: (id: string, body: RoleUpsertRequest) =>
+      request<RoleMatrixItemDto>(`/api/roles/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    cloneRole: (id: string, body: RoleUpsertRequest) =>
+      request<RoleMatrixItemDto>(`/api/roles/${encodeURIComponent(id)}/clone`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     workflowRules: () => request<WorkflowNumberingItemDto[]>("/api/settings/workflow-rules"),
+    createWorkflowRule: (body: WorkflowRuleUpsertRequest) =>
+      request<WorkflowNumberingItemDto>("/api/settings/workflow-rules", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateWorkflowRule: (id: string, body: WorkflowRuleUpsertRequest) =>
+      request<WorkflowNumberingItemDto>(`/api/settings/workflow-rules/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     tenantSettings: () => request<TenantSettingItemDto[]>("/api/settings/tenant-settings"),
+    updateTenantSetting: (id: string, body: TenantSettingUpdateRequest) =>
+      request<TenantSettingItemDto>(`/api/settings/tenant-settings/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    udfDefinitions: (filter: UdfDefinitionFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<UdfDefinitionDto[]>(`/api/platform/udf-definitions?${query}`);
+    },
+    createUdfDefinition: (body: UdfDefinitionUpsertRequest) =>
+      request<UdfDefinitionDto>("/api/platform/udf-definitions", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateUdfDefinition: (id: number, body: UdfDefinitionUpsertRequest) =>
+      request<UdfDefinitionDto>(`/api/platform/udf-definitions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    udfValues: (entityType: string, entityId: number) =>
+      request<UdfValueDto[]>(
+        `/api/platform/udf-values/${encodeURIComponent(entityType)}/${encodeURIComponent(String(entityId))}`
+      ),
+    upsertUdfValue: (entityType: string, entityId: number, body: UdfValueUpsertRequest) =>
+      request<UdfValueDto>(
+        `/api/platform/udf-values/${encodeURIComponent(entityType)}/${encodeURIComponent(String(entityId))}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(body)
+        }
+      ),
     auditTrail: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<AuditTrailItemDto>>(`/api/audit-trail?${query}`);
