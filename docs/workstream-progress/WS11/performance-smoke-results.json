@@ -1,0 +1,88 @@
+{
+  "baseUrl": "http://127.0.0.1:5173",
+  "capturedAt": "2026-05-13T12:05:19.088Z",
+  "maxLoadMs": 8000,
+  "pass": true,
+  "results": [
+    {
+      "route": "/",
+      "expectedText": "Delivery risk",
+      "elapsedMs": 2731,
+      "status": "PASS",
+      "screenshot": "release-dashboard-home.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/dashboards/order-delivery",
+      "expectedText": "Order Delivery Dashboard",
+      "elapsedMs": 3123,
+      "status": "PASS",
+      "screenshot": "release-order-delivery-dashboard.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/dashboards/stage-wise",
+      "expectedText": "Stage Wise Dashboard",
+      "elapsedMs": 3053,
+      "status": "PASS",
+      "screenshot": "release-stage-wise-dashboard.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/planning/mrp",
+      "expectedText": "MRP Run Console",
+      "elapsedMs": 3060,
+      "status": "PASS",
+      "screenshot": "release-mrp-run-console.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/production/machine-board",
+      "expectedText": "Machine Schedule Board",
+      "elapsedMs": 3154,
+      "status": "PASS",
+      "screenshot": "release-machine-board.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/inventory/traceability",
+      "expectedText": "Lot / Serial / Catch Weight Traceability",
+      "elapsedMs": 2289,
+      "status": "PASS",
+      "screenshot": "release-traceability.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/reports/catalog",
+      "expectedText": "Report Catalog",
+      "elapsedMs": 2921,
+      "status": "PASS",
+      "screenshot": "release-report-catalog.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/platform/runtime-uat",
+      "expectedText": "Runtime UAT",
+      "elapsedMs": 3171,
+      "status": "PASS",
+      "screenshot": "release-runtime-uat.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/integrations/health",
+      "expectedText": "Provider Health",
+      "elapsedMs": 3290,
+      "status": "PASS",
+      "screenshot": "release-provider-health.png",
+      "hasInternalCopy": false
+    },
+    {
+      "route": "/platform/audit-trail",
+      "expectedText": "Audit Trail",
+      "elapsedMs": 3466,
+      "status": "PASS",
+      "screenshot": "release-audit-trail.png",
+      "hasInternalCopy": false
+    }
+  ]
+}

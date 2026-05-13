@@ -1,0 +1,7 @@
+"Screen","Route","Action","FinalState","Evidence","RemainingDependency"
+"Runtime UAT","/platform/runtime-uat","Run checks","WORKING","Existing Runtime UAT action remains covered by tests and release smoke screenshot.","Full role-wise workflow signoff remains partial."
+"Runtime UAT","/platform/runtime-uat","Export evidence","WORKING","Existing Runtime UAT evidence export remains available through the completed WS01 console.","None for completed evidence scope."
+"Provider Health","/integrations/health","Refresh health","WORKING","Release smoke loads Provider Health without dead visible actions.","Real provider probe depends on production provider configuration."
+"Report Catalog","/reports/catalog","Queue report export","DISABLED WITH REASON","Report export remains disabled in non-live/review mode with business-safe reason.","Live branch operations session and export queue dependencies."
+"Audit Trail","/platform/audit-trail","Export audit","DISABLED WITH REASON","Audit export remains disabled until audit events load and reporting export workflow is available.","Approved export/reporting workflow."
+"Release performance smoke","scripts/ws11-release-smoke.mjs","Open dashboard/list/report routes","WORKING","Script loads ten release-critical routes and writes JSON/screenshot evidence.","Run against production-like IIS host before pilot."

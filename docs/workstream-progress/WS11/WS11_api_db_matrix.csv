@@ -1,0 +1,6 @@
+"Area","APIOrDbObject","Status","Evidence","RemainingDependency"
+"Health endpoints","/api/health/live; /api/health/ready","COMPLETE","API contracts and IIS runbook document live/ready endpoints; publish validation passed.","Probe against production target after deployment."
+"Release publish output","src/server/STS.Mfg.Host/bin/Release/net9.0/publish","COMPLETE","dotnet publish completed successfully and web host build is current.","Deploy generated publish folder through IIS process."
+"Performance smoke route set","dashboards/planning/production/inventory/report/platform routes","COMPLETE","scripts/ws11-release-smoke.mjs writes route load timings and screenshots.","Repeat on production-like host and dataset."
+"Backup / restore","database/LOCAL_DB_APPLY_RUNBOOK.md; database/README.md","PARTIAL","Apply/runbook documents ordered database setup; restore rehearsal not executed here.","Environment-specific backup/restore rehearsal required."
+"Security controls","rate limiting / auth / audit / attachments","PARTIAL","Security review documents controls present and remaining provider/device blockers.","Production provider secret rotation and device trust procedures."

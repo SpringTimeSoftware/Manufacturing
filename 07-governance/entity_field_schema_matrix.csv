@@ -280,3 +280,4 @@
 "WarrantyEntitlement","serialNo/customerId/itemId/expiryDate","Warranty governed fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 warranty exclusion."
 "AmcContract","customerId/contractAmount/startDate/endDate","AMC governed and numeric fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 service/warranty/AMC exclusion."
 "RmaRequest","customerId/itemId/serialNo/reason/status","RMA governed fields","not introduced","Not exposed","N/A","No","","","No","HIDDEN","WS10 blocked by V1 customer-support exclusion."
+"ReleaseSmokeResult","route/elapsedMs/status","Release smoke timing result","object/json","Generated evidence","scripts/ws11-release-smoke.mjs","Yes","","milliseconds","No","WS11 performance smoke","Executable release evidence artifact; not a user-editable ERP entity."

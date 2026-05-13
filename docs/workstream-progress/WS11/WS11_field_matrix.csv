@@ -1,0 +1,6 @@
+"Screen","Field","ControlType","Status","Evidence","RemainingDependency"
+"Runtime UAT","Search/status filters","ErpFilterBar controls","REVERIFIED","Runtime UAT tests and screenshots remain passing.","None for release evidence scope."
+"MRP Run Console","Run horizon/date inputs","Date/numeric governed controls","REVERIFIED","Release smoke loads the screen; prior WS04 coverage owns field truth.","None for current release smoke scope."
+"Traceability","Lot/serial search","Search control","REVERIFIED","Release smoke loads traceability screen; export action remains disabled with reason.","Trace export workflow."
+"Reports","Report parameters","Date/numeric governed controls","REVERIFIED","WS07 report tests remain passing and release smoke loads report catalog.","Report layout authoring remains disabled."
+"Final release wave","New governed fields","Not introduced","COMPLETE","WS11 did not add any new editable product fields.","No field changes required for release hardening guard."
