@@ -292,6 +292,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - WS05 Production/Shop Floor Execution completed on 2026-05-13. Output: `/docs/codex-progress/WS05-output.md`
 - WS06 Inventory/Quality/Dispatch/Documents completed on 2026-05-13. Output: `/docs/codex-progress/WS06-output.md`
 - WS07 Mobile/Integrations/AI/Reporting completed on 2026-05-13. Output: `/docs/codex-progress/WS07-output.md`
+- WS08 Finance/Accounting/GL/AP/AR blocked on 2026-05-13 by explicit V1 scope exclusions. Output: `/docs/codex-progress/WS08-output.md`
 
 ## Remediation Log
 

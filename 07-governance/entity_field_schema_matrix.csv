@@ -258,3 +258,8 @@
 "ReportParameter","dateFrom","Date from","date","Date input","","Yes","","","No","Queue report export","WS07 report catalog uses date controls."
 "ReportParameter","minimumRiskPercent","Minimum risk percent","decimal","ErpDecimalField","","No","5,2","%","No","Queue report export","WS07 report catalog uses decimal control for risk threshold."
 "SavedView","refreshMinutes","Refresh minutes","int","ErpNumberField","","No","0","minutes","No","Save current view","WS07 saved views render refresh cadence as numeric read-only value."
+"FinanceExcluded","chartOfAccounts","Chart of accounts","out-of-scope","Hidden","","No","","","No","Finance navigation hidden","WS08 blocked by V1 exclusion for full accounting and GL."
+"FinanceExcluded","journalEntry","Journal entry debit credit","out-of-scope","Hidden","","No","","","No","Finance navigation hidden","WS08 blocked by V1 exclusion for journal create/post/reverse."
+"FinanceExcluded","apInvoice","Accounts payable invoice","out-of-scope","Hidden","","No","","","No","Finance navigation hidden","WS08 blocked by V1 exclusion for AP."
+"FinanceExcluded","arInvoice","Accounts receivable invoice","out-of-scope","Hidden","","No","","","No","Finance navigation hidden","WS08 blocked by V1 exclusion for AR."
+"FinanceExcluded","bankReconciliation","Bank reconciliation","out-of-scope","Hidden","","No","","","No","Finance navigation hidden","WS08 blocked by V1 exclusion for bank reconciliation."

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-05-13T11:02:30.492Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "screenshots": [
+    "home-no-finance-navigation-top.png",
+    "finance-route-blocked-top.png"
+  ],
+  "assertions": {
+    "homeDashboardLoaded": true,
+    "blockedFinanceTermsVisibleInNavigation": false,
+    "financeRouteShowsNotFound": true
+  }
+}
