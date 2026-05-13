@@ -479,6 +479,54 @@ export const navigationItems: NavigationItem[] = [
     section: "Platform"
   },
   {
+    label: "Provider Admin",
+    path: "/integrations/providers",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin"]
+  },
+  {
+    label: "Provider Health",
+    path: "/integrations/health",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlantHead"]
+  },
+  {
+    label: "Webhooks",
+    path: "/integrations/webhooks",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin"]
+  },
+  {
+    label: "Imports",
+    path: "/integrations/imports",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager", "StoreKeeper"]
+  },
+  {
+    label: "Exports",
+    path: "/integrations/exports",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager", "DispatchManager", "ManagementViewer"]
+  },
+  {
+    label: "Delivery Logs",
+    path: "/integrations/delivery-logs",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin", "SalesCoordinator", "DispatchManager"]
+  },
+  {
+    label: "AI Assistant",
+    path: "/ai/assistant",
+    section: "AI",
+    roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager", "PlantHead"]
+  },
+  {
+    label: "Translation Assistant",
+    path: "/ai/translations",
+    section: "AI",
+    roles: ["PlatformAdmin", "CompanyAdmin"]
+  },
+  {
     label: "Companies",
     path: "/organization/companies",
     section: "Organization",
@@ -531,6 +579,24 @@ export const navigationItems: NavigationItem[] = [
     path: "/resources/tools",
     section: "Resources",
     roles: ["PlatformAdmin", "CompanyAdmin", "PlanningManager"]
+  },
+  {
+    label: "Report Catalog",
+    path: "/reports/catalog",
+    section: "Reports",
+    roles: ["CompanyAdmin", "PlanningManager", "ProductionSupervisor", "DispatchManager", "ManagementViewer"]
+  },
+  {
+    label: "Report Parameters",
+    path: "/reports/parameters",
+    section: "Reports",
+    roles: ["CompanyAdmin", "PlanningManager", "ProductionSupervisor", "DispatchManager", "ManagementViewer"]
+  },
+  {
+    label: "Saved Views",
+    path: "/reports/saved-views",
+    section: "Reports",
+    roles: ["CompanyAdmin", "PlanningManager", "ProductionSupervisor", "DispatchManager", "ManagementViewer"]
   },
   {
     label: "Print Pack",

@@ -183,6 +183,275 @@ export interface ExportJobCreateRequest {
   storagePath: string;
 }
 
+export interface IntegrationProviderDto {
+  id: number;
+  providerCode: string;
+  providerName: string;
+  providerType: string;
+  baseUrl: string | null;
+  status: string;
+  isSystemBase: boolean;
+}
+
+export interface IntegrationProviderUpsertRequest {
+  providerCode: string;
+  providerName: string;
+  providerType: string;
+  baseUrl: string | null;
+  status: string;
+  isSystemBase?: boolean;
+}
+
+export interface IntegrationConnectionDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  integrationProviderId: number;
+  connectionCode: string;
+  connectionName: string;
+  endpointUrl: string | null;
+  credentialReference: string | null;
+  status: string;
+  lastHealthCheckedOn: string | null;
+  lastHealthStatus: string | null;
+}
+
+export interface IntegrationConnectionUpsertRequest {
+  companyId: number;
+  branchId: number | null;
+  integrationProviderId: number;
+  connectionCode: string;
+  connectionName: string;
+  endpointUrl: string | null;
+  credentialReference: string | null;
+  status: string;
+}
+
+export interface WebhookSubscriptionDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  subscriptionCode: string;
+  eventType: string;
+  targetUrl: string;
+  secretReference: string | null;
+  headersJson: string | null;
+  status: string;
+  lastDeliveredOn: string | null;
+  retryQueuedOn: string | null;
+}
+
+export interface WebhookSubscriptionUpsertRequest {
+  companyId: number;
+  branchId: number | null;
+  subscriptionCode: string;
+  eventType: string;
+  targetUrl: string;
+  secretReference: string | null;
+  headersJson: string | null;
+  status: string;
+}
+
+export interface ImportJobDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  jobNo: string;
+  module: string;
+  sourceFormat: string;
+  storagePath: string;
+  requestToken: string | null;
+  status: string;
+  requestedOn: string;
+  processedOn: string | null;
+  lastError: string | null;
+}
+
+export interface ImportJobCreateRequest {
+  companyId: number;
+  branchId: number;
+  jobNo: string;
+  module: string;
+  sourceFormat: string;
+  storagePath: string;
+  requestToken?: string | null;
+}
+
+export interface IntegrationJobStatusUpdateRequest {
+  status: string;
+  lastError?: string | null;
+  failedRowCount?: number | null;
+  failureSummary?: string | null;
+}
+
+export interface OutboundProviderHealthDto {
+  channelType: string;
+  providerCode: string | null;
+  status: string;
+  activeConnectionCount: number;
+  notes: string;
+}
+
+export interface OutboundDeliveryStatusDto {
+  id: number;
+  channelType: string;
+  redactedRecipientRef: string;
+  templateCode: string;
+  deliveryStatus: string;
+  attemptCount: number;
+  createdOn: string;
+  processedOn: string | null;
+  lastError: string | null;
+}
+
+export interface OutboundMessagePreviewRequest {
+  companyId: number | null;
+  branchId: number | null;
+  channelType: string;
+  recipientRef: string;
+  templateCode: string;
+  tokens: Record<string, string>;
+}
+
+export interface OutboundMessageRequest extends OutboundMessagePreviewRequest {
+  relatedDocumentType?: string | null;
+  relatedDocumentId?: number | null;
+}
+
+export interface OutboundMessagePreviewDto {
+  channelType: string;
+  templateCode: string;
+  redactedRecipientRef: string;
+  renderedMessage: string;
+}
+
+export interface WebhookDispatchRequest {
+  companyId: number;
+  branchId: number | null;
+  eventType: string;
+  payloadReference: string;
+  simulateFailure?: boolean;
+}
+
+export interface WebhookDispatchResultDto {
+  eventType: string;
+  matchedSubscriptions: number;
+  deliveredCount: number;
+  retryQueuedCount: number;
+  operatorMessages: string[];
+}
+
+export interface AiProviderDto {
+  id: number;
+  providerCode: string;
+  providerName: string;
+  providerType: string;
+  status: string;
+}
+
+export interface AiModelDto {
+  id: number;
+  aiProviderId: number;
+  modelCode: string;
+  modelName: string;
+  capabilityFlagsJson: string | null;
+  status: string;
+}
+
+export interface AiRunDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  aiProviderId: number;
+  aiModelId: number;
+  aiPromptTemplateId: number | null;
+  draftPurpose: string;
+  relatedDocumentType: string | null;
+  relatedDocumentId: number | null;
+  inputText: string;
+  outputText: string | null;
+  runStatus: string;
+  tokenUsageJson: string | null;
+  requiresReview: boolean;
+  requestedOn: string;
+  completedOn: string | null;
+}
+
+export interface AiExecutionPolicyDto {
+  draftOnly: boolean;
+  allowsOperationalWriteBack: boolean;
+  masksPii: boolean;
+  reviewRequirement: string;
+}
+
+export interface AiProviderHealthDto {
+  providerId: number;
+  providerCode: string;
+  status: string;
+  activeModelCount: number;
+  notes: string | null;
+}
+
+export interface AiAssistantIntentDefinitionDto {
+  intentCode: string;
+  displayName: string;
+  description: string;
+  executionKind: string;
+  commandName: string;
+  allowedParameters: string[];
+}
+
+export interface AiAssistantPlanRequest {
+  companyId: number | null;
+  branchId: number | null;
+  intentCode: string;
+  parameters: Record<string, string>;
+  userQuestion?: string | null;
+}
+
+export interface AiAssistantQueryPlanDto {
+  intentCode: string;
+  displayName: string;
+  executionKind: string;
+  commandName: string;
+  parameters: Array<{ name: string; value: string; source: string }>;
+  usesArbitrarySql: boolean;
+  requiresReview: boolean;
+  safetyNote: string;
+}
+
+export interface AiDraftRequest {
+  companyId: number | null;
+  branchId: number | null;
+  aiProviderId: number;
+  aiModelId: number;
+  aiPromptTemplateId: number | null;
+  draftPurpose: string;
+  inputText: string;
+  relatedDocumentType?: string | null;
+  relatedDocumentId?: number | null;
+}
+
+export interface TranslationDraftRequest {
+  companyId: number | null;
+  branchId: number | null;
+  aiProviderId: number;
+  aiModelId: number;
+  aiPromptTemplateId: number | null;
+  sourceText: string;
+  targetLanguageCode: string;
+  sourceLanguageCode?: string | null;
+  relatedDocumentType?: string | null;
+  relatedDocumentId?: number | null;
+}
+
+export interface TranslationDraftDto {
+  run: AiRunDto;
+  sourceLanguageCode: string | null;
+  targetLanguageCode: string;
+  draftText: string;
+}
+
 export interface SystemContextResponse {
   userId: number | null;
   userName: string | null;

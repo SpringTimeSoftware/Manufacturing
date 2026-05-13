@@ -41,6 +41,15 @@ import type {
   DispatchPlanningItemDto,
   EngineeringChangeDto,
   EngineeringChangeUpsertRequest,
+  AiAssistantIntentDefinitionDto,
+  AiAssistantPlanRequest,
+  AiAssistantQueryPlanDto,
+  AiDraftRequest,
+  AiExecutionPolicyDto,
+  AiModelDto,
+  AiProviderDto,
+  AiProviderHealthDto,
+  AiRunDto,
   ExportJobCreateRequest,
   ExportJobDto,
   ExchangeRateSetupDto,
@@ -58,6 +67,13 @@ import type {
   ItemUomDto,
   ItemVariantDto,
   ItemVariantUpsertRequest,
+  ImportJobCreateRequest,
+  ImportJobDto,
+  IntegrationConnectionDto,
+  IntegrationConnectionUpsertRequest,
+  IntegrationJobStatusUpdateRequest,
+  IntegrationProviderDto,
+  IntegrationProviderUpsertRequest,
   LoginRequest,
   LogoutRequest,
   DowntimeEventDto,
@@ -87,6 +103,11 @@ import type {
   OperationDto,
   OperationUpsertRequest,
   OrderRiskItem,
+  OutboundDeliveryStatusDto,
+  OutboundMessagePreviewDto,
+  OutboundMessagePreviewRequest,
+  OutboundMessageRequest,
+  OutboundProviderHealthDto,
   PackListDto,
   PackListPrintDto,
   PagedResult,
@@ -118,6 +139,8 @@ import type {
   WarehouseDto,
   WarehouseUpsertRequest,
   TranslationBundleResponse,
+  TranslationDraftDto,
+  TranslationDraftRequest,
   TranslationResourceUpsertRequest,
   UserDirectoryItemDto,
   UserAccessPolicyUpdateRequest,
@@ -137,6 +160,10 @@ import type {
   UdfDefinitionUpsertRequest,
   UdfValueDto,
   UdfValueUpsertRequest,
+  WebhookDispatchRequest,
+  WebhookDispatchResultDto,
+  WebhookSubscriptionDto,
+  WebhookSubscriptionUpsertRequest,
   SupplierAddressDto,
   SupplierAddressUpsertRequest,
   SupplierDto,
@@ -1123,6 +1150,130 @@ export const apiClient = {
     detail: (id: string) => request<ApprovalDetailDto>(`/api/approvals/${encodeURIComponent(id)}`),
     decide: (id: string, body: ApprovalDecisionRequest) =>
       request<ActionResponse>(`/api/approvals/${encodeURIComponent(id)}/decision`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
+  },
+  integrations: {
+    providers: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<IntegrationProviderDto>>(`/api/integrations/providers?${query}`);
+    },
+    createProvider: (body: IntegrationProviderUpsertRequest) =>
+      request<IntegrationProviderDto>("/api/integrations/providers", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateProvider: (id: number, body: IntegrationProviderUpsertRequest) =>
+      request<IntegrationProviderDto>(`/api/integrations/providers/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    connections: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<IntegrationConnectionDto>>(`/api/integrations/connections?${query}`);
+    },
+    createConnection: (body: IntegrationConnectionUpsertRequest) =>
+      request<IntegrationConnectionDto>("/api/integrations/connections", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateConnection: (id: number, body: IntegrationConnectionUpsertRequest) =>
+      request<IntegrationConnectionDto>(`/api/integrations/connections/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    providerHealth: () => request<OutboundProviderHealthDto[]>("/api/integrations/messages/provider-health"),
+    deliveries: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<OutboundDeliveryStatusDto>>(`/api/integrations/messages/deliveries?${query}`);
+    },
+    previewMessage: (body: OutboundMessagePreviewRequest) =>
+      request<OutboundMessagePreviewDto>("/api/integrations/messages/preview", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    queueMessage: (body: OutboundMessageRequest) =>
+      request<OutboundDeliveryStatusDto>("/api/integrations/messages/queue", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    webhooks: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<WebhookSubscriptionDto>>(`/api/webhooks?${query}`);
+    },
+    createWebhook: (body: WebhookSubscriptionUpsertRequest) =>
+      request<WebhookSubscriptionDto>("/api/webhooks", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateWebhook: (id: number, body: WebhookSubscriptionUpsertRequest) =>
+      request<WebhookSubscriptionDto>(`/api/webhooks/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    dispatchWebhook: (body: WebhookDispatchRequest) =>
+      request<WebhookDispatchResultDto>("/api/webhooks/dispatch", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    imports: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ImportJobDto>>(`/api/imports?${query}`);
+    },
+    createImport: (body: ImportJobCreateRequest) =>
+      request<ImportJobDto>("/api/imports", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateImportStatus: (id: number, body: IntegrationJobStatusUpdateRequest) =>
+      request<ImportJobDto>(`/api/imports/${id}/status`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    exports: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ExportJobDto>>(`/api/exports?${query}`);
+    },
+    createExport: (body: ExportJobCreateRequest) =>
+      request<ExportJobDto>("/api/exports", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateExportStatus: (id: number, body: IntegrationJobStatusUpdateRequest) =>
+      request<ExportJobDto>(`/api/exports/${id}/status`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
+  },
+  ai: {
+    providers: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<AiProviderDto>>(`/api/ai/providers?${query}`);
+    },
+    models: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<AiModelDto>>(`/api/ai/models?${query}`);
+    },
+    runs: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<AiRunDto>>(`/api/ai/runs?${query}`);
+    },
+    providerHealth: () => request<AiProviderHealthDto[]>("/api/ai/provider-health"),
+    executionPolicy: () => request<AiExecutionPolicyDto>("/api/ai/execution-policy"),
+    assistantIntents: () => request<AiAssistantIntentDefinitionDto[]>("/api/ai/assistant/intents"),
+    createAssistantPlan: (body: AiAssistantPlanRequest) =>
+      request<AiAssistantQueryPlanDto>("/api/ai/assistant/plan", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    createDraft: (body: AiDraftRequest) =>
+      request<AiRunDto>("/api/ai/runs/draft", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    createTranslationDraft: (body: TranslationDraftRequest) =>
+      request<TranslationDraftDto>("/api/ai/translations/draft", {
         method: "POST",
         body: JSON.stringify(body)
       })

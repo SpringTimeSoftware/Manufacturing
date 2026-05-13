@@ -22,6 +22,7 @@ const navigationGroups: Array<{ label: string; sourceSections: string[]; visible
   { label: "INVENTORY", sourceSections: ["Inventory"], visibleCount: 5 },
   { label: "QUALITY", sourceSections: ["Quality"], visibleCount: 5 },
   { label: "DISPATCH", sourceSections: ["Dispatch"], visibleCount: 4 },
+  { label: "INTEGRATIONS & AI", sourceSections: ["Integrations", "AI"], visibleCount: 6 },
   { label: "PLATFORM", sourceSections: ["Platform"], visibleCount: 5 },
   { label: "REPORTS", sourceSections: ["Reports"], visibleCount: 4 }
 ];
@@ -39,6 +40,7 @@ type NavigationIconName =
   | "classification"
   | "company"
   | "customer"
+  | "deliveryLog"
   | "bell"
   | "dashboard"
   | "department"
@@ -51,6 +53,9 @@ type NavigationIconName =
   | "forecast"
   | "help"
   | "home"
+  | "import"
+  | "export"
+  | "integration"
   | "inventory"
   | "item"
   | "itemAttribute"
@@ -67,6 +72,7 @@ type NavigationIconName =
   | "mps"
   | "platform"
   | "planning"
+  | "providerHealth"
   | "priceList"
   | "procurement"
   | "production"
@@ -168,6 +174,22 @@ function getNavigationParent(item: NavigationItem, groupLabel: string) {
     return "Utilities";
   }
 
+  if (groupLabel === "INTEGRATIONS & AI") {
+    if (item.section === "AI") {
+      return "AI Assistants";
+    }
+
+    if (item.path.includes("imports") || item.path.includes("exports")) {
+      return "Import and Export";
+    }
+
+    if (item.path.includes("delivery")) {
+      return "Outbound Messages";
+    }
+
+    return "Provider Connectivity";
+  }
+
   return item.section;
 }
 
@@ -206,12 +228,20 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/engineering/operations": "operation",
     "/engineering/routings": "routing",
     "/help": "help",
+    "/ai/assistant": "platform",
+    "/ai/translations": "translation",
     "/inventory/balances": "warehouse",
     "/inventory/cycle-counts": "inventory",
     "/inventory/material-issue": "inventory",
     "/inventory/material-return": "inventory",
     "/inventory/stock-transfer": "warehouse",
     "/inventory/traceability": "search",
+    "/integrations/delivery-logs": "deliveryLog",
+    "/integrations/exports": "export",
+    "/integrations/health": "providerHealth",
+    "/integrations/imports": "import",
+    "/integrations/providers": "integration",
+    "/integrations/webhooks": "workflow",
     "/masters/barcodes": "barcode",
     "/masters/classifications": "classification",
     "/masters/item-attributes": "itemAttribute",
@@ -267,7 +297,10 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/quality/incoming-inspections": "quality",
     "/quality/ncr": "reasonCode",
     "/quality/plans": "quality",
+    "/reports/catalog": "reports",
+    "/reports/parameters": "settings",
     "/reports/print-pack": "reports",
+    "/reports/saved-views": "dashboard",
     "/resources/machines": "machine",
     "/resources/tools": "tool",
     "/resources/work-centers": "workCenter",
@@ -484,6 +517,14 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="M15 13h4" />
       </>
     ),
+    deliveryLog: (
+      <>
+        <path {...common} d="M4 6h16v12H4V6Z" />
+        <path {...common} d="m4 7 8 6 8-6" />
+        <path {...common} d="M8 19h8" />
+        <path {...common} d="M10 16h4" />
+      </>
+    ),
     dashboard: (
       <>
         <path {...common} d="M4 13.5h5.5V4H4v9.5Z" />
@@ -568,6 +609,31 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="m4 11 8-7 8 7" />
         <path {...common} d="M6.5 10.5V20h11v-9.5" />
         <path {...common} d="M10 20v-5h4v5" />
+      </>
+    ),
+    import: (
+      <>
+        <path {...common} d="M6 4h12v16H6V4Z" />
+        <path {...common} d="M12 7v8" />
+        <path {...common} d="m9 12 3 3 3-3" />
+        <path {...common} d="M9 17h6" />
+      </>
+    ),
+    export: (
+      <>
+        <path {...common} d="M6 4h12v16H6V4Z" />
+        <path {...common} d="M12 16V8" />
+        <path {...common} d="m9 11 3-3 3 3" />
+        <path {...common} d="M9 17h6" />
+      </>
+    ),
+    integration: (
+      <>
+        <path {...common} d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path {...common} d="M17 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path {...common} d="M17 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path {...common} d="M9.5 6.5h5" />
+        <path {...common} d="M8.5 8.5 15 16" />
       </>
     ),
     inventory: (
@@ -696,6 +762,12 @@ function NavigationIcon({ name }: { name: NavigationIconName }) {
         <path {...common} d="M16 3v4" />
         <path {...common} d="M8 11h8" />
         <path {...common} d="M8 15h5" />
+      </>
+    ),
+    providerHealth: (
+      <>
+        <path {...common} d="M5 12h3l2-5 4 10 2-5h3" />
+        <path {...common} d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z" />
       </>
     ),
     priceList: (

@@ -124,6 +124,19 @@ import {
   HelpTopicPage,
   ProcessGuidePage
 } from "../pages/HelpPages";
+import {
+  AiAssistantPage,
+  DeliveryLogsPage,
+  ExportJobsPage,
+  ImportJobsPage,
+  IntegrationProviderAdminPage,
+  ProviderHealthPage,
+  ReportCatalogPage,
+  ReportParametersPage,
+  SavedViewsPage,
+  TranslationAssistantPage,
+  WebhookAdminPage
+} from "../pages/WS07Pages";
 
 function guardedRoute(path: string, element: ReactElement) {
   const roles = navigationItems.find((item) => item.path === `/${path}`)?.roles;
@@ -226,6 +239,14 @@ export const appRouter = createBrowserRouter([
       guardedRoute("platform/tenant-settings", <TenantSettingsPage />),
       guardedRoute("platform/settings", <PlatformSettingsPage />),
       guardedRoute("platform/runtime-uat", <RuntimeUatPage />),
+      guardedRoute("integrations/providers", <IntegrationProviderAdminPage />),
+      guardedRoute("integrations/health", <ProviderHealthPage />),
+      guardedRoute("integrations/webhooks", <WebhookAdminPage />),
+      guardedRoute("integrations/imports", <ImportJobsPage />),
+      guardedRoute("integrations/exports", <ExportJobsPage />),
+      guardedRoute("integrations/delivery-logs", <DeliveryLogsPage />),
+      guardedRoute("ai/assistant", <AiAssistantPage />),
+      guardedRoute("ai/translations", <TranslationAssistantPage />),
       guardedRoute("organization/companies", <CompanyMasterPage />),
       guardedRoute("organization/branches", <BranchMasterPage />),
       guardedRoute("organization/departments", <DepartmentMasterPage />),
@@ -243,6 +264,9 @@ export const appRouter = createBrowserRouter([
       guardedRoute("help/topics/:topicId", <HelpTopicPage />),
       guardedRoute("help/process/:guideId", <ProcessGuidePage />),
       guardedRoute("help/glossary", <HelpGlossaryPage />),
+      guardedRoute("reports/catalog", <ReportCatalogPage />),
+      guardedRoute("reports/parameters", <ReportParametersPage />),
+      guardedRoute("reports/saved-views", <SavedViewsPage />),
       guardedRoute("reports/print-pack", <PrintPackPage />)
     ]
   },

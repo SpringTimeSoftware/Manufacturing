@@ -83,6 +83,14 @@ const implementedProtectedRoutes = [
   "/platform/settings",
   "/platform/tenant-settings",
   "/platform/runtime-uat",
+  "/integrations/providers",
+  "/integrations/health",
+  "/integrations/webhooks",
+  "/integrations/imports",
+  "/integrations/exports",
+  "/integrations/delivery-logs",
+  "/ai/assistant",
+  "/ai/translations",
   "/search",
   "/help",
   "/organization/companies",
@@ -97,6 +105,9 @@ const implementedProtectedRoutes = [
   "/platform/context-switch",
   "/platform/notifications",
   "/platform/approvals",
+  "/reports/catalog",
+  "/reports/parameters",
+  "/reports/saved-views",
   "/reports/print-pack"
 ];
 

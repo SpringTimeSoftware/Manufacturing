@@ -1,0 +1,105 @@
+{
+  "wave_id": "WS07",
+  "captures": [
+    {
+      "route": "/integrations/providers",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\integration-provider-admin-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/health",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\provider-health-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/webhooks",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\webhook-subscriptions-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/imports",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\import-jobs-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/exports",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\export-jobs-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/delivery-logs",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\delivery-logs-top.png"
+      ]
+    },
+    {
+      "route": "/ai/assistant",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\ai-assistant-top.png"
+      ]
+    },
+    {
+      "route": "/ai/translations",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\translation-assistant-top.png"
+      ]
+    },
+    {
+      "route": "/reports/catalog",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\report-catalog-top.png"
+      ]
+    },
+    {
+      "route": "/reports/parameters",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\report-parameters-top.png"
+      ]
+    },
+    {
+      "route": "/reports/saved-views",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\saved-views-top.png"
+      ]
+    },
+    {
+      "route": "/reports/print-pack",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\print-pack-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/providers",
+      "modal": "New provider",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\integration-provider-modal-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/webhooks",
+      "modal": "New webhook",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\webhook-modal-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/imports",
+      "modal": "New import",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\import-modal-top.png"
+      ]
+    },
+    {
+      "route": "/integrations/exports",
+      "modal": "Queue export",
+      "files": [
+        "C:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\WS07\\export-modal-top.png"
+      ]
+    }
+  ]
+}

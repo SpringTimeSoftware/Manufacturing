@@ -228,5 +228,24 @@ export const queryKeys = {
   platform: {
     attachments: (companyId?: number | null, search = "", status = "all") =>
       ["platform", "attachments", companyId ?? 0, search, status] as const
+  },
+  ws07: {
+    integrationProviders: (companyId?: number | null, search = "", status = "all") =>
+      ["ws07", "integration-providers", companyId ?? 0, search, status] as const,
+    providerHealth: () => ["ws07", "provider-health"] as const,
+    webhooks: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["ws07", "webhooks", companyId ?? 0, branchId ?? 0, search, status] as const,
+    imports: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["ws07", "imports", companyId ?? 0, branchId ?? 0, search, status] as const,
+    exports: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["ws07", "exports", companyId ?? 0, branchId ?? 0, search, status] as const,
+    deliveries: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["ws07", "deliveries", companyId ?? 0, branchId ?? 0, search, status] as const,
+    aiAssistant: (companyId?: number | null, branchId?: number | null, search = "") =>
+      ["ws07", "ai-assistant", companyId ?? 0, branchId ?? 0, search] as const,
+    translationAssistant: (companyId?: number | null, branchId?: number | null, search = "") =>
+      ["ws07", "translation-assistant", companyId ?? 0, branchId ?? 0, search] as const,
+    reporting: (screen: string, companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["ws07", "reporting", screen, companyId ?? 0, branchId ?? 0, search, status] as const
   }
 };
