@@ -1,0 +1,105 @@
+{
+  "baseUrl": "http://127.0.0.1:5173",
+  "captures": [
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\item-list.png",
+      "note": "Item list"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\new-item-draft-modal.png",
+      "note": "New item draft modal"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\classification-tab.png",
+      "note": "Classification tab"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\uom-measurement-tab.png",
+      "note": "UOM and measurement tab"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\physical-specs-tab.png",
+      "note": "Physical specs tab"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\media-documents-tab.png",
+      "note": "Media and documents tab"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\item-product-master\\existing-item-edit-modal.png",
+      "note": "Existing item edit modal"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\customer-dealer-distributor\\customer-list.png",
+      "note": "Customer list"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\customer-dealer-distributor\\new-customer-draft-modal-top.png",
+      "note": "New customer draft modal top"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\customer-dealer-distributor\\new-customer-sites-contacts-commercial.png",
+      "note": "Customer sites, contacts, and commercial controls"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\customer-dealer-distributor\\new-customer-documents-audit.png",
+      "note": "Customer documents and audit"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\customer-dealer-distributor\\existing-customer-edit-modal.png",
+      "note": "Existing customer edit modal"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\supplier-vendor\\supplier-list.png",
+      "note": "Supplier list"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\supplier-vendor\\new-supplier-draft-modal-top.png",
+      "note": "New supplier draft modal top"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\supplier-vendor\\new-supplier-sites-contacts-terms.png",
+      "note": "Supplier sites, contacts, and terms"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\supplier-vendor\\new-supplier-compliance-documents-audit.png",
+      "note": "Supplier compliance documents and audit"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\supplier-vendor\\existing-supplier-edit-modal.png",
+      "note": "Existing supplier edit modal"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\quote-list.png",
+      "note": "Quote list"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\new-quote-draft.png",
+      "note": "New quote draft"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\quote-multiline-grid.png",
+      "note": "Quote multiline line grid"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\quote-remove-line-state.png",
+      "note": "Quote remove line state"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\sales-order-list-disabled-draft.png",
+      "note": "Sales order list with disabled draft reason in demo session"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\forecast-list.png",
+      "note": "Forecast list"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\forecast-draft-modal.png",
+      "note": "Forecast draft modal"
+    },
+    {
+      "file": "docs\\codex-review-screens\\ERP-COMPLETION-PACKS-V1\\quote-sales-order-forecast-atp\\available-to-promise.png",
+      "note": "Available to promise workbench"
+    }
+  ]
+}

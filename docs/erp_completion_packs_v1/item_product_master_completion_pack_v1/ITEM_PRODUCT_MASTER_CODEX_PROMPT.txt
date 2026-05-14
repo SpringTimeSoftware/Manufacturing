@@ -1,0 +1,113 @@
+Work only on branch main.
+
+This is ITEM-PRODUCT-MASTER-COMPLETION-01.
+
+This is a strict Item/Product Master completion pass. Do not expand to other domains except dependent masters required for Item Master field truth.
+
+READ FIRST:
+- docs/item-product-master-completion/ITEM_PRODUCT_MASTER_COMPLETION_SPEC.md
+- docs/item-product-master-completion/ITEM_PRODUCT_MASTER_BENCHMARK_V3.xlsx
+- AGENTS.md
+- docs/design/erp-field-governance-standards.md
+- 07-ux-governance/master_lookup_field_rules.md
+- 07-governance/entity_field_schema_matrix.csv
+- current item/master source files, API contracts, backend services/controllers, DB/DDL/seed files, tests
+
+MISSION:
+Make Item/Product Master commercially credible and testable.
+
+NON-NEGOTIABLE GATES:
+1. Category, Subcategory, Product Family, Business Segment, Reporting Bucket, UOM and all master-linked item fields must be lookup/select/disabled governed selectors, never unrestricted text.
+2. Net Weight, Gross Weight, Dimensions, Conversion Factor, MOQ, Lead Time, Prices, Discounts, Tax, Capacity and all measurable item values must use numeric/decimal/money controls, never unrestricted text.
+3. Upload image/media must be implemented as item-specific upload/list/set-primary/retire with authorization, or hidden/disabled with reason. Do not show fake upload.
+4. Save Draft / Save & Continue / Edit Existing / Activate/Inactivate / View Audit / Related links must be working, disabled with reason, or hidden.
+5. Save/reopen must preserve values from all item sections, not only Core Info.
+6. No right-drawer deep editor.
+7. No internal/scaffold wording.
+
+PHASE 0 — Anti-pattern scan:
+Search for and fail/report:
+- category/subcategory/productFamily/businessSegment/reportingBucket rendered as text inputs
+- netWeight/grossWeight/dimensions rendered as text inputs
+- image/media upload active but not wired
+- save payload omits tabs
+- dead action handlers
+- item edit drawer pattern
+Create docs/item-product-master-completion/ITEM_PRODUCT_MASTER_ANTI_PATTERN_SCAN.md.
+
+PHASE 1 — Tests first:
+Create/update tests that fail until the implementation is correct:
+- ItemMasterGovernedClassification.test.tsx
+- ItemMasterNumericSpecs.test.tsx
+- ItemMasterMediaUploadTruth.test.tsx
+- ItemMasterSaveReopenAllTabs.test.tsx
+- ItemMasterLifecycleAndDependencyRules.test.tsx
+
+Tests must verify:
+- classification lookup/select controls
+- UOM lookups
+- decimal numeric controls
+- upload truth
+- save/reopen across all visible sections
+- actions truth
+- no internal wording
+
+PHASE 2 — Implement:
+Fix Item Master and dependent masters/sources:
+- item taxonomy sources
+- UOM and measurement sources
+- planning/manufacturing/purchasing/sales/quality/costing/resource selectors
+- item media/document workflow if feasible; otherwise honest disabled state plus blocker
+- all numeric controls
+- all action truth
+- all tab persistence
+
+PHASE 3 — Backend/DB if required:
+Add additive tables/APIs/seed only where needed for item taxonomy/media/attribute persistence. Update database/README.md.
+
+PHASE 4 — Validation:
+Run:
+- npm run typecheck
+- npm test
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+PHASE 5 — Screenshots:
+Capture:
+- Item list
+- New item draft Core Info
+- Classification tab
+- UOM & Conversions tab
+- Physical Specs tab
+- Images & Media tab
+- Planning/Replenishment tab
+- Manufacturing tab
+- Quality/Traceability tab
+- Sales/Commercial tab
+- Purchase/Vendor tab
+- Audit/History tab
+Max 3 screenshots per scrollable screen.
+
+PHASE 6 — Outputs:
+Create/update:
+- docs/codex-progress/ITEM-PRODUCT-MASTER-COMPLETION-01-output.md
+- docs/item-product-master-completion/ITEM_PRODUCT_MASTER_GAP_STATUS.md
+- 07-governance/entity_field_schema_matrix.csv
+- 07-governance/screen_field_violation_matrix.csv
+- 07-ux-governance/action_truth_matrix.csv
+- artifacts/review-packs/ITEM-PRODUCT-MASTER-COMPLETION-01-review-pack.zip
+
+Before stopping:
+1. commit changes
+2. push main
+3. return only:
+   - fields corrected
+   - actions corrected
+   - upload/media status
+   - remaining blockers
+   - validation results
+   - screenshot folder
+   - review pack path

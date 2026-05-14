@@ -1336,6 +1336,7 @@ function buildItemDraft(records: ItemMasterSetupItem[], companyId?: number | nul
       previewSlug: ""
     },
     packaging: {
+      packagingUomId: reference?.stockUomId ?? 1,
       innerPack: "",
       carton: "",
       pallet: "",
@@ -1484,7 +1485,7 @@ function buildProfileRequest(item: ItemMasterSetupItem): ItemMasterProfileUpsert
       status: item.catalog.publishStatus === "Published" ? "Active" : "Draft"
     },
     packaging: {
-      packagingUomId: item.stockUomId,
+      packagingUomId: item.packaging.packagingUomId ?? item.stockUomId,
       innerPackQty: numericValue(item.packaging.innerPack),
       cartonQty: numericValue(item.packaging.carton),
       palletQty: numericValue(item.packaging.pallet),
@@ -1990,9 +1991,21 @@ function ItemMediaPanel({
             label="Upload media"
             onFileSelect={onUploadMedia}
           />
-          <Button disabled title="Select a stored media record before changing the primary image." variant="secondary">Set primary</Button>
-          <Button disabled title="Select a stored media record before retiring media." variant="secondary">Retire media</Button>
         </div>
+        <ErpActionBar
+          secondary={[
+            {
+              disabled: true,
+              label: "Set primary",
+              reason: "Primary image changes require item media lifecycle approval."
+            },
+            {
+              disabled: true,
+              label: "Retire media",
+              reason: "Media retirement requires document-control approval."
+            }
+          ]}
+        />
       </Card>
     </div>
   );
@@ -2044,10 +2057,24 @@ function ItemDetailEditor({
     [records]
   );
   const uomOptions = useMemo(
-    () =>
-      records
-        .map((record) => ({ id: record.stockUomId, label: record.stockUom }))
-        .filter((entry, index, source) => entry.label && source.findIndex((candidate) => candidate.label === entry.label) === index),
+    () => {
+      const options = records.flatMap((record) => [
+        { id: record.stockUomId, label: record.stockUom },
+        { id: record.purchaseUomId ?? record.stockUomId, label: record.purchaseUom },
+        { id: record.salesUomId ?? record.stockUomId, label: record.salesUom },
+        { id: record.productionUomId ?? record.stockUomId, label: record.productionUom },
+        { id: record.packaging.packagingUomId ?? record.stockUomId, label: record.packaging.packagingUom },
+        ...record.vendorReferences.map((reference) => ({ id: reference.purchaseUomId ?? record.stockUomId, label: reference.purchaseUom }))
+      ]);
+
+      return options.filter(
+        (entry, index, source) =>
+          Boolean(entry.label) &&
+          entry.label !== "Not enabled" &&
+          entry.label !== "Not assigned" &&
+          source.findIndex((candidate) => candidate.label === entry.label) === index
+      );
+    },
     [records]
   );
   const profileOptions = useMemo(
@@ -2355,25 +2382,41 @@ function ItemDetailEditor({
             <div className="item-master__editor-grid">
               <ErpLookupField
                 label="Base UOM"
-                onChange={(value) => patch({ baseUom: value })}
+                onChange={(value) => {
+                  const selectedUom = uomOptions.find((option) => option.label === value);
+                  patch({
+                    baseUom: value,
+                    stockUom: value,
+                    stockUomId: selectedUom?.id ?? item.stockUomId
+                  });
+                }}
                 options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
                 value={item.baseUom}
               />
               <ErpLookupField
                 label="Purchase UOM"
-                onChange={(value) => patch({ purchaseUom: value })}
+                onChange={(value) => {
+                  const selectedUom = uomOptions.find((option) => option.label === value);
+                  patch({ purchaseUom: value, purchaseUomId: selectedUom?.id ?? item.purchaseUomId });
+                }}
                 options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
                 value={item.purchaseUom}
               />
               <ErpLookupField
                 label="Sales UOM"
-                onChange={(value) => patch({ salesUom: value })}
+                onChange={(value) => {
+                  const selectedUom = uomOptions.find((option) => option.label === value);
+                  patch({ salesUom: value, salesUomId: selectedUom?.id ?? item.salesUomId });
+                }}
                 options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
                 value={item.salesUom}
               />
               <ErpLookupField
                 label="Production UOM"
-                onChange={(value) => patch({ productionUom: value })}
+                onChange={(value) => {
+                  const selectedUom = uomOptions.find((option) => option.label === value);
+                  patch({ productionUom: value, productionUomId: selectedUom?.id ?? item.productionUomId });
+                }}
                 options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
                 value={item.productionUom}
               />
@@ -2399,7 +2442,10 @@ function ItemDetailEditor({
               <DecimalTextField label="Pallet" onChange={(value) => patchPackaging({ pallet: value })} unit={packagingQuantityUnit} value={item.packaging.pallet} />
               <ErpLookupField
                 label="Packaging UOM"
-                onChange={(value) => patchPackaging({ packagingUom: value })}
+                onChange={(value) => {
+                  const selectedUom = uomOptions.find((option) => option.label === value);
+                  patchPackaging({ packagingUom: value, packagingUomId: selectedUom?.id ?? item.packaging.packagingUomId });
+                }}
                 options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
                 value={item.packaging.packagingUom}
               />
@@ -2603,7 +2649,20 @@ function ItemDetailEditor({
                           <td><input aria-label={`Vendor item code ${index + 1}`} onChange={(event) => patchVendorReference(index, { vendorItemCode: event.target.value })} value={reference.vendorItemCode} /></td>
                           <td><ErpDecimalField label={`Minimum order quantity ${index + 1}`} min={0} onChange={(value) => patchVendorReference(index, { minimumOrderQty: value === null ? "" : String(value) })} scale={3} value={reference.minimumOrderQty ? Number(reference.minimumOrderQty) : null} /></td>
                           <td><ErpNumberField label={`Lead time ${index + 1}`} min={0} onChange={(value) => patchVendorReference(index, { leadTime: value === null ? "" : `${value} days` })} unit="days" value={reference.leadTime ? Number.parseInt(reference.leadTime, 10) : null} /></td>
-                          <td><ErpLookupField label={`Purchase UOM ${index + 1}`} onChange={(value) => patchVendorReference(index, { purchaseUom: value })} options={uomOptions.map((option) => ({ label: option.label, value: option.label }))} value={reference.purchaseUom} /></td>
+                          <td>
+                            <ErpLookupField
+                              label={`Purchase UOM ${index + 1}`}
+                              onChange={(value) => {
+                                const selectedUom = uomOptions.find((option) => option.label === value);
+                                patchVendorReference(index, {
+                                  purchaseUom: value,
+                                  purchaseUomId: selectedUom?.id ?? reference.purchaseUomId
+                                });
+                              }}
+                              options={uomOptions.map((option) => ({ label: option.label, value: option.label }))}
+                              value={reference.purchaseUom}
+                            />
+                          </td>
                           <td><ErpLookupField label={`Compliance ${index + 1}`} onChange={(value) => patchVendorReference(index, { complianceStatus: value })} options={["Draft", "Approved", "Pending", "Blocked"].map((value) => ({ label: value, value }))} value={reference.complianceStatus} /></td>
                           <td><ErpLookupField label={`Document status ${index + 1}`} onChange={(value) => patchVendorReference(index, { documentStatus: value })} options={["Not attached", "Pending", "Approved", "Expired"].map((value) => ({ label: value, value }))} value={reference.documentStatus || "Not attached"} /></td>
                           <td><Button onClick={() => removeVendorReference(index)} variant="quiet">Remove</Button></td>
@@ -2881,9 +2940,11 @@ export function ItemListPage() {
                 ...current.media,
                 {
                   id: `item-media-attachment-${attachment.id}`,
+                  attachmentId: attachment.id,
                   mediaType: attachment.contentType.startsWith("image/") ? "Product photo" : "Document",
                   title: attachment.fileName,
                   fileName: attachment.fileName,
+                  contentType: attachment.contentType,
                   approvalStatus: "Draft",
                   visibilityScope: "Internal",
                   isPrimary: current.media.length === 0,
@@ -2893,6 +2954,7 @@ export function ItemListPage() {
             }
           : current
       );
+      await query.refetch();
       setSaveTone("success");
       setSaveMessage(`${attachment.fileName} uploaded and linked to this item.`);
     } catch (error) {

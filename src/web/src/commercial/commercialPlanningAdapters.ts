@@ -34,7 +34,11 @@ export interface AttachmentViewerItem {
 export interface QuoteSetupItem {
   id: string;
   quoteId: number;
+  companyId: number;
+  branchId: number;
   quoteNo: string;
+  customerId: number;
+  customerAddressId: number | null;
   customerLabel: string;
   quoteDate: string;
   expiryDate: string;
@@ -44,6 +48,7 @@ export interface QuoteSetupItem {
   totalQuantity: number;
   specRef: string;
   source: MasterDataSource;
+  lines: QuoteDto["lines"];
 }
 
 export interface SalesOrderSetupItem {
@@ -228,7 +233,11 @@ const seededQuotes: QuoteSetupItem[] = [
   {
     id: "quote-1001",
     quoteId: 1001,
+    companyId: 1,
+    branchId: 10,
     quoteNo: "QT-2026-0042",
+    customerId: 501,
+    customerAddressId: null,
     customerLabel: "Enkay Ozone",
     quoteDate: "2026-02-20",
     expiryDate: "2026-03-15",
@@ -237,12 +246,17 @@ const seededQuotes: QuoteSetupItem[] = [
     lineCount: 2,
     totalQuantity: 18,
     specRef: "OZ50-MTO-SPEC",
-    source: "Seeded"
+    source: "Seeded",
+    lines: []
   },
   {
     id: "quote-1002",
     quoteId: 1002,
+    companyId: 1,
+    branchId: 10,
     quoteNo: "QT-2026-0047",
+    customerId: 502,
+    customerAddressId: null,
     customerLabel: "BlueSky Industries",
     quoteDate: "2026-02-26",
     expiryDate: "2026-03-22",
@@ -251,7 +265,8 @@ const seededQuotes: QuoteSetupItem[] = [
     lineCount: 1,
     totalQuantity: 6,
     specRef: "Pressure-regulator option",
-    source: "Seeded"
+    source: "Seeded",
+    lines: []
   }
 ];
 
@@ -483,7 +498,11 @@ function mapQuote(dto: QuoteDto, source: MasterDataSource): QuoteSetupItem {
   return {
     id: `quote-${dto.id}`,
     quoteId: dto.id,
+    companyId: dto.companyId,
+    branchId: dto.branchId,
     quoteNo: dto.quoteNo,
+    customerId: dto.customerId,
+    customerAddressId: dto.customerAddressId,
     customerLabel: `Customer ${dto.customerId}`,
     quoteDate: dto.quoteDate,
     expiryDate: dto.expiryDate ?? "Open",
@@ -492,7 +511,8 @@ function mapQuote(dto: QuoteDto, source: MasterDataSource): QuoteSetupItem {
     lineCount: dto.lines.length,
     totalQuantity: sumQuantities(dto.lines),
     specRef: dto.customerSpecRef ?? "No spec reference",
-    source
+    source,
+    lines: dto.lines
   };
 }
 

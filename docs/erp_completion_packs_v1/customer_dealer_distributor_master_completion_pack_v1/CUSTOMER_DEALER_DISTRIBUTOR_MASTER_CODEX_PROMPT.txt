@@ -1,0 +1,96 @@
+Work only on branch main.
+
+This is CUSTOMER_DEALER_DISTRIBUTOR_MASTER: Customer / Dealer / Distributor Master Completion.
+
+This is a strict completion run using the supplied completion pack.
+Do NOT do broad unrelated ERP work.
+Do NOT stop after writing docs.
+Do NOT call the pack complete unless all P0 requirements are complete or blocked with exact reason.
+
+READ FIRST
+- AGENTS.md
+- docs/codex-progress/README.md
+- docs/completion-packs/CUSTOMER_DEALER_DISTRIBUTOR_MASTER/CUSTOMER_DEALER_DISTRIBUTOR_MASTER_BENCHMARK_V1.xlsx
+- docs/completion-packs/CUSTOMER_DEALER_DISTRIBUTOR_MASTER/CUSTOMER_DEALER_DISTRIBUTOR_MASTER_COMPLETION_SPEC.md
+- docs/design/erp-ui-interaction-standards.md
+- docs/design/erp-field-governance-standards.md
+- 07-ux-governance/master_lookup_field_rules.md
+- 07-ux-governance/action_truth_matrix.csv
+- 07-governance/entity_field_schema_matrix.csv
+- 07-governance/screen_field_violation_matrix.csv
+- current source tree under src/
+- tests/
+- database/README.md
+
+SCOPE
+- Customer Master
+- Dealer / Distributor hierarchy
+- customer sites/bill-to/ship-to
+- contacts/contact points
+- credit/terms/price list/discount/tax/currency
+- salesperson/territory
+- dispatch preferences
+- documents/audit/UDF
+- related quote/order navigation
+
+NON-NEGOTIABLE GATES
+1. No visible touched action may remain dead.
+2. Governed fields use lookup/select/search/grid controls where source exists.
+3. Numeric/money/date fields use governed controls.
+4. Deep create/edit/detail uses centered modal workspace or full page.
+5. Upload/media/document actions work or are disabled with reason.
+6. Save/reopen tests must prove persistence for core data.
+7. No internal/scaffold wording in UI.
+8. Screenshots and review pack are required.
+
+PHASE 1 — Scan current implementation
+Fill the Current Mapping and Gap Template sheets from repo evidence.
+Find anti-patterns listed in the workbook.
+
+PHASE 2 — Write failing tests
+Write or update tests for all P0 scenarios in the Test Cases sheet.
+Tests must fail if shallow implementation exists.
+
+PHASE 3 — Implement
+Implement fixes for P0/P1 gaps in this pack.
+Add additive backend/DB support if required.
+Update database/README.md if SQL/seed changes.
+
+PHASE 4 — Validate
+Run:
+- npm run typecheck
+- npm test
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+PHASE 5 — Evidence
+Capture screenshots for all touched list/create/edit/detail screens and modals.
+If scroll exists, max 3 screenshots per screen.
+Store under:
+- docs/codex-review-screens/CUSTOMER_DEALER_DISTRIBUTOR_MASTER/
+
+PHASE 6 — Output
+Create:
+- docs/codex-progress/CUSTOMER-DEALER-DISTRIBUTOR-MASTER-output.md
+- artifacts/review-packs/CUSTOMER_DEALER_DISTRIBUTOR_MASTER-review-pack.zip
+
+Review pack must include:
+- updated workbook
+- output markdown
+- screenshots
+- changed DB README/DDL/seed files if any
+- updated field/action matrices
+
+BEFORE STOPPING
+1. commit all changes
+2. push main
+3. return only:
+   - files changed
+   - P0/P1 gaps closed
+   - gaps blocked with exact reason
+   - validation results
+   - screenshot folder path
+   - review pack path

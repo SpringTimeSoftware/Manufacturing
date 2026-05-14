@@ -824,8 +824,7 @@ function CustomerEditor({
               <span>Legal name</span>
               <input onChange={(event) => onChange("name", event.target.value)} value={customer.name} />
             </label>
-            <ErpLookupField label="Tax category" onChange={() => undefined} options={taxCategoryOptions} value={customer.taxRegistrationNo === "Pending" ? "Pending" : "Registered GST"} />
-            <ErpLookupField label="Profile tax category" onChange={(value) => updateProfile("taxCategory", value)} options={taxCategoryOptions} value={workspace.profile.taxCategory} />
+            <ErpLookupField label="Tax category" onChange={(value) => updateProfile("taxCategory", value)} options={taxCategoryOptions} value={workspace.profile.taxCategory} />
             <label className="item-master__editor-field">
               <span>Tax registration</span>
               <input onChange={(event) => onChange("taxRegistrationNo", event.target.value)} value={customer.taxRegistrationNo} />
@@ -908,6 +907,13 @@ function CustomerEditor({
           <div className="item-master__editor-grid">
             <ErpLookupField label="Credit status" onChange={(value) => updateProfile("creditStatus", value)} options={creditStatusOptions} value={workspace.profile.creditStatus ?? creditStatus} />
             <ErpNumberField
+              label="Credit limit"
+              min={0}
+              onChange={(value) => updateProfile("creditLimitAmount", value)}
+              unit={workspace.profile.currencyCode ?? "INR"}
+              value={workspace.profile.creditLimitAmount ?? null}
+            />
+            <ErpNumberField
               label="Credit days"
               min={0}
               onChange={(value) => onChange("creditDays", creditDaysLabel(value))}
@@ -923,13 +929,16 @@ function CustomerEditor({
             <ErpLookupField label="Payment terms" onChange={(value) => onChange("paymentTermsCode", value)} options={uniqueOptions(customers.map((record) => record.paymentTermsCode), paymentTermOptions.map((option) => option.value))} required value={customer.paymentTermsCode} />
             <ErpLookupField label="Customer commercial segment" onChange={(value) => updateProfile("commercialSegment", value)} options={["Standard", "Strategic", "Project", "Aftermarket"].map(toOption)} value={workspace.profile.commercialSegment ?? "Standard"} />
             <ErpLookupField label="Order release control" onChange={(value) => updateProfile("orderReleaseControl", value)} options={["Standard", "Credit review", "Advance payment"].map(toOption)} value={workspace.profile.orderReleaseControl ?? "Standard"} />
+            <ErpLookupField disabled disabledReason="Maintain customer price-list assignment from Price Lists." label="Price list" onChange={() => undefined} options={[]} value="" />
+            <ErpLookupField disabled disabledReason="Maintain customer discount assignment from Discount Schemes." label="Discount scheme" onChange={() => undefined} options={[]} value="" />
+            <ErpLookupField disabled disabledReason="Salesperson assignment requires an approved sales user source." label="Salesperson" onChange={() => undefined} options={[]} value="" />
           </div>
         </Card>
 
         <Card title={CUSTOMER_SECTIONS[7]} description="Dispatch route, appointment, and document preferences for shipping execution.">
           <div className="item-master__editor-grid">
             <ErpLookupField label="Dispatch preference" onChange={(value) => updateProfile("dispatchPreference", value)} options={dispatchPreferenceOptions} value={workspace.profile.dispatchPreference ?? "Standard dispatch"} />
-            <ErpLookupField label="Default branch" onChange={() => undefined} options={[toOption(customer.defaultBranch)]} value={customer.defaultBranch} />
+            <ErpLookupField disabled disabledReason="Default branch follows the signed-in operating context." label="Default branch" onChange={() => undefined} options={[toOption(customer.defaultBranch)]} value={customer.defaultBranch} />
             <label className="item-master__editor-field">
               <span>Dispatch instruction</span>
               <input onChange={(event) => updateProfile("dispatchInstruction", event.target.value)} value={workspace.profile.dispatchInstruction ?? ""} />
@@ -1204,7 +1213,7 @@ function SupplierEditor({
               value={supplier.supportsSubcontracting ? "Subcontract capable" : "Material supplier"}
             />
             <ErpLookupField label="Compliance status" onChange={(value) => updateProfile("complianceStatus", value)} options={complianceStatusOptions} value={workspace.profile.complianceStatus ?? complianceStatus} />
-            <ErpLookupField label="Default branch" onChange={() => undefined} options={[toOption(supplier.defaultBranch)]} value={supplier.defaultBranch} />
+            <ErpLookupField disabled disabledReason="Default branch follows the signed-in operating context." label="Default branch" onChange={() => undefined} options={[toOption(supplier.defaultBranch)]} value={supplier.defaultBranch} />
           </div>
         </Card>
 

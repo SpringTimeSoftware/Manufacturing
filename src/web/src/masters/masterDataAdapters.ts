@@ -1,5 +1,6 @@
 import type {
   AuthSessionResponse,
+  AttachmentDto,
   CustomerAddressDto,
   CustomerAddressUpsertRequest,
   CustomerDto,
@@ -149,9 +150,11 @@ export interface ReasonCodeSetupItem {
 
 export interface ItemMediaSetupItem {
   id: string;
+  attachmentId?: number | null;
   mediaType: string;
   title: string;
   fileName: string;
+  contentType?: string | null;
   approvalStatus: string;
   visibilityScope: string;
   isPrimary: boolean;
@@ -181,6 +184,7 @@ export interface ItemCatalogSetup {
 }
 
 export interface ItemPackagingSetup {
+  packagingUomId: number | null;
   innerPack: string;
   carton: string;
   pallet: string;
@@ -896,6 +900,7 @@ function buildItemProfile(base: ItemMasterCoreFields): ItemMasterProfileFields {
       previewSlug: isFinishedGood ? base.code.toLowerCase() : "Not published"
     },
     packaging: {
+      packagingUomId: base.stockUomId,
       innerPack: "Not assigned",
       carton: "Not assigned",
       pallet: "Not assigned",
@@ -1032,6 +1037,7 @@ function buildItemProfile(base: ItemMasterCoreFields): ItemMasterProfileFields {
         previewSlug: "fabricated-mounting-bracket"
       },
       packaging: {
+        packagingUomId: 1,
         innerPack: "10 PCS shrink pack",
         carton: "50 PCS export carton",
         pallet: "20 cartons per pallet",
@@ -1129,6 +1135,7 @@ function buildItemProfile(base: ItemMasterCoreFields): ItemMasterProfileFields {
         previewSlug: "Not published"
       },
       packaging: {
+        packagingUomId: 2,
         innerPack: "Loose plate",
         carton: "Not applicable",
         pallet: "Strapped pallet bundle",
@@ -1186,10 +1193,11 @@ function buildItemProfile(base: ItemMasterCoreFields): ItemMasterProfileFields {
           effectiveDate: "Not effective",
           status: "Draft"
         }
-      ],
-      packaging: {
-        innerPack: "Protective sheet separator",
-        carton: "Not applicable",
+    ],
+    packaging: {
+      packagingUomId: 3,
+      innerPack: "Protective sheet separator",
+      carton: "Not applicable",
         pallet: "Wooden pallet bundle",
         packagingUom: "SHEET",
         netWeight: "47.10 KG",
@@ -1292,7 +1300,7 @@ function formatCustomerVisibleSpecs(specsJson: string | null | undefined) {
   }
 }
 
-function applyLiveItemProfile(item: ItemMasterSetupItem, profile: ItemMasterProfileDto | null | undefined): ItemMasterSetupItem {
+function applyLiveItemProfile(item: ItemMasterSetupItem, profile: ItemMasterProfileDto | null | undefined, uoms: UomDto[] = []): ItemMasterSetupItem {
   if (!profile) {
     return item;
   }
@@ -1303,9 +1311,11 @@ function applyLiveItemProfile(item: ItemMasterSetupItem, profile: ItemMasterProf
     catalogVisible: profile.catalog?.isCatalogVisible ?? item.catalogVisible,
     media: profile.media.map((media) => ({
       id: `live-media-${media.id}`,
+      attachmentId: null,
       mediaType: media.mediaType,
       title: media.title,
       fileName: media.fileName ?? "Stored media",
+      contentType: media.mimeType,
       approvalStatus: media.approvalStatus,
       visibilityScope: media.visibilityScope,
       isPrimary: media.isPrimary,
@@ -1335,10 +1345,11 @@ function applyLiveItemProfile(item: ItemMasterSetupItem, profile: ItemMasterProf
       : item.catalog,
     packaging: profile.packaging
       ? {
+          packagingUomId: profile.packaging.packagingUomId,
           innerPack: formatQuantity(profile.packaging.innerPackQty, item.stockUom),
           carton: formatQuantity(profile.packaging.cartonQty, item.stockUom),
           pallet: formatQuantity(profile.packaging.palletQty, item.stockUom),
-          packagingUom: profile.packaging.packagingUomId ? `UOM ${profile.packaging.packagingUomId}` : item.stockUom,
+          packagingUom: profile.packaging.packagingUomId ? mapUomLabel(uoms, profile.packaging.packagingUomId) : item.stockUom,
           netWeight: formatQuantity(profile.packaging.netWeight, profile.packaging.weightUomId ? `UOM ${profile.packaging.weightUomId}` : ""),
           grossWeight: formatQuantity(profile.packaging.grossWeight, profile.packaging.weightUomId ? `UOM ${profile.packaging.weightUomId}` : ""),
           dimensions:
@@ -1380,7 +1391,7 @@ function applyLiveItemProfile(item: ItemMasterSetupItem, profile: ItemMasterProf
       minimumOrderQty: formatQuantity(reference.minimumOrderQty),
       leadTime: reference.leadTimeDays ? `${reference.leadTimeDays} days` : "Not captured",
       purchaseUomId: reference.purchaseUomId,
-      purchaseUom: reference.purchaseUomId ? `UOM ${reference.purchaseUomId}` : item.purchaseUom,
+      purchaseUom: reference.purchaseUomId ? mapUomLabel(uoms, reference.purchaseUomId) : item.purchaseUom,
       complianceStatus: reference.complianceStatus ?? "Not captured",
       documentStatus: reference.documentStatus ?? "Not captured"
     })),
@@ -1427,6 +1438,39 @@ function applyLiveItemProfile(item: ItemMasterSetupItem, profile: ItemMasterProf
         }
       : item.quality
   };
+}
+
+function mapItemMediaAttachment(attachment: AttachmentDto, isPrimary: boolean): ItemMediaSetupItem {
+  return {
+    id: `item-media-attachment-${attachment.id}`,
+    attachmentId: attachment.id,
+    mediaType: attachment.contentType.startsWith("image/") ? "Product photo" : "Document",
+    title: attachment.fileName,
+    fileName: attachment.fileName,
+    contentType: attachment.contentType,
+    approvalStatus: "Linked",
+    visibilityScope: "Internal",
+    isPrimary,
+    status: attachment.status
+  };
+}
+
+function mergeAttachmentMedia(item: ItemMasterSetupItem, attachments: AttachmentDto[]): ItemMasterSetupItem {
+  if (attachments.length === 0) {
+    return item;
+  }
+
+  const existingAttachmentIds = new Set(
+    item.media
+      .map((media) => media.attachmentId)
+      .filter((attachmentId): attachmentId is number => typeof attachmentId === "number")
+  );
+  const existingFileNames = new Set(item.media.map((media) => media.fileName));
+  const attachmentMedia = attachments
+    .filter((attachment) => !existingAttachmentIds.has(attachment.id) && !existingFileNames.has(attachment.fileName))
+    .map((attachment, index) => mapItemMediaAttachment(attachment, item.media.length === 0 && index === 0));
+
+  return attachmentMedia.length > 0 ? { ...item, media: [...item.media, ...attachmentMedia] } : item;
 }
 
 const seededItems: ItemMasterSetupItem[] = [
@@ -2184,7 +2228,8 @@ function mapItemAttribute(dto: ItemAttributeDto, source: MasterDataSource): Item
 }
 
 function mapItem(dto: ItemDto, uoms: UomDto[], profiles: MeasurementProfileSetupItem[], source: MasterDataSource): ItemMasterSetupItem {
-  return enrichItem({
+  const stockUom = mapUomLabel(uoms, dto.stockUomId);
+  const mapped = enrichItem({
     id: `item-${dto.id}`,
     itemId: dto.id,
     companyId: dto.companyId,
@@ -2197,7 +2242,7 @@ function mapItem(dto: ItemDto, uoms: UomDto[], profiles: MeasurementProfileSetup
     measurementProfileId: dto.measurementProfileId,
     measurementProfile: profiles.find((profile) => profile.profileId === dto.measurementProfileId)?.code ?? `Profile ${dto.measurementProfileId}`,
     stockUomId: dto.stockUomId,
-    stockUom: mapUomLabel(uoms, dto.stockUomId),
+    stockUom,
     purchaseUomId: dto.purchaseUomId,
     salesUomId: dto.salesUomId,
     productionUomId: dto.productionUomId,
@@ -2216,6 +2261,14 @@ function mapItem(dto: ItemDto, uoms: UomDto[], profiles: MeasurementProfileSetup
     status: dto.status,
     source
   });
+
+  return {
+    ...mapped,
+    baseUom: stockUom,
+    purchaseUom: dto.purchaseUomId ? mapUomLabel(uoms, dto.purchaseUomId) : "Not enabled",
+    salesUom: dto.salesUomId ? mapUomLabel(uoms, dto.salesUomId) : "Not enabled",
+    productionUom: dto.productionUomId ? mapUomLabel(uoms, dto.productionUomId) : "Not enabled"
+  };
 }
 
 function mapItemVariant(
@@ -2900,16 +2953,25 @@ export async function listItemMasterSetup(
       listMeasurementProfileSetup(session, { ...filter, pageSize: 100, search: undefined, status: undefined })
     ]);
     const mappedItems = items.items.map((item) => mapItem(item, uoms, profiles, "Live"));
-    const profileResults = await Promise.allSettled(mappedItems.map((item) => apiClient.masters.itemProfile(item.itemId)));
-    const profilesByItem = new Map<number, ItemMasterProfileDto>();
+    const [profileResults, attachmentResults] = await Promise.all([
+      Promise.all(mappedItems.map((item) => apiClient.masters.itemProfile(item.itemId))),
+      Promise.all(
+        mappedItems.map(async (item) => ({
+          itemId: item.itemId,
+          attachments: await apiClient.platform.attachments({
+            branchId: filter.branchId,
+            companyId: filter.companyId,
+            pageSize: 100,
+            relatedDocumentId: item.itemId,
+            relatedDocumentType: "ItemMedia"
+          })
+        }))
+      )
+    ]);
+    const profilesByItem = new Map(profileResults.map((profile) => [profile.itemId, profile]));
+    const attachmentsByItem = new Map(attachmentResults.map((result) => [result.itemId, result.attachments.items]));
 
-    profileResults.forEach((result) => {
-      if (result.status === "fulfilled") {
-        profilesByItem.set(result.value.itemId, result.value);
-      }
-    });
-
-    return mappedItems.map((item) => applyLiveItemProfile(item, profilesByItem.get(item.itemId)));
+    return mappedItems.map((item) => mergeAttachmentMedia(applyLiveItemProfile(item, profilesByItem.get(item.itemId), uoms), attachmentsByItem.get(item.itemId) ?? []));
   } catch {
     throw liveDataUnavailable("Item master");
   }

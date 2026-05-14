@@ -260,6 +260,59 @@ function toQuoteDraft(dto: QuoteDto): QuoteUpsertRequest {
   };
 }
 
+function quoteSetupToDraft(record: QuoteSetupItem): QuoteUpsertRequest {
+  return {
+    companyId: record.companyId,
+    branchId: record.branchId,
+    quoteNo: record.quoteNo,
+    customerId: record.customerId,
+    customerAddressId: record.customerAddressId,
+    quoteDate: record.quoteDate,
+    expiryDate: record.expiryDate === "Open" ? null : record.expiryDate,
+    priorityCode: record.priorityCode,
+    status: record.status,
+    customerSpecRef: record.specRef === "No spec reference" ? "" : record.specRef,
+    lines: record.lines.map((line) => ({
+      lineNo: line.lineNo,
+      itemId: line.itemId,
+      itemVariantId: line.itemVariantId,
+      orderUomId: line.orderUomId,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      discountPercent: line.discountPercent,
+      taxPercent: line.taxPercent,
+      makeType: line.makeType,
+      promisedDate: line.promisedDate,
+      priorityCode: line.priorityCode,
+      customerSpecRef: line.customerSpecRef ?? "",
+      status: line.status
+    }))
+  };
+}
+
+function calculateCommercialTotals(lines: Array<{ quantity: number; unitPrice?: number; discountPercent?: number; taxPercent?: number }>) {
+  return lines.reduce(
+    (totals, line) => {
+      const gross = line.quantity * (line.unitPrice ?? 0);
+      const discount = gross * ((line.discountPercent ?? 0) / 100);
+      const taxable = Math.max(gross - discount, 0);
+      const tax = taxable * ((line.taxPercent ?? 0) / 100);
+      return {
+        gross: totals.gross + gross,
+        discount: totals.discount + discount,
+        taxable: totals.taxable + taxable,
+        tax: totals.tax + tax,
+        total: totals.total + taxable + tax
+      };
+    },
+    { gross: 0, discount: 0, taxable: 0, tax: 0, total: 0 }
+  );
+}
+
+function moneyLabel(value: number) {
+  return value.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+}
+
 function buildDraftSalesOrderNo() {
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
   return `SO-DRAFT-${stamp}`;
@@ -965,14 +1018,16 @@ export function QuoteEstimateListPage() {
     (request: QuoteUpsertRequest) => saveQuoteDraft(session, draftQuoteId, request),
     {
       onError: (error) => setSaveMessage(error.message),
-      onSuccess: (saved) => {
+      onSuccess: async (saved) => {
         setDraftQuoteId(saved.id);
         setDraft(toQuoteDraft(saved));
         setSelectedId(`quote-${saved.id}`);
         setSaveMessage(`Saved ${saved.quoteNo}.`);
+        await query.refetch();
       }
     }
   );
+  const quoteTotals = draft ? calculateCommercialTotals(draft.lines) : null;
 
   const openNewDraft = () => {
     if (!companyId || !branchId) {
@@ -1010,6 +1065,17 @@ export function QuoteEstimateListPage() {
         : current
     );
   };
+  const openQuoteRecord = (record: QuoteSetupItem) => {
+    if (record.source === "Live") {
+      setSelectedId(null);
+      setDraftQuoteId(record.quoteId);
+      setDraft(quoteSetupToDraft(record));
+      setSaveMessage(null);
+      return;
+    }
+
+    setSelectedId(record.id);
+  };
 
   return (
     <>
@@ -1031,7 +1097,7 @@ export function QuoteEstimateListPage() {
       >
         <KpiStrip items={[{ label: "Quotes", value: String(records.length) }, { label: "Submitted", value: String(records.filter((record) => record.status === "Submitted").length) }, { label: "Lines", value: String(records.reduce((total, record) => total + record.lineCount, 0)) }, { label: "Qty", value: String(records.reduce((total, record) => total + record.totalQuantity, 0)) }]} />
         <Card title="Quote queue" description="Estimate records stay tied to customer specification and priority.">
-          <DataGrid ariaLabel="Quote list" columns={quoteColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.quoteNo} quote`} virtualization={{ enabled: true }} />
+          <DataGrid ariaLabel="Quote list" columns={quoteColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={openQuoteRecord} records={records} rowLabel={(record) => `${record.quoteNo} quote`} virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
@@ -1054,6 +1120,7 @@ export function QuoteEstimateListPage() {
         footer={
           <ErpActionBar
             primary={[{ disabled: Boolean(saveReason) || saveMutation.isPending, label: saveMutation.isPending ? "Saving quote draft" : "Save quote draft", onClick: saveReason ? undefined : () => draft && saveMutation.mutate(draft), reason: saveReason }]}
+            secondary={[{ disabled: true, label: "Convert to order", reason: "Quote conversion requires an approved quote release workflow." }]}
             utility={[{ label: "Close", onClick: () => { setDraft(null); setDraftQuoteId(null); setSaveMessage(null); }, variant: "quiet" }]}
           />
         }
@@ -1094,6 +1161,29 @@ export function QuoteEstimateListPage() {
                   <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeQuoteLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one quote line is required." : undefined }]} />
                 </FormShell>
               ))}
+            </Card>
+            <Card title="Pricing, tax, and charges" description="Line totals are calculated from all quote lines; unsupported charge workflows are disabled with reasons.">
+              <div className="utility-grid">
+                <Tile eyebrow="Gross" label="Line value" meta="Qty x price">
+                  {moneyLabel(quoteTotals?.gross ?? 0)}
+                </Tile>
+                <Tile eyebrow="Discount" label="Line discount" meta="All lines">
+                  {moneyLabel(quoteTotals?.discount ?? 0)}
+                </Tile>
+                <Tile eyebrow="Taxable" label="After discount" meta="All lines">
+                  {moneyLabel(quoteTotals?.taxable ?? 0)}
+                </Tile>
+                <Tile eyebrow="Tax" label="Line tax" meta="All lines">
+                  {moneyLabel(quoteTotals?.tax ?? 0)}
+                </Tile>
+                <Tile eyebrow="Total" label="Quote value" meta="Before charges">
+                  {moneyLabel(quoteTotals?.total ?? 0)}
+                </Tile>
+              </div>
+              <div className="item-master__editor-grid">
+                <ErpMoneyField disabled disabledReason="Freight and add-less charges require the approved charges workflow." label="Freight / charges" onChange={() => undefined} value={0} />
+                <ErpMoneyField disabled disabledReason="Round-off is applied by the approved invoice/posting workflow." label="Round-off" onChange={() => undefined} value={0} />
+              </div>
             </Card>
           </div>
         ) : null}
@@ -1237,6 +1327,14 @@ export function SalesOrderListPage() {
                 <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one sales order line is required." : undefined }]} />
               </FormShell>
             ))}
+          </Card>
+          <Card title="Pricing, tax, and release contract" description="Direct sales-order demand is editable here; commercial pricing stays controlled by accepted quote or approved price-list workflow.">
+            <div className="item-master__editor-grid">
+              <ErpMoneyField disabled disabledReason="Sales-order unit price is controlled by accepted quote or approved price list." label="Unit price" onChange={() => undefined} value={0} />
+              <ErpDecimalField disabled disabledReason="Sales-order discounts are controlled by accepted quote or approved discount scheme." label="Discount %" onChange={() => undefined} unit="%" value={0} />
+              <ErpDecimalField disabled disabledReason="Sales-order tax is controlled by accepted quote or tax determination workflow." label="Tax %" onChange={() => undefined} unit="%" value={0} />
+              <ErpMoneyField disabled disabledReason="Freight, add-less, and round-off require the approved commercial charges workflow." label="Freight / add-less / round-off" onChange={() => undefined} value={0} />
+            </div>
           </Card>
         </div> : null}
       </ErpModalWorkspace>

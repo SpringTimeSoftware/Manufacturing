@@ -78,6 +78,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - `VERIFY-LIVE-VS-MAIN-01` completed on 2026-05-11 to compare latest `main` against the live IP and confirm the Item Master free-text issue is caused by an outdated live web asset, not current source code.
 - `HELP-SYSTEM-AND-ACTION-COMPLETION-01` completed on 2026-05-12 to add the help system foundation and correct touched New / New Draft / Create / Save action truth.
 - `QUALITY-GATES-01` completed on 2026-05-13 to add ERP completion audit scripts and focused tests that now fail on real transaction-line, governed-field, and numeric-field gaps instead of allowing incomplete screens to be marked complete.
+- `ERP-COMPLETION-PACKS-V1-RUNNER-01` completed on 2026-05-14 to execute the Item/Product, Customer/Dealer/Distributor, Supplier/Vendor, and Quote/Sales Order/Forecast/ATP completion packs with validation, screenshots, and review-pack evidence.
 
 ## Prompt Log
 
