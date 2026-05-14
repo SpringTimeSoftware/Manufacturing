@@ -1,0 +1,249 @@
+Work only on branch main.
+
+This is PROCURE-TO-PAY-COMPLETION-01.
+
+Do not use old shallow benchmark prompts.
+Do not summarize and skip implementation.
+Do not mark a screen complete because it exists.
+Do not leave line-based documents single-line.
+Do not leave visible procurement actions dead.
+
+Goal:
+Complete the Procure-to-Pay foundation using the detailed pack located at:
+
+docs/erp_completion_packs_v1/procure_to_pay_completion_pack_v1/
+
+Required pack files:
+- PROCURE_TO_PAY_BENCHMARK_V1.xlsx
+- PROCURE_TO_PAY_COMPLETION_SPEC.md
+- PROCURE_TO_PAY_CODEX_PROMPT.txt
+
+Read first:
+1. AGENTS.md
+2. docs/codex-progress/README.md
+3. docs/erp_completion_packs_v1/procure_to_pay_completion_pack_v1/PROCURE_TO_PAY_BENCHMARK_V1.xlsx
+4. docs/erp_completion_packs_v1/procure_to_pay_completion_pack_v1/PROCURE_TO_PAY_COMPLETION_SPEC.md
+5. docs/design/erp-ui-interaction-standards.md
+6. docs/design/erp-field-governance-standards.md
+7. 07-ux-governance/master_lookup_field_rules.md
+8. 07-ux-governance/action_truth_matrix.csv
+9. 07-governance/entity_field_schema_matrix.csv
+10. 07-governance/screen_field_violation_matrix.csv
+11. docs/final-audit/07_screen_issue_register.csv
+12. current source tree under src/
+13. tests/
+14. database/README.md
+15. database/ddl/**
+16. database/seed/**
+
+Scope:
+- Purchase Requisition
+- RFQ
+- Supplier Quotation
+- Quote Comparison
+- Purchase Order
+- Subcontract Purchase Order / Outside Processing if represented
+- Goods Receipt Note / GRN
+- Purchase Invoice / 2-way or 3-way match
+- Vendor Return
+- Landed Cost
+- Payment Schedule / AP handoff
+- Procurement Dashboard / Buyer Queue
+- Procurement attachments and audit
+
+Non-negotiable rules:
+1. No visible touched action may remain dead.
+2. Every visible touched action must be WORKING, DISABLED WITH REASON, or HIDDEN.
+3. No line-based procurement document may be single-line-only.
+4. No `lines[0]` or `firstLine` transaction editor pattern may remain for P2P documents where multiline is required.
+5. No governed field may remain unrestricted free text where a source exists.
+6. No numeric field may remain unrestricted text.
+7. No active upload/document action may remain unless storage/authorization workflow exists.
+8. No fake 3-way match or fake receipt posting.
+9. Deep editors must be centered modal workspace or full-page workspace.
+10. Existing records must be reopenable for P0 flows or clearly blocked.
+
+Phase A — Pack scan and baseline
+Scan current repo for P2P screens/routes/pages/APIs/DB/tests.
+Update:
+- docs/final-audit/07_screen_issue_register.csv
+- 07-governance/screen_field_violation_matrix.csv
+- 07-ux-governance/action_truth_matrix.csv
+- 07-governance/entity_field_schema_matrix.csv
+
+Create:
+- docs/codex-progress/PROCURE-TO-PAY-COMPLETION-baseline.md
+
+Report baseline counts:
+- screens in scope
+- transaction documents in scope
+- line-depth violations
+- governed-field violations
+- numeric-field violations
+- dead actions
+- upload truth gaps
+- workflow/posting gaps
+
+Phase B — Tests first
+Before implementation, add or update tests for:
+
+1. Purchase Requisition multiline:
+- New PR opens workspace
+- add two lines
+- remove one line
+- save draft
+- reopen and verify remaining line
+
+2. RFQ:
+- create RFQ from PR or manual
+- invite at least two suppliers
+- add two RFQ lines
+- save/reopen
+
+3. Supplier Quotation:
+- record quotation for RFQ lines
+- capture price/discount/tax/lead time for multiple lines
+
+4. Quote Comparison:
+- compare at least two supplier quotes
+- select supplier with reason
+- convert selected lines to PO or action disabled with reason
+
+5. Purchase Order multiline:
+- New PO opens workspace
+- add two lines
+- remove one
+- save draft
+- reopen and verify lines/totals
+
+6. GRN:
+- create receipt from PO
+- partial receipt
+- accepted/rejected/hold quantities
+- warehouse/bin
+- post or disabled with reason
+
+7. Purchase Invoice / Match:
+- load PO/GRN
+- compare invoice quantity/rate/tax to PO and GRN
+- variance hold or disabled with reason
+
+8. Vendor Return:
+- create return from GRN/QC reference
+- validate return quantity and reason code
+
+9. Landed Cost:
+- add freight/charge
+- allocate by quantity/value/weight/manual or disabled with reason
+
+10. Action truth:
+- all visible New/Add/Save/Submit/Approve/Convert/Post/Print/Export actions are working/disabled/hidden.
+
+Phase C — Implement P0 P2P flows
+Implement or truthfully block P0 flows in this order:
+
+1. Purchase Requisition
+2. RFQ
+3. Supplier Quotation
+4. Quote Comparison
+5. Purchase Order
+6. GRN
+7. Purchase Invoice / 3-way Match
+
+For each:
+- header
+- multiline line grid
+- Add Line
+- Remove Line
+- field control truth
+- numeric control truth
+- save/reopen
+- workflow/action truth
+- audit/document truth
+- screenshots
+
+Phase D — Implement or truthfully block P1 flows
+Implement or truthfully block:
+
+1. Vendor Return
+2. Landed Cost
+3. Payment Schedule / AP handoff
+4. Procurement Dashboard / Buyer Queue
+5. Supplier performance / lead-time feedback if represented
+
+Phase E — Backend/DB support
+If needed and feasible:
+- add additive APIs
+- add additive services/contracts
+- add additive DDL/seed
+- update database/README.md
+
+Do not do destructive schema changes.
+
+Phase F — Validation
+Run:
+- npm run typecheck
+- npm test
+- npm run audit:erp-completion if available
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+If validation fails, fix trivial issues and rerun. Stop only on a real blocker.
+
+Phase G — Screenshot evidence
+Capture at minimum:
+- Purchase Requisition list + new/edit workspace
+- RFQ list + invite suppliers + lines
+- Supplier Quotation workspace
+- Quote Comparison
+- Purchase Order list + new/edit workspace
+- GRN workspace
+- Purchase Invoice / match screen
+- Vendor Return if touched
+- Landed Cost if touched
+- Procurement Dashboard/Buyer Queue if touched
+
+If a screen scrolls, max 3 screenshots:
+- top
+- middle
+- bottom
+
+Store under:
+docs/codex-review-screens/PROCURE-TO-PAY-COMPLETION/
+
+Phase H — Output and review pack
+Create/update:
+- docs/codex-progress/PROCURE-TO-PAY-COMPLETION-output.md
+- docs/codex-progress/README.md
+
+Create:
+- artifacts/review-packs/PROCURE-TO-PAY-COMPLETION-review-pack.zip
+
+Include:
+- benchmark workbook
+- completion spec
+- output markdown
+- updated matrices
+- screenshots
+- changed DB README / DDL / seed files if any
+
+Before stopping:
+1. commit changes
+2. push main
+3. return only:
+   - pack status COMPLETE/PARTIAL/BLOCKED
+   - files changed
+   - screens completed
+   - screens blocked
+   - line-depth violations fixed
+   - governed-field violations fixed
+   - numeric violations fixed
+   - dead actions fixed/disabled/hidden
+   - upload truth issues fixed
+   - remaining blockers
+   - validation results
+   - screenshot folder
+   - review pack path

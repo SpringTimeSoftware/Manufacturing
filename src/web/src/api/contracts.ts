@@ -2901,6 +2901,156 @@ export interface SupplierInvoicePostingResultDto {
   postings: AccountingPostingDto[];
 }
 
+export interface RfqLineDto {
+  id: number;
+  lineNo: number;
+  itemId: number;
+  orderUomId: number;
+  requestedQuantity: number;
+  needByDate: string;
+  purchaseRequisitionLineId: number | null;
+  status: string;
+}
+
+export interface RfqLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  orderUomId: number;
+  requestedQuantity: number;
+  needByDate: string;
+  purchaseRequisitionLineId: number | null;
+  status: string;
+  itemCode?: string | null;
+}
+
+export interface RfqSupplierDto {
+  id: number;
+  supplierId: number;
+  invitationStatus: string;
+  responseDueDate: string;
+  remarks: string | null;
+}
+
+export interface RfqSupplierUpsertRequest {
+  supplierId: number;
+  invitationStatus: string;
+  responseDueDate: string;
+  remarks: string | null;
+  supplierCode?: string | null;
+}
+
+export interface RfqDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  rfqNo: string;
+  purchaseRequisitionId: number | null;
+  issueDate: string;
+  responseDueDate: string;
+  currencyCode: string;
+  status: string;
+  remarks: string | null;
+  lines: RfqLineDto[];
+  suppliers: RfqSupplierDto[];
+}
+
+export interface RfqUpsertRequest {
+  companyId: number;
+  branchId: number;
+  rfqNo: string;
+  purchaseRequisitionId: number | null;
+  issueDate: string;
+  responseDueDate: string;
+  currencyCode: string;
+  status: string;
+  remarks: string | null;
+  lines: RfqLineUpsertRequest[];
+  suppliers: RfqSupplierUpsertRequest[];
+}
+
+export interface SupplierQuotationLineDto {
+  id: number;
+  lineNo: number;
+  rfqLineId: number;
+  itemId: number;
+  orderUomId: number;
+  offeredQuantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  taxPercent: number;
+  taxAmount: number;
+  lineAmount: number;
+  leadTimeDays: number;
+  status: string;
+}
+
+export interface SupplierQuotationLineUpsertRequest {
+  lineNo: number;
+  rfqLineId: number;
+  itemId: number;
+  orderUomId: number;
+  offeredQuantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
+  leadTimeDays: number;
+  status: string;
+  itemCode?: string | null;
+}
+
+export interface SupplierQuotationDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  supplierQuotationNo: string;
+  rfqId: number;
+  supplierId: number;
+  quotationDate: string;
+  validUntil: string;
+  currencyCode: string;
+  subtotalAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  selectionStatus: string;
+  selectionReason: string | null;
+  status: string;
+  lines: SupplierQuotationLineDto[];
+}
+
+export interface SupplierQuotationUpsertRequest {
+  companyId: number;
+  branchId: number;
+  supplierQuotationNo: string;
+  rfqId: number;
+  supplierId: number;
+  quotationDate: string;
+  validUntil: string;
+  currencyCode: string;
+  status: string;
+  lines: SupplierQuotationLineUpsertRequest[];
+  supplierCode?: string | null;
+}
+
+export interface SupplierQuotationSelectionRequest {
+  selectionReason: string;
+}
+
+export interface QuoteComparisonLineDto {
+  rfqLineId: number;
+  lineNo: number;
+  itemId: number;
+  orderUomId: number;
+  requestedQuantity: number;
+  supplierLines: SupplierQuotationLineDto[];
+}
+
+export interface QuoteComparisonDto {
+  rfq: RfqDto;
+  supplierQuotations: SupplierQuotationDto[];
+  lines: QuoteComparisonLineDto[];
+}
+
 export interface StockBalanceDto {
   id: number;
   companyId: number;

@@ -738,6 +738,239 @@ internal sealed class ProcurementService(
         return result;
     }
 
+    public async Task<PagedResult<RfqDto>> ListRfqsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.RequestForQuotations.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        query = ApplyRfqFilters(query, filter);
+
+        var page = await query.OrderByDescending(entity => entity.Id).ThenBy(entity => entity.RfqNo).ToPagedResultAsync(filter, cancellationToken);
+        var ids = page.Items.Select(entity => entity.Id).ToArray();
+        var lines = await LoadRfqLinesAsync(ids, cancellationToken);
+        var suppliers = await LoadRfqSuppliersAsync(ids, cancellationToken);
+        return MapPage(page, entity => MapRfq(entity, lines.GetValueOrDefault(entity.Id, Array.Empty<RfqLineDto>()), suppliers.GetValueOrDefault(entity.Id, Array.Empty<RfqSupplierDto>())));
+    }
+
+    public async Task<RfqDto> GetRfqAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var entity = await DbContext.RequestForQuotations.AsNoTracking()
+            .ApplyActiveOrganizationScope(GetScope())
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "RFQ was not found in the active scope.", "procurement.rfq_not_found");
+        var lines = await LoadRfqLinesAsync(new[] { id }, cancellationToken);
+        var suppliers = await LoadRfqSuppliersAsync(new[] { id }, cancellationToken);
+        return MapRfq(entity, lines.GetValueOrDefault(id, Array.Empty<RfqLineDto>()), suppliers.GetValueOrDefault(id, Array.Empty<RfqSupplierDto>()));
+    }
+
+    public async Task<RfqDto> CreateRfqAsync(RfqUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateRfq(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var entity = RequestForQuotation.Create(request.CompanyId, request.BranchId, request.RfqNo, request.PurchaseRequisitionId, request.IssueDate, request.ResponseDueDate, request.CurrencyCode, request.Status, Normalize(request.Remarks), GetUserId());
+        DbContext.RequestForQuotations.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        await ReplaceRfqLinesAndSuppliersAsync(entity.Id, request, cancellationToken);
+        var dto = await GetRfqAsync(entity.Id, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(RequestForQuotation), "rfq.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<RfqDto> UpdateRfqAsync(long id, RfqUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateRfq(request);
+        var entity = await DbContext.RequestForQuotations.ApplyActiveOrganizationScope(GetScope()).FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "RFQ was not found in the active scope.", "procurement.rfq_not_found");
+        ThrowIfInvalid(
+            Immutable(entity.CompanyId ?? 0, request.CompanyId, nameof(request.CompanyId), "RFQ company cannot be changed."),
+            Immutable(entity.BranchId ?? 0, request.BranchId, nameof(request.BranchId), "RFQ branch cannot be changed."));
+
+        var before = await GetRfqAsync(id, cancellationToken);
+        entity.Update(request.RfqNo, request.PurchaseRequisitionId, request.IssueDate, request.ResponseDueDate, request.CurrencyCode, request.Status, Normalize(request.Remarks), GetUserId());
+        await ReplaceRfqLinesAndSuppliersAsync(entity.Id, request, cancellationToken);
+        var after = await GetRfqAsync(id, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(RequestForQuotation), "rfq.update", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<RfqDto> SendRfqAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var entity = await DbContext.RequestForQuotations.ApplyActiveOrganizationScope(GetScope()).FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "RFQ was not found in the active scope.", "procurement.rfq_not_found");
+        var before = await GetRfqAsync(id, cancellationToken);
+        entity.Update(entity.RfqNo, entity.PurchaseRequisitionId, entity.IssueDate, entity.ResponseDueDate, entity.CurrencyCode, "Sent", entity.Remarks, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+        var after = await GetRfqAsync(id, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(RequestForQuotation), "rfq.send", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<PagedResult<SupplierQuotationDto>> ListSupplierQuotationsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.SupplierQuotations.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        if (filter.SupplierId.HasValue)
+        {
+            query = query.Where(entity => entity.SupplierId == filter.SupplierId.Value);
+        }
+
+        query = ApplySupplierQuotationFilters(query, filter);
+
+        var page = await query.OrderByDescending(entity => entity.Id).ThenBy(entity => entity.SupplierQuotationNo).ToPagedResultAsync(filter, cancellationToken);
+        var lines = await LoadSupplierQuotationLinesAsync(page.Items.Select(entity => entity.Id).ToArray(), cancellationToken);
+        return MapPage(page, entity => MapSupplierQuotation(entity, lines.GetValueOrDefault(entity.Id, Array.Empty<SupplierQuotationLineDto>())));
+    }
+
+    public async Task<SupplierQuotationDto> GetSupplierQuotationAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var entity = await DbContext.SupplierQuotations.AsNoTracking()
+            .ApplyActiveOrganizationScope(GetScope())
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Supplier quotation was not found in the active scope.", "procurement.supplier_quote_not_found");
+        var lines = await LoadSupplierQuotationLinesAsync(new[] { id }, cancellationToken);
+        return MapSupplierQuotation(entity, lines.GetValueOrDefault(id, Array.Empty<SupplierQuotationLineDto>()));
+    }
+
+    public async Task<SupplierQuotationDto> CreateSupplierQuotationAsync(SupplierQuotationUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateSupplierQuotation(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+        var supplierId = await ResolveSupplierIdAsync(request.CompanyId, request.SupplierId, request.SupplierCode, cancellationToken);
+        await EnsureRfqInScopeAsync(request.RfqId, request.CompanyId, request.BranchId, cancellationToken);
+
+        var entity = SupplierQuotation.Create(request.CompanyId, request.BranchId, request.SupplierQuotationNo, request.RfqId, supplierId, request.QuotationDate, request.ValidUntil, request.CurrencyCode, request.Status, GetUserId());
+        DbContext.SupplierQuotations.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        await ReplaceSupplierQuotationLinesAsync(entity.Id, request, cancellationToken);
+        var dto = await GetSupplierQuotationAsync(entity.Id, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(SupplierQuotation), "supplierquote.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<SupplierQuotationDto> UpdateSupplierQuotationAsync(long id, SupplierQuotationUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateSupplierQuotation(request);
+        var entity = await DbContext.SupplierQuotations.ApplyActiveOrganizationScope(GetScope()).FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "Supplier quotation was not found in the active scope.", "procurement.supplier_quote_not_found");
+        var supplierId = await ResolveSupplierIdAsync(request.CompanyId, request.SupplierId, request.SupplierCode, cancellationToken);
+        ThrowIfInvalid(
+            Immutable(entity.CompanyId ?? 0, request.CompanyId, nameof(request.CompanyId), "Supplier quotation company cannot be changed."),
+            Immutable(entity.BranchId ?? 0, request.BranchId, nameof(request.BranchId), "Supplier quotation branch cannot be changed."),
+            Immutable(entity.SupplierId, supplierId, nameof(request.SupplierId), "Supplier cannot be changed after the quotation is saved."),
+            Immutable(entity.RfqId, request.RfqId, nameof(request.RfqId), "RFQ cannot be changed after the quotation is saved."));
+
+        var before = await GetSupplierQuotationAsync(id, cancellationToken);
+        entity.UpdateHeader(request.SupplierQuotationNo, request.QuotationDate, request.ValidUntil, request.CurrencyCode, request.Status, GetUserId());
+        await ReplaceSupplierQuotationLinesAsync(entity.Id, request, cancellationToken);
+        var after = await GetSupplierQuotationAsync(id, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(SupplierQuotation), "supplierquote.update", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<SupplierQuotationDto> SelectSupplierQuotationAsync(long id, SupplierQuotationSelectionRequest request, CancellationToken cancellationToken = default)
+    {
+        var entity = await DbContext.SupplierQuotations.ApplyActiveOrganizationScope(GetScope()).FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "Supplier quotation was not found in the active scope.", "procurement.supplier_quote_not_found");
+        ThrowIfInvalid(Required(request.SelectionReason, nameof(request.SelectionReason), "Selection reason is required."));
+        var before = await GetSupplierQuotationAsync(id, cancellationToken);
+        var competingQuotes = await DbContext.SupplierQuotations
+            .Where(record => record.RfqId == entity.RfqId && record.Id != entity.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var quote in competingQuotes)
+        {
+            quote.UpdateSelection("Not Selected", quote.SelectionReason, GetUserId());
+        }
+
+        entity.UpdateSelection("Selected", request.SelectionReason, GetUserId());
+        entity.UpdateHeader(entity.SupplierQuotationNo, entity.QuotationDate, entity.ValidUntil, entity.CurrencyCode, "Selected", GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+        var after = await GetSupplierQuotationAsync(id, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(SupplierQuotation), "supplierquote.select", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<QuoteComparisonDto> GetQuoteComparisonAsync(long rfqId, CancellationToken cancellationToken = default)
+    {
+        var rfq = await GetRfqAsync(rfqId, cancellationToken);
+        var quotations = await DbContext.SupplierQuotations.AsNoTracking()
+            .ApplyActiveOrganizationScope(GetScope())
+            .Where(record => record.RfqId == rfqId)
+            .OrderBy(record => record.TotalAmount)
+            .ToArrayAsync(cancellationToken);
+        var quotationLines = await LoadSupplierQuotationLinesAsync(quotations.Select(record => record.Id).ToArray(), cancellationToken);
+        var quotationDtos = quotations.Select(record => MapSupplierQuotation(record, quotationLines.GetValueOrDefault(record.Id, Array.Empty<SupplierQuotationLineDto>()))).ToArray();
+        var comparisonLines = rfq.Lines
+            .Select(line => new QuoteComparisonLineDto(
+                line.Id,
+                line.LineNo,
+                line.ItemId,
+                line.OrderUomId,
+                line.RequestedQuantity,
+                quotationDtos.SelectMany(quote => quote.Lines.Where(quoteLine => quoteLine.RfqLineId == line.Id)).OrderBy(quoteLine => quoteLine.LineAmount).ToArray()))
+            .ToArray();
+        return new QuoteComparisonDto(rfq, quotationDtos, comparisonLines);
+    }
+
+    public async Task<PurchaseOrderDto> ConvertSupplierQuotationToPurchaseOrderAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var quote = await GetSupplierQuotationAsync(id, cancellationToken);
+        ThrowIfInvalid(quote.SelectionStatus != "Selected"
+            ? new ApiError("validation.blocked", nameof(quote.SelectionStatus), "Select the supplier quotation before converting it to a purchase order.")
+            : null);
+
+        var request = new PurchaseOrderUpsertRequest(
+            quote.CompanyId,
+            quote.BranchId,
+            $"PO-{quote.SupplierQuotationNo}",
+            quote.SupplierId,
+            null,
+            "Draft",
+            quote.Lines.Count > 0 ? DateOnly.FromDateTime(DateTime.UtcNow).AddDays(Math.Max(quote.Lines.Max(line => line.LeadTimeDays), 1)) : null,
+            quote.Lines.Select(line => new PurchaseOrderLineUpsertRequest(
+                line.LineNo,
+                line.ItemId,
+                null,
+                line.OfferedQuantity,
+                line.UnitPrice,
+                line.DiscountPercent,
+                line.TaxPercent,
+                line.OrderUomId,
+                DateOnly.FromDateTime(DateTime.UtcNow).AddDays(Math.Max(line.LeadTimeDays, 1)),
+                null,
+                null,
+                "Open")).ToArray());
+
+        var po = await CreatePurchaseOrderAsync(request, cancellationToken);
+        await WriteAuditAsync("procurement", nameof(SupplierQuotation), "supplierquote.convert_po", id, quote, po, cancellationToken);
+        return po;
+    }
+
     private async Task<PurchaseRequisitionDto> ApprovePurchaseRequisitionInternalAsync(long id, string status, string actionCode, CancellationToken cancellationToken)
     {
         var scope = GetScope();
@@ -847,6 +1080,108 @@ internal sealed class ProcurementService(
         return MapSupplierInvoice(invoice, lines.GetValueOrDefault(invoice.Id, Array.Empty<SupplierInvoiceLineDto>()));
     }
 
+    private async Task<Dictionary<long, IReadOnlyCollection<RfqLineDto>>> LoadRfqLinesAsync(
+        IReadOnlyCollection<long> headerIds,
+        CancellationToken cancellationToken) =>
+        await LoadGroupedAsync(
+            DbContext.RequestForQuotationLines.AsNoTracking()
+                .Where(record => headerIds.Contains(record.RfqId))
+                .OrderBy(record => record.LineNo),
+            record => record.RfqId,
+            MapRfqLine,
+            cancellationToken);
+
+    private async Task<Dictionary<long, IReadOnlyCollection<RfqSupplierDto>>> LoadRfqSuppliersAsync(
+        IReadOnlyCollection<long> headerIds,
+        CancellationToken cancellationToken) =>
+        await LoadGroupedAsync(
+            DbContext.RequestForQuotationSuppliers.AsNoTracking()
+                .Where(record => headerIds.Contains(record.RfqId))
+                .OrderBy(record => record.SupplierId),
+            record => record.RfqId,
+            MapRfqSupplier,
+            cancellationToken);
+
+    private async Task<Dictionary<long, IReadOnlyCollection<SupplierQuotationLineDto>>> LoadSupplierQuotationLinesAsync(
+        IReadOnlyCollection<long> headerIds,
+        CancellationToken cancellationToken) =>
+        await LoadGroupedAsync(
+            DbContext.SupplierQuotationLines.AsNoTracking()
+                .Where(record => headerIds.Contains(record.SupplierQuotationId))
+                .OrderBy(record => record.LineNo),
+            record => record.SupplierQuotationId,
+            MapSupplierQuotationLine,
+            cancellationToken);
+
+    private async Task ReplaceRfqLinesAndSuppliersAsync(long rfqId, RfqUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var existingLines = await DbContext.RequestForQuotationLines.Where(record => record.RfqId == rfqId).ToListAsync(cancellationToken);
+        var existingSuppliers = await DbContext.RequestForQuotationSuppliers.Where(record => record.RfqId == rfqId).ToListAsync(cancellationToken);
+        DbContext.RequestForQuotationLines.RemoveRange(existingLines);
+        DbContext.RequestForQuotationSuppliers.RemoveRange(existingSuppliers);
+
+        var lines = new List<RequestForQuotationLine>();
+        foreach (var line in request.Lines.OrderBy(record => record.LineNo))
+        {
+            var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
+            lines.Add(RequestForQuotationLine.Create(rfqId, line.LineNo, itemId, line.OrderUomId, line.RequestedQuantity, line.NeedByDate, line.PurchaseRequisitionLineId, line.Status, GetUserId()));
+        }
+
+        var suppliers = new List<RequestForQuotationSupplier>();
+        foreach (var supplier in request.Suppliers.OrderBy(record => record.SupplierId))
+        {
+            var supplierId = await ResolveSupplierIdAsync(request.CompanyId, supplier.SupplierId, supplier.SupplierCode, cancellationToken);
+            suppliers.Add(RequestForQuotationSupplier.Create(rfqId, supplierId, supplier.InvitationStatus, supplier.ResponseDueDate, Normalize(supplier.Remarks), GetUserId()));
+        }
+
+        DbContext.RequestForQuotationLines.AddRange(lines);
+        DbContext.RequestForQuotationSuppliers.AddRange(suppliers);
+        await DbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ReplaceSupplierQuotationLinesAsync(long supplierQuotationId, SupplierQuotationUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var existingLines = await DbContext.SupplierQuotationLines.Where(record => record.SupplierQuotationId == supplierQuotationId).ToListAsync(cancellationToken);
+        DbContext.SupplierQuotationLines.RemoveRange(existingLines);
+
+        var rfqLineIds = request.Lines.Select(line => line.RfqLineId).ToArray();
+        var rfqLines = await DbContext.RequestForQuotationLines.AsNoTracking()
+            .Where(line => line.RfqId == request.RfqId && rfqLineIds.Contains(line.Id))
+            .ToDictionaryAsync(line => line.Id, cancellationToken);
+
+        var lines = new List<SupplierQuotationLine>();
+        foreach (var line in request.Lines.OrderBy(record => record.LineNo))
+        {
+            if (!rfqLines.TryGetValue(line.RfqLineId, out var rfqLine))
+            {
+                ThrowIfInvalid(new ApiError("validation.not_found", nameof(line.RfqLineId), "Supplier quotation line must reference a line on the selected RFQ."));
+                continue;
+            }
+
+            var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
+            lines.Add(SupplierQuotationLine.Create(supplierQuotationId, line.LineNo, line.RfqLineId, itemId, line.OrderUomId > 0 ? line.OrderUomId : rfqLine.OrderUomId, line.OfferedQuantity, line.UnitPrice, line.DiscountPercent, line.TaxPercent, line.LeadTimeDays, line.Status, GetUserId()));
+        }
+
+        DbContext.SupplierQuotationLines.AddRange(lines);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var entity = await DbContext.SupplierQuotations.FirstAsync(record => record.Id == supplierQuotationId, cancellationToken);
+        entity.SetTotals(lines.Sum(line => decimal.Round(line.OfferedQuantity * line.UnitPrice, 2, MidpointRounding.AwayFromZero) - line.DiscountAmount), lines.Sum(line => line.TaxAmount), GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureRfqInScopeAsync(long rfqId, long companyId, long branchId, CancellationToken cancellationToken)
+    {
+        var rfq = await DbContext.RequestForQuotations.AsNoTracking()
+            .ApplyActiveOrganizationScope(GetScope())
+            .FirstOrDefaultAsync(record => record.Id == rfqId, cancellationToken);
+
+        rfq = EnsureFound(rfq, "RFQ was not found in the active scope.", "procurement.rfq_not_found");
+        ThrowIfInvalid(
+            rfq.CompanyId != companyId ? new ApiError("validation.mismatch", nameof(companyId), "RFQ company does not match the supplier quotation.") : null,
+            rfq.BranchId != branchId ? new ApiError("validation.mismatch", nameof(branchId), "RFQ branch does not match the supplier quotation.") : null);
+    }
+
     private static async Task<Dictionary<long, IReadOnlyCollection<TDto>>> LoadGroupedAsync<TEntity, TDto>(
         IQueryable<TEntity> query,
         Func<TEntity, long> keySelector,
@@ -904,6 +1239,40 @@ internal sealed class ProcurementService(
         {
             var search = filter.Search.Trim();
             query = query.Where(entity => entity.SubcontractOrderNo.Contains(search));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<RequestForQuotation> ApplyRfqFilters(IQueryable<RequestForQuotation> query, ProcurementFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status) && !string.Equals(filter.Status, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.RfqNo.Contains(search) || entity.CurrencyCode.Contains(search));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<SupplierQuotation> ApplySupplierQuotationFilters(IQueryable<SupplierQuotation> query, ProcurementFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status) && !string.Equals(filter.Status, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status || entity.SelectionStatus == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.SupplierQuotationNo.Contains(search) || entity.CurrencyCode.Contains(search));
         }
 
         return query;
@@ -1063,6 +1432,88 @@ internal sealed class ProcurementService(
         ThrowIfInvalid(errors);
     }
 
+    private static void ValidateRfq(RfqUpsertRequest request)
+    {
+        var errors = new List<ApiError?>
+        {
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            Required(request.RfqNo, nameof(request.RfqNo), "RFQ number is required."),
+            Required(request.CurrencyCode, nameof(request.CurrencyCode), "Currency is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."),
+            request.ResponseDueDate < request.IssueDate ? new ApiError("validation.out_of_range", nameof(request.ResponseDueDate), "Response due date cannot be before issue date.") : null,
+            request.Lines.Count == 0 ? new ApiError("validation.required", nameof(request.Lines), "At least one RFQ line is required.") : null,
+            request.Suppliers.Count < 2 ? new ApiError("validation.required", nameof(request.Suppliers), "Invite at least two suppliers for quote comparison.") : null
+        };
+
+        if (request.Lines.GroupBy(line => line.LineNo).Any(group => group.Count() > 1))
+        {
+            errors.Add(new ApiError("validation.duplicate", nameof(request.Lines), "RFQ line numbers must be unique."));
+        }
+
+        foreach (var line in request.Lines)
+        {
+            errors.Add(line.LineNo <= 0 ? new ApiError("validation.out_of_range", nameof(line.LineNo), "Line number must be greater than zero.") : null);
+            errors.Add(line.ItemId > 0 || !string.IsNullOrWhiteSpace(line.ItemCode)
+                ? null
+                : new ApiError("validation.required", nameof(line.ItemId), "Item id or item code is required."));
+            errors.Add(Positive(line.OrderUomId, nameof(line.OrderUomId), "Order UOM is required."));
+            errors.Add(Positive(line.RequestedQuantity, nameof(line.RequestedQuantity), "Requested quantity must be greater than zero."));
+            errors.Add(Required(line.Status, nameof(line.Status), "Line status is required."));
+        }
+
+        foreach (var supplier in request.Suppliers)
+        {
+            errors.Add(supplier.SupplierId > 0 || !string.IsNullOrWhiteSpace(supplier.SupplierCode)
+                ? null
+                : new ApiError("validation.required", nameof(supplier.SupplierId), "Supplier id or supplier code is required."));
+            errors.Add(Required(supplier.InvitationStatus, nameof(supplier.InvitationStatus), "Invitation status is required."));
+        }
+
+        ThrowIfInvalid(errors);
+    }
+
+    private static void ValidateSupplierQuotation(SupplierQuotationUpsertRequest request)
+    {
+        var errors = new List<ApiError?>
+        {
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            Positive(request.RfqId, nameof(request.RfqId), "RFQ is required."),
+            request.SupplierId > 0 || !string.IsNullOrWhiteSpace(request.SupplierCode)
+                ? null
+                : new ApiError("validation.required", nameof(request.SupplierId), "Supplier id or supplier code is required."),
+            Required(request.SupplierQuotationNo, nameof(request.SupplierQuotationNo), "Supplier quotation number is required."),
+            Required(request.CurrencyCode, nameof(request.CurrencyCode), "Currency is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."),
+            request.ValidUntil < request.QuotationDate ? new ApiError("validation.out_of_range", nameof(request.ValidUntil), "Valid-until date cannot be before quotation date.") : null,
+            request.Lines.Count == 0 ? new ApiError("validation.required", nameof(request.Lines), "At least one supplier quotation line is required.") : null
+        };
+
+        if (request.Lines.GroupBy(line => line.LineNo).Any(group => group.Count() > 1))
+        {
+            errors.Add(new ApiError("validation.duplicate", nameof(request.Lines), "Supplier quotation line numbers must be unique."));
+        }
+
+        foreach (var line in request.Lines)
+        {
+            errors.Add(line.LineNo <= 0 ? new ApiError("validation.out_of_range", nameof(line.LineNo), "Line number must be greater than zero.") : null);
+            errors.Add(Positive(line.RfqLineId, nameof(line.RfqLineId), "RFQ line is required."));
+            errors.Add(line.ItemId > 0 || !string.IsNullOrWhiteSpace(line.ItemCode)
+                ? null
+                : new ApiError("validation.required", nameof(line.ItemId), "Item id or item code is required."));
+            errors.Add(Positive(line.OrderUomId, nameof(line.OrderUomId), "Order UOM is required."));
+            errors.Add(Positive(line.OfferedQuantity, nameof(line.OfferedQuantity), "Offered quantity must be greater than zero."));
+            errors.Add(line.UnitPrice < 0 ? new ApiError("validation.out_of_range", nameof(line.UnitPrice), "Unit price cannot be negative.") : null);
+            errors.Add(line.DiscountPercent is < 0 or > 100 ? new ApiError("validation.out_of_range", nameof(line.DiscountPercent), "Discount percent must be between 0 and 100.") : null);
+            errors.Add(line.TaxPercent is < 0 or > 100 ? new ApiError("validation.out_of_range", nameof(line.TaxPercent), "Tax percent must be between 0 and 100.") : null);
+            errors.Add(line.LeadTimeDays < 0 ? new ApiError("validation.out_of_range", nameof(line.LeadTimeDays), "Lead time days cannot be negative.") : null);
+            errors.Add(Required(line.Status, nameof(line.Status), "Line status is required."));
+        }
+
+        ThrowIfInvalid(errors);
+    }
+
     private async Task<long> ResolveSupplierIdAsync(long companyId, long supplierId, string? supplierCode, CancellationToken cancellationToken)
     {
         var scope = GetScope();
@@ -1202,4 +1653,19 @@ internal sealed class ProcurementService(
 
     private static AccountingPostingDto MapPosting(AccountingPosting entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PostingNo, entity.SourceDocumentType, entity.SourceDocumentId, entity.PostingDate, entity.DebitAccountCode, entity.CreditAccountCode, entity.Amount, entity.Status);
+
+    private static RfqLineDto MapRfqLine(RequestForQuotationLine entity) =>
+        new(entity.Id, entity.LineNo, entity.ItemId, entity.OrderUomId, entity.RequestedQuantity, entity.NeedByDate, entity.PurchaseRequisitionLineId, entity.Status);
+
+    private static RfqSupplierDto MapRfqSupplier(RequestForQuotationSupplier entity) =>
+        new(entity.Id, entity.SupplierId, entity.InvitationStatus, entity.ResponseDueDate, entity.Remarks);
+
+    private static RfqDto MapRfq(RequestForQuotation entity, IReadOnlyCollection<RfqLineDto> lines, IReadOnlyCollection<RfqSupplierDto> suppliers) =>
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.RfqNo, entity.PurchaseRequisitionId, entity.IssueDate, entity.ResponseDueDate, entity.CurrencyCode, entity.Status, entity.Remarks, lines, suppliers);
+
+    private static SupplierQuotationLineDto MapSupplierQuotationLine(SupplierQuotationLine entity) =>
+        new(entity.Id, entity.LineNo, entity.RfqLineId, entity.ItemId, entity.OrderUomId, entity.OfferedQuantity, entity.UnitPrice, entity.DiscountPercent, entity.DiscountAmount, entity.TaxPercent, entity.TaxAmount, entity.LineAmount, entity.LeadTimeDays, entity.Status);
+
+    private static SupplierQuotationDto MapSupplierQuotation(SupplierQuotation entity, IReadOnlyCollection<SupplierQuotationLineDto> lines) =>
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.SupplierQuotationNo, entity.RfqId, entity.SupplierId, entity.QuotationDate, entity.ValidUntil, entity.CurrencyCode, entity.SubtotalAmount, entity.TaxAmount, entity.TotalAmount, entity.SelectionStatus, entity.SelectionReason, entity.Status, lines);
 }

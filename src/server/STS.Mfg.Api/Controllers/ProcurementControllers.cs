@@ -223,3 +223,99 @@ public sealed class SupplierInvoicesController(IProcurementService procurementSe
         return OkEnvelope(response, "Supplier invoice posted to AP.");
     }
 }
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/rfqs")]
+public sealed class RequestForQuotationsController(IProcurementService procurementService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<RfqDto>>>> List([FromQuery] ProcurementFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.ListRfqsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<RfqDto>>> Get(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.GetRfqAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<RfqDto>>> Create([FromBody] RfqUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.CreateRfqAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(Get), new { id = response.Id }, response, "RFQ created.");
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<RfqDto>>> Update(long id, [FromBody] RfqUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.UpdateRfqAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "RFQ updated.");
+    }
+
+    [HttpPost("{id:long}/send")]
+    public async Task<ActionResult<ApiEnvelope<RfqDto>>> Send(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.SendRfqAsync(id, cancellationToken);
+        return OkEnvelope(response, "RFQ sent.");
+    }
+
+    [HttpGet("{id:long}/comparison")]
+    public async Task<ActionResult<ApiEnvelope<QuoteComparisonDto>>> Comparison(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.GetQuoteComparisonAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/supplier-quotations")]
+public sealed class SupplierQuotationsController(IProcurementService procurementService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<SupplierQuotationDto>>>> List([FromQuery] ProcurementFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.ListSupplierQuotationsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<SupplierQuotationDto>>> Get(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.GetSupplierQuotationAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<SupplierQuotationDto>>> Create([FromBody] SupplierQuotationUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.CreateSupplierQuotationAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(Get), new { id = response.Id }, response, "Supplier quotation created.");
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<SupplierQuotationDto>>> Update(long id, [FromBody] SupplierQuotationUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.UpdateSupplierQuotationAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Supplier quotation updated.");
+    }
+
+    [HttpPost("{id:long}/select")]
+    public async Task<ActionResult<ApiEnvelope<SupplierQuotationDto>>> Select(long id, [FromBody] SupplierQuotationSelectionRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.SelectSupplierQuotationAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Supplier quotation selected.");
+    }
+
+    [HttpPost("{id:long}/convert-to-po")]
+    public async Task<ActionResult<ApiEnvelope<PurchaseOrderDto>>> ConvertToPurchaseOrder(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.ConvertSupplierQuotationToPurchaseOrderAsync(id, cancellationToken);
+        return OkEnvelope(response, "Supplier quotation converted to purchase order.");
+    }
+}

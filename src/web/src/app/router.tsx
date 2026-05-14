@@ -101,7 +101,17 @@ import {
 } from "../pages/PlatformPages";
 import { CapacityPlanningBoardPage } from "../pages/PlanningContinuationPages";
 import { BoqRequirementsPage, MrpResultsExceptionsPage, MrpRunConsolePage } from "../pages/PlanningPages";
-import { PurchaseOrderPage, PurchaseRequisitionPage, SubcontractPlanPage } from "../pages/ProcurementPages";
+import {
+  LandedCostPage,
+  ProcurementDashboardPage,
+  PurchaseOrderPage,
+  PurchaseRequisitionPage,
+  QuoteComparisonPage,
+  RfqSourcingPage,
+  SupplierQuotationPage,
+  SubcontractPlanPage,
+  VendorReturnPage
+} from "../pages/ProcurementPages";
 import {
   MachineStatusPage,
   ProductionReceiptPage,
@@ -212,8 +222,14 @@ export const appRouter = createBrowserRouter([
       guardedRoute("planning/boq-requirements", <BoqRequirementsPage />),
       guardedRoute("planning/capacity", <CapacityPlanningBoardPage />),
       guardedRoute("procurement/requisitions", <PurchaseRequisitionPage />),
+      guardedRoute("procurement/rfqs", <RfqSourcingPage />),
+      guardedRoute("procurement/supplier-quotes", <SupplierQuotationPage />),
+      guardedRoute("procurement/quote-comparison", <QuoteComparisonPage />),
       guardedRoute("procurement/purchase-orders", <PurchaseOrderPage />),
       guardedRoute("procurement/subcontract-plan", <SubcontractPlanPage />),
+      guardedRoute("procurement/vendor-returns", <VendorReturnPage />),
+      guardedRoute("procurement/landed-cost", <LandedCostPage />),
+      guardedRoute("procurement/dashboard", <ProcurementDashboardPage />),
       guardedRoute("inventory/balances", <InventoryBalancePage />),
       guardedRoute("inventory/traceability", <TraceabilityPage />),
       guardedRoute("inventory/material-issue", <MaterialIssuePage />),

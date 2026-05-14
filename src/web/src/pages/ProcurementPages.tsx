@@ -4,6 +4,11 @@ import type {
   GoodsReceiptUpsertRequest,
   PurchaseOrderUpsertRequest,
   PurchaseRequisitionUpsertRequest,
+  QuoteComparisonDto,
+  RfqDto,
+  RfqUpsertRequest,
+  SupplierQuotationDto,
+  SupplierQuotationUpsertRequest,
   SupplierInvoiceDto,
   SupplierInvoicePostingResultDto,
   SupplierInvoiceUpsertRequest,
@@ -1224,5 +1229,389 @@ export function SubcontractPlanPage() {
         ) : null}
       </ErpModalWorkspace>
     </>
+  );
+}
+
+type RfqWorkspace = Omit<RfqUpsertRequest, "companyId" | "branchId"> & { mode: WorkspaceMode; record: RfqDto | null };
+type SupplierQuoteWorkspace = Omit<SupplierQuotationUpsertRequest, "companyId" | "branchId"> & { mode: WorkspaceMode; record: SupplierQuotationDto | null };
+
+const seededRfqs: RfqDto[] = [
+  {
+    id: 7001,
+    companyId: 1,
+    branchId: 10,
+    rfqNo: "RFQ-2026-0007",
+    purchaseRequisitionId: 31,
+    issueDate: "2026-05-10",
+    responseDueDate: "2026-05-18",
+    currencyCode: "INR",
+    status: "Sent",
+    remarks: "Two-supplier sourcing for stainless and valve-set lines.",
+    lines: [
+      { id: 70010, lineNo: 10, itemId: 10001, orderUomId: 1, requestedQuantity: 25, needByDate: "2026-05-25", purchaseRequisitionLineId: 31010, status: "Open" },
+      { id: 70020, lineNo: 20, itemId: 10002, orderUomId: 1, requestedQuantity: 17, needByDate: "2026-05-27", purchaseRequisitionLineId: 31020, status: "Open" }
+    ],
+    suppliers: [
+      { id: 70101, supplierId: 2001, invitationStatus: "Invited", responseDueDate: "2026-05-18", remarks: "Primary supplier" },
+      { id: 70102, supplierId: 2002, invitationStatus: "Invited", responseDueDate: "2026-05-18", remarks: "Alternate supplier" }
+    ]
+  }
+];
+
+const seededSupplierQuotes: SupplierQuotationDto[] = [
+  {
+    id: 7201,
+    companyId: 1,
+    branchId: 10,
+    supplierQuotationNo: "SQ-INX-0007",
+    rfqId: 7001,
+    supplierId: 2001,
+    quotationDate: "2026-05-12",
+    validUntil: "2026-06-12",
+    currencyCode: "INR",
+    subtotalAmount: 3109,
+    taxAmount: 559.62,
+    totalAmount: 3668.62,
+    selectionStatus: "Pending",
+    selectionReason: null,
+    status: "Received",
+    lines: [
+      { id: 72010, lineNo: 10, rfqLineId: 70010, itemId: 10001, orderUomId: 1, offeredQuantity: 25, unitPrice: 92, discountPercent: 2, discountAmount: 46, taxPercent: 18, taxAmount: 405.72, lineAmount: 2659.72, leadTimeDays: 7, status: "Quoted" },
+      { id: 72020, lineNo: 20, rfqLineId: 70020, itemId: 10002, orderUomId: 1, offeredQuantity: 17, unitPrice: 48, discountPercent: 0, discountAmount: 0, taxPercent: 18, taxAmount: 146.88, lineAmount: 962.88, leadTimeDays: 9, status: "Quoted" }
+    ]
+  },
+  {
+    id: 7202,
+    companyId: 1,
+    branchId: 10,
+    supplierQuotationNo: "SQ-ALT-0007",
+    rfqId: 7001,
+    supplierId: 2002,
+    quotationDate: "2026-05-12",
+    validUntil: "2026-06-08",
+    currencyCode: "INR",
+    subtotalAmount: 3182,
+    taxAmount: 572.76,
+    totalAmount: 3754.76,
+    selectionStatus: "Pending",
+    selectionReason: null,
+    status: "Received",
+    lines: [
+      { id: 72030, lineNo: 10, rfqLineId: 70010, itemId: 10001, orderUomId: 1, offeredQuantity: 25, unitPrice: 94, discountPercent: 1, discountAmount: 23.5, taxPercent: 18, taxAmount: 418.77, lineAmount: 2745.27, leadTimeDays: 6, status: "Quoted" },
+      { id: 72040, lineNo: 20, rfqLineId: 70020, itemId: 10002, orderUomId: 1, offeredQuantity: 17, unitPrice: 49, discountPercent: 0, discountAmount: 0, taxPercent: 18, taxAmount: 149.94, lineAmount: 982.94, leadTimeDays: 8, status: "Quoted" }
+    ]
+  }
+];
+
+const rfqColumns: DataGridColumn<RfqDto>[] = [
+  { key: "rfq", header: "RFQ", width: "18%", render: (record) => <strong>{record.rfqNo}</strong> },
+  { key: "due", header: "Due", width: "12%", render: (record) => record.responseDueDate },
+  { key: "suppliers", header: "Suppliers", width: "12%", render: (record) => record.suppliers.length },
+  { key: "lines", header: "Lines / qty", width: "14%", render: (record) => `${record.lines.length} / ${record.lines.reduce((sum, line) => sum + line.requestedQuantity, 0)}` },
+  { key: "status", header: "Status", width: "14%", render: (record) => <StatusBadge status={record.status} /> }
+];
+
+const supplierQuoteColumns: DataGridColumn<SupplierQuotationDto>[] = [
+  { key: "quote", header: "Supplier quote", width: "18%", render: (record) => <strong>{record.supplierQuotationNo}</strong> },
+  { key: "rfq", header: "RFQ", width: "12%", render: (record) => `RFQ ${record.rfqId}` },
+  { key: "supplier", header: "Supplier", width: "12%", render: (record) => `Supplier ${record.supplierId}` },
+  { key: "total", header: "Total", width: "12%", render: (record) => record.totalAmount.toFixed(2) },
+  { key: "status", header: "Status", width: "18%", render: (record) => <StatusBadge status={`${record.status} / ${record.selectionStatus}`} /> }
+];
+
+function buildRfqWorkspace(record: RfqDto | null): RfqWorkspace {
+  return {
+    mode: record ? "edit" : "create",
+    record,
+    rfqNo: record?.rfqNo ?? nextDocumentNo("RFQ"),
+    purchaseRequisitionId: record?.purchaseRequisitionId ?? null,
+    issueDate: record?.issueDate ?? todayIsoDate(),
+    responseDueDate: record?.responseDueDate ?? todayIsoDate(),
+    currencyCode: record?.currencyCode ?? "INR",
+    status: record?.status ?? "Draft",
+    remarks: record?.remarks ?? "",
+    lines: record?.lines.length
+      ? record.lines.map((line) => ({ lineNo: line.lineNo, itemId: line.itemId, orderUomId: line.orderUomId, requestedQuantity: line.requestedQuantity, needByDate: line.needByDate, purchaseRequisitionLineId: line.purchaseRequisitionLineId, status: line.status }))
+      : [{ lineNo: 10, itemId: 0, orderUomId: 0, requestedQuantity: 1, needByDate: todayIsoDate(), purchaseRequisitionLineId: null, status: "Open" }],
+    suppliers: record?.suppliers.length
+      ? record.suppliers.map((supplier) => ({ supplierId: supplier.supplierId, invitationStatus: supplier.invitationStatus, responseDueDate: supplier.responseDueDate, remarks: supplier.remarks }))
+      : [
+          { supplierId: 0, invitationStatus: "Invited", responseDueDate: todayIsoDate(), remarks: "" },
+          { supplierId: 0, invitationStatus: "Invited", responseDueDate: todayIsoDate(), remarks: "" }
+        ]
+  };
+}
+
+function buildSupplierQuoteWorkspace(record: SupplierQuotationDto | null, rfq: RfqDto | null): SupplierQuoteWorkspace {
+  return {
+    mode: record ? "edit" : "create",
+    record,
+    supplierQuotationNo: record?.supplierQuotationNo ?? nextDocumentNo("SQ"),
+    rfqId: record?.rfqId ?? rfq?.id ?? 0,
+    supplierId: record?.supplierId ?? rfq?.suppliers[0]?.supplierId ?? 0,
+    quotationDate: record?.quotationDate ?? todayIsoDate(),
+    validUntil: record?.validUntil ?? todayIsoDate(),
+    currencyCode: record?.currencyCode ?? rfq?.currencyCode ?? "INR",
+    status: record?.status ?? "Received",
+    lines: record?.lines.length
+      ? record.lines.map((line) => ({ lineNo: line.lineNo, rfqLineId: line.rfqLineId, itemId: line.itemId, orderUomId: line.orderUomId, offeredQuantity: line.offeredQuantity, unitPrice: line.unitPrice, discountPercent: line.discountPercent, taxPercent: line.taxPercent, leadTimeDays: line.leadTimeDays, status: line.status }))
+      : (rfq?.lines ?? []).map((line) => ({ lineNo: line.lineNo, rfqLineId: line.id, itemId: line.itemId, orderUomId: line.orderUomId, offeredQuantity: line.requestedQuantity, unitPrice: 0, discountPercent: 0, taxPercent: 0, leadTimeDays: 7, status: "Quoted" }))
+  };
+}
+
+function rfqValidation(workspace: RfqWorkspace | null) {
+  if (!workspace) return [];
+  const errors: string[] = [];
+  if (!workspace.rfqNo.trim()) errors.push("RFQ number is required.");
+  if (workspace.lines.length === 0) errors.push("At least one RFQ line is required.");
+  if (workspace.suppliers.length < 2) errors.push("Invite at least two suppliers.");
+  workspace.lines.forEach((line, index) => {
+    if (!line.itemId) errors.push(`Line ${index + 1} item is required.`);
+    if (!line.orderUomId) errors.push(`Line ${index + 1} UOM is required.`);
+    if (line.requestedQuantity <= 0) errors.push(`Line ${index + 1} quantity must be greater than zero.`);
+  });
+  workspace.suppliers.forEach((supplier, index) => {
+    if (!supplier.supplierId) errors.push(`Supplier invite ${index + 1} supplier is required.`);
+  });
+  return errors;
+}
+
+function supplierQuoteValidation(workspace: SupplierQuoteWorkspace | null) {
+  if (!workspace) return [];
+  const errors: string[] = [];
+  if (!workspace.supplierQuotationNo.trim()) errors.push("Supplier quotation number is required.");
+  if (!workspace.rfqId) errors.push("RFQ is required.");
+  if (!workspace.supplierId) errors.push("Supplier is required.");
+  if (workspace.lines.length === 0) errors.push("At least one supplier quote line is required.");
+  workspace.lines.forEach((line, index) => {
+    if (!line.rfqLineId) errors.push(`Line ${index + 1} RFQ line is required.`);
+    if (!line.itemId) errors.push(`Line ${index + 1} item is required.`);
+    if (!line.orderUomId) errors.push(`Line ${index + 1} UOM is required.`);
+    if (line.offeredQuantity <= 0) errors.push(`Line ${index + 1} offered quantity must be greater than zero.`);
+    if (line.discountPercent < 0 || line.discountPercent > 100) errors.push(`Line ${index + 1} discount must be between 0 and 100.`);
+    if (line.taxPercent < 0 || line.taxPercent > 100) errors.push(`Line ${index + 1} tax must be between 0 and 100.`);
+  });
+  return errors;
+}
+
+export function RfqSourcingPage() {
+  const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
+  const [workspace, setWorkspace] = useState<RfqWorkspace | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const query = useApiQuery(["procurement", "rfqs", companyId, branchId], async () => live ? apiClient.procurement.rfqs({ companyId, branchId }) : { items: seededRfqs, page: 1, pageSize: 25, totalCount: seededRfqs.length, totalPages: 1 }, { staleTime: 60_000 });
+  const suppliers = useApiQuery(queryKeys.partners.suppliers(companyId, branchId, "", "Active"), () => apiClient.partners.suppliers({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const items = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const records = query.data?.items ?? [];
+  const source = records[0] ? (live ? "Live" : "Seeded") as MasterDataSource : live ? "Live" as MasterDataSource : "Seeded" as MasterDataSource;
+  const supplierOptions = entityOptions(suppliers.data?.items, (supplier) => supplier.id, (supplier) => `${supplier.supplierCode} / ${supplier.supplierName}`);
+  const itemOptions = entityOptions(items.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
+  const uomOptions = entityOptions(uoms.data?.items, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const errors = rfqValidation(workspace);
+  const save = useApiMutation((request: RfqUpsertRequest) => workspace?.record ? apiClient.procurement.updateRfq(workspace.record.id, request) : apiClient.procurement.createRfq(request), {
+    onSuccess: async (record) => {
+      setMessage(`Saved ${record.rfqNo}.`);
+      setWorkspace(null);
+      await query.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const send = useApiMutation((id: number) => apiClient.procurement.sendRfq(id), {
+    onSuccess: async (record) => {
+      setMessage(`Sent ${record.rfqNo}.`);
+      await query.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const saveReason = !live ? "RFQ save requires a live procurement session." : errors.length ? "Resolve RFQ validation issues before saving." : save.isPending ? "RFQ save is in progress." : undefined;
+  const addLine = () => workspace && setWorkspace({ ...workspace, lines: [...workspace.lines, { lineNo: (workspace.lines.length + 1) * 10, itemId: 0, orderUomId: 0, requestedQuantity: 1, needByDate: todayIsoDate(), purchaseRequisitionLineId: null, status: "Open" }] });
+  const addSupplier = () => workspace && setWorkspace({ ...workspace, suppliers: [...workspace.suppliers, { supplierId: 0, invitationStatus: "Invited", responseDueDate: workspace.responseDueDate, remarks: "" }] });
+
+  return (
+    <>
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New RFQ", onClick: () => { setMessage(null); setWorkspace(buildRfqWorkspace(null)); } }]} secondary={[{ disabled: true, label: "Attach RFQ document", reason: "RFQ document upload uses the central attachment workflow and must be linked after the RFQ is saved." }]} testId="rfq-action-bar" /></>} description="Invite suppliers and maintain multiline sourcing requirements before quote comparison." title="RFQ / Supplier Invitation">
+        {message ? <Badge tone={message.toLowerCase().includes("saved") || message.toLowerCase().includes("sent") ? "success" : "danger"}>{message}</Badge> : null}
+        {query.error ? <Card title="Live RFQ data unavailable" description={query.error.message} /> : null}
+        <KpiStrip items={[{ label: "RFQs", value: String(records.length) }, { label: "Open lines", value: String(records.reduce((sum, record) => sum + record.lines.length, 0)) }, { label: "Invites", value: String(records.reduce((sum, record) => sum + record.suppliers.length, 0)) }]} />
+        <Card title="RFQ queue" description="Existing RFQs reopen with all invitation and line detail.">
+          <DataGrid ariaLabel="RFQ list" columns={rfqColumns} getRowId={(record) => `rfq-${record.id}`} isLoading={query.isLoading} onRowSelect={(record) => setWorkspace(buildRfqWorkspace(record))} records={records} rowLabel={(record) => `${record.rfqNo} RFQ`} />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace description="Maintain RFQ header, supplier invites, and all material/service lines." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: save.isPending ? "Saving RFQ" : "Save RFQ", onClick: workspace && !saveReason ? () => save.mutate({ ...workspace, companyId, branchId }) : undefined, reason: saveReason }]} secondary={[{ disabled: !live || !workspace?.record || send.isPending, label: send.isPending ? "Sending RFQ" : "Send RFQ", onClick: live && workspace?.record ? () => send.mutate(workspace.record!.id) : undefined, reason: !live ? "RFQ sending requires a live procurement session." : !workspace?.record ? "Save the RFQ before sending supplier invitations." : undefined }]} utility={[{ label: "Close", onClick: () => setWorkspace(null), variant: "quiet" }]} />} isOpen={Boolean(workspace)} onClose={() => setWorkspace(null)} title={workspace?.rfqNo ?? "RFQ"} validation={<ErpValidationSummary errors={errors} />}>
+        {workspace ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.rfqNo}`} title="RFQ header">
+              <label><span>RFQ number</span><input aria-label="RFQ number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, rfqNo: event.target.value })} value={workspace.rfqNo} /></label>
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing RFQ status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={["Draft", "Sent", "Closed"].map(toOption)} required value={workspace.status} />
+              <label><span>Issue date</span><input aria-label="RFQ issue date" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, issueDate: event.target.value })} type="date" value={dateControlValue(workspace.issueDate)} /></label>
+              <label><span>Response due</span><input aria-label="RFQ response due" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, responseDueDate: event.target.value })} type="date" value={dateControlValue(workspace.responseDueDate)} /></label>
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing currency."} label="Currency" onChange={(value) => setWorkspace({ ...workspace, currencyCode: value })} options={["INR", "USD", "EUR"].map(toOption)} required value={workspace.currencyCode} />
+            </FormShell>
+            <Card title="Invite suppliers" description="At least two supplier invitations are required before comparison.">
+              <ErpActionBar secondary={[{ disabled: !live, label: "Invite supplier", onClick: live ? addSupplier : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding suppliers." }]} />
+              {workspace.suppliers.map((supplier, index) => (
+                <FormShell initialFingerprint={`${workspace.rfqNo}-supplier-${index}`} key={`supplier-${index}`} title={`Supplier invite ${index + 1}`}>
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting suppliers."} label="Supplier" onChange={(value) => setWorkspace({ ...workspace, suppliers: workspace.suppliers.map((row, rowIndex) => rowIndex === index ? { ...row, supplierId: numberValue(value) ?? 0 } : row) })} options={supplierOptions} required value={supplier.supplierId ? String(supplier.supplierId) : ""} />
+                  <ErpLookupField disabled={!live} label="Invitation status" onChange={(value) => setWorkspace({ ...workspace, suppliers: workspace.suppliers.map((row, rowIndex) => rowIndex === index ? { ...row, invitationStatus: value } : row) })} options={["Invited", "Responded", "Declined"].map(toOption)} value={supplier.invitationStatus} />
+                  <label><span>Response due</span><input aria-label="Supplier response due" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, suppliers: workspace.suppliers.map((row, rowIndex) => rowIndex === index ? { ...row, responseDueDate: event.target.value } : row) })} type="date" value={dateControlValue(supplier.responseDueDate)} /></label>
+                </FormShell>
+              ))}
+            </Card>
+            <Card title="RFQ lines" description="All requested items stay editable as separate lines.">
+              <ErpActionBar secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding lines." }]} />
+              {workspace.lines.map((line, index) => (
+                <FormShell initialFingerprint={`${workspace.rfqNo}-line-${index}`} key={`line-${index}`} title={`Line ${index + 1}`}>
+                  <ErpLookupField disabled={!live} label="Item" onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, itemId: numberValue(value) ?? 0 } : row) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
+                  <ErpLookupField disabled={!live} label="Order UOM" onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, orderUomId: numberValue(value) ?? 0 } : row) })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
+                  <ErpDecimalField disabled={!live} label="Requested quantity" min={0.001} onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, requestedQuantity: value ?? 0 } : row) })} required value={line.requestedQuantity} />
+                  <label><span>Need by</span><input aria-label="RFQ line need by" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, needByDate: event.target.value } : row) })} type="date" value={dateControlValue(line.needByDate)} /></label>
+                  <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => setWorkspace({ ...workspace, lines: workspace.lines.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, lineNo: (rowIndex + 1) * 10 })) }) : undefined, reason: workspace.lines.length <= 1 ? "At least one RFQ line is required." : undefined }]} />
+                </FormShell>
+              ))}
+            </Card>
+          </div>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
+  );
+}
+
+export function SupplierQuotationPage() {
+  const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
+  const [workspace, setWorkspace] = useState<SupplierQuoteWorkspace | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const rfqs = useApiQuery(["procurement", "rfqs", companyId, branchId], async () => live ? apiClient.procurement.rfqs({ companyId, branchId }) : { items: seededRfqs, page: 1, pageSize: 25, totalCount: seededRfqs.length, totalPages: 1 }, { staleTime: 60_000 });
+  const quotes = useApiQuery(["procurement", "supplier-quotes", companyId, branchId], async () => live ? apiClient.procurement.supplierQuotations({ companyId, branchId }) : { items: seededSupplierQuotes, page: 1, pageSize: 25, totalCount: seededSupplierQuotes.length, totalPages: 1 }, { staleTime: 60_000 });
+  const suppliers = useApiQuery(queryKeys.partners.suppliers(companyId, branchId, "", "Active"), () => apiClient.partners.suppliers({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const records = quotes.data?.items ?? [];
+  const rfqOptions = (rfqs.data?.items ?? []).map((rfq) => ({ label: rfq.rfqNo, value: String(rfq.id) }));
+  const supplierOptions = entityOptions(suppliers.data?.items, (supplier) => supplier.id, (supplier) => `${supplier.supplierCode} / ${supplier.supplierName}`);
+  const errors = supplierQuoteValidation(workspace);
+  const save = useApiMutation((request: SupplierQuotationUpsertRequest) => workspace?.record ? apiClient.procurement.updateSupplierQuotation(workspace.record.id, request) : apiClient.procurement.createSupplierQuotation(request), {
+    onSuccess: async (record) => {
+      setMessage(`Saved ${record.supplierQuotationNo}.`);
+      setWorkspace(null);
+      await quotes.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const saveReason = !live ? "Supplier quotation save requires a live procurement session." : errors.length ? "Resolve supplier quotation validation issues before saving." : save.isPending ? "Supplier quotation save is in progress." : undefined;
+  const source = records[0] ? (live ? "Live" : "Seeded") as MasterDataSource : live ? "Live" as MasterDataSource : "Seeded" as MasterDataSource;
+  const updateLine = (index: number, patch: Partial<SupplierQuotationUpsertRequest["lines"][number]>) => workspace && setWorkspace({ ...workspace, lines: workspace.lines.map((line, rowIndex) => rowIndex === index ? { ...line, ...patch } : line) });
+
+  return (
+    <>
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "Record supplier quote", onClick: () => setWorkspace(buildSupplierQuoteWorkspace(null, rfqs.data?.items[0] ?? null)) }]} secondary={[{ disabled: true, label: "Upload quotation PDF", reason: "Supplier quotation file upload must be attached through the controlled attachment workflow after the quote is saved." }]} testId="supplier-quotation-action-bar" /></>} description="Record supplier responses against RFQ lines with price, tax, discount, and lead-time detail." title="Supplier Quotations">
+        {message ? <Badge tone={message.toLowerCase().includes("saved") ? "success" : "danger"}>{message}</Badge> : null}
+        <Card title="Supplier quotation list" description="Supplier responses reopen with all quoted lines.">
+          <DataGrid ariaLabel="Supplier quotation list" columns={supplierQuoteColumns} getRowId={(record) => `supplier-quote-${record.id}`} isLoading={quotes.isLoading} onRowSelect={(record) => setWorkspace(buildSupplierQuoteWorkspace(record, rfqs.data?.items.find((rfq) => rfq.id === record.rfqId) ?? null))} records={records} rowLabel={(record) => `${record.supplierQuotationNo} supplier quotation`} />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace description="Capture the supplier quote for each RFQ line." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: save.isPending ? "Saving supplier quote" : "Save supplier quote", onClick: workspace && !saveReason ? () => save.mutate({ ...workspace, companyId, branchId }) : undefined, reason: saveReason }]} utility={[{ label: "Close", onClick: () => setWorkspace(null), variant: "quiet" }]} />} isOpen={Boolean(workspace)} onClose={() => setWorkspace(null)} title={workspace?.supplierQuotationNo ?? "Supplier quote"} validation={<ErpValidationSummary errors={errors} />}>
+        {workspace ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.supplierQuotationNo}`} title="Supplier quote header">
+              <label><span>Supplier quote number</span><input aria-label="Supplier quotation number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, supplierQuotationNo: event.target.value })} value={workspace.supplierQuotationNo} /></label>
+              <ErpLookupField disabled={!live || workspace.mode === "edit"} label="RFQ" onChange={(value) => setWorkspace(buildSupplierQuoteWorkspace(workspace.record, rfqs.data?.items.find((rfq) => rfq.id === numberValue(value)) ?? null))} options={rfqOptions} required value={workspace.rfqId ? String(workspace.rfqId) : ""} />
+              <ErpLookupField disabled={!live || workspace.mode === "edit"} label="Supplier" onChange={(value) => setWorkspace({ ...workspace, supplierId: numberValue(value) ?? 0 })} options={supplierOptions} required value={workspace.supplierId ? String(workspace.supplierId) : ""} />
+              <label><span>Quotation date</span><input aria-label="Quotation date" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, quotationDate: event.target.value })} type="date" value={dateControlValue(workspace.quotationDate)} /></label>
+              <label><span>Valid until</span><input aria-label="Valid until" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, validUntil: event.target.value })} type="date" value={dateControlValue(workspace.validUntil)} /></label>
+            </FormShell>
+            <Card title="Supplier quote lines" description="Price, discount, tax, and lead time are captured per line.">
+              {workspace.lines.map((line, index) => (
+                <FormShell initialFingerprint={`${workspace.supplierQuotationNo}-line-${index}`} key={`sq-line-${index}`} title={`Line ${index + 1}`}>
+                  <ErpNumberField disabled label="RFQ line" onChange={() => undefined} value={line.rfqLineId} />
+                  <ErpDecimalField disabled={!live} label="Offered quantity" min={0.001} onChange={(value) => updateLine(index, { offeredQuantity: value ?? 0 })} value={line.offeredQuantity} />
+                  <ErpMoneyField disabled={!live} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
+                  <ErpDecimalField disabled={!live} label="Discount %" min={0} max={100} scale={2} unit="%" onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} value={line.discountPercent} />
+                  <ErpDecimalField disabled={!live} label="Tax %" min={0} max={100} scale={2} unit="%" onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} value={line.taxPercent} />
+                  <ErpNumberField disabled={!live} label="Lead time days" min={0} onChange={(value) => updateLine(index, { leadTimeDays: value ?? 0 })} value={line.leadTimeDays} />
+                </FormShell>
+              ))}
+            </Card>
+          </div>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
+  );
+}
+
+export function QuoteComparisonPage() {
+  const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
+  const rfqs = useApiQuery(["procurement", "rfqs", companyId, branchId], async () => live ? apiClient.procurement.rfqs({ companyId, branchId }) : { items: seededRfqs, page: 1, pageSize: 25, totalCount: seededRfqs.length, totalPages: 1 }, { staleTime: 60_000 });
+  const [rfqId, setRfqId] = useState<number>(seededRfqs[0]?.id ?? 0);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<number | null>(null);
+  const [selectionReason, setSelectionReason] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const comparison = useApiQuery<QuoteComparisonDto>(["procurement", "quote-comparison", rfqId, live], async () => {
+    if (live) return apiClient.procurement.quoteComparison(rfqId);
+    const rfq = seededRfqs.find((record) => record.id === rfqId) ?? seededRfqs[0];
+    const supplierQuotations = seededSupplierQuotes.filter((quote) => quote.rfqId === rfq.id);
+    return { rfq, supplierQuotations, lines: rfq.lines.map((line) => ({ rfqLineId: line.id, lineNo: line.lineNo, itemId: line.itemId, orderUomId: line.orderUomId, requestedQuantity: line.requestedQuantity, supplierLines: supplierQuotations.flatMap((quote) => quote.lines.filter((quoteLine) => quoteLine.rfqLineId === line.id)) })) };
+  }, { enabled: rfqId > 0, staleTime: 60_000 });
+  const selectQuote = useApiMutation((id: number) => apiClient.procurement.selectSupplierQuotation(id, { selectionReason }), {
+    onSuccess: async (record) => {
+      setMessage(`Selected ${record.supplierQuotationNo}.`);
+      await comparison.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const convertQuote = useApiMutation((id: number) => apiClient.procurement.convertSupplierQuotationToPurchaseOrder(id), {
+    onSuccess: (record) => setMessage(`Created purchase order ${record.purchaseOrderNo}.`),
+    onError: (error) => setMessage(error.message)
+  });
+  const quoteColumns: DataGridColumn<SupplierQuotationDto>[] = [
+    ...supplierQuoteColumns,
+    { key: "reason", header: "Selection reason", render: (record) => record.selectionReason ?? "Pending buyer decision" }
+  ];
+  const selectReason = !live ? "Supplier selection requires a live procurement session." : !selectedQuoteId ? "Select a supplier quotation first." : !selectionReason.trim() ? "Enter a selection reason before selecting a supplier." : undefined;
+  const convertReason = !live ? "PO conversion requires a live procurement session." : !selectedQuoteId ? "Select a supplier quotation first." : comparison.data?.supplierQuotations.find((quote) => quote.id === selectedQuoteId)?.selectionStatus !== "Selected" ? "Select the supplier before converting to PO." : undefined;
+
+  return (
+    <ListPageShell actions={<><SourceBadge source={live ? "Live" : "Seeded"} /><ErpActionBar primary={[{ disabled: Boolean(selectReason), label: selectQuote.isPending ? "Selecting supplier" : "Select supplier", onClick: selectedQuoteId && !selectReason ? () => selectQuote.mutate(selectedQuoteId) : undefined, reason: selectReason }, { disabled: Boolean(convertReason), label: convertQuote.isPending ? "Converting to PO" : "Convert selected lines to PO", onClick: selectedQuoteId && !convertReason ? () => convertQuote.mutate(selectedQuoteId) : undefined, reason: convertReason }]} secondary={[{ disabled: true, label: "Export comparison", reason: "Comparison export is pending the approved reporting workflow." }]} testId="quote-comparison-action-bar" /></>} description="Compare supplier quotation lines and record a buyer selection reason before PO conversion." filters={<FilterBar><select aria-label="RFQ for comparison" onChange={(event) => setRfqId(Number(event.target.value))} value={rfqId}>{(rfqs.data?.items ?? []).map((rfq) => <option key={rfq.id} value={rfq.id}>{rfq.rfqNo}</option>)}</select><input aria-label="Selection reason" onChange={(event) => setSelectionReason(event.target.value)} placeholder="Selection reason" value={selectionReason} /></FilterBar>} title="Supplier Quote Comparison">
+      {message ? <Badge tone={message.toLowerCase().includes("created") || message.toLowerCase().includes("selected") ? "success" : "danger"}>{message}</Badge> : null}
+      {comparison.error ? <Card title="Live quote comparison unavailable" description={comparison.error.message} /> : null}
+      <KpiStrip items={[{ label: "Supplier quotes", value: String(comparison.data?.supplierQuotations.length ?? 0) }, { label: "RFQ lines", value: String(comparison.data?.lines.length ?? 0) }, { label: "Best value", value: String(Math.min(...(comparison.data?.supplierQuotations.map((quote) => quote.totalAmount) ?? [0])).toFixed(2)) }]} />
+      <Card title="Supplier comparison" description="Select a supplier quotation to review and convert after recording a decision reason.">
+        <DataGrid ariaLabel="Supplier quote comparison" columns={quoteColumns} getRowId={(record) => `quote-comparison-${record.id}`} isLoading={comparison.isLoading} onRowSelect={(record) => setSelectedQuoteId(record.id)} records={comparison.data?.supplierQuotations ?? []} rowLabel={(record) => `${record.supplierQuotationNo} comparison quote`} />
+      </Card>
+      <Card title="Line comparison" description="Every RFQ line shows competing supplier line values; conversion uses the selected supplier quotation lines.">
+        <DataGrid ariaLabel="Quote comparison lines" columns={[{ key: "line", header: "Line", render: (line) => line.lineNo }, { key: "qty", header: "Requested qty", render: (line) => line.requestedQuantity }, { key: "quotes", header: "Supplier line offers", render: (line) => line.supplierLines.map((supplierLine) => `${supplierLine.lineAmount.toFixed(2)} / ${supplierLine.leadTimeDays}d`).join(" | ") }]} getRowId={(line) => `comparison-line-${line.rfqLineId}`} records={comparison.data?.lines ?? []} rowLabel={(line) => `RFQ line ${line.lineNo}`} />
+      </Card>
+    </ListPageShell>
+  );
+}
+
+export function VendorReturnPage() {
+  return (
+    <ListPageShell actions={<ErpActionBar primary={[{ disabled: true, label: "New vendor return", reason: "Vendor return posting needs approved GRN/QC return authorization and inventory reversal rules before it can be enabled." }]} secondary={[{ disabled: true, label: "Print return note", reason: "Return note printing depends on the vendor return posting workflow." }]} />} description="Vendor returns are blocked until GRN/QC-authorized return posting and inventory reversal rules are enabled." title="Vendor Return">
+      <Card title="Vendor return blocked" description="Use GRN and QC/NCR records as the source of truth. This screen will enable only after the return-posting contract can reverse accepted stock safely." />
+    </ListPageShell>
+  );
+}
+
+export function LandedCostPage() {
+  return (
+    <ListPageShell actions={<ErpActionBar primary={[{ disabled: true, label: "Allocate landed cost", reason: "Landed-cost allocation needs valuation policy and cost-posting rules before it can update inventory value." }]} secondary={[{ disabled: true, label: "Import charges", reason: "Charge import depends on approved freight/customs provider mapping." }]} />} description="Freight and landed-cost allocation is visible as a controlled blocker until valuation policy is approved." title="Landed Cost Allocation">
+      <Card title="Allocation methods pending" description="Quantity, value, weight, and manual allocation methods must post through the inventory valuation bridge before this workflow is enabled." />
+    </ListPageShell>
+  );
+}
+
+export function ProcurementDashboardPage() {
+  return (
+    <ListPageShell actions={<ErpActionBar primary={[{ disabled: true, label: "Refresh buyer queue", reason: "Buyer queue aggregation will enable after RFQ, PO, GRN, invoice, and return queues share a persisted work-queue read model." }]} secondary={[{ disabled: true, label: "Export buyer queue", reason: "Buyer queue export depends on the reporting export workflow." }]} />} description="Buyer queue summary for sourcing, PO follow-up, receipts, invoice match, and blocked returns." title="Procurement Dashboard / Buyer Queue">
+      <KpiStrip items={[{ label: "Open RFQs", value: "Review via RFQ screen" }, { label: "Supplier quotes", value: "Review via comparison" }, { label: "PO receipts", value: "Review via PO receiving" }]} />
+      <Card title="Buyer queue read model pending" description="The individual P2P workflows are available from their screens. A consolidated queue needs a persisted read model so counts and escalations remain truthful in live sessions." />
+    </ListPageShell>
   );
 }

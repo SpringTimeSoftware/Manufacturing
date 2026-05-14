@@ -32,4 +32,18 @@ public interface IProcurementService
     Task<SupplierInvoiceDto> CreateSupplierInvoiceAsync(SupplierInvoiceUpsertRequest request, CancellationToken cancellationToken = default);
     Task<SupplierInvoiceDto> MatchSupplierInvoiceAsync(long id, CancellationToken cancellationToken = default);
     Task<SupplierInvoicePostingResultDto> PostSupplierInvoiceAsync(long id, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<RfqDto>> ListRfqsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default);
+    Task<RfqDto> GetRfqAsync(long id, CancellationToken cancellationToken = default);
+    Task<RfqDto> CreateRfqAsync(RfqUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<RfqDto> UpdateRfqAsync(long id, RfqUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<RfqDto> SendRfqAsync(long id, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<SupplierQuotationDto>> ListSupplierQuotationsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default);
+    Task<SupplierQuotationDto> GetSupplierQuotationAsync(long id, CancellationToken cancellationToken = default);
+    Task<SupplierQuotationDto> CreateSupplierQuotationAsync(SupplierQuotationUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<SupplierQuotationDto> UpdateSupplierQuotationAsync(long id, SupplierQuotationUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<SupplierQuotationDto> SelectSupplierQuotationAsync(long id, SupplierQuotationSelectionRequest request, CancellationToken cancellationToken = default);
+    Task<QuoteComparisonDto> GetQuoteComparisonAsync(long rfqId, CancellationToken cancellationToken = default);
+    Task<PurchaseOrderDto> ConvertSupplierQuotationToPurchaseOrderAsync(long id, CancellationToken cancellationToken = default);
 }

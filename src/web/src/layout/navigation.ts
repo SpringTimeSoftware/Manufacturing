@@ -298,6 +298,24 @@ export const navigationItems: NavigationItem[] = [
     roles: ["PurchaseManager", "PlanningManager", "CompanyAdmin"]
   },
   {
+    label: "RFQs",
+    path: "/procurement/rfqs",
+    section: "Procurement",
+    roles: ["PurchaseManager", "PlanningManager", "CompanyAdmin"]
+  },
+  {
+    label: "Supplier Quotations",
+    path: "/procurement/supplier-quotes",
+    section: "Procurement",
+    roles: ["PurchaseManager", "PlanningManager", "CompanyAdmin"]
+  },
+  {
+    label: "Quote Comparison",
+    path: "/procurement/quote-comparison",
+    section: "Procurement",
+    roles: ["PurchaseManager", "PlanningManager", "CompanyAdmin"]
+  },
+  {
     label: "Purchase Orders",
     path: "/procurement/purchase-orders",
     section: "Procurement",
@@ -306,6 +324,24 @@ export const navigationItems: NavigationItem[] = [
   {
     label: "Subcontract Plans",
     path: "/procurement/subcontract-plan",
+    section: "Procurement",
+    roles: ["PurchaseManager", "PlanningManager", "CompanyAdmin"]
+  },
+  {
+    label: "Vendor Returns",
+    path: "/procurement/vendor-returns",
+    section: "Procurement",
+    roles: ["PurchaseManager", "StoreKeeper", "CompanyAdmin"]
+  },
+  {
+    label: "Landed Cost",
+    path: "/procurement/landed-cost",
+    section: "Procurement",
+    roles: ["PurchaseManager", "CompanyAdmin"]
+  },
+  {
+    label: "Buyer Queue",
+    path: "/procurement/dashboard",
     section: "Procurement",
     roles: ["PurchaseManager", "PlanningManager", "CompanyAdmin"]
   },

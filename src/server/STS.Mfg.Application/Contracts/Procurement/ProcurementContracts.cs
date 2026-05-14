@@ -170,3 +170,139 @@ public sealed record SupplierInvoiceUpsertRequest(long CompanyId, long BranchId,
 public sealed record AccountsPayableLiabilityDto(long Id, long CompanyId, long BranchId, string LiabilityNo, long SupplierInvoiceId, long SupplierId, DateOnly PostingDate, DateOnly DueDate, decimal PayableAmount, decimal PaidAmount, decimal BalanceAmount, string Status);
 public sealed record AccountingPostingDto(long Id, long CompanyId, long BranchId, string PostingNo, string SourceDocumentType, long SourceDocumentId, DateOnly PostingDate, string DebitAccountCode, string CreditAccountCode, decimal Amount, string Status);
 public sealed record SupplierInvoicePostingResultDto(SupplierInvoiceDto Invoice, AccountsPayableLiabilityDto Liability, IReadOnlyCollection<AccountingPostingDto> Postings);
+
+public sealed record RfqLineDto(
+    long Id,
+    int LineNo,
+    long ItemId,
+    long OrderUomId,
+    decimal RequestedQuantity,
+    DateOnly NeedByDate,
+    long? PurchaseRequisitionLineId,
+    string Status);
+
+public sealed record RfqLineUpsertRequest(
+    int LineNo,
+    long ItemId,
+    long OrderUomId,
+    decimal RequestedQuantity,
+    DateOnly NeedByDate,
+    long? PurchaseRequisitionLineId,
+    string Status,
+    string? ItemCode = null);
+
+public sealed record RfqSupplierDto(
+    long Id,
+    long SupplierId,
+    string InvitationStatus,
+    DateOnly ResponseDueDate,
+    string? Remarks);
+
+public sealed record RfqSupplierUpsertRequest(
+    long SupplierId,
+    string InvitationStatus,
+    DateOnly ResponseDueDate,
+    string? Remarks,
+    string? SupplierCode = null);
+
+public sealed record RfqDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    string RfqNo,
+    long? PurchaseRequisitionId,
+    DateOnly IssueDate,
+    DateOnly ResponseDueDate,
+    string CurrencyCode,
+    string Status,
+    string? Remarks,
+    IReadOnlyCollection<RfqLineDto> Lines,
+    IReadOnlyCollection<RfqSupplierDto> Suppliers);
+
+public sealed record RfqUpsertRequest(
+    long CompanyId,
+    long BranchId,
+    string RfqNo,
+    long? PurchaseRequisitionId,
+    DateOnly IssueDate,
+    DateOnly ResponseDueDate,
+    string CurrencyCode,
+    string Status,
+    string? Remarks,
+    IReadOnlyCollection<RfqLineUpsertRequest> Lines,
+    IReadOnlyCollection<RfqSupplierUpsertRequest> Suppliers);
+
+public sealed record SupplierQuotationLineDto(
+    long Id,
+    int LineNo,
+    long RfqLineId,
+    long ItemId,
+    long OrderUomId,
+    decimal OfferedQuantity,
+    decimal UnitPrice,
+    decimal DiscountPercent,
+    decimal DiscountAmount,
+    decimal TaxPercent,
+    decimal TaxAmount,
+    decimal LineAmount,
+    int LeadTimeDays,
+    string Status);
+
+public sealed record SupplierQuotationLineUpsertRequest(
+    int LineNo,
+    long RfqLineId,
+    long ItemId,
+    long OrderUomId,
+    decimal OfferedQuantity,
+    decimal UnitPrice,
+    decimal DiscountPercent,
+    decimal TaxPercent,
+    int LeadTimeDays,
+    string Status,
+    string? ItemCode = null);
+
+public sealed record SupplierQuotationDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    string SupplierQuotationNo,
+    long RfqId,
+    long SupplierId,
+    DateOnly QuotationDate,
+    DateOnly ValidUntil,
+    string CurrencyCode,
+    decimal SubtotalAmount,
+    decimal TaxAmount,
+    decimal TotalAmount,
+    string SelectionStatus,
+    string? SelectionReason,
+    string Status,
+    IReadOnlyCollection<SupplierQuotationLineDto> Lines);
+
+public sealed record SupplierQuotationUpsertRequest(
+    long CompanyId,
+    long BranchId,
+    string SupplierQuotationNo,
+    long RfqId,
+    long SupplierId,
+    DateOnly QuotationDate,
+    DateOnly ValidUntil,
+    string CurrencyCode,
+    string Status,
+    IReadOnlyCollection<SupplierQuotationLineUpsertRequest> Lines,
+    string? SupplierCode = null);
+
+public sealed record SupplierQuotationSelectionRequest(string SelectionReason);
+
+public sealed record QuoteComparisonLineDto(
+    long RfqLineId,
+    int LineNo,
+    long ItemId,
+    long OrderUomId,
+    decimal RequestedQuantity,
+    IReadOnlyCollection<SupplierQuotationLineDto> SupplierLines);
+
+public sealed record QuoteComparisonDto(
+    RfqDto Rfq,
+    IReadOnlyCollection<SupplierQuotationDto> SupplierQuotations,
+    IReadOnlyCollection<QuoteComparisonLineDto> Lines);

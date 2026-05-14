@@ -183,3 +183,77 @@ public sealed class AccountingPostingConfiguration : IEntityTypeConfiguration<Ac
         builder.HasIndex(entity => new { entity.CompanyId, entity.PostingNo }).IsUnique();
     }
 }
+
+public sealed class RequestForQuotationConfiguration : IEntityTypeConfiguration<RequestForQuotation>
+{
+    public void Configure(EntityTypeBuilder<RequestForQuotation> builder)
+    {
+        builder.ToTable("RequestForQuotations", "procurement");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.RfqNo).HasMaxLength(48).IsRequired();
+        builder.Property(entity => entity.CurrencyCode).HasMaxLength(16).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.Remarks).HasMaxLength(512);
+        builder.HasIndex(entity => new { entity.CompanyId, entity.RfqNo }).IsUnique();
+    }
+}
+
+public sealed class RequestForQuotationLineConfiguration : IEntityTypeConfiguration<RequestForQuotationLine>
+{
+    public void Configure(EntityTypeBuilder<RequestForQuotationLine> builder)
+    {
+        builder.ToTable("RequestForQuotationLines", "procurement");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.RequestedQuantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.Status).HasMaxLength(32).IsRequired();
+        builder.HasIndex(entity => new { entity.RfqId, entity.LineNo }).IsUnique();
+    }
+}
+
+public sealed class RequestForQuotationSupplierConfiguration : IEntityTypeConfiguration<RequestForQuotationSupplier>
+{
+    public void Configure(EntityTypeBuilder<RequestForQuotationSupplier> builder)
+    {
+        builder.ToTable("RequestForQuotationSuppliers", "procurement");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.InvitationStatus).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.Remarks).HasMaxLength(512);
+        builder.HasIndex(entity => new { entity.RfqId, entity.SupplierId }).IsUnique();
+    }
+}
+
+public sealed class SupplierQuotationConfiguration : IEntityTypeConfiguration<SupplierQuotation>
+{
+    public void Configure(EntityTypeBuilder<SupplierQuotation> builder)
+    {
+        builder.ToTable("SupplierQuotations", "procurement");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.SupplierQuotationNo).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.CurrencyCode).HasMaxLength(16).IsRequired();
+        builder.Property(entity => entity.SubtotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.SelectionStatus).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.SelectionReason).HasMaxLength(512);
+        builder.Property(entity => entity.Status).HasMaxLength(32).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.SupplierQuotationNo }).IsUnique();
+    }
+}
+
+public sealed class SupplierQuotationLineConfiguration : IEntityTypeConfiguration<SupplierQuotationLine>
+{
+    public void Configure(EntityTypeBuilder<SupplierQuotationLine> builder)
+    {
+        builder.ToTable("SupplierQuotationLines", "procurement");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.OfferedQuantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.UnitPrice).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.DiscountPercent).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.DiscountAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxPercent).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.TaxAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.Status).HasMaxLength(32).IsRequired();
+        builder.HasIndex(entity => new { entity.SupplierQuotationId, entity.LineNo }).IsUnique();
+    }
+}

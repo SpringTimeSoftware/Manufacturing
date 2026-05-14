@@ -128,6 +128,7 @@ import type {
   PurchaseRequisitionDto,
   PurchaseRequisitionUpsertRequest,
   QueryFilter,
+  QuoteComparisonDto,
   QuoteDto,
   QuoteUpsertRequest,
   RefreshTokenRequest,
@@ -226,7 +227,12 @@ import type {
   WorkOrderUpsertRequest,
   ReworkOrderDto,
   ReworkOrderActionRequest,
-  ReworkOrderCreateRequest
+  ReworkOrderCreateRequest,
+  RfqDto,
+  RfqUpsertRequest,
+  SupplierQuotationDto,
+  SupplierQuotationSelectionRequest,
+  SupplierQuotationUpsertRequest
 } from "./contracts";
 import { serializeFilters } from "./filters";
 
@@ -1107,12 +1113,55 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<SubcontractReceiptDto>>(`/api/subcontract-receipts?${query}`);
     },
-    createSubcontractReceipt: (body: SubcontractReceiptUpsertRequest) =>
-      request<SubcontractReceiptDto>("/api/subcontract-receipts", {
-        method: "POST",
-        body: JSON.stringify(body)
-      })
-  },
+      createSubcontractReceipt: (body: SubcontractReceiptUpsertRequest) =>
+        request<SubcontractReceiptDto>("/api/subcontract-receipts", {
+          method: "POST",
+          body: JSON.stringify(body)
+        }),
+      rfqs: (filter: QueryFilter = {}) => {
+        const query = serializeFilters(filter);
+        return request<PagedResult<RfqDto>>(`/api/rfqs?${query}`);
+      },
+      createRfq: (body: RfqUpsertRequest) =>
+        request<RfqDto>("/api/rfqs", {
+          method: "POST",
+          body: JSON.stringify(body)
+        }),
+      updateRfq: (id: number, body: RfqUpsertRequest) =>
+        request<RfqDto>(`/api/rfqs/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(body)
+        }),
+      sendRfq: (id: number) =>
+        request<RfqDto>(`/api/rfqs/${id}/send`, {
+          method: "POST"
+        }),
+      quoteComparison: (rfqId: number) =>
+        request<QuoteComparisonDto>(`/api/rfqs/${rfqId}/comparison`),
+      supplierQuotations: (filter: QueryFilter = {}) => {
+        const query = serializeFilters(filter);
+        return request<PagedResult<SupplierQuotationDto>>(`/api/supplier-quotations?${query}`);
+      },
+      createSupplierQuotation: (body: SupplierQuotationUpsertRequest) =>
+        request<SupplierQuotationDto>("/api/supplier-quotations", {
+          method: "POST",
+          body: JSON.stringify(body)
+        }),
+      updateSupplierQuotation: (id: number, body: SupplierQuotationUpsertRequest) =>
+        request<SupplierQuotationDto>(`/api/supplier-quotations/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(body)
+        }),
+      selectSupplierQuotation: (id: number, body: SupplierQuotationSelectionRequest) =>
+        request<SupplierQuotationDto>(`/api/supplier-quotations/${id}/select`, {
+          method: "POST",
+          body: JSON.stringify(body)
+        }),
+      convertSupplierQuotationToPurchaseOrder: (id: number) =>
+        request<PurchaseOrderDto>(`/api/supplier-quotations/${id}/convert-to-po`, {
+          method: "POST"
+        })
+    },
   inventory: {
     balances: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);

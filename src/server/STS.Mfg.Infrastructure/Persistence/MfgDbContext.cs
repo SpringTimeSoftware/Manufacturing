@@ -103,6 +103,11 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
     public DbSet<SupplierInvoice> SupplierInvoices => Set<SupplierInvoice>();
     public DbSet<SupplierInvoiceLine> SupplierInvoiceLines => Set<SupplierInvoiceLine>();
+    public DbSet<RequestForQuotation> RequestForQuotations => Set<RequestForQuotation>();
+    public DbSet<RequestForQuotationLine> RequestForQuotationLines => Set<RequestForQuotationLine>();
+    public DbSet<RequestForQuotationSupplier> RequestForQuotationSuppliers => Set<RequestForQuotationSupplier>();
+    public DbSet<SupplierQuotation> SupplierQuotations => Set<SupplierQuotation>();
+    public DbSet<SupplierQuotationLine> SupplierQuotationLines => Set<SupplierQuotationLine>();
     public DbSet<AccountsPayableLiability> AccountsPayableLiabilities => Set<AccountsPayableLiability>();
     public DbSet<AccountingPosting> AccountingPostings => Set<AccountingPosting>();
 

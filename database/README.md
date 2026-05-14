@@ -26,15 +26,16 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 8. `ddl/10-master-data/040_item_attribute_value_set_tables.sql`
 9. `ddl/20-commercial/010_sales_planning_procurement_inventory_tables.sql`
 10. `ddl/20-commercial/020_commercial_master_v2_tables.sql`
-11. `ddl/00-foundation/009_production_execution_tables.sql`
-12. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
-13. `ddl/00-foundation/020_integration_ai_tables.sql`
-14. `procedures/production/001_machine_board.sql`
-15. `seed/001_minimum_platform_seed.sql`
-16. `seed/002_minimum_org_seed.sql`
-17. `seed/003_minimum_masters_seed.sql`
-18. `seed/005_uat_runtime_seed.sql`
-19. future backfill, seed, and procedure packs in numeric order
+11. `ddl/20-commercial/040_procure_to_pay_sourcing_tables.sql`
+12. `ddl/00-foundation/009_production_execution_tables.sql`
+13. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
+14. `ddl/00-foundation/020_integration_ai_tables.sql`
+15. `procedures/production/001_machine_board.sql`
+16. `seed/001_minimum_platform_seed.sql`
+17. `seed/002_minimum_org_seed.sql`
+18. `seed/003_minimum_masters_seed.sql`
+19. `seed/005_uat_runtime_seed.sql`
+20. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 
@@ -50,7 +51,7 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 - customer/supplier partner profiles, controlled contact points, item/vendor references, document metadata, and audit-linked partner master extension tables;
 - commercial master setup for currencies, exchange-rate setup, tax categories/codes, payment terms, trade terms, price lists, price list lines, price assignments, discount schemes, and discount rules;
 - resources, routings, BOM, and ECO;
-- sales, planning, procurement, subcontract receive-back receipts, GRN, supplier invoice matching, AP liability/accounting posting bridge, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
+- sales, planning, procurement, RFQ/supplier quotation/quote-comparison sourcing, subcontract receive-back receipts, GRN, supplier invoice matching, AP liability/accounting posting bridge, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
 - machine-board stored procedure coverage for the production occupancy read model;
 - UAT runtime seed proof for SalesCoordinator, PurchaseManager, PlantHead, MPS/MRP/BOQ, work order/job card/downtime, lot traceability, and dispatch pack-list/print flows.
 
