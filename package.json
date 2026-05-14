@@ -3,11 +3,12 @@
   "private": true,
   "scripts": {
     "audit:action-truth": "node scripts/audit-action-truth.mjs",
-    "audit:erp-completion": "npm run audit:transaction-lines && npm run audit:governed-fields && npm run audit:numeric-fields && npm run audit:action-truth && npm run audit:live-data-truth && npm run audit:upload-truth && npm run audit:menu-route-truth",
+    "audit:erp-completion": "npm run audit:transaction-lines && npm run audit:transaction-line-grid && npm run audit:governed-fields && npm run audit:numeric-fields && npm run audit:action-truth && npm run audit:live-data-truth && npm run audit:upload-truth && npm run audit:menu-route-truth",
     "audit:governed-fields": "node scripts/audit-governed-fields.mjs",
     "audit:live-data-truth": "node scripts/audit-live-data-truth.mjs",
     "audit:menu-route-truth": "node scripts/audit-menu-route-truth.mjs",
     "audit:numeric-fields": "node scripts/audit-numeric-fields.mjs",
+    "audit:transaction-line-grid": "node scripts/audit-transaction-line-grid.mjs",
     "audit:transaction-lines": "node scripts/audit-transaction-line-depth.mjs",
     "audit:upload-truth": "node scripts/audit-upload-truth.mjs",
     "build": "npm --prefix src/web run build",

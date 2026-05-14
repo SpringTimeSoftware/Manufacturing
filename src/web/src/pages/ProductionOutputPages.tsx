@@ -19,7 +19,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
+import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpTransactionLineGrid, ErpValidationSummary } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -338,21 +338,29 @@ function OutputPostingModal({
           <ErpNumberField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before assigning a job card."} label="Job card id" min={1} onChange={(value) => setDraft({ ...draft, jobCardId: value })} value={draft.jobCardId} />
           {draft.mode === "receipt" ? (
             <Card title="Receipt lines" description="Add every finished good or by-product line before posting inventory.">
-              <ErpActionBar secondary={[{ disabled: !isLive, label: "Add Line", onClick: isLive ? addReceiptLine : undefined, reason: isLive ? undefined : "Live production sign-in is required before adding receipt lines." }]} />
-              {draft.receiptLines.map((line, index) => (
-                <FormShell initialFingerprint={`${draft.documentNo}-line-${line.lineNo}-${index}`} key={`${line.lineNo}-${index}`} title={`Receipt line ${index + 1}`}>
-                  <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting an item."} label="Item" onChange={(value) => updateReceiptLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                  <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting output UOM."} label="Output UOM" onChange={(value) => updateReceiptLine(index, { outputUomId: value ? Number(value) : 0 })} options={uomOptions} required value={line.outputUomId ? String(line.outputUomId) : ""} />
-                  <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting line type."} label="Line type" onChange={(value) => updateReceiptLine(index, { lineType: value })} options={receiptLineTypeOptions} value={line.lineType} />
-                  <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting warehouse."} label="Warehouse" onChange={(value) => updateReceiptLine(index, { warehouseId: value ? Number(value) : 0, binId: null })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} />
-                  <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting bin."} label="Bin" onChange={(value) => updateReceiptLine(index, { binId: numberValue(value) })} options={binOptions} value={line.binId ? String(line.binId) : ""} />
-                  <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing quantity."} label="Quantity" min={0.001} onChange={(value) => updateReceiptLine(index, { quantity: value ?? 0 })} required value={line.quantity} />
-                  <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing catch weight."} label="Catch weight" min={0} onChange={(value) => updateReceiptLine(index, { catchWeightQty: value })} value={line.catchWeightQty} />
-                  <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing inventory state."} label="Inventory state" onChange={(value) => updateReceiptLine(index, { inventoryState: value })} options={outputInventoryStateOptions} value={line.inventoryState} />
-                  <label className="form-span-2"><span>Remarks</span><input aria-label={`Receipt line ${index + 1} remarks`} disabled={!isLive} onChange={(event) => updateReceiptLine(index, { remarks: event.target.value || null })} value={line.remarks ?? ""} /></label>
-                  <ErpActionBar danger={[{ disabled: !isLive || draft.receiptLines.length <= 1, label: "Remove Line", onClick: isLive && draft.receiptLines.length > 1 ? () => removeReceiptLine(index) : undefined, reason: draft.receiptLines.length <= 1 ? "At least one receipt line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!isLive}
+                addDisabledReason="Live production sign-in is required before adding receipt lines."
+                addLabel="Add Line"
+                ariaLabel="Production receipt line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting an item."} label="Item" onChange={(value) => updateReceiptLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting output UOM."} label="Output UOM" onChange={(value) => updateReceiptLine(index, { outputUomId: value ? Number(value) : 0 })} options={uomOptions} required value={line.outputUomId ? String(line.outputUomId) : ""} /> },
+                  { key: "type", header: "Type", width: "140px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting line type."} label="Line type" onChange={(value) => updateReceiptLine(index, { lineType: value })} options={receiptLineTypeOptions} value={line.lineType} /> },
+                  { key: "warehouse", header: "Warehouse", width: "160px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting warehouse."} label="Warehouse" onChange={(value) => updateReceiptLine(index, { warehouseId: value ? Number(value) : 0, binId: null })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} /> },
+                  { key: "bin", header: "Bin", width: "130px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting bin."} label="Bin" onChange={(value) => updateReceiptLine(index, { binId: numberValue(value) })} options={binOptions} value={line.binId ? String(line.binId) : ""} /> },
+                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing quantity."} label="Quantity" min={0.001} onChange={(value) => updateReceiptLine(index, { quantity: value ?? 0 })} required value={line.quantity} /> },
+                  { key: "cw", header: "Catch wt", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing catch weight."} label="Catch weight" min={0} onChange={(value) => updateReceiptLine(index, { catchWeightQty: value })} value={line.catchWeightQty} /> },
+                  { key: "state", header: "State", width: "140px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing inventory state."} label="Inventory state" onChange={(value) => updateReceiptLine(index, { inventoryState: value })} options={outputInventoryStateOptions} value={line.inventoryState} /> },
+                  { key: "remarks", header: "Remarks", width: "170px", render: (line, index) => <label><span>Remarks</span><input aria-label={`Receipt line ${index + 1} remarks`} disabled={!isLive} onChange={(event) => updateReceiptLine(index, { remarks: event.target.value || null })} value={line.remarks ?? ""} /></label> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !isLive || draft.receiptLines.length <= 1, label: "Remove Line", onClick: isLive && draft.receiptLines.length > 1 ? () => removeReceiptLine(index) : undefined, reason: !isLive ? "Live production sign-in is required before removing receipt lines." : draft.receiptLines.length <= 1 ? "At least one receipt line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={draft.receiptLines}
+                onAddLine={addReceiptLine}
+                testId="production-receipt-line-grid"
+              />
             </Card>
           ) : (
             <>

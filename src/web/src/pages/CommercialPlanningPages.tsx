@@ -20,7 +20,6 @@ import {
   type BlanketOrderSetupItem,
   type DemandForecastSetupItem,
   type MpsPlannerItem,
-  type MpsPlannerLineItem,
   type QuoteSetupItem,
   type SalesOrderSetupItem
 } from "../commercial/commercialPlanningAdapters";
@@ -45,6 +44,8 @@ import {
   ErpModalWorkspace,
   ErpNumberField,
   ErpStatusChip,
+  ErpTransactionLineGrid,
+  ErpTransactionTotalsPanel,
   ErpValidationSummary
 } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
@@ -448,14 +449,6 @@ type MpsDraftState = MasterProductionScheduleUpsertRequest & {
   mpsId: number | null;
   source: MasterDataSource | "Draft";
 };
-
-const mpsLineColumns: DataGridColumn<MpsPlannerLineItem>[] = [
-  { key: "line", header: "Line", width: "10%", render: (record) => record.lineNo },
-  { key: "item", header: "Item", render: (record) => <strong>{record.itemLabel}</strong> },
-  { key: "period", header: "Period", width: "24%", render: (record) => `${record.periodStart} to ${record.periodEnd}` },
-  { key: "qty", header: "Quantity", width: "14%", render: (record) => record.plannedQuantity },
-  { key: "uom", header: "UOM", width: "12%", render: (record) => record.planningUomLabel }
-];
 
 const promiseColumns: DataGridColumn<AvailablePromiseItem>[] = [
   { key: "order", header: "Order", width: "18%", render: (record) => <strong>{record.orderRef}</strong> },
@@ -1145,41 +1138,38 @@ export function QuoteEstimateListPage() {
               </FormShell>
             </Card>
             <Card title="Quote lines" description="Add every customer demand line before saving the quote draft.">
-              <ErpActionBar secondary={[{ label: "Add Line", onClick: addQuoteLine }]} />
-              {draft.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                  <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
-                  <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} />
-                  <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} />
-                  <ErpMoneyField label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
-                  <ErpDecimalField label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} />
-                  <ErpDecimalField label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} />
-                  <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} />
-                  <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label>
-                  <ErpLookupField label="Line priority" onChange={(value) => updateLine(index, { priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={line.priorityCode} />
-                  <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={line.status} />
-                  <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeQuoteLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one quote line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addLabel="Add Line"
+                ariaLabel="Quote line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
+                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
+                  { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} /> },
+                  { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} /> },
+                  { key: "tax", header: "Tax %", width: "110px", render: (line, index) => <ErpDecimalField label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} /> },
+                  { key: "make", header: "Make", width: "140px", render: (line, index) => <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} /> },
+                  { key: "date", header: "Promised", width: "140px", render: (line, index) => <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label> },
+                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeQuoteLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one quote line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={draft.lines}
+                onAddLine={addQuoteLine}
+                testId="quote-line-grid"
+              />
             </Card>
             <Card title="Pricing, tax, and charges" description="Line totals are calculated from all quote lines; unsupported charge workflows are disabled with reasons.">
-              <div className="utility-grid">
-                <Tile eyebrow="Gross" label="Line value" meta="Qty x price">
-                  {moneyLabel(quoteTotals?.gross ?? 0)}
-                </Tile>
-                <Tile eyebrow="Discount" label="Line discount" meta="All lines">
-                  {moneyLabel(quoteTotals?.discount ?? 0)}
-                </Tile>
-                <Tile eyebrow="Taxable" label="After discount" meta="All lines">
-                  {moneyLabel(quoteTotals?.taxable ?? 0)}
-                </Tile>
-                <Tile eyebrow="Tax" label="Line tax" meta="All lines">
-                  {moneyLabel(quoteTotals?.tax ?? 0)}
-                </Tile>
-                <Tile eyebrow="Total" label="Quote value" meta="Before charges">
-                  {moneyLabel(quoteTotals?.total ?? 0)}
-                </Tile>
-              </div>
+              <ErpTransactionTotalsPanel
+                items={[
+                  { eyebrow: "Gross", label: "Line value", meta: "Qty x price", value: moneyLabel(quoteTotals?.gross ?? 0) },
+                  { eyebrow: "Discount", label: "Line discount", meta: "All lines", value: moneyLabel(quoteTotals?.discount ?? 0) },
+                  { eyebrow: "Taxable", label: "After discount", meta: "All lines", value: moneyLabel(quoteTotals?.taxable ?? 0) },
+                  { eyebrow: "Tax", label: "Line tax", meta: "All lines", value: moneyLabel(quoteTotals?.tax ?? 0) },
+                  { eyebrow: "Total", label: "Quote value", meta: "Before charges", tone: "strong", value: moneyLabel(quoteTotals?.total ?? 0) }
+                ]}
+              />
               <div className="item-master__editor-grid">
                 <ErpMoneyField disabled disabledReason="Freight and add-less charges require the approved charges workflow." label="Freight / charges" onChange={() => undefined} value={0} />
                 <ErpMoneyField disabled disabledReason="Round-off is applied by the approved invoice/posting workflow." label="Round-off" onChange={() => undefined} value={0} />
@@ -1313,20 +1303,26 @@ export function SalesOrderListPage() {
             </FormShell>
           </Card>
           <Card title="Sales order lines" description="Add every customer demand line before releasing the order to planning.">
-            <ErpActionBar secondary={[{ label: "Add Line", onClick: addLine }]} />
-            {draft.lines.map((line, index) => (
-              <FormShell initialFingerprint={`${draftOrderId ?? "new"}-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
-                <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} />
-                <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} />
-                <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} />
-                <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label>
-                <label><span>Requested ship date</span><input onChange={(event) => updateLine(index, { requestedShipDate: event.target.value || null })} type="date" value={line.requestedShipDate ?? ""} /></label>
-                <ErpLookupField label="Line priority" onChange={(value) => updateLine(index, { priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={line.priorityCode} />
-                <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Released", value: "Released" }, { label: "At Risk", value: "At Risk" }]} value={line.status} />
-                <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one sales order line is required." : undefined }]} />
-              </FormShell>
-            ))}
+            <ErpTransactionLineGrid
+              addLabel="Add Line"
+              ariaLabel="Sales order line grid"
+              columns={[
+                { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
+                { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
+                { key: "make", header: "Make", width: "140px", render: (line, index) => <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} /> },
+                { key: "promise", header: "Promised", width: "140px", render: (line, index) => <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label> },
+                { key: "ship", header: "Ship date", width: "140px", render: (line, index) => <label><span>Requested ship date</span><input onChange={(event) => updateLine(index, { requestedShipDate: event.target.value || null })} type="date" value={line.requestedShipDate ?? ""} /></label> },
+                { key: "priority", header: "Priority", width: "130px", render: (line, index) => <ErpLookupField label="Line priority" onChange={(value) => updateLine(index, { priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={line.priorityCode} /> },
+                { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Released", value: "Released" }, { label: "At Risk", value: "At Risk" }]} value={line.status} /> },
+                { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one sales order line is required." : undefined }]} /> }
+              ]}
+              getRowId={(line, index) => `${line.lineNo}-${index}`}
+              lines={draft.lines}
+              onAddLine={addLine}
+              testId="sales-order-line-grid"
+            />
           </Card>
           <Card title="Pricing, tax, and release contract" description="Direct sales-order demand is editable here; commercial pricing stays controlled by accepted quote or approved price-list workflow.">
             <div className="item-master__editor-grid">
@@ -1403,7 +1399,38 @@ export function BlanketOrderContractPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace description="Create a blanket contract with schedule lines that feed demand planning." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || save.isPending || blanketErrors.length > 0, label: save.isPending ? "Saving blanket draft" : "Save blanket draft", onClick: draft && !saveReason && blanketErrors.length === 0 ? () => save.mutate(draft) : undefined, reason: saveReason ?? blanketErrors[0] }]} secondary={[{ disabled: !live, label: "Add schedule line", onClick: live ? addSchedule : undefined, reason: live ? undefined : "Live sales planning sign-in is required before adding schedule lines." }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />} isOpen={Boolean(draft)} onClose={() => setDraft(null)} title={draft?.blanketOrderNo ?? "Blanket draft"} validation={<ErpValidationSummary errors={blanketErrors} />}>
-        {draft ? <div className="modal-form-grid"><FormShell initialFingerprint={`${draft.blanketOrderNo}-header`} title="Blanket order controls"><label><span>Blanket order number</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, blanketOrderNo: event.target.value })} value={draft.blanketOrderNo} /></label><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live sales planning sign-in is required before selecting a customer."} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: numberValue(value) })} options={customerOptions} required value={draft.customerId ? String(draft.customerId) : ""} /><label><span>Start date</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} type="date" value={dateControlValue(draft.startDate)} /></label><label><span>End date</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} type="date" value={dateControlValue(draft.endDate)} /></label><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live sales planning sign-in is required before changing status."} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={["Draft", "Active", "Closed"].map(toOption)} value={draft.status} /></FormShell><Card title="Schedule lines" description="Add every contract release bucket with governed item, UOM, date, and quantity controls.">{draft.schedules.map((line, index) => <FormShell initialFingerprint={`${draft.blanketOrderNo}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Schedule ${index + 1}`}><ErpLookupField disabled={!live} label="Item" onChange={(value) => updateSchedule(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /><label><span>Schedule date</span><input disabled={!live} onChange={(event) => updateSchedule(index, { scheduleDate: event.target.value })} type="date" value={dateControlValue(line.scheduleDate)} /></label><ErpDecimalField disabled={!live} label="Quantity" min={0.001} onChange={(value) => updateSchedule(index, { quantity: value ?? 0 })} value={line.quantity} /><ErpLookupField disabled={!live} label="Order UOM" onChange={(value) => updateSchedule(index, { orderUomId: numberValue(value) })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} /><ErpLookupField disabled={!live} label="Schedule status" onChange={(value) => updateSchedule(index, { status: value })} options={["Open", "Released", "Closed"].map(toOption)} value={line.status} /><ErpActionBar danger={[{ disabled: !live || draft.schedules.length <= 1, label: "Remove Line", onClick: live && draft.schedules.length > 1 ? () => removeSchedule(index) : undefined, reason: draft.schedules.length <= 1 ? "At least one schedule line is required." : undefined }]} /></FormShell>)}</Card></div> : null}
+        {draft ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${draft.blanketOrderNo}-header`} title="Blanket order controls">
+              <label><span>Blanket order number</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, blanketOrderNo: event.target.value })} value={draft.blanketOrderNo} /></label>
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live sales planning sign-in is required before selecting a customer."} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: numberValue(value) })} options={customerOptions} required value={draft.customerId ? String(draft.customerId) : ""} />
+              <label><span>Start date</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} type="date" value={dateControlValue(draft.startDate)} /></label>
+              <label><span>End date</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} type="date" value={dateControlValue(draft.endDate)} /></label>
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live sales planning sign-in is required before changing status."} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={["Draft", "Active", "Closed"].map(toOption)} value={draft.status} />
+            </FormShell>
+            <Card title="Schedule lines" description="Add every contract release bucket with governed item, UOM, date, and quantity controls.">
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live sales planning sign-in is required before adding schedule lines."
+                addLabel="Add schedule line"
+                ariaLabel="Blanket schedule line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!live} label="Item" onChange={(value) => updateSchedule(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "date", header: "Schedule date", width: "140px", render: (line, index) => <label><span>Schedule date</span><input disabled={!live} onChange={(event) => updateSchedule(index, { scheduleDate: event.target.value })} type="date" value={dateControlValue(line.scheduleDate)} /></label> },
+                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={!live} label="Quantity" min={0.001} onChange={(value) => updateSchedule(index, { quantity: value ?? 0 })} value={line.quantity} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!live} label="Order UOM" onChange={(value) => updateSchedule(index, { orderUomId: numberValue(value) })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} /> },
+                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} label="Schedule status" onChange={(value) => updateSchedule(index, { status: value })} options={["Open", "Released", "Closed"].map(toOption)} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || draft.schedules.length <= 1, label: "Remove Line", onClick: live && draft.schedules.length > 1 ? () => removeSchedule(index) : undefined, reason: !live ? "Live sales planning sign-in is required before removing schedule lines." : draft.schedules.length <= 1 ? "At least one schedule line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={draft.schedules}
+                onAddLine={addSchedule}
+                testId="blanket-schedule-line-grid"
+              />
+            </Card>
+          </div>
+        ) : null}
       </ErpModalWorkspace>
       <ErpModalWorkspace description="Review saved blanket contract schedule and demand horizon." footer={<ErpActionBar primary={[{ disabled: true, label: "Edit blanket draft", reason: "Open a new blanket draft for new contract schedules; saved contract correction needs approval." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.blanketOrderNo ?? "Blanket order detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="Blanket order setup"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><ErpLookupField disabled disabledReason="Contract horizon is controlled by the blanket-order schedule." label="Horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} /><ErpLookupField disabled disabledReason="Next release is calculated from the blanket-order schedule." label="Next release" onChange={() => undefined} options={[{ label: selected.nextRelease, value: selected.nextRelease }]} value={selected.nextRelease} /></FormShell> : null}</ErpModalWorkspace>
     </>
@@ -1468,7 +1495,37 @@ export function DemandForecastPage() {
         </Card>
       </ListPageShell>
       <ErpModalWorkspace description="Create demand forecast buckets with governed item, UOM, date, and quantity controls." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || save.isPending || forecastErrors.length > 0, label: save.isPending ? "Saving forecast" : "Save forecast", onClick: draft && !saveReason && forecastErrors.length === 0 ? () => save.mutate(draft) : undefined, reason: saveReason ?? forecastErrors[0] }]} secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live planning sign-in is required before adding forecast lines." }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />} isOpen={Boolean(draft)} onClose={() => setDraft(null)} title={draft?.forecastCode ?? "Forecast draft"} validation={<ErpValidationSummary errors={forecastErrors} />}>
-        {draft ? <div className="modal-form-grid"><FormShell initialFingerprint={`${draft.forecastCode}-header`} title="Forecast controls"><label><span>Forecast code</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, forecastCode: event.target.value })} value={draft.forecastCode} /></label><label><span>Forecast name</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, forecastName: event.target.value })} value={draft.forecastName} /></label><ErpLookupField disabled={!live} label="Period type" onChange={(value) => setDraft({ ...draft, periodType: value })} options={["Weekly", "Monthly", "Quarterly"].map(toOption)} value={draft.periodType} /><ErpLookupField disabled={!live} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={["Draft", "Approved", "Closed"].map(toOption)} value={draft.status} /></FormShell><Card title="Forecast lines" description="Each line becomes planning demand for MPS and MRP review.">{draft.lines.map((line, index) => <FormShell initialFingerprint={`${draft.forecastCode}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}><ErpLookupField disabled={!live} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /><label><span>Period start</span><input disabled={!live} onChange={(event) => updateLine(index, { forecastPeriodStart: event.target.value })} type="date" value={dateControlValue(line.forecastPeriodStart)} /></label><label><span>Period end</span><input disabled={!live} onChange={(event) => updateLine(index, { forecastPeriodEnd: event.target.value })} type="date" value={dateControlValue(line.forecastPeriodEnd)} /></label><ErpDecimalField disabled={!live} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} value={line.quantity} /><ErpLookupField disabled={!live} label="Forecast UOM" onChange={(value) => updateLine(index, { forecastUomId: numberValue(value) })} options={uomOptions} required value={line.forecastUomId ? String(line.forecastUomId) : ""} /><ErpActionBar danger={[{ disabled: !live || draft.lines.length <= 1, label: "Remove Line", onClick: live && draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one forecast line is required." : undefined }]} /></FormShell>)}</Card></div> : null}
+        {draft ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${draft.forecastCode}-header`} title="Forecast controls">
+              <label><span>Forecast code</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, forecastCode: event.target.value })} value={draft.forecastCode} /></label>
+              <label><span>Forecast name</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, forecastName: event.target.value })} value={draft.forecastName} /></label>
+              <ErpLookupField disabled={!live} label="Period type" onChange={(value) => setDraft({ ...draft, periodType: value })} options={["Weekly", "Monthly", "Quarterly"].map(toOption)} value={draft.periodType} />
+              <ErpLookupField disabled={!live} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={["Draft", "Approved", "Closed"].map(toOption)} value={draft.status} />
+            </FormShell>
+            <Card title="Forecast lines" description="Each line becomes planning demand for MPS and MRP review.">
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live planning sign-in is required before adding forecast lines."
+                addLabel="Add Line"
+                ariaLabel="Demand forecast line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!live} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "start", header: "Start", width: "140px", render: (line, index) => <label><span>Period start</span><input disabled={!live} onChange={(event) => updateLine(index, { forecastPeriodStart: event.target.value })} type="date" value={dateControlValue(line.forecastPeriodStart)} /></label> },
+                  { key: "end", header: "End", width: "140px", render: (line, index) => <label><span>Period end</span><input disabled={!live} onChange={(event) => updateLine(index, { forecastPeriodEnd: event.target.value })} type="date" value={dateControlValue(line.forecastPeriodEnd)} /></label> },
+                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={!live} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} value={line.quantity} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!live} label="Forecast UOM" onChange={(value) => updateLine(index, { forecastUomId: numberValue(value) })} options={uomOptions} required value={line.forecastUomId ? String(line.forecastUomId) : ""} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || draft.lines.length <= 1, label: "Remove Line", onClick: live && draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live planning sign-in is required before removing forecast lines." : draft.lines.length <= 1 ? "At least one forecast line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={draft.lines}
+                onAddLine={addLine}
+                testId="forecast-line-grid"
+              />
+            </Card>
+          </div>
+        ) : null}
       </ErpModalWorkspace>
     </>
   );
@@ -1549,21 +1606,6 @@ function mpsValidation(draft: MpsDraftState | null) {
   ].filter(Boolean);
 }
 
-function toMpsLinePreview(line: MpsDraftState["lines"][number], itemLabel: string, uomLabel: string): MpsPlannerLineItem {
-  return {
-    id: `draft-mps-line-${line.lineNo}`,
-    lineId: null,
-    lineNo: line.lineNo,
-    itemId: line.itemId,
-    itemLabel,
-    periodStart: line.periodStart,
-    periodEnd: line.periodEnd,
-    plannedQuantity: line.plannedQuantity,
-    planningUomId: line.planningUomId,
-    planningUomLabel: uomLabel
-  };
-}
-
 export function MpsPlannerPage() {
   const { session, user } = useAuth();
   const [search, setSearch] = useState("");
@@ -1602,11 +1644,6 @@ export function MpsPlannerPage() {
     ? "Reference MPS rows are read-only. Open a new MPS draft to create a live schedule."
     : undefined;
   const canEdit = Boolean(draft && !editDisabledReason);
-  const draftLines = draft?.lines.map((line) => {
-    const itemLabel = itemOptions.find((option) => option.value === String(line.itemId))?.label ?? (line.itemId ? `Item ${line.itemId}` : "Item pending");
-    const uomLabel = uomOptions.find((option) => option.value === String(line.planningUomId))?.label ?? (line.planningUomId ? `UOM ${line.planningUomId}` : "UOM pending");
-    return toMpsLinePreview(line, itemLabel, uomLabel);
-  }) ?? [];
   const saveMutation = useApiMutation(
     (request: { mpsId: number | null; body: MasterProductionScheduleUpsertRequest }) => saveMpsDraft(session, request.mpsId, request.body),
     {
@@ -1698,21 +1735,26 @@ export function MpsPlannerPage() {
               <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="MPS status" onChange={(value) => updateDraft((current) => ({ ...current, status: value }))} options={[{ label: "Draft", value: "Draft" }, { label: "Firm", value: "Firm" }, { label: "Frozen", value: "Frozen" }]} value={draft.status} />
             </FormShell>
             <Card title="Schedule lines" description="Each line uses controlled Item Master, planning UOM, date, and quantity fields.">
-              <ErpGrid ariaLabel="MPS schedule line preview" columns={mpsLineColumns} getRowId={(record) => record.id} records={draftLines} rowLabel={(record) => `${record.lineNo} mps line`} />
+              <ErpTransactionLineGrid
+                addDisabled={!canEdit}
+                addDisabledReason={editDisabledReason}
+                addLabel="Add schedule line"
+                ariaLabel="MPS schedule line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "86px", render: (line, index) => <ErpNumberField disabled={!canEdit} disabledReason={editDisabledReason} label="Line number" min={1} onChange={(value) => updateLine(index, { lineNo: value ?? 0 })} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                  { key: "start", header: "Period start", width: "140px", render: (line, index) => <label><span>Period start</span><input disabled={!canEdit} onChange={(event) => updateLine(index, { periodStart: event.target.value })} type="date" value={dateControlValue(line.periodStart)} /></label> },
+                  { key: "end", header: "Period end", width: "140px", render: (line, index) => <label><span>Period end</span><input disabled={!canEdit} onChange={(event) => updateLine(index, { periodEnd: event.target.value })} type="date" value={dateControlValue(line.periodEnd)} /></label> },
+                  { key: "qty", header: "Planned qty", width: "130px", render: (line, index) => <ErpDecimalField disabled={!canEdit} disabledReason={editDisabledReason} label="Planned quantity" min={0} onChange={(value) => updateLine(index, { plannedQuantity: value ?? 0 })} scale={3} value={line.plannedQuantity} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="Planning UOM" onChange={(value) => updateLine(index, { planningUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.planningUomId || "")} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !canEdit || draft.lines.length <= 1, label: "Remove Line", onClick: canEdit && draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one MPS line is required." : editDisabledReason }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={draft.lines}
+                onAddLine={addLine}
+                testId="mps-line-grid"
+              />
             </Card>
-            {draft.lines.map((line, index) => (
-              <FormShell initialFingerprint={`${draft.mpsCode}-${line.lineNo}-${index}`} key={`${line.lineNo}-${index}`} title={`Schedule line ${line.lineNo}`}>
-                <ErpNumberField disabled={!canEdit} disabledReason={editDisabledReason} label="Line number" min={1} onChange={(value) => updateLine(index, { lineNo: value ?? 0 })} value={line.lineNo} />
-                <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
-                <label><span>Period start</span><input disabled={!canEdit} onChange={(event) => updateLine(index, { periodStart: event.target.value })} type="date" value={dateControlValue(line.periodStart)} /></label>
-                <label><span>Period end</span><input disabled={!canEdit} onChange={(event) => updateLine(index, { periodEnd: event.target.value })} type="date" value={dateControlValue(line.periodEnd)} /></label>
-                <ErpDecimalField disabled={!canEdit} disabledReason={editDisabledReason} label="Planned quantity" min={0} onChange={(value) => updateLine(index, { plannedQuantity: value ?? 0 })} scale={3} value={line.plannedQuantity} />
-                <ErpLookupField disabled={!canEdit} disabledReason={editDisabledReason} label="Planning UOM" onChange={(value) => updateLine(index, { planningUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.planningUomId || "")} />
-                <div className="form-action-row">
-                  <button disabled={!canEdit || draft.lines.length <= 1} onClick={() => removeLine(index)} title={draft.lines.length <= 1 ? "At least one MPS line is required." : editDisabledReason} type="button">Remove line</button>
-                </div>
-              </FormShell>
-            ))}
           </>
         ) : null}
       </ErpModalWorkspace>

@@ -5,6 +5,7 @@
 ## Commands
 
 - `npm run audit:transaction-lines`
+- `npm run audit:transaction-line-grid`
 - `npm run audit:governed-fields`
 - `npm run audit:numeric-fields`
 - `npm run audit:action-truth`
@@ -27,6 +28,16 @@ This gate scans transaction screens and contracts for first-line-only transactio
 Covered transaction families include Quote, Sales Order, Blanket Order, Forecast, Purchase Requisition, Purchase Order, Subcontract Order, Material Issue, Material Return, Stock Transfer, Production Receipt, Scrap/Rework, and Dispatch/Pack List where present.
 
 Failure means the transaction is not safe to mark complete until users can maintain all required lines or the action is explicitly disabled with a business-safe reason.
+
+### Transaction Line Grid
+
+Script: `scripts/audit-transaction-line-grid.mjs`
+
+This gate enforces the desktop transaction line-entry standard added by `TRANSACTION-LINE-GRID-STANDARDIZATION-RETROFIT-01`. It fails when in-scope desktop transaction pages do not expose a compact editable grid marker for line entry, or when old card-per-line `FormShell` editors return.
+
+Covered screens include Quote, Sales Order, Blanket Order, Demand Forecast, MPS, Purchase Requisition, RFQ, Supplier Quotation, Purchase Order, GRN, supplier invoice match, material issue/return/transfer posting, production receipt, QC inspection results, pack list, and shipment lines.
+
+Failure means the screen may still be using a mobile-style or repeated-card line editor on desktop. The fix is to move editable lines to `ErpTransactionLineGrid`, keep Add Line/Remove Line truthful, and reserve cards only for read-only summaries or row-detail expansion.
 
 ### Governed Fields
 
@@ -83,6 +94,7 @@ Focused tests under `tests/web/` enforce user-visible behavior that static audit
 - `transaction-line-depth/QuoteMultilineFlow.test.tsx`
 - `transaction-line-depth/SalesOrderMultilineFlow.test.tsx`
 - `transaction-line-depth/PurchaseOrderMultilineFlow.test.tsx`
+- `transaction-line-grid/TransactionLineGridRetrofit.test.tsx`
 - `field-governance/ItemMasterGovernedFields.test.tsx`
 - `action-truth/NewDraftActionTruth.test.tsx`
 

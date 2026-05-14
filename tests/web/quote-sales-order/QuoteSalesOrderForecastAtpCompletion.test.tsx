@@ -172,8 +172,8 @@ describe("QUOTE-SALES-ORDER-FORECAST-ATP completion pack", () => {
     const savedRow = await screen.findByRole("row", { name: "QT-PACK-001 quote" });
     fireEvent.click(savedRow);
     const reopened = await screen.findByRole("dialog", { name: "Quote QT-PACK-001" });
-    expect(within(reopened).getByText("Line 1")).toBeInTheDocument();
-    expect(within(reopened).getByText("Line 2")).toBeInTheDocument();
+    expect(within(reopened).getByRole("grid", { name: "Quote line grid" })).toBeInTheDocument();
+    expect(within(reopened).getAllByLabelText("Line no")).toHaveLength(2);
 
     fireEvent.click(within(reopened).getAllByRole("button", { name: "Remove Line" })[1]);
     fireEvent.click(within(reopened).getByRole("button", { name: "Save quote draft" }));

@@ -40,6 +40,7 @@ import {
   ErpMoneyField,
   ErpModalWorkspace,
   ErpNumberField,
+  ErpTransactionLineGrid,
   ErpValidationSummary
 } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
@@ -748,17 +749,25 @@ export function PurchaseRequisitionPage() {
               <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={prStatusOptions} required value={workspace.status} />
             </FormShell>
             <Card title="Purchase requisition lines" description="Add every required material or service line before approval.">
-              <ErpActionBar secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding lines." }]} />
-              {workspace.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
-                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Required quantity" min={0.001} onChange={(value) => updateLine(index, { requiredQuantity: value ?? 0 })} required value={line.requiredQuantity} />
-                  <label><span>Need by</span><input aria-label="Need by" disabled={!live} onChange={(event) => updateLine(index, { needByDate: event.target.value })} required type="date" value={dateControlValue(line.needByDate)} /></label>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={prStatusOptions} value={line.status} />
-                  <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one requisition line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live procurement sign-in is required before adding lines."
+                addLabel="Add Line"
+                ariaLabel="Purchase requisition line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} /> },
+                  { key: "qty", header: "Qty", width: "130px", render: (line, index) => <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Required quantity" min={0.001} onChange={(value) => updateLine(index, { requiredQuantity: value ?? 0 })} required value={line.requiredQuantity} /> },
+                  { key: "need", header: "Need by", width: "140px", render: (line, index) => <label><span>Need by</span><input aria-label="Need by" disabled={!live} onChange={(event) => updateLine(index, { needByDate: event.target.value })} required type="date" value={dateControlValue(line.needByDate)} /></label> },
+                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={prStatusOptions} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one requisition line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={workspace.lines}
+                onAddLine={addLine}
+                testId="purchase-requisition-line-grid"
+              />
             </Card>
           </div>
         ) : null}
@@ -1016,20 +1025,28 @@ export function PurchaseOrderPage() {
               <label><span>Expected receipt</span><input aria-label="Expected receipt" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, expectedReceiptDate: event.target.value })} type="date" value={dateControlValue(workspace.expectedReceiptDate)} /></label>
             </FormShell>
             <Card title="Purchase order lines" description="Add every supplier commitment line before saving the purchase order.">
-              <ErpActionBar secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding lines." }]} />
-              {workspace.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
-                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Ordered quantity" min={0.001} onChange={(value) => updateLine(index, { orderedQuantity: value ?? 0 })} required value={line.orderedQuantity} />
-                  <ErpMoneyField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing unit price."} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
-                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing discount."} label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} />
-                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing tax."} label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} />
-                  <label><span>Expected line date</span><input aria-label="Expected line date" disabled={!live} onChange={(event) => updateLine(index, { expectedDate: event.target.value })} required type="date" value={dateControlValue(line.expectedDate)} /></label>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={poStatusOptions} value={line.status} />
-                  <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one purchase order line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live procurement sign-in is required before adding lines."
+                addLabel="Add Line"
+                ariaLabel="Purchase order line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} /> },
+                  { key: "qty", header: "Qty", width: "125px", render: (line, index) => <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Ordered quantity" min={0.001} onChange={(value) => updateLine(index, { orderedQuantity: value ?? 0 })} required value={line.orderedQuantity} /> },
+                  { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing unit price."} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} /> },
+                  { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing discount."} label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} /> },
+                  { key: "tax", header: "Tax %", width: "110px", render: (line, index) => <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing tax."} label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} /> },
+                  { key: "date", header: "Expected", width: "140px", render: (line, index) => <label><span>Expected line date</span><input aria-label="Expected line date" disabled={!live} onChange={(event) => updateLine(index, { expectedDate: event.target.value })} required type="date" value={dateControlValue(line.expectedDate)} /></label> },
+                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={poStatusOptions} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one purchase order line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={workspace.lines}
+                onAddLine={addLine}
+                testId="purchase-order-line-grid"
+              />
             </Card>
           </div>
         ) : null}
@@ -1052,15 +1069,20 @@ export function PurchaseOrderPage() {
               <label><span>Receipt remarks</span><input aria-label="Receipt remarks" disabled={!live || Boolean(receiptWorkspace.savedReceipt)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, remarks: event.target.value })} value={receiptWorkspace.remarks ?? ""} /></label>
             </FormShell>
             <Card title="Receipt lines" description="Accepted quantity posts to available stock; rejected quantity posts to QC hold.">
-              {receiptWorkspace.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${receiptWorkspace.purchaseOrder.id}-receipt-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Receipt line ${index + 1}`}>
-                  <ErpNumberField disabled label="PO line id" onChange={() => undefined} value={line.purchaseOrderLineId} />
-                  <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Receipt quantities cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing received quantity."} label="Received quantity" min={0.001} onChange={(value) => updateReceiptLine(index, { receivedQuantity: value ?? 0 })} required value={line.receivedQuantity} />
-                  <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Accepted quantity cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing accepted quantity."} label="Accepted quantity" min={0} onChange={(value) => updateReceiptLine(index, { acceptedQuantity: value ?? 0 })} required value={line.acceptedQuantity} />
-                  <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Rejected quantity cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing rejected quantity."} label="Rejected quantity" min={0} onChange={(value) => updateReceiptLine(index, { rejectedQuantity: value ?? 0 })} required value={line.rejectedQuantity} />
-                  <ErpLookupField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "QC status cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing QC status."} label="QC status" onChange={(value) => updateReceiptLine(index, { qcStatus: value })} options={["Accepted", "Rejected", "Partial"].map(toOption)} value={line.qcStatus} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                ariaLabel="GRN receipt line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "po", header: "PO line", width: "110px", render: (line) => <ErpNumberField disabled label="PO line id" onChange={() => undefined} value={line.purchaseOrderLineId} /> },
+                  { key: "received", header: "Received", width: "140px", render: (line, index) => <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Receipt quantities cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing received quantity."} label="Received quantity" min={0.001} onChange={(value) => updateReceiptLine(index, { receivedQuantity: value ?? 0 })} required value={line.receivedQuantity} /> },
+                  { key: "accepted", header: "Accepted", width: "140px", render: (line, index) => <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Accepted quantity cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing accepted quantity."} label="Accepted quantity" min={0} onChange={(value) => updateReceiptLine(index, { acceptedQuantity: value ?? 0 })} required value={line.acceptedQuantity} /> },
+                  { key: "rejected", header: "Rejected", width: "140px", render: (line, index) => <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Rejected quantity cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing rejected quantity."} label="Rejected quantity" min={0} onChange={(value) => updateReceiptLine(index, { rejectedQuantity: value ?? 0 })} required value={line.rejectedQuantity} /> },
+                  { key: "qc", header: "QC", width: "150px", render: (line, index) => <ErpLookupField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "QC status cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing QC status."} label="QC status" onChange={(value) => updateReceiptLine(index, { qcStatus: value })} options={["Accepted", "Rejected", "Partial"].map(toOption)} value={line.qcStatus} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={receiptWorkspace.lines}
+                testId="grn-receipt-line-grid"
+              />
             </Card>
             <FormShell initialFingerprint={`${receiptWorkspace.purchaseOrder.id}-${receiptWorkspace.supplierInvoiceNo}`} title="Supplier invoice and AP">
               <label><span>Supplier invoice number</span><input aria-label="Supplier invoice number" disabled={!live || !receiptWorkspace.savedReceipt || Boolean(receiptWorkspace.savedInvoice)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, supplierInvoiceNo: event.target.value })} value={receiptWorkspace.supplierInvoiceNo} /></label>
@@ -1072,14 +1094,19 @@ export function PurchaseOrderPage() {
             </FormShell>
             {receiptWorkspace.savedReceipt ? (
               <Card title="Invoice match lines" description="Invoice quantity, price, and tax are compared against the saved GRN and PO line contract.">
-                {receiptWorkspace.invoiceLines.map((line, index) => (
-                  <FormShell initialFingerprint={`${receiptWorkspace.savedReceipt?.id}-invoice-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Invoice line ${index + 1}`}>
-                    <ErpNumberField disabled label="GRN line id" onChange={() => undefined} value={line.goodsReceiptLineId} />
-                    <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice quantity cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing invoice quantity."} label="Invoice quantity" min={0.001} onChange={(value) => updateInvoiceLine(index, { invoiceQuantity: value ?? 0 })} value={line.invoiceQuantity} />
-                    <ErpMoneyField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice price cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing invoice price."} label="Unit price" min={0} onChange={(value) => updateInvoiceLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
-                    <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice tax cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing tax."} label="Tax %" max={100} min={0} onChange={(value) => updateInvoiceLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} />
-                  </FormShell>
-                ))}
+                <ErpTransactionLineGrid
+                  ariaLabel="Supplier invoice match line grid"
+                  columns={[
+                    { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                    { key: "grn", header: "GRN line", width: "110px", render: (line) => <ErpNumberField disabled label="GRN line id" onChange={() => undefined} value={line.goodsReceiptLineId} /> },
+                    { key: "qty", header: "Invoice qty", width: "140px", render: (line, index) => <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice quantity cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing invoice quantity."} label="Invoice quantity" min={0.001} onChange={(value) => updateInvoiceLine(index, { invoiceQuantity: value ?? 0 })} value={line.invoiceQuantity} /> },
+                    { key: "price", header: "Unit price", width: "130px", render: (line, index) => <ErpMoneyField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice price cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing invoice price."} label="Unit price" min={0} onChange={(value) => updateInvoiceLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} /> },
+                    { key: "tax", header: "Tax %", width: "120px", render: (line, index) => <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice tax cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing tax."} label="Tax %" max={100} min={0} onChange={(value) => updateInvoiceLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} /> }
+                  ]}
+                  getRowId={(line, index) => `${line.lineNo}-${index}`}
+                  lines={receiptWorkspace.invoiceLines}
+                  testId="supplier-invoice-match-line-grid"
+                />
               </Card>
             ) : null}
           </div>
@@ -1461,16 +1488,24 @@ export function RfqSourcingPage() {
               ))}
             </Card>
             <Card title="RFQ lines" description="All requested items stay editable as separate lines.">
-              <ErpActionBar secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live procurement sign-in is required before adding lines." }]} />
-              {workspace.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${workspace.rfqNo}-line-${index}`} key={`line-${index}`} title={`Line ${index + 1}`}>
-                  <ErpLookupField disabled={!live} label="Item" onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, itemId: numberValue(value) ?? 0 } : row) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                  <ErpLookupField disabled={!live} label="Order UOM" onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, orderUomId: numberValue(value) ?? 0 } : row) })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
-                  <ErpDecimalField disabled={!live} label="Requested quantity" min={0.001} onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, requestedQuantity: value ?? 0 } : row) })} required value={line.requestedQuantity} />
-                  <label><span>Need by</span><input aria-label="RFQ line need by" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, needByDate: event.target.value } : row) })} type="date" value={dateControlValue(line.needByDate)} /></label>
-                  <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => setWorkspace({ ...workspace, lines: workspace.lines.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, lineNo: (rowIndex + 1) * 10 })) }) : undefined, reason: workspace.lines.length <= 1 ? "At least one RFQ line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live procurement sign-in is required before adding lines."
+                addLabel="Add Line"
+                ariaLabel="RFQ line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!live} label="Item" onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, itemId: numberValue(value) ?? 0 } : row) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={!live} label="Order UOM" onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, orderUomId: numberValue(value) ?? 0 } : row) })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} /> },
+                  { key: "qty", header: "Qty", width: "135px", render: (line, index) => <ErpDecimalField disabled={!live} label="Requested quantity" min={0.001} onChange={(value) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, requestedQuantity: value ?? 0 } : row) })} required value={line.requestedQuantity} /> },
+                  { key: "need", header: "Need by", width: "140px", render: (line, index) => <label><span>Need by</span><input aria-label="RFQ line need by" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, lines: workspace.lines.map((row, rowIndex) => rowIndex === index ? { ...row, needByDate: event.target.value } : row) })} type="date" value={dateControlValue(line.needByDate)} /></label> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => setWorkspace({ ...workspace, lines: workspace.lines.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, lineNo: (rowIndex + 1) * 10 })) }) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one RFQ line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={workspace.lines}
+                onAddLine={addLine}
+                testId="rfq-line-grid"
+              />
             </Card>
           </div>
         ) : null}
@@ -1524,16 +1559,21 @@ export function SupplierQuotationPage() {
               <label><span>Valid until</span><input aria-label="Valid until" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, validUntil: event.target.value })} type="date" value={dateControlValue(workspace.validUntil)} /></label>
             </FormShell>
             <Card title="Supplier quote lines" description="Price, discount, tax, and lead time are captured per line.">
-              {workspace.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${workspace.supplierQuotationNo}-line-${index}`} key={`sq-line-${index}`} title={`Line ${index + 1}`}>
-                  <ErpNumberField disabled label="RFQ line" onChange={() => undefined} value={line.rfqLineId} />
-                  <ErpDecimalField disabled={!live} label="Offered quantity" min={0.001} onChange={(value) => updateLine(index, { offeredQuantity: value ?? 0 })} value={line.offeredQuantity} />
-                  <ErpMoneyField disabled={!live} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
-                  <ErpDecimalField disabled={!live} label="Discount %" min={0} max={100} scale={2} unit="%" onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} value={line.discountPercent} />
-                  <ErpDecimalField disabled={!live} label="Tax %" min={0} max={100} scale={2} unit="%" onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} value={line.taxPercent} />
-                  <ErpNumberField disabled={!live} label="Lead time days" min={0} onChange={(value) => updateLine(index, { leadTimeDays: value ?? 0 })} value={line.leadTimeDays} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                ariaLabel="Supplier quotation line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "rfq", header: "RFQ line", width: "110px", render: (line) => <ErpNumberField disabled label="RFQ line" onChange={() => undefined} value={line.rfqLineId} /> },
+                  { key: "qty", header: "Offered qty", width: "140px", render: (line, index) => <ErpDecimalField disabled={!live} label="Offered quantity" min={0.001} onChange={(value) => updateLine(index, { offeredQuantity: value ?? 0 })} value={line.offeredQuantity} /> },
+                  { key: "price", header: "Price", width: "130px", render: (line, index) => <ErpMoneyField disabled={!live} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} /> },
+                  { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField disabled={!live} label="Discount %" min={0} max={100} scale={2} unit="%" onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} value={line.discountPercent} /> },
+                  { key: "tax", header: "Tax %", width: "110px", render: (line, index) => <ErpDecimalField disabled={!live} label="Tax %" min={0} max={100} scale={2} unit="%" onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} value={line.taxPercent} /> },
+                  { key: "lead", header: "Lead days", width: "120px", render: (line, index) => <ErpNumberField disabled={!live} label="Lead time days" min={0} onChange={(value) => updateLine(index, { leadTimeDays: value ?? 0 })} value={line.leadTimeDays} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={workspace.lines}
+                testId="supplier-quotation-line-grid"
+              />
             </Card>
           </div>
         ) : null}

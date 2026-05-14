@@ -19,7 +19,7 @@ import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataA
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpFileActionState, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
+import { ErpActionBar, ErpFileActionState, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpTransactionLineGrid, ErpValidationSummary } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -435,20 +435,29 @@ export function PackListPage() {
               <label className="form-span-2"><span>Remarks</span><input aria-label="Pack-list remarks" disabled={!live} onChange={(event) => setPackDraft({ ...packDraft, remarks: event.target.value })} value={packDraft.remarks} /></label>
             </FormShell>
             <Card title="Pack lines" description="Add all cartons, trace references, and packed quantities before shipment creation.">
-              {packDraft.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${packDraft.packListNo}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting an item."} label={`Item ${index + 1}`} onChange={(value) => patchPackLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a warehouse."} label={`Warehouse ${index + 1}`} onChange={(value) => patchPackLine(index, { warehouseId: numberValue(value) })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a UOM."} label={`Pack UOM ${index + 1}`} onChange={(value) => patchPackLine(index, { uomId: numberValue(value) })} options={uomOptions} required value={line.uomId ? String(line.uomId) : ""} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing packed quantity."} label={`Packed quantity ${index + 1}`} min={0.001} onChange={(value) => patchPackLine(index, { quantity: value ?? 0 })} value={line.quantity} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { binId: value })} value={line.binId} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { lotId: value })} value={line.lotId} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { serialId: value })} value={line.serialId} />
-                  <label><span>Package reference</span><input aria-label={`Package reference ${index + 1}`} disabled={!live} onChange={(event) => patchPackLine(index, { packageRef: event.target.value })} value={line.packageRef} /></label>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing line status."} label={`Line status ${index + 1}`} onChange={(value) => patchPackLine(index, { status: value })} options={lineStatusOptions} value={line.status} />
-                  <ErpActionBar danger={[{ disabled: !live || packDraft.lines.length <= 1, label: "Remove Line", onClick: live && packDraft.lines.length > 1 ? () => removePackLine(index) : undefined, reason: !live ? "Live dispatch sign-in is required before removing lines." : packDraft.lines.length <= 1 ? "At least one pack line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live dispatch sign-in is required before adding pack lines."
+                addLabel="Add Line"
+                ariaLabel="Pack line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "180px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting an item."} label={`Item ${index + 1}`} onChange={(value) => patchPackLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "warehouse", header: "Warehouse", width: "160px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a warehouse."} label={`Warehouse ${index + 1}`} onChange={(value) => patchPackLine(index, { warehouseId: numberValue(value) })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} /> },
+                  { key: "uom", header: "UOM", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a UOM."} label={`Pack UOM ${index + 1}`} onChange={(value) => patchPackLine(index, { uomId: numberValue(value) })} options={uomOptions} required value={line.uomId ? String(line.uomId) : ""} /> },
+                  { key: "qty", header: "Packed qty", width: "125px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing packed quantity."} label={`Packed quantity ${index + 1}`} min={0.001} onChange={(value) => patchPackLine(index, { quantity: value ?? 0 })} value={line.quantity} /> },
+                  { key: "bin", header: "Bin", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { binId: value })} value={line.binId} /> },
+                  { key: "lot", header: "Lot", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { lotId: value })} value={line.lotId} /> },
+                  { key: "serial", header: "Serial", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { serialId: value })} value={line.serialId} /> },
+                  { key: "package", header: "Package", width: "150px", render: (line, index) => <label><span>Package reference</span><input aria-label={`Package reference ${index + 1}`} disabled={!live} onChange={(event) => patchPackLine(index, { packageRef: event.target.value })} value={line.packageRef} /></label> },
+                  { key: "status", header: "Status", width: "130px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing line status."} label={`Line status ${index + 1}`} onChange={(value) => patchPackLine(index, { status: value })} options={lineStatusOptions} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || packDraft.lines.length <= 1, label: "Remove Line", onClick: live && packDraft.lines.length > 1 ? () => removePackLine(index) : undefined, reason: !live ? "Live dispatch sign-in is required before removing lines." : packDraft.lines.length <= 1 ? "At least one pack line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={packDraft.lines}
+                onAddLine={addPackLine}
+                testId="pack-line-grid"
+              />
             </Card>
           </div>
         ) : null}
@@ -820,19 +829,28 @@ export function ShipmentDeliveryPage() {
               <label className="form-span-2"><span>Proof notes</span><input aria-label="Draft proof notes" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, proofNotes: event.target.value })} value={shipmentDraft.proofNotes} /></label>
             </FormShell>
             <Card title="Shipment lines" description="Add every shipped item and trace reference. Saving posts inventory issue transactions for the shipment lines.">
-              {shipmentDraft.lines.map((line, index) => (
-                <FormShell initialFingerprint={`${shipmentDraft.shipmentNo}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting an item."} label={`Item ${index + 1}`} onChange={(value) => patchShipmentLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a warehouse."} label={`Warehouse ${index + 1}`} onChange={(value) => patchShipmentLine(index, { warehouseId: numberValue(value) })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a UOM."} label={`Ship UOM ${index + 1}`} onChange={(value) => patchShipmentLine(index, { uomId: numberValue(value) })} options={uomOptions} required value={line.uomId ? String(line.uomId) : ""} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing shipped quantity."} label={`Shipped quantity ${index + 1}`} min={0.001} onChange={(value) => patchShipmentLine(index, { quantity: value ?? 0 })} value={line.quantity} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { binId: value })} value={line.binId} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { lotId: value })} value={line.lotId} />
-                  <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { serialId: value })} value={line.serialId} />
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing line status."} label={`Line status ${index + 1}`} onChange={(value) => patchShipmentLine(index, { status: value })} options={lineStatusOptions} value={line.status} />
-                  <ErpActionBar danger={[{ disabled: !live || shipmentDraft.lines.length <= 1, label: "Remove Line", onClick: live && shipmentDraft.lines.length > 1 ? () => removeShipmentLine(index) : undefined, reason: !live ? "Live dispatch sign-in is required before removing lines." : shipmentDraft.lines.length <= 1 ? "At least one shipment line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live dispatch sign-in is required before adding shipment lines."
+                addLabel="Add Line"
+                ariaLabel="Shipment line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "180px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting an item."} label={`Item ${index + 1}`} onChange={(value) => patchShipmentLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                  { key: "warehouse", header: "Warehouse", width: "160px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a warehouse."} label={`Warehouse ${index + 1}`} onChange={(value) => patchShipmentLine(index, { warehouseId: numberValue(value) })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} /> },
+                  { key: "uom", header: "UOM", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a UOM."} label={`Ship UOM ${index + 1}`} onChange={(value) => patchShipmentLine(index, { uomId: numberValue(value) })} options={uomOptions} required value={line.uomId ? String(line.uomId) : ""} /> },
+                  { key: "qty", header: "Shipped qty", width: "125px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing shipped quantity."} label={`Shipped quantity ${index + 1}`} min={0.001} onChange={(value) => patchShipmentLine(index, { quantity: value ?? 0 })} value={line.quantity} /> },
+                  { key: "bin", header: "Bin", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { binId: value })} value={line.binId} /> },
+                  { key: "lot", header: "Lot", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { lotId: value })} value={line.lotId} /> },
+                  { key: "serial", header: "Serial", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { serialId: value })} value={line.serialId} /> },
+                  { key: "status", header: "Status", width: "130px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing line status."} label={`Line status ${index + 1}`} onChange={(value) => patchShipmentLine(index, { status: value })} options={lineStatusOptions} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || shipmentDraft.lines.length <= 1, label: "Remove Line", onClick: live && shipmentDraft.lines.length > 1 ? () => removeShipmentLine(index) : undefined, reason: !live ? "Live dispatch sign-in is required before removing lines." : shipmentDraft.lines.length <= 1 ? "At least one shipment line is required." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.lineNo}-${index}`}
+                lines={shipmentDraft.lines}
+                onAddLine={addShipmentLine}
+                testId="shipment-line-grid"
+              />
             </Card>
           </div>
         ) : null}

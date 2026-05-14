@@ -18,7 +18,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
+import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpTransactionLineGrid, ErpValidationSummary } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -415,16 +415,25 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
               <label className="form-span-2"><span>Root cause</span><input aria-label="NCR root cause" disabled={!live || !inspectionDraft.autoCreateNcr} onChange={(event) => setInspectionDraft({ ...inspectionDraft, ncrRootCause: event.target.value })} value={inspectionDraft.ncrRootCause} /></label>
             </FormShell>
             <Card title="Parameter results" description="Add one row per inspection parameter. Failed or held rows can automatically create an NCR.">
-              {inspectionDraft.results.map((result, index) => (
-                <FormShell initialFingerprint={`${inspectionDraft.inspectionNo}-line-${result.lineNo}`} key={`${result.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                  <label><span>Parameter code</span><input aria-label={`Parameter code ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { parameterCode: event.target.value })} value={result.parameterCode} /></label>
-                  <label><span>Expected value</span><input aria-label={`Expected value ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { expectedValue: event.target.value })} value={result.expectedValue} /></label>
-                  <label><span>Actual value</span><input aria-label={`Actual value ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { actualValue: event.target.value })} value={result.actualValue} /></label>
-                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before changing result status."} label={`Result status ${index + 1}`} onChange={(value) => updateDraftLine(index, { resultStatus: value })} options={resultStatusOptions} required value={result.resultStatus} />
-                  <label className="form-span-2"><span>Remarks</span><input aria-label={`Inspection remarks ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { remarks: event.target.value })} value={result.remarks} /></label>
-                  <ErpActionBar danger={[{ disabled: !live || inspectionDraft.results.length <= 1, label: "Remove Line", onClick: live && inspectionDraft.results.length > 1 ? () => removeDraftLine(index) : undefined, reason: !live ? "Live quality sign-in is required before removing lines." : inspectionDraft.results.length <= 1 ? "At least one inspection line is required." : undefined }]} />
-                </FormShell>
-              ))}
+              <ErpTransactionLineGrid
+                addDisabled={!live}
+                addDisabledReason="Live quality sign-in is required before adding inspection lines."
+                addLabel="Add Line"
+                ariaLabel="Inspection result line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (result) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={result.lineNo} /> },
+                  { key: "parameter", header: "Parameter", width: "160px", render: (result, index) => <label><span>Parameter code</span><input aria-label={`Parameter code ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { parameterCode: event.target.value })} value={result.parameterCode} /></label> },
+                  { key: "expected", header: "Expected", width: "150px", render: (result, index) => <label><span>Expected value</span><input aria-label={`Expected value ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { expectedValue: event.target.value })} value={result.expectedValue} /></label> },
+                  { key: "actual", header: "Actual", width: "150px", render: (result, index) => <label><span>Actual value</span><input aria-label={`Actual value ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { actualValue: event.target.value })} value={result.actualValue} /></label> },
+                  { key: "status", header: "Status", width: "150px", render: (result, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before changing result status."} label={`Result status ${index + 1}`} onChange={(value) => updateDraftLine(index, { resultStatus: value })} options={resultStatusOptions} required value={result.resultStatus} /> },
+                  { key: "remarks", header: "Remarks", width: "180px", render: (result, index) => <label><span>Remarks</span><input aria-label={`Inspection remarks ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { remarks: event.target.value })} value={result.remarks} /></label> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_result, index) => <ErpActionBar danger={[{ disabled: !live || inspectionDraft.results.length <= 1, label: "Remove Line", onClick: live && inspectionDraft.results.length > 1 ? () => removeDraftLine(index) : undefined, reason: !live ? "Live quality sign-in is required before removing lines." : inspectionDraft.results.length <= 1 ? "At least one inspection line is required." : undefined }]} /> }
+                ]}
+                getRowId={(result, index) => `${result.lineNo}-${index}`}
+                lines={inspectionDraft.results}
+                onAddLine={addDraftLine}
+                testId="inspection-result-line-grid"
+              />
             </Card>
           </div>
         ) : null}

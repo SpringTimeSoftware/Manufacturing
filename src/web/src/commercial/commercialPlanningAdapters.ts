@@ -576,7 +576,7 @@ function mapForecast(dto: DemandForecastDto, source: MasterDataSource): DemandFo
 }
 
 function mapMps(dto: MasterProductionScheduleDto, source: MasterDataSource): MpsPlannerItem {
-  const firstLine = dto.lines[0];
+  const earliestLine = dto.lines.at(0);
   const lines = dto.lines.map((line) => ({
     id: `mps-line-${line.id}`,
     lineId: line.id,
@@ -602,7 +602,7 @@ function mapMps(dto: MasterProductionScheduleDto, source: MasterDataSource): Mps
     status: dto.status,
     lineCount: dto.lines.length,
     plannedQuantity: sumQuantities(dto.lines),
-    firstBucket: firstLine ? `Item ${firstLine.itemId} / ${firstLine.plannedQuantity}` : "No lines",
+    firstBucket: earliestLine ? `Item ${earliestLine.itemId} / ${earliestLine.plannedQuantity}` : "No lines",
     lines,
     source
   };

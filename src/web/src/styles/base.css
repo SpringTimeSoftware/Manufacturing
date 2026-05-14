@@ -2522,6 +2522,131 @@ textarea:focus {
   min-width: 0;
 }
 
+.erp-transaction-line-grid {
+  border: 1px solid rgba(203, 213, 225, 0.86);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.erp-transaction-line-grid__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.erp-transaction-line-grid__header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.erp-transaction-line-grid__header span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.erp-transaction-line-grid__scroll {
+  max-height: min(520px, calc(100vh - 320px));
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.erp-transaction-line-grid table {
+  border-collapse: collapse;
+  min-width: 980px;
+  width: 100%;
+}
+
+.erp-transaction-line-grid th {
+  background: rgba(248, 250, 252, 0.98);
+  border-bottom: 1px solid rgba(203, 213, 225, 0.9);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 7px 8px;
+  position: sticky;
+  text-align: left;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 1;
+}
+
+.erp-transaction-line-grid td {
+  border-bottom: 1px solid rgba(226, 232, 240, 0.88);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.erp-transaction-line-grid tr:last-child td {
+  border-bottom: 0;
+}
+
+.erp-transaction-line-grid .erp-governed-field,
+.erp-transaction-line-grid .erp-money-field {
+  min-width: 112px;
+}
+
+.erp-transaction-line-grid .erp-governed-field span {
+  font-size: 0.72rem;
+}
+
+.erp-transaction-line-grid .erp-governed-field input,
+.erp-transaction-line-grid .erp-governed-field select {
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+.erp-transaction-line-grid .erp-action-bar {
+  align-items: flex-start;
+}
+
+.erp-transaction-line-grid__empty {
+  color: var(--text-muted);
+  padding: 14px;
+  text-align: center;
+}
+
+.erp-transaction-totals-panel {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.erp-transaction-total {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(203, 213, 225, 0.82);
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+}
+
+.erp-transaction-total span,
+.erp-transaction-total em {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
+.erp-transaction-total strong {
+  color: var(--text-strong);
+  font-size: 1rem;
+}
+
+.erp-transaction-total small {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.erp-transaction-total--strong {
+  background: rgba(236, 253, 245, 0.96);
+  border-color: rgba(16, 185, 129, 0.32);
+}
+
 .capacity-board-scroll {
   max-height: min(520px, calc(100vh - 280px));
   min-height: 240px;

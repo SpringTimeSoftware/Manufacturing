@@ -401,6 +401,115 @@ export function ErpGrid<TRecord>({ testId, ...props }: ErpGridProps<TRecord>) {
   );
 }
 
+export interface ErpTransactionLineColumn<TLine> {
+  header: string;
+  key: string;
+  render: (line: TLine, index: number) => ReactNode;
+  width?: string;
+}
+
+interface ErpTransactionLineGridProps<TLine> {
+  addDisabled?: boolean;
+  addDisabledReason?: string;
+  addLabel?: string;
+  ariaLabel: string;
+  columns: ErpTransactionLineColumn<TLine>[];
+  emptyMessage?: string;
+  getRowId: (line: TLine, index: number) => string;
+  lines: TLine[];
+  onAddLine?: () => void;
+  testId?: string;
+}
+
+export function ErpTransactionLineGrid<TLine>({
+  addDisabled,
+  addDisabledReason,
+  addLabel = "Add Line",
+  ariaLabel,
+  columns,
+  emptyMessage = "No line rows are available.",
+  getRowId,
+  lines,
+  onAddLine,
+  testId
+}: ErpTransactionLineGridProps<TLine>) {
+  return (
+    <section className="erp-transaction-line-grid" data-line-entry-pattern="compact-grid" data-testid={testId}>
+      <header className="erp-transaction-line-grid__header">
+        <div>
+          <strong>{ariaLabel}</strong>
+          <span>{lines.length} line{lines.length === 1 ? "" : "s"}</span>
+        </div>
+        {onAddLine ? (
+          <ErpActionBar
+            secondary={[
+              {
+                disabled: addDisabled,
+                label: addLabel,
+                onClick: addDisabled ? undefined : onAddLine,
+                reason: addDisabledReason
+              }
+            ]}
+          />
+        ) : null}
+      </header>
+      <div className="erp-transaction-line-grid__scroll">
+        <table aria-label={ariaLabel} role="grid">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th key={column.key} style={column.width ? { width: column.width } : undefined} scope="col">
+                  {column.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {lines.length === 0 ? (
+              <tr>
+                <td className="erp-transaction-line-grid__empty" colSpan={columns.length}>
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : (
+              lines.map((line, index) => (
+                <tr key={getRowId(line, index)}>
+                  {columns.map((column) => (
+                    <td key={column.key}>{column.render(line, index)}</td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export interface ErpTransactionTotalItem {
+  eyebrow?: string;
+  label: string;
+  meta?: string;
+  tone?: "default" | "strong";
+  value: ReactNode;
+}
+
+export function ErpTransactionTotalsPanel({ items }: { items: ErpTransactionTotalItem[] }) {
+  return (
+    <section aria-label="Transaction totals" className="erp-transaction-totals-panel">
+      {items.map((item) => (
+        <div className={item.tone === "strong" ? "erp-transaction-total erp-transaction-total--strong" : "erp-transaction-total"} key={item.label}>
+          {item.eyebrow ? <span>{item.eyebrow}</span> : null}
+          <strong>{item.value}</strong>
+          <small>{item.label}</small>
+          {item.meta ? <em>{item.meta}</em> : null}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 interface ErpModalWorkspaceProps {
   description?: string;
   footer?: ReactNode;

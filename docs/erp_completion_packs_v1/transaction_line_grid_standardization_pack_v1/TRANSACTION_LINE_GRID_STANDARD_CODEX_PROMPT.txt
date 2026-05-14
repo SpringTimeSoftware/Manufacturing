@@ -1,0 +1,246 @@
+Work only on branch main.
+
+This is TRANSACTION-LINE-GRID-STANDARDIZATION-01.
+
+This is a cross-cutting transaction-line correction pack.
+Do NOT treat this as a cosmetic-only pass.
+Do NOT fix only Quote.
+Do NOT leave past transaction packs with weaker line-entry rules.
+Do NOT use repeated large card-style line blocks for desktop transaction entry.
+
+Mission:
+Apply the universal desktop transaction line-grid standard across all transaction screens and completion packs.
+
+Control pack:
+docs/erp_completion_packs_v1/transaction_line_grid_standardization_pack_v1/
+
+Required files:
+- TRANSACTION_LINE_GRID_STANDARD_BENCHMARK_V1.xlsx
+- TRANSACTION_LINE_GRID_STANDARD_COMPLETION_SPEC.md
+- TRANSACTION_LINE_GRID_STANDARD_ADDENDUM.md
+
+Hard rule:
+Every desktop transaction screen that can contain multiple item/service/material/account lines must use a compact editable grid/table.
+Card-per-line desktop transaction entry is a failure condition.
+
+Read first:
+1. AGENTS.md
+2. docs/codex-progress/README.md
+3. docs/erp_completion_packs_v1/transaction_line_grid_standardization_pack_v1/README.md
+4. docs/erp_completion_packs_v1/transaction_line_grid_standardization_pack_v1/TRANSACTION_LINE_GRID_STANDARD_COMPLETION_SPEC.md
+5. docs/erp_completion_packs_v1/transaction_line_grid_standardization_pack_v1/TRANSACTION_LINE_GRID_STANDARD_ADDENDUM.md
+6. docs/design/erp-ui-interaction-standards.md
+7. docs/design/erp-field-governance-standards.md
+8. 07-ux-governance/action_truth_matrix.csv
+9. current source tree under src/
+10. tests/
+11. database/README.md
+
+Phase 0 — Retrofit older completion packs
+Scan docs/erp_completion_packs_v1/.
+
+For each transaction-related pack:
+- quote_sales_order_completion_pack_v1
+- procure_to_pay_completion_pack_v1
+- production/shop-floor pack if present
+- inventory/warehouse pack if present
+- quality/NCR pack if present
+- dispatch/logistics pack if present
+- finance pack if present
+
+Add or reference TRANSACTION_LINE_GRID_STANDARD_ADDENDUM.md.
+Update old prompts/specs only where needed so they cannot accept card-per-line desktop transaction entry.
+
+Phase 1 — Code anti-pattern scan
+Create/update:
+scripts/audit-transaction-line-grid.mjs
+
+The script must fail on:
+- lines[0]
+- firstLine
+- First quote line
+- index === 0 line-only update/save logic
+- no Add Line for multiline transactions
+- no Remove Line for multiline transactions
+- card-style full line blocks in desktop transaction entry
+- totals calculated only from first line
+
+It must inspect at minimum:
+- Quote
+- Sales Order
+- Blanket Order
+- Forecast
+- ATP
+- Purchase Requisition
+- RFQ
+- Supplier Quotation
+- Purchase Order
+- GRN
+- Purchase Invoice / 3-Way Match
+- Vendor Return
+- Material Issue
+- Material Return
+- Stock Transfer
+- Production Receipt
+- Scrap/Rework
+- Quality Inspection
+- Dispatch / Packing List / Delivery Challan
+
+Add package script:
+- audit:transaction-line-grid
+
+Ensure audit:erp-completion includes this audit if such script exists.
+
+Phase 2 — Shared grid component
+Create or update reusable desktop transaction grid components under src/web/src/ui/ or appropriate shared folder.
+
+Required capabilities:
+- compact editable grid/table
+- Add Line
+- Remove Line
+- inline lookup cells
+- inline numeric cells
+- row detail expansion for optional fields
+- sticky header or usable large-list scroll
+- sticky footer/totals where applicable
+- row actions
+- save all lines
+- no card-per-line default on desktop
+
+Name components clearly, for example:
+- ErpTransactionLineGrid
+- ErpTransactionTotalsPanel
+- ErpLineActionMenu
+- ErpEditableLookupCell
+- ErpEditableNumberCell
+
+Phase 3 — Apply to current transaction screens
+Replace card-per-line or single-line editors with the grid pattern where currently implemented.
+
+Priority order:
+1. Quote
+2. Sales Order
+3. Purchase Requisition / Purchase Order
+4. GRN / Purchase Receipt
+5. Material Issue / Material Return / Transfer
+6. Production Receipt / Scrap/Rework
+7. Dispatch / Packing List / Delivery Challan
+8. Quality Inspection / NCR
+9. Forecast / ATP / Blanket Order where applicable
+
+If a screen cannot be fully implemented now:
+- the action must be disabled with clear reason,
+- or the screen must still expose the correct grid skeleton if it is an implemented create/edit workspace,
+- but it must not use card-per-line as the desktop solution.
+
+Phase 4 — Transaction tests
+Create/update tests:
+
+- QuoteLineGridFlow.test.tsx
+- SalesOrderLineGridFlow.test.tsx
+- PurchaseOrderLineGridFlow.test.tsx
+- GoodsReceiptLineGridFlow.test.tsx
+- InventoryMovementLineGridFlow.test.tsx
+- ProductionReceiptLineGridFlow.test.tsx
+- DispatchLineGridFlow.test.tsx
+
+Tests must prove:
+1. new transaction opens a header + editable line grid,
+2. user can add at least 3 lines,
+3. user can edit multiple line values,
+4. user can remove the middle line,
+5. save draft/save persists all remaining lines where backend exists,
+6. reopened transaction shows all lines where backend exists,
+7. totals recalculate from all lines where applicable,
+8. screen does not render full card per line as the desktop entry pattern,
+9. no first-line-only implementation remains.
+
+If backend persistence is not available:
+- test must prove save is disabled with reason,
+- but UI must still not be a dead button or misleading card-based transaction form.
+
+Phase 5 — Matrix and docs
+Create/update:
+- docs/final-audit/10_transaction_line_grid_matrix.csv
+- docs/codex-progress/TRANSACTION-LINE-GRID-STANDARDIZATION-01-output.md
+- docs/codex-progress/README.md
+
+Matrix columns:
+- Domain
+- TransactionScreen
+- Route/Page
+- CurrentLineUIPattern
+- RequiredUIPattern
+- AddLine
+- RemoveLine
+- EditsAllLines
+- SavesAllLines
+- ReopensAllLines
+- TotalsFromAllLines
+- CardPatternRemoved
+- FirstLineAntiPatternRemoved
+- Status
+- Notes
+
+Phase 6 — Validation
+Run:
+- npm run typecheck
+- npm test
+- npm run audit:transaction-line-grid
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+If validation fails:
+- fix trivial test/code blockers and rerun
+- stop only for real blocker
+
+Phase 7 — Screenshots
+Capture screenshots for:
+- Quote line grid
+- Add Line in quote
+- Remove Line in quote
+- quote totals
+- Sales Order line grid or disabled reason
+- Purchase Order line grid if implemented
+- GRN line grid if implemented
+- Material Issue or Transfer line grid if implemented
+- Production Receipt line grid if implemented
+- Dispatch/Packing line grid if implemented
+
+If a screen scrolls, max 3 screenshots:
+- top
+- middle
+- bottom
+
+Store:
+docs/codex-review-screens/TRANSACTION-LINE-GRID-STANDARDIZATION-01/
+
+Phase 8 — Review pack
+Create:
+artifacts/review-packs/TRANSACTION-LINE-GRID-STANDARDIZATION-01-review-pack.zip
+
+Include:
+- TRANSACTION-LINE-GRID-STANDARDIZATION-01-output.md
+- 10_transaction_line_grid_matrix.csv
+- updated action truth matrix if changed
+- audit script
+- screenshot folder
+- changed tests
+- changed completion pack files
+
+Before stopping:
+1. commit all changes
+2. push main
+3. return only:
+   - transaction packs retrofitted
+   - transaction screens fixed
+   - screens still blocked
+   - card-per-line instances removed
+   - first-line anti-patterns removed
+   - tests added
+   - validation results
+   - screenshot folder
+   - review pack path

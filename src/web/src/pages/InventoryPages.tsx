@@ -22,7 +22,7 @@ import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataA
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
+import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpTransactionLineGrid, ErpValidationSummary } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -386,19 +386,28 @@ function StockPostingModal({
             <label className="form-span-2"><span>Remarks</span><input aria-label="Stock posting remarks" disabled={!isLive} onChange={(event) => setWorkspace({ ...workspace, remarks: event.target.value || null })} value={workspace.remarks ?? ""} /></label>
           </FormShell>
           <Card title="Stock posting lines" description="Every line posts as its own audited inventory movement.">
-            {workspace.lines.map((line, index) => (
-              <FormShell initialFingerprint={`${workspace.mode}-${workspace.transactionNo}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
-                <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
-                {workspace.mode !== "return" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting source warehouse."} label="Source warehouse" onChange={(value) => updateLine(index, { fromWarehouseId: numberValue(value), fromBinId: null })} options={warehouseOptions} required value={line.fromWarehouseId ? String(line.fromWarehouseId) : ""} /> : null}
-                {workspace.mode !== "return" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting source bin."} label="Source bin" onChange={(value) => updateLine(index, { fromBinId: numberValue(value) })} options={binOptions} value={line.fromBinId ? String(line.fromBinId) : ""} /> : null}
-                {workspace.mode !== "issue" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting destination warehouse."} label="Destination warehouse" onChange={(value) => updateLine(index, { toWarehouseId: numberValue(value), toBinId: null })} options={warehouseOptions} required value={line.toWarehouseId ? String(line.toWarehouseId) : ""} /> : null}
-                {workspace.mode !== "issue" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting destination bin."} label="Destination bin" onChange={(value) => updateLine(index, { toBinId: numberValue(value) })} options={binOptions} value={line.toBinId ? String(line.toBinId) : ""} /> : null}
-                <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing quantity."} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required value={line.quantity} />
-                <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing catch weight."} label="Catch weight" min={0} onChange={(value) => updateLine(index, { catchWeightQty: value })} value={line.catchWeightQty} />
-                <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing inventory state."} label="Inventory state" onChange={(value) => updateLine(index, { inventoryState: value })} options={inventoryStateOptions} required value={line.inventoryState} />
-                <ErpActionBar danger={[{ disabled: !isLive || workspace.lines.length <= 1, label: "Remove Line", onClick: isLive && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !isLive ? "Live inventory sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one stock posting line is required." : undefined }]} />
-              </FormShell>
-            ))}
+            <ErpTransactionLineGrid
+              addDisabled={!isLive}
+              addDisabledReason="Live inventory sign-in is required before adding stock lines."
+              addLabel="Add Line"
+              ariaLabel="Stock posting line grid"
+              columns={[
+                { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                { key: "fromWarehouse", header: "Source wh", width: "160px", render: (line, index) => workspace.mode !== "return" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting source warehouse."} label="Source warehouse" onChange={(value) => updateLine(index, { fromWarehouseId: numberValue(value), fromBinId: null })} options={warehouseOptions} required value={line.fromWarehouseId ? String(line.fromWarehouseId) : ""} /> : <span className="muted">Return receipt</span> },
+                { key: "fromBin", header: "Source bin", width: "140px", render: (line, index) => workspace.mode !== "return" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting source bin."} label="Source bin" onChange={(value) => updateLine(index, { fromBinId: numberValue(value) })} options={binOptions} value={line.fromBinId ? String(line.fromBinId) : ""} /> : <span className="muted">N/A</span> },
+                { key: "toWarehouse", header: "Dest wh", width: "160px", render: (line, index) => workspace.mode !== "issue" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting destination warehouse."} label="Destination warehouse" onChange={(value) => updateLine(index, { toWarehouseId: numberValue(value), toBinId: null })} options={warehouseOptions} required value={line.toWarehouseId ? String(line.toWarehouseId) : ""} /> : <span className="muted">Issue out</span> },
+                { key: "toBin", header: "Dest bin", width: "140px", render: (line, index) => workspace.mode !== "issue" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting destination bin."} label="Destination bin" onChange={(value) => updateLine(index, { toBinId: numberValue(value) })} options={binOptions} value={line.toBinId ? String(line.toBinId) : ""} /> : <span className="muted">N/A</span> },
+                { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing quantity."} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required value={line.quantity} /> },
+                { key: "cw", header: "Catch wt", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing catch weight."} label="Catch weight" min={0} onChange={(value) => updateLine(index, { catchWeightQty: value })} value={line.catchWeightQty} /> },
+                { key: "state", header: "State", width: "150px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing inventory state."} label="Inventory state" onChange={(value) => updateLine(index, { inventoryState: value })} options={inventoryStateOptions} required value={line.inventoryState} /> },
+                { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !isLive || workspace.lines.length <= 1, label: "Remove Line", onClick: isLive && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !isLive ? "Live inventory sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one stock posting line is required." : undefined }]} /> }
+              ]}
+              getRowId={(line, index) => `${line.lineNo}-${index}`}
+              lines={workspace.lines}
+              onAddLine={addLine}
+              testId="stock-posting-line-grid"
+            />
           </Card>
         </div>
       ) : null}
