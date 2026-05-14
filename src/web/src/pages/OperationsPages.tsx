@@ -4,7 +4,7 @@ import { apiClient } from "../api/http";
 import { bomRecords } from "../api/mockData";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { hasLiveSession } from "../api/liveData";
-import type { CycleCountUpsertRequest } from "../api/contracts";
+import type { BomDto, CycleCountUpsertRequest, WorkOrderUpsertRequest } from "../api/contracts";
 import { useAuth } from "../auth/AuthContext";
 import {
   getJobCardDetailSetup,
@@ -30,7 +30,7 @@ import { ListPageShell } from "../ui/ListPageShell";
 import { FilterBar } from "../ui/FilterBar";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField } from "../ui/ErpComponents";
+import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { Timeline } from "../ui/Timeline";
 import { KpiStrip, LaneBoard, OccupancyCalendar, type Lane, type LaneSlot } from "../ui/boards";
@@ -485,6 +485,159 @@ const operationColumns: DataGridColumn<WorkOrderOperationLineItem>[] = [
   { key: "status", header: "Status", width: "12%", render: (record) => <StatusBadge status={record.status} /> }
 ];
 
+type WorkOrderLifecycleAction = "release" | "re-release" | "generate-job-cards" | "cancel" | "close";
+
+interface WorkOrderDraft {
+  workOrderNo: string;
+  salesOrderLineId: number | null;
+  itemId: number;
+  bomRevisionId: number;
+  routingId: number | null;
+  plannedQuantity: number;
+  productionUomId: number;
+  plannedStartDate: string;
+  plannedEndDate: string;
+  status: string;
+  remarks: string;
+}
+
+function optionFrom(value: string) {
+  return { label: value, value };
+}
+
+function entityOption<T>(items: T[] | undefined, getValue: (item: T) => number, getLabel: (item: T) => string) {
+  return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
+}
+
+function buildWorkOrderNo() {
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 12);
+  return `WO-${stamp}`;
+}
+
+function buildInitialWorkOrderDraft(): WorkOrderDraft {
+  return {
+    workOrderNo: buildWorkOrderNo(),
+    salesOrderLineId: null,
+    itemId: 0,
+    bomRevisionId: 0,
+    routingId: null,
+    plannedQuantity: 1,
+    productionUomId: 0,
+    plannedStartDate: new Date().toISOString().slice(0, 10),
+    plannedEndDate: "",
+    status: "PendingRelease",
+    remarks: ""
+  };
+}
+
+function workOrderValidationErrors(draft: WorkOrderDraft | null, isLive: boolean) {
+  if (!draft) {
+    return ["Open a work-order draft before saving."];
+  }
+
+  return [
+    !isLive ? "Live production sign-in is required before saving work orders." : "",
+    draft.workOrderNo.trim() ? "" : "Work-order number is required.",
+    draft.itemId > 0 ? "" : "Item is required.",
+    draft.bomRevisionId > 0 ? "" : "Released or approved BOM revision is required.",
+    draft.productionUomId > 0 ? "" : "Production UOM is required.",
+    draft.plannedQuantity > 0 ? "" : "Planned quantity must be greater than zero.",
+    draft.plannedStartDate && draft.plannedEndDate && draft.plannedEndDate < draft.plannedStartDate
+      ? "Planned end date cannot be earlier than planned start date."
+      : ""
+  ].filter(Boolean);
+}
+
+function buildWorkOrderRequest(draft: WorkOrderDraft, companyId: number, branchId: number): WorkOrderUpsertRequest {
+  return {
+    companyId,
+    branchId,
+    workOrderNo: draft.workOrderNo.trim(),
+    salesOrderLineId: draft.salesOrderLineId,
+    itemId: draft.itemId,
+    bomRevisionId: draft.bomRevisionId,
+    routingId: draft.routingId,
+    plannedQuantity: draft.plannedQuantity,
+    productionUomId: draft.productionUomId,
+    plannedStartDate: draft.plannedStartDate || null,
+    plannedEndDate: draft.plannedEndDate || null,
+    status: draft.status,
+    remarks: draft.remarks || null
+  };
+}
+
+function releasedBomRevisionOptions(boms: BomDto[] | undefined) {
+  return (boms ?? []).flatMap((bom) =>
+    bom.revisions
+      .filter((revision) => ["Approved", "Released"].includes(revision.approvalStatus))
+      .map((revision) => ({
+        label: `${bom.bomCode} / ${revision.revisionCode} / ${revision.approvalStatus}`,
+        value: String(revision.id),
+        itemId: bom.itemId,
+        routingId: revision.routingId
+      }))
+  );
+}
+
+function workOrderActionReason(
+  session: Parameters<typeof hasLiveSession>[0],
+  detail: WorkOrderSetupItem | null | undefined,
+  action: WorkOrderLifecycleAction,
+  isPending: boolean
+) {
+  if (!detail) {
+    return "Open a work order before running lifecycle actions.";
+  }
+
+  if (!hasLiveSession(session)) {
+    return "Live production sign-in is required before updating work orders.";
+  }
+
+  if (isPending) {
+    return "A work-order action is already running.";
+  }
+
+  const status = detail.status.toLowerCase();
+
+  if (action === "release") {
+    if (status === "released") {
+      return "Work order is already released.";
+    }
+
+    if (status === "closed" || status === "cancelled") {
+      return "Closed or cancelled work orders cannot be released.";
+    }
+
+    if (detail.blockers.length > 0) {
+      return `Resolve release blockers before release: ${detail.blockers[0]}`;
+    }
+  }
+
+  if (action === "re-release" && !["released", "pendingrelease", "pending release", "onhold", "on hold"].includes(status)) {
+    return "Only released, pending-release, or on-hold work orders can be re-released.";
+  }
+
+  if (action === "generate-job-cards" && !["released", "inprogress", "in process", "partiallycompleted", "partially completed"].includes(status)) {
+    return "Release the work order before generating job cards.";
+  }
+
+  if (action === "close") {
+    if (detail.operations.length === 0) {
+      return "Work-order operations must exist before closing the work order.";
+    }
+
+    if (!detail.operations.every((operation) => ["Completed", "Cancelled"].includes(operation.status))) {
+      return "All operations must be completed or cancelled before closing the work order.";
+    }
+  }
+
+  if (action === "cancel" && ["closed", "cancelled", "completed"].includes(status)) {
+    return "Completed, closed, or already cancelled work orders cannot be cancelled here.";
+  }
+
+  return undefined;
+}
+
 export function WorkOrdersPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -492,11 +645,37 @@ export function WorkOrdersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<WorkOrderDraft | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionTone, setActionTone] = useState<"success" | "warn" | "danger" | "info">("info");
   const { deferredSearch, filter } = useProductionFilter(search, status);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
+  const isLive = hasLiveSession(session);
   const query = useApiQuery(
     queryKeys.production.workOrders(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status),
     () => listWorkOrderSetup(session, filter),
     { staleTime: 60_000 }
+  );
+  const itemLookup = useApiQuery(
+    queryKeys.masters.items(companyId, "", "Active"),
+    () => isLive && companyId > 0 ? apiClient.masters.itemLookup(companyId) : Promise.resolve([]),
+    { enabled: isLive && companyId > 0, staleTime: 60_000 }
+  );
+  const bomQuery = useApiQuery(
+    queryKeys.engineering.boms(companyId, "", "all"),
+    () => isLive && companyId > 0 ? apiClient.engineering.boms({ companyId, pageSize: 100, status: "all" }).then((response) => response.items) : Promise.resolve([]),
+    { enabled: isLive && companyId > 0, staleTime: 60_000 }
+  );
+  const routingQuery = useApiQuery(
+    queryKeys.engineering.routings(companyId, "", "all"),
+    () => isLive && companyId > 0 ? apiClient.engineering.routings({ companyId, pageSize: 100, status: "all" }).then((response) => response.items) : Promise.resolve([]),
+    { enabled: isLive && companyId > 0, staleTime: 60_000 }
+  );
+  const uomQuery = useApiQuery(
+    queryKeys.measurements.uoms(companyId, "", "Active"),
+    () => isLive && companyId > 0 ? apiClient.measurements.uoms({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]),
+    { enabled: isLive && companyId > 0, staleTime: 60_000 }
   );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
@@ -508,6 +687,93 @@ export function WorkOrdersPage() {
   const detail = detailQuery.data ?? selected;
   const source = records[0]?.source ?? "Seeded";
   const requestedWorkOrder = searchParams.get("workOrder");
+  const itemOptions = entityOption(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
+  const bomOptions = releasedBomRevisionOptions(bomQuery.data);
+  const routingOptions = entityOption(routingQuery.data, (routing) => routing.id, (routing) => `${routing.routingCode} / ${routing.routingName}`);
+  const uomOptions = entityOption(uomQuery.data, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const validation = workOrderValidationErrors(draft, isLive);
+  const saveReason = validation[0];
+
+  const saveMutation = useApiMutation(
+    async (value: WorkOrderDraft) => apiClient.production.createWorkOrder(buildWorkOrderRequest(value, companyId, branchId)),
+    {
+      onSuccess: async (result) => {
+        setActionTone("success");
+        setActionMessage(`Work order ${result.workOrderNo} saved.`);
+        setDraft(null);
+        setSelectedId(`work-order-${result.id}`);
+        await query.refetch();
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
+
+  const lifecycleMutation = useApiMutation(
+    async (action: WorkOrderLifecycleAction) => {
+      if (!detail) {
+        throw new Error("Open a work order before running lifecycle actions.");
+      }
+
+      if (action === "release") {
+        return apiClient.production.releaseWorkOrder(detail.workOrderId, { remarks: "Released from production work-order workspace." });
+      }
+
+      if (action === "re-release") {
+        return apiClient.production.reReleaseWorkOrder(detail.workOrderId, { remarks: "Re-released from production work-order workspace." });
+      }
+
+      if (action === "generate-job-cards") {
+        const cards = await apiClient.production.createJobCardsForWorkOrder({ workOrderId: detail.workOrderId, regenerateIfExists: false });
+        return { id: String(detail.workOrderId), status: "Job cards ready", referenceNo: cards.map((card) => card.jobCardNo).join(", "), warnings: cards.length === 0 ? ["No job cards were returned by the generation endpoint."] : [] };
+      }
+
+      if (action === "close") {
+        return apiClient.production.closeWorkOrder(detail.workOrderId, { remarks: "Closed from production work-order workspace." });
+      }
+
+      return apiClient.production.cancelWorkOrder(detail.workOrderId, { remarks: "Cancelled from production work-order workspace." });
+    },
+    {
+      onSuccess: async (result, action) => {
+        setActionTone("success");
+        setActionMessage(action === "generate-job-cards" ? `Job cards generated: ${result.referenceNo || "ready"}.` : `Work-order action posted. Status: ${result.status}.`);
+        await Promise.all([query.refetch(), detailQuery.refetch()]);
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
+
+  const openCreateDraft = () => {
+    const firstBom = bomOptions[0];
+    const firstUom = uomOptions[0];
+    setActionMessage(null);
+    setDraft({
+      ...buildInitialWorkOrderDraft(),
+      itemId: firstBom?.itemId ?? (itemOptions[0] ? Number(itemOptions[0].value) : 0),
+      bomRevisionId: firstBom ? Number(firstBom.value) : 0,
+      routingId: firstBom?.routingId ?? (routingOptions[0] ? Number(routingOptions[0].value) : null),
+      productionUomId: firstUom ? Number(firstUom.value) : 0
+    });
+  };
+
+  const updateDraft = (patch: Partial<WorkOrderDraft>) => {
+    setDraft((current) => current ? { ...current, ...patch } : current);
+  };
+
+  const updateBomRevision = (value: string) => {
+    const selectedBom = bomOptions.find((option) => option.value === value);
+    updateDraft({
+      bomRevisionId: value ? Number(value) : 0,
+      itemId: selectedBom?.itemId ?? draft?.itemId ?? 0,
+      routingId: selectedBom?.routingId ?? draft?.routingId ?? null
+    });
+  };
 
   useEffect(() => {
     if (!requestedWorkOrder || records.length === 0) {
@@ -529,7 +795,7 @@ export function WorkOrdersPage() {
   return (
     <>
       <ListPageShell
-        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New work order", reason: "Work-order creation requires planning release workflow enablement." }]} secondary={[{ disabled: true, label: "Export", reason: "Work-order export is pending the approved reporting workflow." }, { disabled: true, label: "Print pack", reason: "Work-order print pack is pending document workflow enablement." }]} testId="work-order-action-bar" /></>}
+        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !isLive || companyId <= 0 || branchId <= 0 || bomOptions.length === 0 || uomOptions.length === 0, label: "New work order", onClick: openCreateDraft, reason: !isLive ? "Live production sign-in is required before creating work orders." : companyId <= 0 || branchId <= 0 ? "Select an operating company and branch before creating a work order." : bomOptions.length === 0 ? "Create and approve a BOM revision before creating a work order." : uomOptions.length === 0 ? "Create an active production UOM before creating a work order." : undefined }]} secondary={[{ disabled: true, label: "Export", reason: "Work-order export is pending the approved reporting workflow." }, { disabled: true, label: "Print pack", reason: "Work-order print pack is pending document workflow enablement." }]} testId="work-order-action-bar" /></>}
         description="List, release-readiness review, re-release cues, and work-order monitoring for planning and supervision."
         filters={<FilterBar><input aria-label="Search work orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search WO, item, sales order" value={search} /><select aria-label="Work order status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Planned">Planned</option><option value="Released">Released</option><option value="InProcess">In process</option><option value="Completed">Completed</option></select></FilterBar>}
         title="Work Orders"
@@ -541,9 +807,10 @@ export function WorkOrdersPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Materials, operations, readiness, reservations, and release action labels."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Review release", reason: "Release review requires planning release workflow enablement." }, { disabled: true, label: "Generate job cards", reason: "Job-card generation requires production release workflow enablement." }]} secondary={[{ label: "Issue materials", onClick: () => navigate(`/inventory/material-issue?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Receive production", onClick: () => navigate(`/production/receipts?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Print traveler", onClick: () => navigate(`/reports/print-pack?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: Boolean(workOrderActionReason(session, detail, "release", lifecycleMutation.isPending)), label: lifecycleMutation.isPending ? "Releasing" : "Release work order", onClick: () => lifecycleMutation.mutate("release"), reason: workOrderActionReason(session, detail, "release", lifecycleMutation.isPending) }, { disabled: Boolean(workOrderActionReason(session, detail, "generate-job-cards", lifecycleMutation.isPending)), label: lifecycleMutation.isPending ? "Generating" : "Generate job cards", onClick: () => lifecycleMutation.mutate("generate-job-cards"), reason: workOrderActionReason(session, detail, "generate-job-cards", lifecycleMutation.isPending) }]} secondary={[{ disabled: Boolean(workOrderActionReason(session, detail, "re-release", lifecycleMutation.isPending)), label: "Re-release", onClick: () => lifecycleMutation.mutate("re-release"), reason: workOrderActionReason(session, detail, "re-release", lifecycleMutation.isPending) }, { disabled: Boolean(workOrderActionReason(session, detail, "close", lifecycleMutation.isPending)), label: "Close work order", onClick: () => lifecycleMutation.mutate("close"), reason: workOrderActionReason(session, detail, "close", lifecycleMutation.isPending) }, { label: "Issue materials", onClick: () => navigate(`/inventory/material-issue?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Receive production", onClick: () => navigate(`/production/receipts?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Print traveler", onClick: () => navigate(`/reports/print-pack?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(detail)}
         onClose={() => setSelectedId(null)}
+        statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
         title={detail?.workOrderNo ?? "Selected work order"}
       >
         {detail ? (
@@ -565,6 +832,44 @@ export function WorkOrdersPage() {
             <Card title="Operation readiness" description="Operation and capacity status for the selected work order.">
               <DataGrid ariaLabel="Work order operations" columns={operationColumns} getRowId={(record) => record.id} isLoading={detailQuery.isLoading} records={detail.operations} rowLabel={(record) => `${record.operationLabel} work order operation`} />
             </Card>
+          </>
+        ) : null}
+      </ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Create a live work order from approved engineering and planning sources."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || saveMutation.isPending, label: saveMutation.isPending ? "Saving work order" : "Save work order", onClick: () => draft ? saveMutation.mutate(draft) : undefined, reason: saveReason }]} secondary={[{ disabled: true, label: "Save and release", reason: "Release still requires the readiness check after the work order is saved." }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />}
+        isOpen={Boolean(draft)}
+        onClose={() => setDraft(null)}
+        statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
+        title="New work order"
+      >
+        {draft ? (
+          <>
+            <ErpValidationSummary errors={validation} />
+            <FormShell initialFingerprint={draft.workOrderNo} title="Work-order planning controls">
+              <label>
+                <span>Work-order number</span>
+                <input aria-label="Work-order number" disabled={!isLive} onChange={(event) => updateDraft({ workOrderNo: event.target.value })} value={draft.workOrderNo} />
+              </label>
+              <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting an item."} label="Item" onChange={(value) => updateDraft({ itemId: value ? Number(value) : 0 })} options={itemOptions} required value={draft.itemId ? String(draft.itemId) : ""} />
+              <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting a BOM revision."} label="BOM revision" onChange={updateBomRevision} options={bomOptions} required value={draft.bomRevisionId ? String(draft.bomRevisionId) : ""} />
+              <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting routing."} label="Routing" onChange={(value) => updateDraft({ routingId: value ? Number(value) : null })} options={routingOptions} value={draft.routingId ? String(draft.routingId) : ""} />
+              <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before entering planned quantity."} label="Planned quantity" min={0.000001} onChange={(value) => updateDraft({ plannedQuantity: value ?? 0 })} required value={draft.plannedQuantity} />
+              <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before selecting production UOM."} label="Production UOM" onChange={(value) => updateDraft({ productionUomId: value ? Number(value) : 0 })} options={uomOptions} required value={draft.productionUomId ? String(draft.productionUomId) : ""} />
+              <label>
+                <span>Planned start</span>
+                <input aria-label="Planned start" disabled={!isLive} onChange={(event) => updateDraft({ plannedStartDate: event.target.value })} type="date" value={draft.plannedStartDate} />
+              </label>
+              <label>
+                <span>Planned end</span>
+                <input aria-label="Planned end" disabled={!isLive} onChange={(event) => updateDraft({ plannedEndDate: event.target.value })} type="date" value={draft.plannedEndDate} />
+              </label>
+              <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live production sign-in is required before changing status."} label="Status" onChange={(value) => updateDraft({ status: value })} options={["Draft", "PendingRelease", "OnHold"].map(optionFrom)} value={draft.status} />
+              <label className="form-span-2">
+                <span>Remarks</span>
+                <textarea aria-label="Work-order remarks" disabled={!isLive} onChange={(event) => updateDraft({ remarks: event.target.value })} rows={3} value={draft.remarks} />
+              </label>
+            </FormShell>
           </>
         ) : null}
       </ErpModalWorkspace>

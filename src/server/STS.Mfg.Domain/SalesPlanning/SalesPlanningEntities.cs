@@ -53,24 +53,38 @@ public sealed class QuoteLine : AuditableEntity
     public long? ItemVariantId { get; private set; }
     public long OrderUomId { get; private set; }
     public decimal Quantity { get; private set; }
+    public decimal UnitPrice { get; private set; }
+    public decimal DiscountPercent { get; private set; }
+    public decimal DiscountAmount { get; private set; }
+    public decimal TaxPercent { get; private set; }
+    public decimal TaxAmount { get; private set; }
+    public decimal LineAmount { get; private set; }
     public string MakeType { get; private set; } = string.Empty;
     public DateOnly? PromisedDate { get; private set; }
     public string PriorityCode { get; private set; } = string.Empty;
     public string? CustomerSpecRef { get; private set; }
     public string Status { get; private set; } = string.Empty;
 
-    public static QuoteLine Create(long quoteId, int lineNo, long itemId, long? itemVariantId, long orderUomId, decimal quantity, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, string status, long? userId)
+    public static QuoteLine Create(long quoteId, int lineNo, long itemId, long? itemVariantId, long orderUomId, decimal quantity, decimal unitPrice, decimal discountPercent, decimal taxPercent, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, string status, long? userId)
     {
         var entity = new QuoteLine { QuoteId = quoteId, LineNo = lineNo, ItemId = itemId, ItemVariantId = itemVariantId, OrderUomId = orderUomId };
-        entity.Update(quantity, makeType, promisedDate, priorityCode, customerSpecRef, status, userId);
+        entity.Update(quantity, unitPrice, discountPercent, taxPercent, makeType, promisedDate, priorityCode, customerSpecRef, status, userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
     }
 
-    public void Update(decimal quantity, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, string status, long? userId)
+    public void Update(decimal quantity, decimal unitPrice, decimal discountPercent, decimal taxPercent, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, string status, long? userId)
     {
         Quantity = quantity;
+        UnitPrice = unitPrice;
+        DiscountPercent = discountPercent;
+        TaxPercent = taxPercent;
+        var grossAmount = decimal.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+        DiscountAmount = decimal.Round(grossAmount * discountPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        var taxableAmount = grossAmount - DiscountAmount;
+        TaxAmount = decimal.Round(taxableAmount * taxPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        LineAmount = taxableAmount + TaxAmount;
         MakeType = makeType.Trim();
         PromisedDate = promisedDate;
         PriorityCode = priorityCode.Trim();

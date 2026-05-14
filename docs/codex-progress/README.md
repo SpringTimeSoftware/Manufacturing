@@ -298,6 +298,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - WS10 Service/Warranty/AMC blocked on 2026-05-13 by explicit V1 field-service, warranty, and customer-support suite exclusion. Output: `/docs/codex-progress/WS10-output.md`
 - WS11 Final Release/Performance/Hardening completed repo-executable release guards and smoke evidence on 2026-05-13; product remains not pilot-ready until UAT/mobile/provider/restore blockers close. Output: `/docs/codex-progress/WS11-output.md`
 - MARKET-V2-MASTER-COMPLETION-RUNNER-01 completed V2 workbook repair/status fill, P0 transaction-line fixes, ERP completion gate expansion, and P0/P1 queue generation on 2026-05-13. Output: `/docs/codex-progress/MARKET-BENCHMARK-V2-FIT-GAP-AND-CODEX-EXECUTION-PACK-01-output.md`
+- P0-P1-COMPLETION-CONTINUATION-01 completed on 2026-05-14 to close quote/PO pricing-tax, sales-order drafting, GRN/supplier-invoice/AP posting, material movement posting, production output/rework, production receipt line depth, inventory reservation/traceability, quality inspection/NCR capture, dispatch closeout, work-order release/job-card generation, blanket schedules, forecast lines, ATP commit, subcontract receive-back, and integration credential-reference maintenance. Output: `/docs/codex-progress/P0-P1-COMPLETION-CONTINUATION-01-output.md`
 
 ## Remediation Log
 

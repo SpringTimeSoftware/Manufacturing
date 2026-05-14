@@ -1,8 +1,14 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import type {
+  GoodsReceiptDto,
+  GoodsReceiptUpsertRequest,
   PurchaseOrderUpsertRequest,
   PurchaseRequisitionUpsertRequest,
-  SubcontractOrderUpsertRequest
+  SupplierInvoiceDto,
+  SupplierInvoicePostingResultDto,
+  SupplierInvoiceUpsertRequest,
+  SubcontractOrderUpsertRequest,
+  SubcontractReceiptUpsertRequest
 } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
@@ -95,6 +101,24 @@ interface PoWorkspace {
   lines: PurchaseOrderUpsertRequest["lines"];
 }
 
+interface PoReceiptWorkspace {
+  purchaseOrder: PurchaseOrderItem;
+  goodsReceiptNo: string;
+  receiptDate: string;
+  warehouseId: number | null;
+  status: string;
+  remarks: string | null;
+  lines: GoodsReceiptUpsertRequest["lines"];
+  savedReceipt: GoodsReceiptDto | null;
+  supplierInvoiceNo: string;
+  invoiceDate: string;
+  dueDate: string;
+  currencyCode: string;
+  invoiceLines: SupplierInvoiceUpsertRequest["lines"];
+  savedInvoice: SupplierInvoiceDto | null;
+  postingResult: SupplierInvoicePostingResultDto | null;
+}
+
 interface SubcontractWorkspace {
   mode: WorkspaceMode;
   record: SubcontractPlanItem | null;
@@ -104,6 +128,18 @@ interface SubcontractWorkspace {
   operationId: number | null;
   status: string;
   expectedReturnDate: string;
+}
+
+interface SubcontractReceiptWorkspace {
+  order: SubcontractPlanItem;
+  receiptNo: string;
+  receiptDate: string;
+  receivedQuantity: number;
+  acceptedQuantity: number;
+  rejectedQuantity: number;
+  qcStatus: string;
+  status: string;
+  remarks: string | null;
 }
 
 const prStatusOptions = ["Draft", "Pending", "Pending Approval", "Approved", "Converted"].map(toOption);
@@ -151,6 +187,9 @@ function buildPoLine(lineNo: number): PurchaseOrderUpsertRequest["lines"][number
     itemId: 0,
     purchaseRequisitionLineId: null,
     orderedQuantity: 1,
+    unitPrice: 0,
+    discountPercent: 0,
+    taxPercent: 0,
     orderUomId: 0,
     expectedDate: todayIsoDate(),
     linkedWorkOrderId: null,
@@ -209,6 +248,9 @@ function buildPoWorkspace(record: PurchaseOrderItem | null): PoWorkspace {
           itemId: line.itemId,
           purchaseRequisitionLineId: line.purchaseRequisitionLineId,
           orderedQuantity: line.orderedQuantity,
+          unitPrice: line.unitPrice,
+          discountPercent: line.discountPercent,
+          taxPercent: line.taxPercent,
           orderUomId: line.orderUomId,
           expectedDate: line.expectedDate && line.expectedDate !== "Open" ? line.expectedDate : todayIsoDate(),
           linkedWorkOrderId: line.linkedWorkOrderId,
@@ -217,6 +259,47 @@ function buildPoWorkspace(record: PurchaseOrderItem | null): PoWorkspace {
         }))
       : [buildPoLine(10)]
   };
+}
+
+function buildPoReceiptWorkspace(record: PurchaseOrderItem): PoReceiptWorkspace {
+  return {
+    purchaseOrder: record,
+    goodsReceiptNo: nextDocumentNo("GRN"),
+    receiptDate: todayIsoDate(),
+    warehouseId: null,
+    status: "Received",
+    remarks: `Receipt against ${record.purchaseOrderNo}`,
+    lines: record.lines.map((line) => ({
+      lineNo: line.lineNo,
+      purchaseOrderLineId: line.lineId,
+      receivedQuantity: line.orderedQuantity,
+      acceptedQuantity: line.orderedQuantity,
+      rejectedQuantity: 0,
+      qcStatus: "Accepted",
+      status: "Received"
+    })),
+    savedReceipt: null,
+    supplierInvoiceNo: nextDocumentNo("SUP-INV"),
+    invoiceDate: todayIsoDate(),
+    dueDate: "",
+    currencyCode: "INR",
+    invoiceLines: [],
+    savedInvoice: null,
+    postingResult: null
+  };
+}
+
+function buildInvoiceLinesFromReceipt(receipt: GoodsReceiptDto): SupplierInvoiceUpsertRequest["lines"] {
+  return receipt.lines
+    .filter((line) => line.acceptedQuantity > 0)
+    .map((line) => ({
+      lineNo: line.lineNo,
+      purchaseOrderLineId: line.purchaseOrderLineId,
+      goodsReceiptLineId: line.id,
+      invoiceQuantity: line.acceptedQuantity,
+      unitPrice: line.unitPrice,
+      taxPercent: line.taxPercent
+    }));
 }
 
 function buildSubcontractWorkspace(record: SubcontractPlanItem | null): SubcontractWorkspace {
@@ -229,6 +312,20 @@ function buildSubcontractWorkspace(record: SubcontractPlanItem | null): Subcontr
     operationId: record?.operationId ?? null,
     status: record?.status ?? "Draft",
     expectedReturnDate: record?.expectedReturnDate && record.expectedReturnDate !== "Open" ? record.expectedReturnDate : todayIsoDate()
+  };
+}
+
+function buildSubcontractReceiptWorkspace(order: SubcontractPlanItem): SubcontractReceiptWorkspace {
+  return {
+    order,
+    receiptNo: nextDocumentNo("SUB-RCV"),
+    receiptDate: todayIsoDate(),
+    receivedQuantity: 1,
+    acceptedQuantity: 1,
+    rejectedQuantity: 0,
+    qcStatus: "Accepted",
+    status: "Received",
+    remarks: `Receive-back against ${order.subcontractOrderNo}`
   };
 }
 
@@ -257,6 +354,43 @@ function buildPurchaseOrderRequest(workspace: PoWorkspace, companyId: number, br
   };
 }
 
+function buildGoodsReceiptRequest(workspace: PoReceiptWorkspace, companyId: number, branchId: number): GoodsReceiptUpsertRequest {
+  return {
+    companyId: workspace.purchaseOrder.companyId || companyId,
+    branchId: workspace.purchaseOrder.branchId || branchId,
+    goodsReceiptNo: workspace.goodsReceiptNo,
+    purchaseOrderId: workspace.purchaseOrder.purchaseOrderId,
+    receiptDate: workspace.receiptDate,
+    warehouseId: workspace.warehouseId,
+    status: workspace.status,
+    remarks: workspace.remarks,
+    lines: workspace.lines.map((line, index) => ({
+      ...line,
+      lineNo: (index + 1) * 10
+    }))
+  };
+}
+
+function buildSupplierInvoiceRequest(workspace: PoReceiptWorkspace, companyId: number, branchId: number): SupplierInvoiceUpsertRequest {
+  if (!workspace.savedReceipt) {
+    throw new Error("Save the goods receipt before creating the supplier invoice.");
+  }
+
+  return {
+    companyId: workspace.purchaseOrder.companyId || companyId,
+    branchId: workspace.purchaseOrder.branchId || branchId,
+    supplierInvoiceNo: workspace.supplierInvoiceNo,
+    supplierId: workspace.purchaseOrder.supplierId,
+    purchaseOrderId: workspace.purchaseOrder.purchaseOrderId,
+    goodsReceiptId: workspace.savedReceipt.id,
+    invoiceDate: workspace.invoiceDate,
+    dueDate: workspace.dueDate || null,
+    currencyCode: workspace.currencyCode,
+    status: "Draft",
+    lines: workspace.invoiceLines
+  };
+}
+
 function buildSubcontractRequest(workspace: SubcontractWorkspace, companyId: number, branchId: number): SubcontractOrderUpsertRequest {
   return {
     companyId: workspace.record?.companyId ?? companyId,
@@ -267,6 +401,22 @@ function buildSubcontractRequest(workspace: SubcontractWorkspace, companyId: num
     operationId: workspace.operationId,
     status: workspace.status,
     expectedReturnDate: workspace.expectedReturnDate || null
+  };
+}
+
+function buildSubcontractReceiptRequest(workspace: SubcontractReceiptWorkspace, companyId: number, branchId: number): SubcontractReceiptUpsertRequest {
+  return {
+    companyId: workspace.order.companyId || companyId,
+    branchId: workspace.order.branchId || branchId,
+    receiptNo: workspace.receiptNo,
+    subcontractOrderId: workspace.order.subcontractOrderId,
+    receiptDate: workspace.receiptDate,
+    receivedQuantity: workspace.receivedQuantity,
+    acceptedQuantity: workspace.acceptedQuantity,
+    rejectedQuantity: workspace.rejectedQuantity,
+    qcStatus: workspace.qcStatus,
+    status: workspace.status,
+    remarks: workspace.remarks
   };
 }
 
@@ -318,6 +468,130 @@ function procurementValidationErrors(workspace: PrWorkspace | PoWorkspace | Subc
         errors.push(`Line ${index + 1} expected line date is required.`);
       }
     });
+  }
+
+  return errors;
+}
+
+function receiptValidationErrors(workspace: PoReceiptWorkspace | null) {
+  if (!workspace) {
+    return [];
+  }
+
+  const errors: string[] = [];
+
+  if (!workspace.goodsReceiptNo.trim()) {
+    errors.push("GRN number is required.");
+  }
+
+  if (!workspace.receiptDate) {
+    errors.push("Receipt date is required.");
+  }
+
+  if (!workspace.warehouseId) {
+    errors.push("Receiving warehouse is required.");
+  }
+
+  if (workspace.lines.length === 0) {
+    errors.push("At least one receipt line is required.");
+  }
+
+  workspace.lines.forEach((line, index) => {
+    if (!line.purchaseOrderLineId) {
+      errors.push(`Receipt line ${index + 1} must reference a purchase order line.`);
+    }
+    if (!line.receivedQuantity || line.receivedQuantity <= 0) {
+      errors.push(`Receipt line ${index + 1} received quantity must be greater than zero.`);
+    }
+    if (line.acceptedQuantity < 0 || line.rejectedQuantity < 0) {
+      errors.push(`Receipt line ${index + 1} accepted and rejected quantities cannot be negative.`);
+    }
+    if (line.acceptedQuantity + line.rejectedQuantity !== line.receivedQuantity) {
+      errors.push(`Receipt line ${index + 1} accepted plus rejected quantity must equal received quantity before posting.`);
+    }
+  });
+
+  return errors;
+}
+
+function invoiceValidationErrors(workspace: PoReceiptWorkspace | null) {
+  if (!workspace) {
+    return [];
+  }
+
+  const errors: string[] = [];
+
+  if (!workspace.savedReceipt) {
+    errors.push("Save the GRN before creating a supplier invoice.");
+  }
+
+  if (!workspace.supplierInvoiceNo.trim()) {
+    errors.push("Supplier invoice number is required.");
+  }
+
+  if (!workspace.invoiceDate) {
+    errors.push("Supplier invoice date is required.");
+  }
+
+  if (!workspace.currencyCode.trim()) {
+    errors.push("Currency is required.");
+  }
+
+  if (workspace.invoiceLines.length === 0) {
+    errors.push("At least one accepted receipt line is required for invoice matching.");
+  }
+
+  workspace.invoiceLines.forEach((line, index) => {
+    if (!line.goodsReceiptLineId || !line.purchaseOrderLineId) {
+      errors.push(`Invoice line ${index + 1} must reference GRN and PO lines.`);
+    }
+    if (!line.invoiceQuantity || line.invoiceQuantity <= 0) {
+      errors.push(`Invoice line ${index + 1} invoice quantity must be greater than zero.`);
+    }
+    if (line.unitPrice < 0) {
+      errors.push(`Invoice line ${index + 1} unit price cannot be negative.`);
+    }
+    if (line.taxPercent < 0 || line.taxPercent > 100) {
+      errors.push(`Invoice line ${index + 1} tax percent must be between 0 and 100.`);
+    }
+  });
+
+  return errors;
+}
+
+function subcontractReceiptValidationErrors(workspace: SubcontractReceiptWorkspace | null) {
+  if (!workspace) {
+    return [];
+  }
+
+  const errors: string[] = [];
+
+  if (!workspace.receiptNo.trim()) {
+    errors.push("Subcontract receipt number is required.");
+  }
+
+  if (!workspace.receiptDate) {
+    errors.push("Receipt date is required.");
+  }
+
+  if (!workspace.receivedQuantity || workspace.receivedQuantity <= 0) {
+    errors.push("Received quantity must be greater than zero.");
+  }
+
+  if (workspace.acceptedQuantity < 0 || workspace.rejectedQuantity < 0) {
+    errors.push("Accepted and rejected quantities cannot be negative.");
+  }
+
+  if (workspace.acceptedQuantity + workspace.rejectedQuantity !== workspace.receivedQuantity) {
+    errors.push("Accepted plus rejected quantity must equal received quantity.");
+  }
+
+  if (!workspace.qcStatus.trim()) {
+    errors.push("QC status is required.");
+  }
+
+  if (!workspace.status.trim()) {
+    errors.push("Receipt status is required.");
   }
 
   return errors;
@@ -514,19 +788,24 @@ export function PurchaseOrderPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [workspace, setWorkspace] = useState<PoWorkspace | null>(null);
+  const [receiptWorkspace, setReceiptWorkspace] = useState<PoReceiptWorkspace | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const { deferredSearch, filter } = useProcurementFilter(search, status);
   const query = useApiQuery(queryKeys.procurement.purchaseOrders(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listPurchaseOrderSetup(session, filter), { staleTime: 60_000 });
   const suppliers = useApiQuery(queryKeys.partners.suppliers(companyId, branchId, "", "Active"), () => apiClient.partners.suppliers({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const warehouses = useApiQuery(queryKeys.organization.warehouses(companyId, branchId, "", "Active"), () => apiClient.organization.warehouses({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const preview = workspace?.record ?? records[0] ?? null;
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
   const supplierOptions = entityOptions(suppliers.data?.items, (supplier) => supplier.id, (supplier) => `${supplier.supplierCode} / ${supplier.supplierName}`);
   const itemOptions = entityOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const uomOptions = entityOptions(uoms.data?.items, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const validationErrors = procurementValidationErrors(workspace);
+  const grnErrors = receiptValidationErrors(receiptWorkspace);
+  const invoiceErrors = invoiceValidationErrors(receiptWorkspace);
   const savePurchaseOrder = useApiMutation(
     (request: PurchaseOrderUpsertRequest) =>
       workspace?.record
@@ -549,6 +828,45 @@ export function PurchaseOrderPage() {
     },
     onError: (error) => setMessage(error.message)
   });
+  const saveReceipt = useApiMutation((request: GoodsReceiptUpsertRequest) => apiClient.procurement.createGoodsReceipt(request), {
+    onSuccess: (record) => {
+      setMessage(`Saved ${record.goodsReceiptNo} and posted accepted/rejected quantities to inventory.`);
+      setReceiptWorkspace((current) =>
+        current
+          ? {
+              ...current,
+              savedReceipt: record,
+              invoiceLines: buildInvoiceLinesFromReceipt(record),
+              savedInvoice: null,
+              postingResult: null
+            }
+          : current
+      );
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const createSupplierInvoice = useApiMutation((request: SupplierInvoiceUpsertRequest) => apiClient.procurement.createSupplierInvoice(request), {
+    onSuccess: (record) => {
+      setMessage(`Created supplier invoice ${record.supplierInvoiceNo} with ${record.matchStatus.toLowerCase()} match status.`);
+      setReceiptWorkspace((current) => (current ? { ...current, savedInvoice: record, postingResult: null } : current));
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const matchSupplierInvoice = useApiMutation((id: number) => apiClient.procurement.matchSupplierInvoice(id), {
+    onSuccess: (record) => {
+      setMessage(`Matched supplier invoice ${record.supplierInvoiceNo}.`);
+      setReceiptWorkspace((current) => (current ? { ...current, savedInvoice: record } : current));
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const postSupplierInvoice = useApiMutation((id: number) => apiClient.procurement.postSupplierInvoice(id), {
+    onSuccess: async (record) => {
+      setMessage(`Posted ${record.invoice.supplierInvoiceNo} to AP liability ${record.liability.liabilityNo}.`);
+      setReceiptWorkspace((current) => (current ? { ...current, savedInvoice: record.invoice, postingResult: record } : current));
+      await query.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
   const saveReason = !live
     ? "Purchase order save requires a live procurement session."
     : validationErrors.length > 0
@@ -565,6 +883,49 @@ export function PurchaseOrderPage() {
         : approvePurchaseOrder.isPending
           ? "Purchase order approval is in progress."
           : undefined;
+  const receiveReason = !live
+    ? "PO receiving requires a live procurement session."
+    : !workspace?.record
+      ? "Open a saved purchase order before receiving."
+      : workspace.record.lines.length === 0
+        ? "Purchase order must have at least one saved line before receiving."
+        : undefined;
+  const saveReceiptReason = !live
+    ? "GRN save requires a live procurement session."
+    : grnErrors.length > 0
+      ? "Resolve GRN validation issues before saving."
+      : receiptWorkspace?.savedReceipt
+        ? "This GRN is already saved. Create or post the supplier invoice next."
+        : saveReceipt.isPending
+          ? "GRN save is in progress."
+          : undefined;
+  const createInvoiceReason = !live
+    ? "Supplier invoice creation requires a live procurement session."
+    : invoiceErrors.length > 0
+      ? "Resolve supplier invoice validation issues before creating the invoice."
+      : receiptWorkspace?.savedInvoice
+        ? "Supplier invoice is already created for this receipt workspace."
+        : createSupplierInvoice.isPending
+          ? "Supplier invoice creation is in progress."
+          : undefined;
+  const matchInvoiceReason = !live
+    ? "Supplier invoice match requires a live procurement session."
+    : !receiptWorkspace?.savedInvoice
+      ? "Create the supplier invoice before matching."
+      : matchSupplierInvoice.isPending
+        ? "Supplier invoice match is in progress."
+        : undefined;
+  const postInvoiceReason = !live
+    ? "AP posting requires a live procurement session."
+    : !receiptWorkspace?.savedInvoice
+      ? "Create and match the supplier invoice before AP posting."
+      : receiptWorkspace.savedInvoice.matchStatus !== "Matched"
+        ? "Only matched supplier invoices can be posted to AP."
+        : receiptWorkspace.savedInvoice.apStatus === "Posted" || receiptWorkspace.postingResult
+          ? "Supplier invoice is already posted to AP."
+          : postSupplierInvoice.isPending
+            ? "AP posting is in progress."
+            : undefined;
 
   const updateLine = (lineIndex: number, patch: Partial<PurchaseOrderUpsertRequest["lines"][number]>) => {
     if (!workspace) {
@@ -596,6 +957,28 @@ export function PurchaseOrderPage() {
     });
   };
 
+  const updateReceiptLine = (lineIndex: number, patch: Partial<GoodsReceiptUpsertRequest["lines"][number]>) => {
+    if (!receiptWorkspace || receiptWorkspace.savedReceipt) {
+      return;
+    }
+
+    setReceiptWorkspace({
+      ...receiptWorkspace,
+      lines: receiptWorkspace.lines.map((line, index) => (index === lineIndex ? { ...line, ...patch } : line))
+    });
+  };
+
+  const updateInvoiceLine = (lineIndex: number, patch: Partial<SupplierInvoiceUpsertRequest["lines"][number]>) => {
+    if (!receiptWorkspace || receiptWorkspace.savedInvoice) {
+      return;
+    }
+
+    setReceiptWorkspace({
+      ...receiptWorkspace,
+      invoiceLines: receiptWorkspace.invoiceLines.map((line, index) => (index === lineIndex ? { ...line, ...patch } : line))
+    });
+  };
+
   return (
     <>
       <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New PO draft", onClick: () => { setMessage(null); setWorkspace(buildPoWorkspace(null)); } }, { disabled: Boolean(approveReason), label: approvePurchaseOrder.isPending ? "Approving PO" : "Approve PO", onClick: approveReason || !workspace?.record ? undefined : () => approvePurchaseOrder.mutate(workspace.record!.purchaseOrderId), reason: approveReason }]} secondary={[{ disabled: true, label: "Export PO follow-up", reason: "PO export is pending the approved reporting workflow." }]} testId="purchase-order-action-bar" /></>} description="PO list with status, overdue follow-up, receipts context, and source linkage." filters={<FilterBar><input aria-label="Search purchase orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search PO, supplier, item, follow-up" value={search} /><select aria-label="Purchase order status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Open">Open</option><option value="Late">Late</option><option value="Approved">Approved</option></select></FilterBar>} title="Purchase Order List / Detail">
@@ -613,7 +996,7 @@ export function PurchaseOrderPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description={workspace?.mode === "create" ? "Create a purchase order draft for an approved supplier." : "Edit and approve purchase-order follow-up fields with governed controls."}
-        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: savePurchaseOrder.isPending ? "Saving purchase order" : "Save purchase order", onClick: workspace && !saveReason ? () => savePurchaseOrder.mutate(buildPurchaseOrderRequest(workspace, companyId, branchId)) : undefined, reason: saveReason }]} secondary={[{ disabled: Boolean(approveReason), label: approvePurchaseOrder.isPending ? "Approving PO" : "Approve PO", onClick: approveReason || !workspace?.record ? undefined : () => approvePurchaseOrder.mutate(workspace.record!.purchaseOrderId), reason: approveReason }, { disabled: true, label: "Receive against PO", reason: "PO receiving requires the GRN/receipt workflow, which is not implemented in this V1 procurement slice." }]} utility={[{ label: "Close", onClick: () => setWorkspace(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: savePurchaseOrder.isPending ? "Saving purchase order" : "Save purchase order", onClick: workspace && !saveReason ? () => savePurchaseOrder.mutate(buildPurchaseOrderRequest(workspace, companyId, branchId)) : undefined, reason: saveReason }]} secondary={[{ disabled: Boolean(approveReason), label: approvePurchaseOrder.isPending ? "Approving PO" : "Approve PO", onClick: approveReason || !workspace?.record ? undefined : () => approvePurchaseOrder.mutate(workspace.record!.purchaseOrderId), reason: approveReason }, { disabled: Boolean(receiveReason), label: "Receive against PO", onClick: !receiveReason && workspace?.record ? () => { setReceiptWorkspace(buildPoReceiptWorkspace(workspace.record!)); setWorkspace(null); setMessage(null); } : undefined, reason: receiveReason }]} utility={[{ label: "Close", onClick: () => setWorkspace(null), variant: "quiet" }]} />}
         isOpen={Boolean(workspace)}
         onClose={() => setWorkspace(null)}
         title={workspace?.purchaseOrderNo ?? "Purchase order"}
@@ -634,14 +1017,66 @@ export function PurchaseOrderPage() {
                   <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) ?? 0 })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} />
                   <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting a UOM."} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: numberValue(value) ?? 0 })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} />
                   <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing quantity."} label="Ordered quantity" min={0.001} onChange={(value) => updateLine(index, { orderedQuantity: value ?? 0 })} required value={line.orderedQuantity} />
-                  <ErpMoneyField disabled disabledReason="Purchase order rate save requires the approved pricing and landed-cost contract for procurement lines." label="Unit price" onChange={() => undefined} value={null} />
-                  <ErpDecimalField disabled disabledReason="Purchase order tax calculation requires the approved tax engine for procurement lines." label="Tax %" onChange={() => undefined} scale={2} unit="%" value={null} />
+                  <ErpMoneyField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing unit price."} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
+                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing discount."} label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} />
+                  <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing tax."} label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} />
                   <label><span>Expected line date</span><input aria-label="Expected line date" disabled={!live} onChange={(event) => updateLine(index, { expectedDate: event.target.value })} required type="date" value={dateControlValue(line.expectedDate)} /></label>
                   <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing line status."} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={poStatusOptions} value={line.status} />
                   <ErpActionBar danger={[{ disabled: !live || workspace.lines.length <= 1, label: "Remove Line", onClick: live && workspace.lines.length > 1 ? () => removeLine(index) : undefined, reason: !live ? "Live procurement sign-in is required before removing lines." : workspace.lines.length <= 1 ? "At least one purchase order line is required." : undefined }]} />
                 </FormShell>
               ))}
             </Card>
+          </div>
+        ) : null}
+      </ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Receive accepted and rejected PO quantities into inventory, then create, match, and post the supplier invoice to AP."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReceiptReason), label: saveReceipt.isPending ? "Saving GRN" : "Save GRN", onClick: receiptWorkspace && !saveReceiptReason ? () => saveReceipt.mutate(buildGoodsReceiptRequest(receiptWorkspace, companyId, branchId)) : undefined, reason: saveReceiptReason }, { disabled: Boolean(createInvoiceReason), label: createSupplierInvoice.isPending ? "Creating invoice" : "Create supplier invoice", onClick: receiptWorkspace && !createInvoiceReason ? () => createSupplierInvoice.mutate(buildSupplierInvoiceRequest(receiptWorkspace, companyId, branchId)) : undefined, reason: createInvoiceReason }, { disabled: Boolean(postInvoiceReason), label: postSupplierInvoice.isPending ? "Posting AP" : "Post AP liability", onClick: receiptWorkspace?.savedInvoice && !postInvoiceReason ? () => postSupplierInvoice.mutate(receiptWorkspace.savedInvoice!.id) : undefined, reason: postInvoiceReason }]} secondary={[{ disabled: Boolean(matchInvoiceReason), label: matchSupplierInvoice.isPending ? "Matching invoice" : "Run 2-way/3-way match", onClick: receiptWorkspace?.savedInvoice && !matchInvoiceReason ? () => matchSupplierInvoice.mutate(receiptWorkspace.savedInvoice!.id) : undefined, reason: matchInvoiceReason }]} utility={[{ label: "Close", onClick: () => setReceiptWorkspace(null), variant: "quiet" }]} />}
+        isOpen={Boolean(receiptWorkspace)}
+        onClose={() => setReceiptWorkspace(null)}
+        title={receiptWorkspace ? `Receive ${receiptWorkspace.purchaseOrder.purchaseOrderNo}` : "Receive purchase order"}
+        validation={<ErpValidationSummary errors={receiptWorkspace?.savedReceipt ? invoiceErrors : [...grnErrors, ...invoiceErrors.filter((error) => !error.includes("Save the GRN"))]} />}
+      >
+        {receiptWorkspace ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${receiptWorkspace.purchaseOrder.id}-${receiptWorkspace.goodsReceiptNo}`} title="Goods receipt">
+              <label><span>GRN number</span><input aria-label="GRN number" disabled={!live || Boolean(receiptWorkspace.savedReceipt)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, goodsReceiptNo: event.target.value })} value={receiptWorkspace.goodsReceiptNo} /></label>
+              <label><span>Receipt date</span><input aria-label="Receipt date" disabled={!live || Boolean(receiptWorkspace.savedReceipt)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, receiptDate: event.target.value })} required type="date" value={dateControlValue(receiptWorkspace.receiptDate)} /></label>
+              <ErpLookupField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Receiving warehouse cannot be changed after the GRN is saved." : live ? undefined : "Live procurement sign-in is required before selecting a receiving warehouse."} label="Receiving warehouse" onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, warehouseId: numberValue(value) })} options={warehouseOptions} required value={receiptWorkspace.warehouseId ? String(receiptWorkspace.warehouseId) : ""} />
+              <ErpLookupField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "GRN status cannot be changed after posting inventory." : live ? undefined : "Live procurement sign-in is required before changing status."} label="GRN status" onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, status: value })} options={["Received", "QC Hold", "Closed"].map(toOption)} required value={receiptWorkspace.status} />
+              <label><span>Receipt remarks</span><input aria-label="Receipt remarks" disabled={!live || Boolean(receiptWorkspace.savedReceipt)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, remarks: event.target.value })} value={receiptWorkspace.remarks ?? ""} /></label>
+            </FormShell>
+            <Card title="Receipt lines" description="Accepted quantity posts to available stock; rejected quantity posts to QC hold.">
+              {receiptWorkspace.lines.map((line, index) => (
+                <FormShell initialFingerprint={`${receiptWorkspace.purchaseOrder.id}-receipt-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Receipt line ${index + 1}`}>
+                  <ErpNumberField disabled label="PO line id" onChange={() => undefined} value={line.purchaseOrderLineId} />
+                  <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Receipt quantities cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing received quantity."} label="Received quantity" min={0.001} onChange={(value) => updateReceiptLine(index, { receivedQuantity: value ?? 0 })} required value={line.receivedQuantity} />
+                  <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Accepted quantity cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing accepted quantity."} label="Accepted quantity" min={0} onChange={(value) => updateReceiptLine(index, { acceptedQuantity: value ?? 0 })} required value={line.acceptedQuantity} />
+                  <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "Rejected quantity cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing rejected quantity."} label="Rejected quantity" min={0} onChange={(value) => updateReceiptLine(index, { rejectedQuantity: value ?? 0 })} required value={line.rejectedQuantity} />
+                  <ErpLookupField disabled={!live || Boolean(receiptWorkspace.savedReceipt)} disabledReason={receiptWorkspace.savedReceipt ? "QC status cannot be changed after inventory posting." : live ? undefined : "Live procurement sign-in is required before changing QC status."} label="QC status" onChange={(value) => updateReceiptLine(index, { qcStatus: value })} options={["Accepted", "Rejected", "Partial"].map(toOption)} value={line.qcStatus} />
+                </FormShell>
+              ))}
+            </Card>
+            <FormShell initialFingerprint={`${receiptWorkspace.purchaseOrder.id}-${receiptWorkspace.supplierInvoiceNo}`} title="Supplier invoice and AP">
+              <label><span>Supplier invoice number</span><input aria-label="Supplier invoice number" disabled={!live || !receiptWorkspace.savedReceipt || Boolean(receiptWorkspace.savedInvoice)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, supplierInvoiceNo: event.target.value })} value={receiptWorkspace.supplierInvoiceNo} /></label>
+              <label><span>Invoice date</span><input aria-label="Supplier invoice date" disabled={!live || !receiptWorkspace.savedReceipt || Boolean(receiptWorkspace.savedInvoice)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, invoiceDate: event.target.value })} required type="date" value={dateControlValue(receiptWorkspace.invoiceDate)} /></label>
+              <label><span>Due date</span><input aria-label="Supplier invoice due date" disabled={!live || !receiptWorkspace.savedReceipt || Boolean(receiptWorkspace.savedInvoice)} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, dueDate: event.target.value })} type="date" value={dateControlValue(receiptWorkspace.dueDate)} /></label>
+              <ErpLookupField disabled={!live || !receiptWorkspace.savedReceipt || Boolean(receiptWorkspace.savedInvoice)} disabledReason={!receiptWorkspace.savedReceipt ? "Save the GRN before selecting invoice currency." : receiptWorkspace.savedInvoice ? "Currency cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before selecting currency."} label="Currency" onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, currencyCode: value })} options={["INR", "USD", "EUR"].map(toOption)} required value={receiptWorkspace.currencyCode} />
+              {receiptWorkspace.savedInvoice ? <Badge tone={receiptWorkspace.savedInvoice.matchStatus === "Matched" ? "success" : "warn"}>{`${receiptWorkspace.savedInvoice.matchStatus} / ${receiptWorkspace.savedInvoice.apStatus}`}</Badge> : null}
+              {receiptWorkspace.postingResult ? <Badge tone="success">{`AP liability ${receiptWorkspace.postingResult.liability.liabilityNo}: ${receiptWorkspace.postingResult.liability.balanceAmount}`}</Badge> : null}
+            </FormShell>
+            {receiptWorkspace.savedReceipt ? (
+              <Card title="Invoice match lines" description="Invoice quantity, price, and tax are compared against the saved GRN and PO line contract.">
+                {receiptWorkspace.invoiceLines.map((line, index) => (
+                  <FormShell initialFingerprint={`${receiptWorkspace.savedReceipt?.id}-invoice-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Invoice line ${index + 1}`}>
+                    <ErpNumberField disabled label="GRN line id" onChange={() => undefined} value={line.goodsReceiptLineId} />
+                    <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice quantity cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing invoice quantity."} label="Invoice quantity" min={0.001} onChange={(value) => updateInvoiceLine(index, { invoiceQuantity: value ?? 0 })} value={line.invoiceQuantity} />
+                    <ErpMoneyField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice price cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing invoice price."} label="Unit price" min={0} onChange={(value) => updateInvoiceLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
+                    <ErpDecimalField disabled={!live || Boolean(receiptWorkspace.savedInvoice)} disabledReason={receiptWorkspace.savedInvoice ? "Invoice tax cannot be changed after invoice creation." : live ? undefined : "Live procurement sign-in is required before changing tax."} label="Tax %" max={100} min={0} onChange={(value) => updateInvoiceLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} />
+                  </FormShell>
+                ))}
+              </Card>
+            ) : null}
           </div>
         ) : null}
       </ErpModalWorkspace>
@@ -665,6 +1100,7 @@ export function SubcontractPlanPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [workspace, setWorkspace] = useState<SubcontractWorkspace | null>(null);
+  const [receiptWorkspace, setReceiptWorkspace] = useState<SubcontractReceiptWorkspace | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const { deferredSearch, filter } = useProcurementFilter(search, status);
   const query = useApiQuery(queryKeys.procurement.subcontractOrders(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listSubcontractPlanSetup(session, filter), { staleTime: 60_000 });
@@ -678,6 +1114,7 @@ export function SubcontractPlanPage() {
   const workOrderOptions = entityOptions(workOrders.data?.items, (workOrder) => workOrder.id, (workOrder) => workOrder.workOrderNo);
   const operationOptions = entityOptions(operations.data?.items, (operation) => operation.id, (operation) => `${operation.operationCode} / ${operation.operationName}`);
   const validationErrors = procurementValidationErrors(workspace);
+  const receiptErrors = subcontractReceiptValidationErrors(receiptWorkspace);
   const saveSubcontract = useApiMutation(
     (request: SubcontractOrderUpsertRequest) =>
       workspace?.record
@@ -700,6 +1137,14 @@ export function SubcontractPlanPage() {
     },
     onError: (error) => setMessage(error.message)
   });
+  const saveSubcontractReceipt = useApiMutation((request: SubcontractReceiptUpsertRequest) => apiClient.procurement.createSubcontractReceipt(request), {
+    onSuccess: async (record) => {
+      setMessage(`Received subcontract return ${record.receiptNo}.`);
+      setReceiptWorkspace(null);
+      await query.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
   const saveReason = !live
     ? "Outside-processing save requires a live procurement session."
     : validationErrors.length > 0
@@ -716,6 +1161,20 @@ export function SubcontractPlanPage() {
         : approveSubcontract.isPending
           ? "Outside-processing approval is in progress."
           : undefined;
+  const receiveReason = !live
+    ? "Receive-back posting requires a live procurement session."
+    : !workspace?.record
+      ? "Open a saved outside-processing plan before receive-back."
+      : workspace.record.status.toLowerCase().includes("closed")
+        ? "This outside-processing plan is already closed."
+        : undefined;
+  const saveReceiptReason = !live
+    ? "Subcontract receive-back requires a live procurement session."
+    : receiptErrors.length > 0
+      ? "Resolve receive-back validation issues before saving."
+      : saveSubcontractReceipt.isPending
+        ? "Subcontract receive-back save is in progress."
+        : undefined;
 
   return (
     <>
@@ -735,13 +1194,34 @@ export function SubcontractPlanPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description={workspace?.mode === "create" ? "Create an outside-processing plan for a supplier operation." : "Edit and approve outside-processing send-out planning."}
-        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: saveSubcontract.isPending ? "Saving outside plan" : "Save outside plan", onClick: workspace && !saveReason ? () => saveSubcontract.mutate(buildSubcontractRequest(workspace, companyId, branchId)) : undefined, reason: saveReason }]} secondary={[{ disabled: Boolean(approveReason), label: approveSubcontract.isPending ? "Approving plan" : "Approve outside plan", onClick: approveReason || !workspace?.record ? undefined : () => approveSubcontract.mutate(workspace.record!.subcontractOrderId), reason: approveReason }, { disabled: true, label: "Receive back", reason: "Receive-back posting requires the receiving/GRN workflow and incoming QC handoff." }]} utility={[{ label: "Close", onClick: () => setWorkspace(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: saveSubcontract.isPending ? "Saving outside plan" : "Save outside plan", onClick: workspace && !saveReason ? () => saveSubcontract.mutate(buildSubcontractRequest(workspace, companyId, branchId)) : undefined, reason: saveReason }]} secondary={[{ disabled: Boolean(approveReason), label: approveSubcontract.isPending ? "Approving plan" : "Approve outside plan", onClick: approveReason || !workspace?.record ? undefined : () => approveSubcontract.mutate(workspace.record!.subcontractOrderId), reason: approveReason }, { disabled: Boolean(receiveReason), label: "Receive back", onClick: !receiveReason && workspace?.record ? () => { setReceiptWorkspace(buildSubcontractReceiptWorkspace(workspace.record!)); setWorkspace(null); setMessage(null); } : undefined, reason: receiveReason }]} utility={[{ label: "Close", onClick: () => setWorkspace(null), variant: "quiet" }]} />}
         isOpen={Boolean(workspace)}
         onClose={() => setWorkspace(null)}
         title={workspace?.subcontractOrderNo ?? "Subcontract plan"}
         validation={<ErpValidationSummary errors={validationErrors} />}
       >
         {workspace ? <FormShell initialFingerprint={`${workspace.mode}-${workspace.record?.id ?? "new"}-${workspace.subcontractOrderNo}`} title="Subcontract planning controls"><label><span>Subcontract order number</span><input aria-label="Subcontract order number" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, subcontractOrderNo: event.target.value })} value={workspace.subcontractOrderNo} /></label><ErpLookupField disabled={!live || workspace.mode === "edit"} disabledReason={workspace.mode === "edit" ? "Supplier cannot be changed after the outside-processing plan is saved." : live ? undefined : "Live procurement sign-in is required before selecting a supplier."} label="Supplier" onChange={(value) => setWorkspace({ ...workspace, supplierId: numberValue(value) })} options={supplierOptions} required value={workspace.supplierId ? String(workspace.supplierId) : ""} /><ErpLookupField disabled={!live || workspace.mode === "edit"} disabledReason={workspace.mode === "edit" ? "Work-order link cannot be changed after the outside-processing plan is saved." : live ? undefined : "Live procurement sign-in is required before selecting a work order."} label="Work order" onChange={(value) => setWorkspace({ ...workspace, workOrderId: numberValue(value) })} options={workOrderOptions} value={workspace.workOrderId ? String(workspace.workOrderId) : ""} /><ErpLookupField disabled={!live || workspace.mode === "edit"} disabledReason={workspace.mode === "edit" ? "Operation link cannot be changed after the outside-processing plan is saved." : live ? undefined : "Live procurement sign-in is required before selecting an operation."} label="Operation" onChange={(value) => setWorkspace({ ...workspace, operationId: numberValue(value) })} options={operationOptions} value={workspace.operationId ? String(workspace.operationId) : ""} /><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing status."} label="Status" onChange={(value) => setWorkspace({ ...workspace, status: value })} options={subcontractStatusOptions} required value={workspace.status} /><label><span>Expected return</span><input aria-label="Expected return" disabled={!live} onChange={(event) => setWorkspace({ ...workspace, expectedReturnDate: event.target.value })} type="date" value={dateControlValue(workspace.expectedReturnDate)} /></label></FormShell> : null}
+      </ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Post receive-back quantity and QC result for an outside-processing order."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReceiptReason), label: saveSubcontractReceipt.isPending ? "Saving receive-back" : "Save receive-back", onClick: receiptWorkspace && !saveReceiptReason ? () => saveSubcontractReceipt.mutate(buildSubcontractReceiptRequest(receiptWorkspace, companyId, branchId)) : undefined, reason: saveReceiptReason }]} utility={[{ label: "Close", onClick: () => setReceiptWorkspace(null), variant: "quiet" }]} />}
+        isOpen={Boolean(receiptWorkspace)}
+        onClose={() => setReceiptWorkspace(null)}
+        title={receiptWorkspace ? `Receive ${receiptWorkspace.order.subcontractOrderNo}` : "Receive subcontract"}
+        validation={<ErpValidationSummary errors={receiptErrors} />}
+      >
+        {receiptWorkspace ? (
+          <FormShell initialFingerprint={`${receiptWorkspace.order.id}-${receiptWorkspace.receiptNo}`} title="Subcontract receive-back">
+            <label><span>Receipt number</span><input aria-label="Subcontract receipt number" disabled={!live} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, receiptNo: event.target.value })} value={receiptWorkspace.receiptNo} /></label>
+            <label><span>Receipt date</span><input aria-label="Subcontract receipt date" disabled={!live} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, receiptDate: event.target.value })} required type="date" value={dateControlValue(receiptWorkspace.receiptDate)} /></label>
+            <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing received quantity."} label="Received quantity" min={0.001} onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, receivedQuantity: value ?? 0 })} required value={receiptWorkspace.receivedQuantity} />
+            <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing accepted quantity."} label="Accepted quantity" min={0} onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, acceptedQuantity: value ?? 0 })} required value={receiptWorkspace.acceptedQuantity} />
+            <ErpDecimalField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing rejected quantity."} label="Rejected quantity" min={0} onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, rejectedQuantity: value ?? 0 })} required value={receiptWorkspace.rejectedQuantity} />
+            <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before selecting QC status."} label="QC status" onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, qcStatus: value })} options={["Accepted", "Rejected", "Partial"].map(toOption)} required value={receiptWorkspace.qcStatus} />
+            <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live procurement sign-in is required before changing receipt status."} label="Receipt status" onChange={(value) => setReceiptWorkspace({ ...receiptWorkspace, status: value })} options={["Received", "Posted"].map(toOption)} required value={receiptWorkspace.status} />
+            <label><span>Receipt remarks</span><input aria-label="Subcontract receipt remarks" disabled={!live} onChange={(event) => setReceiptWorkspace({ ...receiptWorkspace, remarks: event.target.value })} value={receiptWorkspace.remarks ?? ""} /></label>
+          </FormShell>
+        ) : null}
       </ErpModalWorkspace>
     </>
   );

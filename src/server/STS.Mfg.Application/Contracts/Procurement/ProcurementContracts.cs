@@ -58,6 +58,12 @@ public sealed record PurchaseOrderLineDto(
     long ItemId,
     long? PurchaseRequisitionLineId,
     decimal OrderedQuantity,
+    decimal UnitPrice,
+    decimal DiscountPercent,
+    decimal DiscountAmount,
+    decimal TaxPercent,
+    decimal TaxAmount,
+    decimal LineAmount,
     long OrderUomId,
     DateOnly ExpectedDate,
     long? LinkedWorkOrderId,
@@ -69,6 +75,9 @@ public sealed record PurchaseOrderLineUpsertRequest(
     long ItemId,
     long? PurchaseRequisitionLineId,
     decimal OrderedQuantity,
+    decimal UnitPrice,
+    decimal DiscountPercent,
+    decimal TaxPercent,
     long OrderUomId,
     DateOnly ExpectedDate,
     long? LinkedWorkOrderId,
@@ -120,3 +129,44 @@ public sealed record SubcontractOrderUpsertRequest(
     string Status,
     DateOnly? ExpectedReturnDate,
     string? SupplierCode = null);
+
+public sealed record SubcontractReceiptDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    string ReceiptNo,
+    long SubcontractOrderId,
+    DateOnly ReceiptDate,
+    decimal ReceivedQuantity,
+    decimal AcceptedQuantity,
+    decimal RejectedQuantity,
+    string QcStatus,
+    string Status,
+    string? Remarks);
+
+public sealed record SubcontractReceiptUpsertRequest(
+    long CompanyId,
+    long BranchId,
+    string ReceiptNo,
+    long SubcontractOrderId,
+    DateOnly ReceiptDate,
+    decimal ReceivedQuantity,
+    decimal AcceptedQuantity,
+    decimal RejectedQuantity,
+    string QcStatus,
+    string Status,
+    string? Remarks);
+
+public sealed record GoodsReceiptLineDto(long Id, int LineNo, long PurchaseOrderLineId, long ItemId, long OrderUomId, decimal ReceivedQuantity, decimal AcceptedQuantity, decimal RejectedQuantity, decimal UnitPrice, decimal TaxPercent, decimal LineAmount, string QcStatus, string Status);
+public sealed record GoodsReceiptLineUpsertRequest(int LineNo, long PurchaseOrderLineId, decimal ReceivedQuantity, decimal AcceptedQuantity, decimal RejectedQuantity, string QcStatus, string Status);
+public sealed record GoodsReceiptDto(long Id, long CompanyId, long BranchId, string GoodsReceiptNo, long PurchaseOrderId, long SupplierId, DateOnly ReceiptDate, long? WarehouseId, string Status, string? Remarks, IReadOnlyCollection<GoodsReceiptLineDto> Lines);
+public sealed record GoodsReceiptUpsertRequest(long CompanyId, long BranchId, string GoodsReceiptNo, long PurchaseOrderId, DateOnly ReceiptDate, long? WarehouseId, string Status, string? Remarks, IReadOnlyCollection<GoodsReceiptLineUpsertRequest> Lines);
+
+public sealed record SupplierInvoiceLineDto(long Id, int LineNo, long PurchaseOrderLineId, long GoodsReceiptLineId, long ItemId, decimal InvoiceQuantity, decimal UnitPrice, decimal TaxPercent, decimal TaxAmount, decimal LineAmount, string MatchStatus);
+public sealed record SupplierInvoiceLineUpsertRequest(int LineNo, long PurchaseOrderLineId, long GoodsReceiptLineId, decimal InvoiceQuantity, decimal UnitPrice, decimal TaxPercent);
+public sealed record SupplierInvoiceDto(long Id, long CompanyId, long BranchId, string SupplierInvoiceNo, long SupplierId, long PurchaseOrderId, long GoodsReceiptId, DateOnly InvoiceDate, DateOnly? DueDate, string CurrencyCode, decimal SubtotalAmount, decimal TaxAmount, decimal TotalAmount, string MatchStatus, string ApStatus, string Status, IReadOnlyCollection<SupplierInvoiceLineDto> Lines);
+public sealed record SupplierInvoiceUpsertRequest(long CompanyId, long BranchId, string SupplierInvoiceNo, long SupplierId, long PurchaseOrderId, long GoodsReceiptId, DateOnly InvoiceDate, DateOnly? DueDate, string CurrencyCode, string Status, IReadOnlyCollection<SupplierInvoiceLineUpsertRequest> Lines);
+
+public sealed record AccountsPayableLiabilityDto(long Id, long CompanyId, long BranchId, string LiabilityNo, long SupplierInvoiceId, long SupplierId, DateOnly PostingDate, DateOnly DueDate, decimal PayableAmount, decimal PaidAmount, decimal BalanceAmount, string Status);
+public sealed record AccountingPostingDto(long Id, long CompanyId, long BranchId, string PostingNo, string SourceDocumentType, long SourceDocumentId, DateOnly PostingDate, string DebitAccountCode, string CreditAccountCode, decimal Amount, string Status);
+public sealed record SupplierInvoicePostingResultDto(SupplierInvoiceDto Invoice, AccountsPayableLiabilityDto Liability, IReadOnlyCollection<AccountingPostingDto> Postings);

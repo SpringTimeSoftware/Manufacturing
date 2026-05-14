@@ -10,6 +10,7 @@ import type {
   ApiEnvelope,
   AuthSessionResponse,
   BlanketOrderDto,
+  BlanketOrderUpsertRequest,
   BinDto,
   BinUpsertRequest,
   BomDto,
@@ -76,10 +77,12 @@ import type {
   IntegrationProviderUpsertRequest,
   LoginRequest,
   LogoutRequest,
+  CreateJobCardsRequest,
   DowntimeEventDto,
   InspectionDto,
   InspectionHoldReleaseRequest,
   InspectionPlanDto,
+  InspectionSaveRequest,
   JobCardCompleteRequest,
   JobCardDto,
   JobCardPauseRequest,
@@ -99,6 +102,7 @@ import type {
   MrpRunStartRequest,
   NonConformanceDto,
   NonConformanceActionRequest,
+  NonConformanceUpsertRequest,
   NotificationItem,
   OperationDto,
   OperationUpsertRequest,
@@ -110,12 +114,14 @@ import type {
   OutboundProviderHealthDto,
   PackListDto,
   PackListPrintDto,
+  PackListUpsertRequest,
   PagedResult,
   PaymentTermDto,
   PaymentTermUpsertRequest,
   PriceListDto,
   PriceListUpsertRequest,
   ProductionReceiptDto,
+  ProductionReceiptCreateRequest,
   ProductionReceiptSummaryDto,
   PurchaseOrderDto,
   PurchaseOrderUpsertRequest,
@@ -131,10 +137,13 @@ import type {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   HealthCheckResponse,
+  GoodsReceiptDto,
+  GoodsReceiptUpsertRequest,
   ShiftDto,
   ShiftUpsertRequest,
   StageWiseDashboardItem,
   SalesOrderDto,
+  SalesOrderUpsertRequest,
   SwitchOperatingContextRequest,
   SystemContextResponse,
   SystemInfoResponse,
@@ -169,6 +178,9 @@ import type {
   SupplierAddressDto,
   SupplierAddressUpsertRequest,
   SupplierDto,
+  SupplierInvoiceDto,
+  SupplierInvoicePostingResultDto,
+  SupplierInvoiceUpsertRequest,
   SupplierLeadTimeDto,
   SupplierLeadTimeUpsertRequest,
   SupplierPartnerProfileUpsertRequest,
@@ -176,8 +188,16 @@ import type {
   SupplierUpsertRequest,
   SubcontractOrderDto,
   SubcontractOrderUpsertRequest,
+  SubcontractReceiptDto,
+  SubcontractReceiptUpsertRequest,
   StockBalanceDto,
+  StockIssueRequest,
+  StockReservationDto,
+  StockReservationReleaseRequest,
+  StockReservationRequest,
+  StockReturnRequest,
   StockTransactionDto,
+  StockTransferRequest,
   TaxCategoryDto,
   TaxCategoryUpsertRequest,
   TradeTermDto,
@@ -190,16 +210,23 @@ import type {
   UomConversionUpsertRequest,
   UomDto,
   DemandForecastDto,
+  DemandForecastUpsertRequest,
   MasterProductionScheduleDto,
   LotTraceabilityDto,
   SerialTraceabilityDto,
   ShipmentDto,
   ShipmentProofRequest,
+  ShipmentUpsertRequest,
   ScrapEntryDto,
+  ScrapEntryCreateRequest,
   WorkOrderDto,
+  WorkOrderActionRequest,
   WorkOrderReadinessDto,
   WorkOrderSummaryDto,
-  ReworkOrderDto
+  WorkOrderUpsertRequest,
+  ReworkOrderDto,
+  ReworkOrderActionRequest,
+  ReworkOrderCreateRequest
 } from "./contracts";
 import { serializeFilters } from "./filters";
 
@@ -840,14 +867,44 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<SalesOrderDto>>(`/api/sales-orders?${query}`);
     },
+    createSalesOrder: (body: SalesOrderUpsertRequest) =>
+      request<SalesOrderDto>("/api/sales-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateSalesOrder: (id: number, body: SalesOrderUpsertRequest) =>
+      request<SalesOrderDto>(`/api/sales-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     blanketOrders: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<BlanketOrderDto>>(`/api/blanket-orders?${query}`);
     },
+    createBlanketOrder: (body: BlanketOrderUpsertRequest) =>
+      request<BlanketOrderDto>("/api/blanket-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateBlanketOrder: (id: number, body: BlanketOrderUpsertRequest) =>
+      request<BlanketOrderDto>(`/api/blanket-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     forecasts: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<DemandForecastDto>>(`/api/forecasts?${query}`);
     },
+    createForecast: (body: DemandForecastUpsertRequest) =>
+      request<DemandForecastDto>("/api/forecasts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateForecast: (id: number, body: DemandForecastUpsertRequest) =>
+      request<DemandForecastDto>(`/api/forecasts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     mps: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<MasterProductionScheduleDto>>(`/api/mps?${query}`);
@@ -1010,6 +1067,24 @@ export const apiClient = {
       request<PurchaseOrderDto>(`/api/purchase-orders/${id}/approve`, {
         method: "POST"
       }),
+    createGoodsReceipt: (body: GoodsReceiptUpsertRequest) =>
+      request<GoodsReceiptDto>("/api/goods-receipts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    createSupplierInvoice: (body: SupplierInvoiceUpsertRequest) =>
+      request<SupplierInvoiceDto>("/api/supplier-invoices", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    matchSupplierInvoice: (id: number) =>
+      request<SupplierInvoiceDto>(`/api/supplier-invoices/${id}/match`, {
+        method: "POST"
+      }),
+    postSupplierInvoice: (id: number) =>
+      request<SupplierInvoicePostingResultDto>(`/api/supplier-invoices/${id}/post`, {
+        method: "POST"
+      }),
     subcontractOrders: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<SubcontractOrderDto>>(`/api/subcontract-orders?${query}`);
@@ -1027,6 +1102,15 @@ export const apiClient = {
     approveSubcontractOrder: (id: number) =>
       request<SubcontractOrderDto>(`/api/subcontract-orders/${id}/approve`, {
         method: "POST"
+      }),
+    subcontractReceipts: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<SubcontractReceiptDto>>(`/api/subcontract-receipts?${query}`);
+    },
+    createSubcontractReceipt: (body: SubcontractReceiptUpsertRequest) =>
+      request<SubcontractReceiptDto>("/api/subcontract-receipts", {
+        method: "POST",
+        body: JSON.stringify(body)
       })
   },
   inventory: {
@@ -1038,6 +1122,35 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<StockTransactionDto>>(`/api/inventory/transactions?${query}`);
     },
+    stockReservations: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<StockReservationDto>>(`/api/stock-reservations?${query}`);
+    },
+    reserveStock: (body: StockReservationRequest) =>
+      request<StockReservationDto>("/api/stock-reservations", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    releaseStockReservation: (id: number, body: StockReservationReleaseRequest = {}) =>
+      request<ActionResponse>(`/api/stock-reservations/${id}/release`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    issueStock: (body: StockIssueRequest) =>
+      request<StockTransactionDto[]>("/api/stock-issues", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    returnStock: (body: StockReturnRequest) =>
+      request<StockTransactionDto[]>("/api/stock-returns", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    transferStock: (body: StockTransferRequest) =>
+      request<StockTransactionDto[]>("/api/stock-transfers", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     lotTraceability: (lotNo: string, filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<LotTraceabilityDto>(`/api/traceability/lots/${encodeURIComponent(lotNo)}?${query}`);
@@ -1073,11 +1186,46 @@ export const apiClient = {
     },
     workOrder: (id: number) => request<WorkOrderDto>(`/api/work-orders/${id}`),
     workOrderReadiness: (id: number) => request<WorkOrderReadinessDto>(`/api/work-orders/${id}/readiness`),
+    createWorkOrder: (body: WorkOrderUpsertRequest) =>
+      request<WorkOrderDto>("/api/work-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateWorkOrder: (id: number, body: WorkOrderUpsertRequest) =>
+      request<WorkOrderDto>(`/api/work-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    releaseWorkOrder: (id: number, body: WorkOrderActionRequest = {}) =>
+      request<ActionResponse>(`/api/work-orders/${id}/release`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    reReleaseWorkOrder: (id: number, body: WorkOrderActionRequest = {}) =>
+      request<ActionResponse>(`/api/work-orders/${id}/re-release`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    cancelWorkOrder: (id: number, body: WorkOrderActionRequest = {}) =>
+      request<ActionResponse>(`/api/work-orders/${id}/cancel`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    closeWorkOrder: (id: number, body: WorkOrderActionRequest = {}) =>
+      request<ActionResponse>(`/api/work-orders/${id}/close`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     jobCards: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<JobCardSummaryDto>>(`/api/job-cards?${query}`);
     },
     jobCard: (id: number) => request<JobCardDto>(`/api/job-cards/${id}`),
+    createJobCardsForWorkOrder: (body: CreateJobCardsRequest) =>
+      request<JobCardDto[]>("/api/job-cards/create-for-work-order", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     startJobCard: (id: number, body: JobCardStartRequest) =>
       request<ActionResponse>(`/api/job-cards/${id}/start`, {
         method: "POST",
@@ -1116,15 +1264,40 @@ export const apiClient = {
       return request<PagedResult<ProductionReceiptSummaryDto>>(`/api/production-receipts?${query}`);
     },
     productionReceipt: (id: number) => request<ProductionReceiptDto>(`/api/production-receipts/${id}`),
+    createProductionReceipt: (body: ProductionReceiptCreateRequest) =>
+      request<ProductionReceiptDto>("/api/production-receipts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     scrapEntries: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ScrapEntryDto>>(`/api/scrap-rework/scrap?${query}`);
     },
+    createScrapEntry: (body: ScrapEntryCreateRequest) =>
+      request<ScrapEntryDto>("/api/scrap-rework/scrap", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     reworkOrders: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ReworkOrderDto>>(`/api/scrap-rework/rework-orders?${query}`);
     },
-    reworkOrder: (id: number) => request<ReworkOrderDto>(`/api/scrap-rework/rework-orders/${id}`)
+    reworkOrder: (id: number) => request<ReworkOrderDto>(`/api/scrap-rework/rework-orders/${id}`),
+    createReworkOrder: (body: ReworkOrderCreateRequest) =>
+      request<ReworkOrderDto>("/api/scrap-rework/rework-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    releaseReworkOrder: (id: number, body: ReworkOrderActionRequest = {}) =>
+      request<ActionResponse>(`/api/scrap-rework/rework-orders/${id}/release`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    completeReworkOrder: (id: number, body: ReworkOrderActionRequest = {}) =>
+      request<ActionResponse>(`/api/scrap-rework/rework-orders/${id}/complete`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
   },
   quality: {
     inspectionPlans: (filter: QueryFilter = {}) => {
@@ -1136,6 +1309,11 @@ export const apiClient = {
       return request<PagedResult<InspectionDto>>(`/api/quality/inspections?${query}`);
     },
     inspection: (id: number) => request<InspectionDto>(`/api/quality/inspections/${id}`),
+    saveInspection: (body: InspectionSaveRequest) =>
+      request<InspectionDto>("/api/quality/inspections", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     holdInspection: (id: number, body: InspectionHoldReleaseRequest = {}) =>
       request<ActionResponse>(`/api/quality/inspections/${id}/hold`, {
         method: "POST",
@@ -1151,6 +1329,16 @@ export const apiClient = {
       return request<PagedResult<NonConformanceDto>>(`/api/quality/ncrs?${query}`);
     },
     nonConformance: (id: number) => request<NonConformanceDto>(`/api/quality/ncrs/${id}`),
+    createNonConformance: (body: NonConformanceUpsertRequest) =>
+      request<NonConformanceDto>("/api/quality/ncrs", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateNonConformance: (id: number, body: NonConformanceUpsertRequest) =>
+      request<NonConformanceDto>(`/api/quality/ncrs/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     closeNonConformance: (id: number, body: NonConformanceActionRequest = {}) =>
       request<ActionResponse>(`/api/quality/ncrs/${id}/close`, {
         method: "POST",
@@ -1163,11 +1351,26 @@ export const apiClient = {
       return request<PagedResult<PackListDto>>(`/api/dispatch/pack-lists?${query}`);
     },
     packList: (id: number) => request<PackListDto>(`/api/dispatch/pack-lists/${id}`),
+    createPackList: (body: PackListUpsertRequest) =>
+      request<PackListDto>("/api/dispatch/pack-lists", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updatePackList: (id: number, body: PackListUpsertRequest) =>
+      request<PackListDto>(`/api/dispatch/pack-lists/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     shipments: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ShipmentDto>>(`/api/dispatch/shipments?${query}`);
     },
     shipment: (id: number) => request<ShipmentDto>(`/api/dispatch/shipments/${id}`),
+    createShipment: (body: ShipmentUpsertRequest) =>
+      request<ShipmentDto>("/api/dispatch/shipments", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     updateShipmentProof: (id: number, body: ShipmentProofRequest) =>
       request<ShipmentDto>(`/api/dispatch/shipments/${id}/proof`, {
         method: "POST",

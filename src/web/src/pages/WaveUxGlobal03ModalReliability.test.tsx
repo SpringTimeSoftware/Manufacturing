@@ -85,7 +85,8 @@ describe("Wave UX-GLOBAL-03 modal, action, and lookup reliability", () => {
     fireEvent.click(await screen.findByRole("row", { name: "WO-2026-044 work order" }));
     const dialog = await screen.findByRole("dialog", { name: "WO-2026-044" });
     expect(within(dialog).getByTestId("erp-modal-workspace")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Review release" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Release work order" })).toBeDisabled();
+    expect(within(dialog).getAllByText("Live production sign-in is required before updating work orders.").length).toBeGreaterThan(0);
   });
 
   it("keeps admin access editors centered and removes weak implementation wording", async () => {

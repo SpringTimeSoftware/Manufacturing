@@ -56,6 +56,38 @@ public sealed record StockTransactionDto(
     long? SourceDocumentId,
     string? Remarks);
 
+public sealed record StockReservationDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    long ItemId,
+    long? ItemVariantId,
+    long? WarehouseId,
+    long? BinId,
+    long? LotId,
+    decimal ReservedQuantity,
+    string SourceDocumentType,
+    long SourceDocumentId,
+    string Status);
+
+public sealed record StockReservationRequest(
+    long CompanyId,
+    long BranchId,
+    long ItemId,
+    long? ItemVariantId,
+    long WarehouseId,
+    long? BinId,
+    long? LotId,
+    decimal ReservedQuantity,
+    string SourceDocumentType,
+    long SourceDocumentId,
+    string Status,
+    string? ItemCode = null,
+    string? ItemVariantCode = null,
+    string? LotNo = null);
+
+public sealed record StockReservationReleaseRequest(string? Remarks = null);
+
 public sealed record StockIssueLineRequest(
     int LineNo,
     long ItemId,

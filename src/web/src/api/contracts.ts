@@ -1932,6 +1932,12 @@ export interface QuoteLineDto {
   itemVariantId: number | null;
   orderUomId: number;
   quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  taxPercent: number;
+  taxAmount: number;
+  lineAmount: number;
   makeType: string;
   promisedDate: string | null;
   priorityCode: string;
@@ -1945,6 +1951,9 @@ export interface QuoteLineUpsertRequest {
   itemVariantId: number | null;
   orderUomId: number;
   quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
   makeType: string;
   promisedDate: string | null;
   priorityCode: string;
@@ -2000,6 +2009,22 @@ export interface SalesOrderLineDto {
   status: string;
 }
 
+export interface SalesOrderLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  orderUomId: number;
+  quantity: number;
+  makeType: string;
+  promisedDate: string | null;
+  priorityCode: string;
+  customerSpecRef: string | null;
+  requestedShipDate: string | null;
+  status: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+}
+
 export interface SalesOrderDto {
   id: number;
   companyId: number;
@@ -2016,6 +2041,24 @@ export interface SalesOrderDto {
   lines: SalesOrderLineDto[];
 }
 
+export interface SalesOrderUpsertRequest {
+  companyId: number;
+  branchId: number;
+  salesOrderNo: string;
+  customerId: number;
+  billToAddressId: number | null;
+  shipToAddressId: number | null;
+  orderDate: string;
+  promisedDate: string | null;
+  priorityCode: string;
+  status: string;
+  sourceQuoteId: number | null;
+  lines: SalesOrderLineUpsertRequest[];
+  customerCode?: string | null;
+  billToAddressCode?: string | null;
+  shipToAddressCode?: string | null;
+}
+
 export interface BlanketOrderScheduleDto {
   id: number;
   lineNo: number;
@@ -2024,6 +2067,16 @@ export interface BlanketOrderScheduleDto {
   quantity: number;
   orderUomId: number;
   status: string;
+}
+
+export interface BlanketOrderScheduleUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  scheduleDate: string;
+  quantity: number;
+  orderUomId: number;
+  status: string;
+  itemCode?: string | null;
 }
 
 export interface BlanketOrderDto {
@@ -2038,6 +2091,18 @@ export interface BlanketOrderDto {
   schedules: BlanketOrderScheduleDto[];
 }
 
+export interface BlanketOrderUpsertRequest {
+  companyId: number;
+  branchId?: number | null;
+  blanketOrderNo: string;
+  customerId: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  schedules: BlanketOrderScheduleUpsertRequest[];
+  customerCode?: string | null;
+}
+
 export interface DemandForecastLineDto {
   id: number;
   lineNo: number;
@@ -2046,6 +2111,16 @@ export interface DemandForecastLineDto {
   forecastPeriodEnd: string;
   quantity: number;
   forecastUomId: number;
+}
+
+export interface DemandForecastLineUpsertRequest {
+  lineNo: number;
+  itemId: number;
+  forecastPeriodStart: string;
+  forecastPeriodEnd: string;
+  quantity: number;
+  forecastUomId: number;
+  itemCode?: string | null;
 }
 
 export interface DemandForecastDto {
@@ -2057,6 +2132,16 @@ export interface DemandForecastDto {
   periodType: string;
   status: string;
   lines: DemandForecastLineDto[];
+}
+
+export interface DemandForecastUpsertRequest {
+  companyId: number;
+  branchId?: number | null;
+  forecastCode: string;
+  forecastName: string;
+  periodType: string;
+  status: string;
+  lines: DemandForecastLineUpsertRequest[];
 }
 
 export interface MpsLineDto {
@@ -2565,6 +2650,12 @@ export interface PurchaseOrderLineDto {
   itemId: number;
   purchaseRequisitionLineId: number | null;
   orderedQuantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  taxPercent: number;
+  taxAmount: number;
+  lineAmount: number;
   orderUomId: number;
   expectedDate: string;
   linkedWorkOrderId: number | null;
@@ -2577,6 +2668,9 @@ export interface PurchaseOrderLineUpsertRequest {
   itemId: number;
   purchaseRequisitionLineId: number | null;
   orderedQuantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
   orderUomId: number;
   expectedDate: string;
   linkedWorkOrderId: number | null;
@@ -2634,6 +2728,179 @@ export interface SubcontractOrderUpsertRequest {
   supplierCode?: string | null;
 }
 
+export interface SubcontractReceiptDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  receiptNo: string;
+  subcontractOrderId: number;
+  receiptDate: string;
+  receivedQuantity: number;
+  acceptedQuantity: number;
+  rejectedQuantity: number;
+  qcStatus: string;
+  status: string;
+  remarks: string | null;
+}
+
+export interface SubcontractReceiptUpsertRequest {
+  companyId: number;
+  branchId: number;
+  receiptNo: string;
+  subcontractOrderId: number;
+  receiptDate: string;
+  receivedQuantity: number;
+  acceptedQuantity: number;
+  rejectedQuantity: number;
+  qcStatus: string;
+  status: string;
+  remarks: string | null;
+}
+
+export interface GoodsReceiptLineDto {
+  id: number;
+  lineNo: number;
+  purchaseOrderLineId: number;
+  itemId: number;
+  orderUomId: number;
+  receivedQuantity: number;
+  acceptedQuantity: number;
+  rejectedQuantity: number;
+  unitPrice: number;
+  taxPercent: number;
+  lineAmount: number;
+  qcStatus: string;
+  status: string;
+}
+
+export interface GoodsReceiptLineUpsertRequest {
+  lineNo: number;
+  purchaseOrderLineId: number;
+  receivedQuantity: number;
+  acceptedQuantity: number;
+  rejectedQuantity: number;
+  qcStatus: string;
+  status: string;
+}
+
+export interface GoodsReceiptDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  goodsReceiptNo: string;
+  purchaseOrderId: number;
+  supplierId: number;
+  receiptDate: string;
+  warehouseId: number | null;
+  status: string;
+  remarks: string | null;
+  lines: GoodsReceiptLineDto[];
+}
+
+export interface GoodsReceiptUpsertRequest {
+  companyId: number;
+  branchId: number;
+  goodsReceiptNo: string;
+  purchaseOrderId: number;
+  receiptDate: string;
+  warehouseId: number | null;
+  status: string;
+  remarks: string | null;
+  lines: GoodsReceiptLineUpsertRequest[];
+}
+
+export interface SupplierInvoiceLineUpsertRequest {
+  lineNo: number;
+  purchaseOrderLineId: number;
+  goodsReceiptLineId: number;
+  invoiceQuantity: number;
+  unitPrice: number;
+  taxPercent: number;
+}
+
+export interface SupplierInvoiceLineDto {
+  id: number;
+  lineNo: number;
+  purchaseOrderLineId: number;
+  goodsReceiptLineId: number;
+  itemId: number;
+  invoiceQuantity: number;
+  unitPrice: number;
+  taxPercent: number;
+  taxAmount: number;
+  lineAmount: number;
+  matchStatus: string;
+}
+
+export interface SupplierInvoiceUpsertRequest {
+  companyId: number;
+  branchId: number;
+  supplierInvoiceNo: string;
+  supplierId: number;
+  purchaseOrderId: number;
+  goodsReceiptId: number;
+  invoiceDate: string;
+  dueDate: string | null;
+  currencyCode: string;
+  status: string;
+  lines: SupplierInvoiceLineUpsertRequest[];
+}
+
+export interface SupplierInvoiceDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  supplierInvoiceNo: string;
+  supplierId: number;
+  purchaseOrderId: number;
+  goodsReceiptId: number;
+  invoiceDate: string;
+  dueDate: string | null;
+  currencyCode: string;
+  subtotalAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  matchStatus: string;
+  apStatus: string;
+  status: string;
+  lines: SupplierInvoiceLineDto[];
+}
+
+export interface AccountsPayableLiabilityDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  liabilityNo: string;
+  supplierInvoiceId: number;
+  supplierId: number;
+  postingDate: string;
+  dueDate: string;
+  payableAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  status: string;
+}
+
+export interface AccountingPostingDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  postingNo: string;
+  sourceDocumentType: string;
+  sourceDocumentId: number;
+  postingDate: string;
+  debitAccountCode: string;
+  creditAccountCode: string;
+  amount: number;
+  status: string;
+}
+
+export interface SupplierInvoicePostingResultDto {
+  invoice: SupplierInvoiceDto;
+  liability: AccountsPayableLiabilityDto;
+  postings: AccountingPostingDto[];
+}
+
 export interface StockBalanceDto {
   id: number;
   companyId: number;
@@ -2673,6 +2940,128 @@ export interface StockTransactionDto {
   sourceDocumentType: string | null;
   sourceDocumentId: number | null;
   remarks: string | null;
+}
+
+export interface StockReservationDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  itemId: number;
+  itemVariantId: number | null;
+  warehouseId: number | null;
+  binId: number | null;
+  lotId: number | null;
+  reservedQuantity: number;
+  sourceDocumentType: string;
+  sourceDocumentId: number;
+  status: string;
+}
+
+export interface StockReservationRequest {
+  companyId: number;
+  branchId: number;
+  itemId: number;
+  itemVariantId?: number | null;
+  warehouseId: number;
+  binId?: number | null;
+  lotId?: number | null;
+  reservedQuantity: number;
+  sourceDocumentType: string;
+  sourceDocumentId: number;
+  status: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+}
+
+export interface StockReservationReleaseRequest {
+  remarks?: string | null;
+}
+
+export interface StockIssueLineRequest {
+  lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  fromWarehouseId: number;
+  fromBinId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  quantity: number;
+  catchWeightQty: number | null;
+  inventoryState: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+  serialNo?: string | null;
+}
+
+export interface StockIssueRequest {
+  companyId: number;
+  branchId: number;
+  transactionNo: string;
+  postingDate: string;
+  sourceDocumentType: string | null;
+  sourceDocumentId: number | null;
+  remarks: string | null;
+  lines: StockIssueLineRequest[];
+}
+
+export interface StockReturnLineRequest {
+  lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  toWarehouseId: number;
+  toBinId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  quantity: number;
+  catchWeightQty: number | null;
+  inventoryState: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+  serialNo?: string | null;
+}
+
+export interface StockReturnRequest {
+  companyId: number;
+  branchId: number;
+  transactionNo: string;
+  postingDate: string;
+  sourceDocumentType: string | null;
+  sourceDocumentId: number | null;
+  remarks: string | null;
+  lines: StockReturnLineRequest[];
+}
+
+export interface StockTransferLineRequest {
+  lineNo: number;
+  itemId: number;
+  itemVariantId: number | null;
+  fromWarehouseId: number;
+  fromBinId: number | null;
+  toWarehouseId: number;
+  toBinId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  quantity: number;
+  catchWeightQty: number | null;
+  inventoryState: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+  serialNo?: string | null;
+}
+
+export interface StockTransferRequest {
+  companyId: number;
+  branchId: number;
+  transactionNo: string;
+  postingDate: string;
+  sourceDocumentType: string | null;
+  sourceDocumentId: number | null;
+  remarks: string | null;
+  lines: StockTransferLineRequest[];
 }
 
 export interface LotTraceabilityDto {
@@ -2812,6 +3201,26 @@ export interface WorkOrderDto {
   operations: WorkOrderOperationDto[];
 }
 
+export interface WorkOrderUpsertRequest {
+  companyId: number;
+  branchId: number;
+  workOrderNo: string;
+  salesOrderLineId?: number | null;
+  itemId: number;
+  bomRevisionId: number;
+  routingId?: number | null;
+  plannedQuantity: number;
+  productionUomId: number;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+  status: string;
+  remarks?: string | null;
+}
+
+export interface WorkOrderActionRequest {
+  remarks?: string | null;
+}
+
 export interface WorkOrderReadinessBlockerDto {
   code: string;
   message: string;
@@ -2914,6 +3323,11 @@ export interface JobCardDto {
   status: string;
   events: JobCardEventDto[];
   downtimes: DowntimeEventDto[];
+}
+
+export interface CreateJobCardsRequest {
+  workOrderId: number;
+  regenerateIfExists?: boolean;
 }
 
 export interface JobCardStartRequest {
@@ -3019,6 +3433,40 @@ export interface ProductionReceiptDto {
   stockTransactions: StockTransactionDto[];
 }
 
+export interface ProductionReceiptLineRequest {
+  lineNo: number;
+  lineType: string;
+  itemId: number;
+  itemVariantId: number | null;
+  outputUomId: number;
+  warehouseId: number;
+  binId: number | null;
+  quantity: number;
+  catchWeightQty: number | null;
+  inventoryState: string;
+  remarks: string | null;
+  lotId?: number | null;
+  lotNo?: string | null;
+  manufacturedOn?: string | null;
+  expiryOn?: string | null;
+  serialId?: number | null;
+  serialNo?: string | null;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+}
+
+export interface ProductionReceiptCreateRequest {
+  companyId: number;
+  branchId: number;
+  receiptNo: string;
+  postingDate: string;
+  workOrderId: number | null;
+  jobCardId: number | null;
+  correlationId: string | null;
+  remarks: string | null;
+  lines: ProductionReceiptLineRequest[];
+}
+
 export interface ScrapEntryDto {
   id: number;
   companyId: number;
@@ -3040,6 +3488,30 @@ export interface ScrapEntryDto {
   status: string;
   remarks: string | null;
   stockTransactions: StockTransactionDto[];
+}
+
+export interface ScrapEntryCreateRequest {
+  companyId: number;
+  branchId: number;
+  scrapNo: string;
+  postingDate: string;
+  workOrderId: number | null;
+  jobCardId: number | null;
+  itemId: number;
+  itemVariantId: number | null;
+  warehouseId: number;
+  binId: number | null;
+  quantity: number;
+  catchWeightQty: number | null;
+  reasonCode: string;
+  inventoryState: string;
+  remarks: string | null;
+  lotId?: number | null;
+  lotNo?: string | null;
+  serialId?: number | null;
+  serialNo?: string | null;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
 }
 
 export interface ReworkOrderDto {
@@ -3065,6 +3537,37 @@ export interface ReworkOrderDto {
   releasedOn: string | null;
   closedOn: string | null;
   stockTransactions: StockTransactionDto[];
+}
+
+export interface ReworkOrderCreateRequest {
+  companyId: number;
+  branchId: number;
+  reworkNo: string;
+  sourceDocumentType: string | null;
+  sourceDocumentId: number | null;
+  workOrderId: number | null;
+  jobCardId: number | null;
+  itemId: number;
+  itemVariantId: number | null;
+  sourceWarehouseId: number | null;
+  sourceBinId: number | null;
+  targetWarehouseId: number | null;
+  targetBinId: number | null;
+  quantity: number;
+  catchWeightQty: number | null;
+  reasonCode: string | null;
+  instructions: string | null;
+  inventoryState: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotId?: number | null;
+  lotNo?: string | null;
+  serialId?: number | null;
+  serialNo?: string | null;
+}
+
+export interface ReworkOrderActionRequest {
+  instructions?: string | null;
 }
 
 export interface InspectionPlanDto {
@@ -3110,6 +3613,35 @@ export interface InspectionDto {
   results: InspectionResultDto[];
 }
 
+export interface InspectionResultRequest {
+  lineNo: number;
+  parameterCode: string;
+  expectedValue?: string | null;
+  actualValue?: string | null;
+  resultStatus: string;
+  remarks?: string | null;
+}
+
+export interface InspectionSaveRequest {
+  companyId: number;
+  branchId: number;
+  inspectionNo: string;
+  inspectionPlanId?: number | null;
+  inspectionType: string;
+  sourceDocumentType: string;
+  sourceDocumentId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  requestToken?: string | null;
+  notes?: string | null;
+  overallResult?: string | null;
+  autoCreateNcr: boolean;
+  ncrNo?: string | null;
+  ncrDisposition?: string | null;
+  ncrRootCause?: string | null;
+  results: InspectionResultRequest[];
+}
+
 export interface InspectionHoldReleaseRequest {
   notes?: string | null;
 }
@@ -3131,6 +3663,21 @@ export interface NonConformanceDto {
 }
 
 export interface NonConformanceActionRequest {
+  remarks?: string | null;
+}
+
+export interface NonConformanceUpsertRequest {
+  companyId: number;
+  branchId: number;
+  ncrNo: string;
+  sourceDocumentType: string;
+  sourceDocumentId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  disposition: string;
+  status: string;
+  rootCause?: string | null;
+  reworkOrderId?: number | null;
   remarks?: string | null;
 }
 
@@ -3160,6 +3707,36 @@ export interface PackListDto {
   status: string;
   remarks: string | null;
   lines: PackListLineDto[];
+}
+
+export interface PackListLineRequest {
+  lineNo: number;
+  salesOrderLineId?: number | null;
+  itemId: number;
+  itemVariantId?: number | null;
+  warehouseId: number;
+  binId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  packedQuantity: number;
+  packUomId: number;
+  packageRef?: string | null;
+  status: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+  serialNo?: string | null;
+}
+
+export interface PackListUpsertRequest {
+  companyId: number;
+  branchId: number;
+  packListNo: string;
+  salesOrderId?: number | null;
+  plannedShipDate?: string | null;
+  status: string;
+  remarks?: string | null;
+  lines: PackListLineRequest[];
 }
 
 export interface ShipmentLineDto {
@@ -3195,6 +3772,40 @@ export interface ShipmentDto {
   deliveredOn: string | null;
   lines: ShipmentLineDto[];
   stockTransactions: StockTransactionDto[];
+}
+
+export interface ShipmentLineRequest {
+  lineNo: number;
+  packListLineId?: number | null;
+  salesOrderLineId?: number | null;
+  itemId: number;
+  itemVariantId?: number | null;
+  warehouseId: number;
+  binId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  shippedQuantity: number;
+  shipUomId: number;
+  status: string;
+  itemCode?: string | null;
+  itemVariantCode?: string | null;
+  lotNo?: string | null;
+  serialNo?: string | null;
+}
+
+export interface ShipmentUpsertRequest {
+  companyId: number;
+  branchId: number;
+  shipmentNo: string;
+  packListId?: number | null;
+  customerId: number;
+  dispatchDate: string;
+  vehicleRef?: string | null;
+  trackingRef?: string | null;
+  sealNo?: string | null;
+  proofNotes?: string | null;
+  status: string;
+  lines: ShipmentLineRequest[];
 }
 
 export interface ShipmentProofRequest {

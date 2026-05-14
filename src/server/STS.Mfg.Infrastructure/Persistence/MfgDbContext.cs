@@ -98,6 +98,13 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
     public DbSet<SubcontractOrder> SubcontractOrders => Set<SubcontractOrder>();
+    public DbSet<SubcontractReceipt> SubcontractReceipts => Set<SubcontractReceipt>();
+    public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+    public DbSet<GoodsReceiptLine> GoodsReceiptLines => Set<GoodsReceiptLine>();
+    public DbSet<SupplierInvoice> SupplierInvoices => Set<SupplierInvoice>();
+    public DbSet<SupplierInvoiceLine> SupplierInvoiceLines => Set<SupplierInvoiceLine>();
+    public DbSet<AccountsPayableLiability> AccountsPayableLiabilities => Set<AccountsPayableLiability>();
+    public DbSet<AccountingPosting> AccountingPostings => Set<AccountingPosting>();
 
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<StockTransaction> StockTransactions => Set<StockTransaction>();

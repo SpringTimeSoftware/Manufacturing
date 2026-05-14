@@ -7,6 +7,9 @@ public interface IInventoryService
 {
     Task<PagedResult<StockBalanceDto>> ListStockBalancesAsync(InventoryFilter filter, CancellationToken cancellationToken = default);
     Task<PagedResult<StockTransactionDto>> ListStockTransactionsAsync(InventoryFilter filter, CancellationToken cancellationToken = default);
+    Task<PagedResult<StockReservationDto>> ListStockReservationsAsync(InventoryFilter filter, CancellationToken cancellationToken = default);
+    Task<StockReservationDto> ReserveStockAsync(StockReservationRequest request, CancellationToken cancellationToken = default);
+    Task<ActionResponse> ReleaseStockReservationAsync(long id, StockReservationReleaseRequest? request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<StockTransactionDto>> IssueStockAsync(StockIssueRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<StockTransactionDto>> ReturnStockAsync(StockReturnRequest request, CancellationToken cancellationToken = default);

@@ -142,6 +142,144 @@ internal sealed class InventoryService(
         return MapPage(page, MapStockTransaction);
     }
 
+    public async Task<PagedResult<StockReservationDto>> ListStockReservationsAsync(InventoryFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.StockReservations.AsNoTracking()
+            .ApplyActiveOrganizationScope(scope)
+            .ApplyWarehouseScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        if (filter.WarehouseId.HasValue)
+        {
+            query = query.Where(entity => entity.WarehouseId == filter.WarehouseId.Value);
+        }
+
+        if (filter.ItemId.HasValue)
+        {
+            query = query.Where(entity => entity.ItemId == filter.ItemId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = long.TryParse(search, NumberStyles.Integer, CultureInfo.InvariantCulture, out var sourceDocumentId)
+                ? query.Where(entity => entity.SourceDocumentType.Contains(search) || entity.SourceDocumentId == sourceDocumentId)
+                : query.Where(entity => entity.SourceDocumentType.Contains(search));
+        }
+
+        var page = await query.OrderByDescending(entity => entity.CreatedOn)
+            .ThenByDescending(entity => entity.Id)
+            .ToPagedResultAsync(filter, cancellationToken);
+
+        return MapPage(page, MapStockReservation);
+    }
+
+    public async Task<StockReservationDto> ReserveStockAsync(StockReservationRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateReservation(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var itemId = await ResolveItemIdAsync(request.CompanyId, request.ItemId, request.ItemCode, cancellationToken);
+        var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, request.ItemVariantId, request.ItemVariantCode, cancellationToken);
+        var lotId = await ResolveLotIdAsync(request.CompanyId, itemId, request.LotId, request.LotNo, cancellationToken);
+        EnsureWarehouseAccess(request.WarehouseId);
+        await EnsureWarehouseAndBinAreUsableAsync(request.CompanyId, request.BranchId, request.WarehouseId, request.BinId, cancellationToken);
+
+        var balance = await FindStockBalanceAsync(
+            request.CompanyId,
+            request.BranchId,
+            itemId,
+            itemVariantId,
+            request.WarehouseId,
+            request.BinId,
+            lotId,
+            null,
+            cancellationToken);
+
+        balance = EnsureFound(balance, "Stock balance was not found for the reservation line.", "inventory.balance_not_found");
+        var availableQty = GetAvailableQuantity(balance);
+        ThrowIfInvalid(
+            availableQty < request.ReservedQuantity
+                ? new ApiError("inventory.insufficient_qty", nameof(request.ReservedQuantity), "Insufficient available quantity for the requested reservation.")
+                : null);
+
+        var entity = StockReservation.Create(
+            request.CompanyId,
+            request.BranchId,
+            itemId,
+            itemVariantId,
+            request.WarehouseId,
+            request.BinId,
+            lotId,
+            request.ReservedQuantity,
+            request.SourceDocumentType,
+            request.SourceDocumentId,
+            string.IsNullOrWhiteSpace(request.Status) ? "Reserved" : request.Status,
+            GetUserId());
+
+        UpdateReservedQuantity(balance, request.ReservedQuantity, GetUserId());
+        DbContext.StockReservations.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapStockReservation(entity);
+        await WriteAuditAsync("inventory", nameof(StockReservation), "stock.reservation.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<ActionResponse> ReleaseStockReservationAsync(long id, StockReservationReleaseRequest? request, CancellationToken cancellationToken = default)
+    {
+        _ = request;
+        var scope = GetScope();
+        var entity = await DbContext.StockReservations
+            .ApplyActiveOrganizationScope(scope)
+            .ApplyWarehouseScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Stock reservation was not found in the active scope.", "inventory.reservation_not_found");
+        if (string.Equals(entity.Status, "Released", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ActionResponse(entity.Id.ToString(CultureInfo.InvariantCulture), entity.Status, $"{entity.SourceDocumentType} {entity.SourceDocumentId}", Array.Empty<string>());
+        }
+
+        var balance = await FindStockBalanceAsync(
+            entity.CompanyId ?? 0,
+            entity.BranchId ?? 0,
+            entity.ItemId,
+            entity.ItemVariantId,
+            entity.WarehouseId ?? 0,
+            entity.BinId,
+            entity.LotId,
+            null,
+            cancellationToken);
+
+        balance = EnsureFound(balance, "Stock balance was not found for the reservation release.", "inventory.balance_not_found");
+        var releasedQty = entity.ReservedQuantity;
+        var before = MapStockReservation(entity);
+        entity.Update(0m, entity.SourceDocumentType, "Released", GetUserId());
+        UpdateReservedQuantity(balance, -releasedQty, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapStockReservation(entity);
+        await WriteAuditAsync("inventory", nameof(StockReservation), "stock.reservation.release", entity.Id, before, after, cancellationToken);
+        return new ActionResponse(entity.Id.ToString(CultureInfo.InvariantCulture), entity.Status, $"{entity.SourceDocumentType} {entity.SourceDocumentId}", Array.Empty<string>());
+    }
+
     public async Task<IReadOnlyCollection<StockTransactionDto>> IssueStockAsync(StockIssueRequest request, CancellationToken cancellationToken = default)
     {
         ValidateStockIssue(request);
@@ -962,6 +1100,16 @@ internal sealed class InventoryService(
             Add(balance.CatchWeightQty, catchWeightDelta),
             userId);
 
+    private static void UpdateReservedQuantity(StockBalance balance, decimal reservedDelta, long? userId) =>
+        balance.UpdateQuantities(
+            balance.OnHandQty,
+            Math.Max(balance.ReservedQty + reservedDelta, 0m),
+            balance.QcHoldQty,
+            balance.BlockedQty,
+            balance.InTransitQty,
+            balance.CatchWeightQty,
+            userId);
+
     private static decimal? Add(decimal? current, decimal? delta)
     {
         if (!delta.HasValue)
@@ -1114,6 +1262,26 @@ internal sealed class InventoryService(
         }
 
         ThrowIfInvalid(errors);
+    }
+
+    private static void ValidateReservation(StockReservationRequest request)
+    {
+        ThrowIfInvalid(
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            Required(request.SourceDocumentType, nameof(request.SourceDocumentType), "Reservation source type is required."),
+            request.SourceDocumentId <= 0
+                ? new ApiError("validation.required", nameof(request.SourceDocumentId), "Reservation source id is required.")
+                : null,
+            request.ItemId <= 0 && string.IsNullOrWhiteSpace(request.ItemCode)
+                ? new ApiError("validation.required", nameof(request.ItemId), "Item is required.")
+                : null,
+            request.WarehouseId <= 0
+                ? new ApiError("validation.required", nameof(request.WarehouseId), "Warehouse is required.")
+                : null,
+            request.ReservedQuantity <= 0
+                ? new ApiError("validation.range", nameof(request.ReservedQuantity), "Reserved quantity must be greater than zero.")
+                : null);
     }
 
     private static List<ApiError?> ValidateMovementHeader(long companyId, long branchId, string transactionNo, int lineCount) =>
@@ -1402,6 +1570,21 @@ internal sealed class InventoryService(
             entity.BlockedQty,
             entity.InTransitQty,
             entity.CatchWeightQty);
+
+    private static StockReservationDto MapStockReservation(StockReservation entity) =>
+        new(
+            entity.Id,
+            entity.CompanyId ?? 0,
+            entity.BranchId ?? 0,
+            entity.ItemId,
+            entity.ItemVariantId,
+            entity.WarehouseId,
+            entity.BinId,
+            entity.LotId,
+            entity.ReservedQuantity,
+            entity.SourceDocumentType,
+            entity.SourceDocumentId,
+            entity.Status);
 
     private static StockTransactionDto MapStockTransaction(StockTransaction entity) =>
         new(

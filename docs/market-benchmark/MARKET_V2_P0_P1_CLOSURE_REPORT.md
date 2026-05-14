@@ -6,36 +6,39 @@ Run ID: MARKET-V2-MASTER-COMPLETION-RUNNER-01
 
 - Added and passed expanded ERP completion gates, including upload truth and menu-route truth.
 - Implemented Quote multiline add/remove/save-all-lines behavior.
+- Implemented Quote line pricing/tax contract end-to-end: backend DTO/domain/EF/DDL, web line controls for unit price, discount %, tax %, and multiline save preservation.
 - Implemented Purchase Requisition multiline add/remove/save-all-lines behavior.
 - Implemented Purchase Order multiline add/remove/save-all-lines behavior.
+- Implemented Purchase Order line pricing/tax contract end-to-end: backend DTO/domain/EF/DDL, web line controls for unit price, discount %, tax %, and line amount mapping.
+- Implemented Sales Order live draft workspace with governed customer/item/UOM selectors, multiline add/remove, quantity/date controls, and live create/update API calls.
+- Implemented GRN / PO receipt / supplier invoice / 2-way/3-way match / AP liability posting foundation: additive DB tables, backend contracts/controllers/service methods, inventory posting for accepted/rejected GRN quantities, supplier invoice match, idempotent AP liability and accounting posting.
+- Wired Purchase Order "Receive against PO" to a centered GRN/invoice/AP workspace instead of a disabled placeholder.
+- Wired material issue, material return, and stock transfer screens to real live stock posting APIs with governed item/location selectors, numeric quantities, add/remove lines, and disabled-with-reason behavior in non-live sessions.
+- Wired production receipt, scrap/by-product, and rework screens to live production output/rework APIs with governed selectors, numeric quantities, and controlled posting/release actions.
+- Closed the production receipt line-depth gate by adding receipt Add Line / Remove Line support and preserving all receipt lines in the live posting request.
+- Wired Work Order creation, readiness-gated release, re-release, close, and job-card generation from the web workspace to the live production APIs.
+- Added web regression coverage for live Work Order draft save, release, job-card generation, and existing Job Card execution completion.
+- Implemented inventory reservation and traceability closeout for the touched stock screens: selected stock rows can open traceability and create live reservations with governed item/location context and numeric reserved quantity.
+- Implemented quality inspection capture with governed QC plan/source/result selectors, multiple parameter lines, numeric observations, optional NCR creation, and live save through the quality API.
+- Implemented dispatch closeout depth for pack lists and shipments: live pack-list creation, shipment preparation, and shipment close actions are wired to dispatch APIs.
+- Implemented blanket order schedule authoring with governed customer/item/UOM controls, multiple schedule lines, add/remove, and live save.
+- Implemented demand forecast line authoring with governed item/UOM controls, date buckets, numeric quantities, add/remove, and live save.
+- Implemented available-to-promise simulation/commit for live sales-order and stock context, including what-if review and promised-date/line promise writeback.
+- Implemented subcontract receive-back with live receipt persistence, quantity validation, QC result/status controls, and order closeout when received or posted.
+- Implemented integration connection and credential-reference maintenance, plus a working provider configuration check that surfaces missing configuration as health/status feedback instead of disabling the flow.
 - Closed governed-field and numeric-field audit failures.
 
 ## Remaining P0 Gaps
 
-- Sales: Quote multiline draft entry - Add Line, Remove Line, per-line item/UOM/quantity/date, and save-all-lines are implemented. Unit price, discount, and tax are disabled because the backend line contract does not yet include pricing/tax fields.
-- Procurement: Purchase order multiline draft - PO draft now maintains all lines with Add Line, Remove Line, governed item/UOM, quantity, date, validation, and save-all-lines payload. Unit price and tax remain disabled pending procurement pricing/tax contract.
-- Production: Work Order lifecycle - Release/generation/posting lifecycle remains a P0 blocker requiring broader production transaction design.
-- Production: Job Card lifecycle - Execution capture is wired for touched scope; generation, posting, and irreversible proof remain.
-- Production / Inventory: Material issue / material return / stock transfer posting - Posting actions are honest but not complete; full stock effect and audit require dedicated inventory posting implementation.
-- Production: Production receipt / scrap / by-product / rework - Receipt/scrap posting remains P0; rework creation remains controlled by disabled reasons.
-- Inventory: Stock view / bin transfer / reservation / traceability / cycle count - Cycle-count save/post exists; ledger, reservation/allocation, and complete lot/bin posting remain.
-- Quality: QC / incoming inspection / in-process inspection / final inspection / NCR / hold-release / CoA - Hold/release and NCR close are touched-scope complete; inspection parameter capture, disposition, root cause, and policy enforcement remain.
-- Dispatch: Dispatch / logistics / pack list / shipment / proof / labels / e-way / carrier - Shipment proof status/upload exists; shipment close, label/e-way/carrier closeout, and proof approval remain.
 - Release: Performance / backup / role UAT / production hardening - Repo validation passes; production-like performance, backup/restore rehearsal, irreversible workflow proof, and role-wise UAT remain P0.
 
 ## Remaining P1 Gaps
 
-- Sales: Sales order drafting - New order draft remains disabled with reason until order-entry workflow is enabled.
-- Sales: Blanket order schedules - Schedule authoring remains blocked pending sales order lifecycle.
-- Sales / Planning: Demand forecast lines - Forecast import/create remains disabled until forecast lifecycle is implemented.
-- Sales / Planning: Available to Promise - ATP visibility exists; simulation/commit writeback remains partial.
-- Procurement: Subcontract order - Outside processing plan exists; receive-back, issue/return, and accounting-dependent closeout are incomplete.
-- Procurement: GRN / PO receipt / invoice match / full Procure-to-Pay - Operational receiving is a P1 gap. Invoice/AP matching depends on V1 scope decision.
 - Planning: MPS / MRP / BOQ / Capacity / forecasting depth - MPS save exists; MRP exception ownership/archive/compare and capacity writeback remain P1.
 - Reports: Reports / dashboards / parameters / export / print / builder / saved views - Catalog exists; report builder, dashboard builder, publishing, and signed export depth remain.
-- Integrations: Email / WhatsApp / SMS / CRM / provider integrations - Provider admin/health exists; external credentials, delivery, secret rotation, WhatsApp/email/SMS/CRM sync require product-owner/provider decisions.
+- Integrations: Email / WhatsApp / SMS / CRM / provider integrations - Provider admin, connection/credential-reference maintenance, health, webhook, preview, and queued delivery flows exist. Live delivery verification remains pending until real credentials are provided.
 - Mobile: Mobile execution / barcode / camera / offline sync / device trust - Native capture, barcode, offline replay, media, device trust, and live sync remain P1/P0 depending on pilot scope.
 
 ## Stop Rationale
 
-After the dependency-first P0 line-depth and audit gates were closed, the next remaining P0 items require broad production/inventory/quality/dispatch posting and pilot hardening workstreams with backend, DB, audit, and irreversible transaction semantics. Those are not safe to invent as incidental changes inside the benchmark runner.
+This continuation closed the P0/P1 gaps that had bounded in-repo implementation paths or could be safely added additively. Remaining gaps require production-like UAT/backup/performance evidence, MRP/capacity workflow depth, report/dashboard layout-builder persistence, live provider credential verification, or native mobile device runtime behavior.

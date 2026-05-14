@@ -150,3 +150,76 @@ public sealed class SubcontractOrdersController(IProcurementService procurementS
         return OkEnvelope(response, "Subcontract order approved.");
     }
 }
+
+[Route("api/subcontract-receipts")]
+public sealed class SubcontractReceiptsController(IProcurementService procurementService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<SubcontractReceiptDto>>>> List([FromQuery] ProcurementFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.ListSubcontractReceiptsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    [Authorize(Policy = AppPolicies.BranchOperations)]
+    public async Task<ActionResult<ApiEnvelope<SubcontractReceiptDto>>> Create([FromBody] SubcontractReceiptUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.CreateSubcontractReceiptAsync(request, cancellationToken);
+        return OkEnvelope(response, "Subcontract receipt created.");
+    }
+}
+
+[Route("api/goods-receipts")]
+public sealed class GoodsReceiptsController(IProcurementService procurementService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<GoodsReceiptDto>>>> List([FromQuery] ProcurementFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.ListGoodsReceiptsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    [Authorize(Policy = AppPolicies.BranchOperations)]
+    public async Task<ActionResult<ApiEnvelope<GoodsReceiptDto>>> Create([FromBody] GoodsReceiptUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.CreateGoodsReceiptAsync(request, cancellationToken);
+        return OkEnvelope(response, "Goods receipt created.");
+    }
+}
+
+[Route("api/supplier-invoices")]
+public sealed class SupplierInvoicesController(IProcurementService procurementService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<SupplierInvoiceDto>>>> List([FromQuery] ProcurementFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.ListSupplierInvoicesAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    [Authorize(Policy = AppPolicies.BranchOperations)]
+    public async Task<ActionResult<ApiEnvelope<SupplierInvoiceDto>>> Create([FromBody] SupplierInvoiceUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.CreateSupplierInvoiceAsync(request, cancellationToken);
+        return OkEnvelope(response, "Supplier invoice created.");
+    }
+
+    [HttpPost("{id:long}/match")]
+    [Authorize(Policy = AppPolicies.BranchOperations)]
+    public async Task<ActionResult<ApiEnvelope<SupplierInvoiceDto>>> Match(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.MatchSupplierInvoiceAsync(id, cancellationToken);
+        return OkEnvelope(response, "Supplier invoice matched.");
+    }
+
+    [HttpPost("{id:long}/post")]
+    [Authorize(Policy = AppPolicies.BranchOperations)]
+    public async Task<ActionResult<ApiEnvelope<SupplierInvoicePostingResultDto>>> Post(long id, CancellationToken cancellationToken)
+    {
+        var response = await procurementService.PostSupplierInvoiceAsync(id, cancellationToken);
+        return OkEnvelope(response, "Supplier invoice posted to AP.");
+    }
+}

@@ -14,6 +14,7 @@ import type {
   ImportJobCreateRequest,
   ImportJobDto,
   IntegrationConnectionDto,
+  IntegrationConnectionUpsertRequest,
   IntegrationJobStatusUpdateRequest,
   IntegrationProviderDto,
   IntegrationProviderUpsertRequest,
@@ -196,6 +197,8 @@ export function IntegrationProviderAdminPage() {
   const { filter, search, setSearch, setStatus, status } = useWs07Filter();
   const [selected, setSelected] = useState<IntegrationProviderDto | null>(null);
   const [draft, setDraft] = useState<IntegrationProviderUpsertRequest | null>(null);
+  const [selectedConnection, setSelectedConnection] = useState<IntegrationConnectionDto | null>(null);
+  const [connectionDraft, setConnectionDraft] = useState<IntegrationConnectionUpsertRequest | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const query = useApiQuery(queryKeys.ws07.integrationProviders(user?.activeContext.companyId, filter.search as string, status), () =>
     isLive ? apiClient.integrations.providers(filter) : Promise.resolve(asPaged(seededProviders)), { staleTime: 60_000 });
@@ -207,18 +210,59 @@ export function IntegrationProviderAdminPage() {
     (request: IntegrationProviderUpsertRequest) => selected ? apiClient.integrations.updateProvider(selected.id, request) : apiClient.integrations.createProvider(request),
     { onSuccess: async () => { setMessage("Integration provider saved."); setDraft(null); setSelected(null); await query.refetch(); }, onError: (error) => setMessage(error.message) }
   );
+  const saveConnection = useApiMutation(
+    (request: IntegrationConnectionUpsertRequest) =>
+      selectedConnection ? apiClient.integrations.updateConnection(selectedConnection.id, request) : apiClient.integrations.createConnection(request),
+    { onSuccess: async () => { setMessage("Integration connection saved."); setConnectionDraft(null); setSelectedConnection(null); await connectionQuery.refetch(); }, onError: (error) => setMessage(error.message) }
+  );
   const saveReason = !isLive ? "Provider setup changes require a live platform administration session." : save.isPending ? "Provider save is in progress." : undefined;
+  const connectionProviderOptions = records.map((record) => ({ label: `${record.providerCode} - ${record.providerType}`, value: String(record.id) }));
+  const saveConnectionReason = !isLive
+    ? "Connection and credential-reference changes require a live platform administration session."
+    : connectionProviderOptions.length === 0
+      ? "Create or load an integration provider before saving a connection."
+      : saveConnection.isPending
+        ? "Connection save is in progress."
+        : undefined;
 
   const openProvider = (record: IntegrationProviderDto) => {
     setSelected(record);
     setDraft({ providerCode: record.providerCode, providerName: record.providerName, providerType: record.providerType, baseUrl: record.baseUrl, status: record.status, isSystemBase: record.isSystemBase });
     setMessage(null);
   };
+  const openConnection = (record: IntegrationConnectionDto) => {
+    setSelectedConnection(record);
+    setConnectionDraft({
+      companyId: record.companyId,
+      branchId: record.branchId,
+      integrationProviderId: record.integrationProviderId,
+      connectionCode: record.connectionCode,
+      connectionName: record.connectionName,
+      endpointUrl: record.endpointUrl,
+      credentialReference: record.credentialReference,
+      status: record.status
+    });
+    setMessage(null);
+  };
+  const openNewConnection = () => {
+    setSelectedConnection(null);
+    setConnectionDraft({
+      companyId: user?.activeContext.companyId ?? 0,
+      branchId: user?.activeContext.branchId ?? null,
+      integrationProviderId: records[0]?.id ?? 0,
+      connectionCode: "",
+      connectionName: "",
+      endpointUrl: null,
+      credentialReference: null,
+      status: "Draft"
+    });
+    setMessage(null);
+  };
 
   return (
     <>
       <ListPageShell
-        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New provider", onClick: () => { setSelected(null); setDraft({ providerCode: "", providerName: "", providerType: "Email", baseUrl: null, status: "Draft", isSystemBase: false }); } }]} secondary={[{ disabled: true, label: "Rotate credentials", reason: "Credential rotation must be completed in the approved secret store." }]} testId="integration-provider-action-bar" /></>}
+        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New provider", onClick: () => { setSelected(null); setDraft({ providerCode: "", providerName: "", providerType: "Email", baseUrl: null, status: "Draft", isSystemBase: false }); } }, { label: "New connection", onClick: openNewConnection }]} secondary={[{ label: "Rotate credentials", onClick: connections[0] ? () => openConnection(connections[0]) : openNewConnection }]} testId="integration-provider-action-bar" /></>}
         description="Provider, channel, and connection readiness for email, SMS, WhatsApp, CRM, webhook, storage, and AI integrations."
         filters={<ErpFilterBar ariaLabel="Integration provider filters" onClear={() => { setSearch(""); setStatus("all"); }}><input aria-label="Search providers" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search provider or channel" value={search} /><select aria-label="Provider status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Active">Active</option><option value="Draft">Draft</option><option value="Paused">Paused</option></select></ErpFilterBar>}
         title="Integration Provider Admin"
@@ -238,6 +282,7 @@ export function IntegrationProviderAdminPage() {
             ]}
             getRowId={(record) => String(record.id)}
             isLoading={connectionQuery.isLoading}
+            onRowSelect={openConnection}
             records={connections}
             rowLabel={(record) => `${record.connectionCode} connection`}
           />
@@ -261,6 +306,25 @@ export function IntegrationProviderAdminPage() {
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Connection setup stores endpoint and secret references only; missing or invalid provider configuration is surfaced through health checks and delivery status."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveConnectionReason), label: saveConnection.isPending ? "Saving connection" : "Save connection", onClick: connectionDraft && !saveConnectionReason ? () => saveConnection.mutate(connectionDraft) : undefined, reason: saveConnectionReason }]} utility={[{ label: "Close", onClick: () => setConnectionDraft(null), variant: "quiet" }]} />}
+        isOpen={Boolean(connectionDraft)}
+        onClose={() => setConnectionDraft(null)}
+        statusMeta={message ? <Badge tone={message.includes("saved") ? "success" : "danger"}>{message}</Badge> : null}
+        title={selectedConnection?.connectionCode ?? "New connection"}
+      >
+        {connectionDraft ? (
+          <FormShell initialFingerprint={`${selectedConnection?.id ?? "new"}-${connectionDraft.connectionCode}-${connectionDraft.status}`} title="Connection controls">
+            <label><span>Connection code</span><input disabled={!isLive} onChange={(event) => setConnectionDraft({ ...connectionDraft, connectionCode: event.target.value })} value={connectionDraft.connectionCode} /></label>
+            <label><span>Connection name</span><input disabled={!isLive} onChange={(event) => setConnectionDraft({ ...connectionDraft, connectionName: event.target.value })} value={connectionDraft.connectionName} /></label>
+            <ErpLookupField disabled={!isLive || Boolean(selectedConnection)} disabledReason={!isLive ? "Live platform sign-in is required before changing provider." : selectedConnection ? "Provider is fixed for an existing connection." : undefined} label="Provider" onChange={(value) => setConnectionDraft({ ...connectionDraft, integrationProviderId: Number(value) })} options={connectionProviderOptions} required value={connectionDraft.integrationProviderId ? String(connectionDraft.integrationProviderId) : ""} />
+            <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live platform sign-in is required before changing connection status." : undefined} label="Connection status" onChange={(value) => setConnectionDraft({ ...connectionDraft, status: value })} options={["Draft", "Active", "Paused", "Inactive"].map(toOption)} value={connectionDraft.status} />
+            <label className="form-span-2"><span>Endpoint URL</span><input disabled={!isLive} onChange={(event) => setConnectionDraft({ ...connectionDraft, endpointUrl: event.target.value || null })} value={connectionDraft.endpointUrl ?? ""} /></label>
+            <label className="form-span-2"><span>Credential / secret reference</span><input disabled={!isLive} onChange={(event) => setConnectionDraft({ ...connectionDraft, credentialReference: event.target.value || null })} value={connectionDraft.credentialReference ?? ""} /></label>
+          </FormShell>
+        ) : null}
+      </ErpModalWorkspace>
     </>
   );
 }
@@ -276,10 +340,11 @@ export function ProviderHealthPage() {
   const ai = query.data?.ai ?? [];
   return (
     <ListPageShell
-      actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ label: "Refresh health", onClick: () => void query.refetch() }]} secondary={[{ disabled: true, label: "Run external probe", reason: "External provider probes must run from the server network allow-list." }]} testId="provider-health-action-bar" /></>}
+      actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ label: "Refresh health", onClick: () => void query.refetch() }]} secondary={[{ label: "Check provider configuration", onClick: () => void query.refetch() }]} testId="provider-health-action-bar" /></>}
       description="Live health for outbound channels and AI providers. Demo review mode uses explicit non-live rows."
       title="Provider Health"
     >
+      {query.error ? <ErpEmptyState title="Provider health unavailable" description={query.error instanceof Error ? query.error.message : "Provider health could not be loaded."} /> : null}
       <KpiStrip items={[{ label: "Outbound channels", value: String(outbound.length) }, { label: "AI providers", value: String(ai.length) }, { label: "Healthy", value: String([...outbound, ...ai].filter((record) => record.status === "Healthy").length) }]} />
       <Card title="Outbound channel health" description="Email, SMS, WhatsApp, and CRM message channels with redacted provider context.">
         <ErpGrid ariaLabel="Outbound provider health" columns={[

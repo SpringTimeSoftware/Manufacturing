@@ -10,6 +10,7 @@ import {
   ExportJobsPage,
   ImportJobsPage,
   IntegrationProviderAdminPage,
+  ProviderHealthPage,
   ReportCatalogPage,
   WebhookAdminPage
 } from "./WS07Pages";
@@ -128,6 +129,73 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Dispatch test event" }));
 
     await waitFor(() => expect(dispatchWebhook).toHaveBeenCalledWith(expect.objectContaining({ eventType: "Dispatch.ShipmentClosed", payloadReference: "WH-LIVE" })));
+  });
+
+  it("maintains integration credential references and checks provider configuration without disabling the flow", async () => {
+    vi.spyOn(apiClient.integrations, "providers").mockResolvedValue(paged([
+      {
+        id: 701,
+        providerCode: "SMTP-LIVE",
+        providerName: "Live SMTP",
+        providerType: "Email",
+        baseUrl: "smtp://live.local",
+        status: "Active",
+        isSystemBase: false
+      }
+    ]) as never);
+    vi.spyOn(apiClient.integrations, "connections").mockResolvedValue(paged([]) as never);
+    const createConnection = vi.spyOn(apiClient.integrations, "createConnection").mockResolvedValue({
+      id: 801,
+      companyId: 1,
+      branchId: 10,
+      integrationProviderId: 701,
+      connectionCode: "MAIL-LIVE",
+      connectionName: "Live mail channel",
+      endpointUrl: "smtp://live.local",
+      credentialReference: "secret://mail/live",
+      status: "Active",
+      lastHealthCheckedOn: null,
+      lastHealthStatus: "PendingValidation"
+    } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/integrations/providers" element={<IntegrationProviderAdminPage />} />
+      </Routes>,
+      { route: "/integrations/providers", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "New connection" }));
+    expect(await screen.findByText("Connection controls")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Connection code"), { target: { value: "MAIL-LIVE" } });
+    fireEvent.change(screen.getByLabelText("Connection name"), { target: { value: "Live mail channel" } });
+    fireEvent.change(screen.getByLabelText("Endpoint URL"), { target: { value: "smtp://live.local" } });
+    fireEvent.change(screen.getByLabelText("Credential / secret reference"), { target: { value: "secret://mail/live" } });
+    fireEvent.change(screen.getByLabelText("Connection status"), { target: { value: "Active" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save connection" }));
+
+    await waitFor(() => expect(createConnection).toHaveBeenCalledWith(expect.objectContaining({ connectionCode: "MAIL-LIVE", credentialReference: "secret://mail/live" })));
+
+    cleanup();
+    vi.restoreAllMocks();
+    const providerHealth = vi.spyOn(apiClient.integrations, "providerHealth").mockResolvedValue([
+      { channelType: "Email", providerCode: "SMTP-LIVE", status: "Healthy", activeConnectionCount: 1, notes: "Ready." },
+      { channelType: "WhatsApp", providerCode: null, status: "MissingConfig", activeConnectionCount: 0, notes: "Configure provider credentials before live delivery." }
+    ] as never);
+    vi.spyOn(apiClient.ai, "providerHealth").mockResolvedValue([] as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/integrations/provider-health" element={<ProviderHealthPage />} />
+      </Routes>,
+      { route: "/integrations/provider-health", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Check provider configuration" }));
+
+    await waitFor(() => expect(providerHealth).toHaveBeenCalled());
+    expect(await screen.findByText("MissingConfig")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check provider configuration" })).not.toBeDisabled();
   });
 
   it("queues live import and export jobs with governed module and format selectors", async () => {

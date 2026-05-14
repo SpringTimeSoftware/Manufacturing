@@ -6,7 +6,7 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 
 - `ddl/00-foundation/`: shared schemas, platform, organization, measurement, production execution, production output, quality, dispatch, integration, and AI tables
 - `ddl/10-master-data/`: canonical master-data, resource, routing, BOM, and ECO packs
-- `ddl/20-commercial/`: sales, planning, procurement, inventory, pricing, discount, tax, currency, and replenishment packs
+- `ddl/20-commercial/`: sales, planning, procurement, GRN/supplier-invoice/AP bridge, inventory, pricing, discount, tax, currency, and replenishment packs
 - `ddl/30-cost-foundation/`: reserved for cost and landed-cost foundation packs
 - `backfill/`: reserved for bridge and cutover backfills
 - `seed/`: rerunnable minimum platform, organization, and master-data seeds
@@ -50,7 +50,7 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 - customer/supplier partner profiles, controlled contact points, item/vendor references, document metadata, and audit-linked partner master extension tables;
 - commercial master setup for currencies, exchange-rate setup, tax categories/codes, payment terms, trade terms, price lists, price list lines, price assignments, discount schemes, and discount rules;
 - resources, routings, BOM, and ECO;
-- sales, planning, procurement, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
+- sales, planning, procurement, subcontract receive-back receipts, GRN, supplier invoice matching, AP liability/accounting posting bridge, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
 - machine-board stored procedure coverage for the production occupancy read model;
 - UAT runtime seed proof for SalesCoordinator, PurchaseManager, PlantHead, MPS/MRP/BOQ, work order/job card/downtime, lot traceability, and dispatch pack-list/print flows.
 

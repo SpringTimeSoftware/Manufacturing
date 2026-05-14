@@ -34,6 +34,12 @@ BEGIN
         ItemVariantId BIGINT NULL,
         OrderUomId BIGINT NOT NULL,
         Quantity DECIMAL(18,6) NOT NULL,
+        UnitPrice DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_UnitPrice DEFAULT(0),
+        DiscountPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_QuoteLines_DiscountPercent DEFAULT(0),
+        DiscountAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_DiscountAmount DEFAULT(0),
+        TaxPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_QuoteLines_TaxPercent DEFAULT(0),
+        TaxAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_TaxAmount DEFAULT(0),
+        LineAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_LineAmount DEFAULT(0),
         MakeType NVARCHAR(16) NOT NULL,
         PromisedDate DATE NULL,
         PriorityCode NVARCHAR(16) NOT NULL,
@@ -45,6 +51,19 @@ BEGIN
         ModifiedByUserId BIGINT NULL
     );
 END;
+
+IF COL_LENGTH(N'sales.QuoteLines', N'UnitPrice') IS NULL
+    ALTER TABLE sales.QuoteLines ADD UnitPrice DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_UnitPrice DEFAULT(0);
+IF COL_LENGTH(N'sales.QuoteLines', N'DiscountPercent') IS NULL
+    ALTER TABLE sales.QuoteLines ADD DiscountPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_QuoteLines_DiscountPercent DEFAULT(0);
+IF COL_LENGTH(N'sales.QuoteLines', N'DiscountAmount') IS NULL
+    ALTER TABLE sales.QuoteLines ADD DiscountAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_DiscountAmount DEFAULT(0);
+IF COL_LENGTH(N'sales.QuoteLines', N'TaxPercent') IS NULL
+    ALTER TABLE sales.QuoteLines ADD TaxPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_QuoteLines_TaxPercent DEFAULT(0);
+IF COL_LENGTH(N'sales.QuoteLines', N'TaxAmount') IS NULL
+    ALTER TABLE sales.QuoteLines ADD TaxAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_TaxAmount DEFAULT(0);
+IF COL_LENGTH(N'sales.QuoteLines', N'LineAmount') IS NULL
+    ALTER TABLE sales.QuoteLines ADD LineAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_QuoteLines_LineAmount DEFAULT(0);
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_QuoteLines_QuoteId_LineNo' AND object_id = OBJECT_ID(N'sales.QuoteLines'))
     CREATE UNIQUE INDEX UX_QuoteLines_QuoteId_LineNo ON sales.QuoteLines(QuoteId, [LineNo]);
@@ -401,6 +420,12 @@ BEGIN
         ItemId BIGINT NOT NULL,
         PurchaseRequisitionLineId BIGINT NULL,
         OrderedQuantity DECIMAL(18,6) NOT NULL,
+        UnitPrice DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_UnitPrice DEFAULT(0),
+        DiscountPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_DiscountPercent DEFAULT(0),
+        DiscountAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_DiscountAmount DEFAULT(0),
+        TaxPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_TaxPercent DEFAULT(0),
+        TaxAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_TaxAmount DEFAULT(0),
+        LineAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_LineAmount DEFAULT(0),
         OrderUomId BIGINT NOT NULL,
         ExpectedDate DATE NOT NULL,
         LinkedWorkOrderId BIGINT NULL,
@@ -412,6 +437,19 @@ BEGIN
         ModifiedByUserId BIGINT NULL
     );
 END;
+
+IF COL_LENGTH(N'procurement.PurchaseOrderLines', N'UnitPrice') IS NULL
+    ALTER TABLE procurement.PurchaseOrderLines ADD UnitPrice DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_UnitPrice DEFAULT(0);
+IF COL_LENGTH(N'procurement.PurchaseOrderLines', N'DiscountPercent') IS NULL
+    ALTER TABLE procurement.PurchaseOrderLines ADD DiscountPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_DiscountPercent DEFAULT(0);
+IF COL_LENGTH(N'procurement.PurchaseOrderLines', N'DiscountAmount') IS NULL
+    ALTER TABLE procurement.PurchaseOrderLines ADD DiscountAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_DiscountAmount DEFAULT(0);
+IF COL_LENGTH(N'procurement.PurchaseOrderLines', N'TaxPercent') IS NULL
+    ALTER TABLE procurement.PurchaseOrderLines ADD TaxPercent DECIMAL(9,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_TaxPercent DEFAULT(0);
+IF COL_LENGTH(N'procurement.PurchaseOrderLines', N'TaxAmount') IS NULL
+    ALTER TABLE procurement.PurchaseOrderLines ADD TaxAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_TaxAmount DEFAULT(0);
+IF COL_LENGTH(N'procurement.PurchaseOrderLines', N'LineAmount') IS NULL
+    ALTER TABLE procurement.PurchaseOrderLines ADD LineAmount DECIMAL(18,4) NOT NULL CONSTRAINT DF_PurchaseOrderLines_LineAmount DEFAULT(0);
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_PurchaseOrderLines_PurchaseOrderId_LineNo' AND object_id = OBJECT_ID(N'procurement.PurchaseOrderLines'))
     CREATE UNIQUE INDEX UX_PurchaseOrderLines_PurchaseOrderId_LineNo ON procurement.PurchaseOrderLines(PurchaseOrderId, [LineNo]);
@@ -438,6 +476,191 @@ END;
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_SubcontractOrders_CompanyId_SubcontractOrderNo' AND object_id = OBJECT_ID(N'procurement.SubcontractOrders'))
     CREATE UNIQUE INDEX UX_SubcontractOrders_CompanyId_SubcontractOrderNo ON procurement.SubcontractOrders(CompanyId, SubcontractOrderNo);
+
+IF OBJECT_ID(N'procurement.SubcontractReceipts', N'U') IS NULL
+BEGIN
+    CREATE TABLE procurement.SubcontractReceipts
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        CompanyId BIGINT NULL,
+        BranchId BIGINT NULL,
+        ReceiptNo NVARCHAR(32) NOT NULL,
+        SubcontractOrderId BIGINT NOT NULL,
+        ReceiptDate DATE NOT NULL,
+        ReceivedQuantity DECIMAL(18,6) NOT NULL,
+        AcceptedQuantity DECIMAL(18,6) NOT NULL,
+        RejectedQuantity DECIMAL(18,6) NOT NULL,
+        QcStatus NVARCHAR(24) NOT NULL,
+        Status NVARCHAR(24) NOT NULL,
+        Remarks NVARCHAR(512) NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_SubcontractReceipts_CompanyId_ReceiptNo' AND object_id = OBJECT_ID(N'procurement.SubcontractReceipts'))
+    CREATE UNIQUE INDEX UX_SubcontractReceipts_CompanyId_ReceiptNo ON procurement.SubcontractReceipts(CompanyId, ReceiptNo);
+
+IF OBJECT_ID(N'procurement.GoodsReceipts', N'U') IS NULL
+BEGIN
+    CREATE TABLE procurement.GoodsReceipts
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        CompanyId BIGINT NULL,
+        BranchId BIGINT NULL,
+        GoodsReceiptNo NVARCHAR(32) NOT NULL,
+        PurchaseOrderId BIGINT NOT NULL,
+        SupplierId BIGINT NOT NULL,
+        ReceiptDate DATE NOT NULL,
+        WarehouseId BIGINT NULL,
+        Status NVARCHAR(24) NOT NULL,
+        Remarks NVARCHAR(512) NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_GoodsReceipts_CompanyId_GoodsReceiptNo' AND object_id = OBJECT_ID(N'procurement.GoodsReceipts'))
+    CREATE UNIQUE INDEX UX_GoodsReceipts_CompanyId_GoodsReceiptNo ON procurement.GoodsReceipts(CompanyId, GoodsReceiptNo);
+
+IF OBJECT_ID(N'procurement.GoodsReceiptLines', N'U') IS NULL
+BEGIN
+    CREATE TABLE procurement.GoodsReceiptLines
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        GoodsReceiptId BIGINT NOT NULL,
+        [LineNo] INT NOT NULL,
+        PurchaseOrderLineId BIGINT NOT NULL,
+        ItemId BIGINT NOT NULL,
+        OrderUomId BIGINT NOT NULL,
+        ReceivedQuantity DECIMAL(18,6) NOT NULL,
+        AcceptedQuantity DECIMAL(18,6) NOT NULL,
+        RejectedQuantity DECIMAL(18,6) NOT NULL,
+        UnitPrice DECIMAL(18,4) NOT NULL,
+        TaxPercent DECIMAL(9,4) NOT NULL,
+        LineAmount DECIMAL(18,4) NOT NULL,
+        QcStatus NVARCHAR(24) NOT NULL,
+        Status NVARCHAR(24) NOT NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_GoodsReceiptLines_GoodsReceiptId_LineNo' AND object_id = OBJECT_ID(N'procurement.GoodsReceiptLines'))
+    CREATE UNIQUE INDEX UX_GoodsReceiptLines_GoodsReceiptId_LineNo ON procurement.GoodsReceiptLines(GoodsReceiptId, [LineNo]);
+
+IF OBJECT_ID(N'procurement.SupplierInvoices', N'U') IS NULL
+BEGIN
+    CREATE TABLE procurement.SupplierInvoices
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        CompanyId BIGINT NULL,
+        BranchId BIGINT NULL,
+        SupplierInvoiceNo NVARCHAR(64) NOT NULL,
+        SupplierId BIGINT NOT NULL,
+        PurchaseOrderId BIGINT NOT NULL,
+        GoodsReceiptId BIGINT NOT NULL,
+        InvoiceDate DATE NOT NULL,
+        DueDate DATE NULL,
+        CurrencyCode NVARCHAR(16) NOT NULL,
+        SubtotalAmount DECIMAL(18,4) NOT NULL,
+        TaxAmount DECIMAL(18,4) NOT NULL,
+        TotalAmount DECIMAL(18,4) NOT NULL,
+        MatchStatus NVARCHAR(32) NOT NULL,
+        ApStatus NVARCHAR(32) NOT NULL,
+        Status NVARCHAR(24) NOT NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_SupplierInvoices_CompanyId_SupplierInvoiceNo' AND object_id = OBJECT_ID(N'procurement.SupplierInvoices'))
+    CREATE UNIQUE INDEX UX_SupplierInvoices_CompanyId_SupplierInvoiceNo ON procurement.SupplierInvoices(CompanyId, SupplierInvoiceNo);
+
+IF OBJECT_ID(N'procurement.SupplierInvoiceLines', N'U') IS NULL
+BEGIN
+    CREATE TABLE procurement.SupplierInvoiceLines
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        SupplierInvoiceId BIGINT NOT NULL,
+        [LineNo] INT NOT NULL,
+        PurchaseOrderLineId BIGINT NOT NULL,
+        GoodsReceiptLineId BIGINT NOT NULL,
+        ItemId BIGINT NOT NULL,
+        InvoiceQuantity DECIMAL(18,6) NOT NULL,
+        UnitPrice DECIMAL(18,4) NOT NULL,
+        TaxPercent DECIMAL(9,4) NOT NULL,
+        TaxAmount DECIMAL(18,4) NOT NULL,
+        LineAmount DECIMAL(18,4) NOT NULL,
+        MatchStatus NVARCHAR(32) NOT NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_SupplierInvoiceLines_SupplierInvoiceId_LineNo' AND object_id = OBJECT_ID(N'procurement.SupplierInvoiceLines'))
+    CREATE UNIQUE INDEX UX_SupplierInvoiceLines_SupplierInvoiceId_LineNo ON procurement.SupplierInvoiceLines(SupplierInvoiceId, [LineNo]);
+
+IF OBJECT_ID(N'finance.AccountsPayableLiabilities', N'U') IS NULL
+BEGIN
+    CREATE TABLE finance.AccountsPayableLiabilities
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        CompanyId BIGINT NULL,
+        BranchId BIGINT NULL,
+        LiabilityNo NVARCHAR(48) NOT NULL,
+        SupplierInvoiceId BIGINT NOT NULL,
+        SupplierId BIGINT NOT NULL,
+        PostingDate DATE NOT NULL,
+        DueDate DATE NOT NULL,
+        PayableAmount DECIMAL(18,4) NOT NULL,
+        PaidAmount DECIMAL(18,4) NOT NULL,
+        BalanceAmount DECIMAL(18,4) NOT NULL,
+        Status NVARCHAR(24) NOT NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_AccountsPayableLiabilities_CompanyId_LiabilityNo' AND object_id = OBJECT_ID(N'finance.AccountsPayableLiabilities'))
+    CREATE UNIQUE INDEX UX_AccountsPayableLiabilities_CompanyId_LiabilityNo ON finance.AccountsPayableLiabilities(CompanyId, LiabilityNo);
+
+IF OBJECT_ID(N'finance.AccountingPostings', N'U') IS NULL
+BEGIN
+    CREATE TABLE finance.AccountingPostings
+    (
+        Id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        CompanyId BIGINT NULL,
+        BranchId BIGINT NULL,
+        PostingNo NVARCHAR(48) NOT NULL,
+        SourceDocumentType NVARCHAR(32) NOT NULL,
+        SourceDocumentId BIGINT NOT NULL,
+        PostingDate DATE NOT NULL,
+        DebitAccountCode NVARCHAR(64) NOT NULL,
+        CreditAccountCode NVARCHAR(64) NOT NULL,
+        Amount DECIMAL(18,4) NOT NULL,
+        Status NVARCHAR(24) NOT NULL,
+        CreatedOn DATETIMEOFFSET(7) NOT NULL,
+        CreatedByUserId BIGINT NULL,
+        ModifiedOn DATETIMEOFFSET(7) NOT NULL,
+        ModifiedByUserId BIGINT NULL
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_AccountingPostings_CompanyId_PostingNo' AND object_id = OBJECT_ID(N'finance.AccountingPostings'))
+    CREATE UNIQUE INDEX UX_AccountingPostings_CompanyId_PostingNo ON finance.AccountingPostings(CompanyId, PostingNo);
 
 IF OBJECT_ID(N'inventory.StockBalances', N'U') IS NULL
 BEGIN

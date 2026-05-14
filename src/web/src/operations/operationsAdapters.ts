@@ -356,7 +356,7 @@ function mapWorkOrderSummary(dto: WorkOrderSummaryDto, source: MasterDataSource)
         id: `work-order-${dto.id}-summary-operations`,
         sequenceNo: 10,
         operationLabel: `${dto.completedOperationCount} of ${dto.operationCount} operations complete`,
-        workCenterLabel: "See detail drawer",
+        workCenterLabel: "See detail workspace",
         plannedQuantity: dto.plannedQuantity,
         completedQuantity,
         status: dto.status,

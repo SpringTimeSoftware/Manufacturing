@@ -58,6 +58,52 @@ const supplier = {
   status: "Active"
 };
 
+const warehouse = {
+  id: 301,
+  companyId: 1,
+  branchId: 10,
+  warehouseCode: "MAIN",
+  warehouseName: "Main stores",
+  warehouseType: "Stores",
+  isDefaultReceivingWarehouse: true,
+  isDefaultIssueWarehouse: true,
+  isDispatchEnabled: true,
+  allowsMixedLots: false,
+  allowsNegativeStock: false,
+  status: "Active"
+};
+
+const savedPurchaseOrder = {
+  id: 902,
+  companyId: 1,
+  branchId: 10,
+  purchaseOrderNo: "PO-DRAFT-SAVED",
+  supplierId: 201,
+  orderAddressId: null,
+  status: "Approved",
+  expectedReceiptDate: "2026-05-13",
+  lines: [
+    {
+      id: 90210,
+      lineNo: 10,
+      itemId: 101,
+      purchaseRequisitionLineId: null,
+      orderedQuantity: 7,
+      unitPrice: 125,
+      discountPercent: 2,
+      discountAmount: 17.5,
+      taxPercent: 18,
+      taxAmount: 151.2,
+      lineAmount: 973.7,
+      orderUomId: 1,
+      expectedDate: "2026-05-13",
+      linkedWorkOrderId: null,
+      sourceBoqRequirementLineId: null,
+      status: "Approved"
+    }
+  ]
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -102,7 +148,7 @@ describe("WS09 procure-to-pay deepening", () => {
     });
   });
 
-  it("creates and approves purchase orders with truthful disabled receiving action", async () => {
+  it("creates purchase orders with a truthful draft receiving guard", async () => {
     vi.spyOn(apiClient.procurement, "purchaseOrders").mockResolvedValue(paged([]) as never);
     vi.spyOn(apiClient.partners, "suppliers").mockResolvedValue(paged([supplier]) as never);
     vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue([item] as never);
@@ -129,7 +175,7 @@ describe("WS09 procure-to-pay deepening", () => {
     fireEvent.click(await screen.findByRole("button", { name: "New PO draft" }));
     expect(await screen.findByText("Purchase order follow-up")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Receive against PO" })).toBeDisabled();
-    expect(screen.getByText("PO receiving requires the GRN/receipt workflow, which is not implemented in this V1 procurement slice.")).toBeInTheDocument();
+    expect(screen.getByText("Open a saved purchase order before receiving.")).toBeInTheDocument();
 
     await screen.findByRole("option", { name: "SUP-INX / Inox Metals" });
     fireEvent.change(screen.getByLabelText("Supplier"), { target: { value: "201" } });
@@ -140,6 +186,30 @@ describe("WS09 procure-to-pay deepening", () => {
 
     await waitFor(() => expect(createPurchaseOrder).toHaveBeenCalledTimes(1));
     expect(createPurchaseOrder.mock.calls[0][0]).toMatchObject({ supplierId: 201 });
+  });
+
+  it("opens the GRN, supplier invoice, match, and AP workspace for a saved purchase order", async () => {
+    vi.spyOn(apiClient.procurement, "purchaseOrders").mockResolvedValue(paged([savedPurchaseOrder]) as never);
+    vi.spyOn(apiClient.partners, "suppliers").mockResolvedValue(paged([supplier]) as never);
+    vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue([item] as never);
+    vi.spyOn(apiClient.measurements, "uoms").mockResolvedValue(paged([uom]) as never);
+    vi.spyOn(apiClient.organization, "warehouses").mockResolvedValue(paged([warehouse]) as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/procurement/purchase-orders" element={<PurchaseOrderPage />} />
+      </Routes>,
+      { route: "/procurement/purchase-orders", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("row", { name: "PO-DRAFT-SAVED purchase order" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Receive against PO" }));
+
+    expect(await screen.findByRole("dialog", { name: "Receive PO-DRAFT-SAVED" })).toBeInTheDocument();
+    expect(screen.getByText("Goods receipt")).toBeInTheDocument();
+    expect(screen.getByText("Supplier invoice and AP")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save GRN" })).toBeDisabled();
+    expect(screen.getByText("Resolve GRN validation issues before saving.")).toBeInTheDocument();
   });
 
   it("creates subcontract outside-processing plans with governed supplier, work-order, and operation selectors", async () => {
@@ -214,6 +284,64 @@ describe("WS09 procure-to-pay deepening", () => {
       supplierId: 201,
       workOrderId: 301,
       operationId: 401
+    })));
+  });
+
+  it("posts subcontract receive-back with quantity and QC result", async () => {
+    vi.spyOn(apiClient.procurement, "subcontractOrders").mockResolvedValue(paged([
+      {
+        id: 904,
+        companyId: 1,
+        branchId: 10,
+        subcontractOrderNo: "SUB-RECV-1",
+        supplierId: 201,
+        workOrderId: 301,
+        operationId: 401,
+        status: "Approved",
+        expectedReturnDate: "2026-05-16"
+      }
+    ]) as never);
+    vi.spyOn(apiClient.partners, "suppliers").mockResolvedValue(paged([supplier]) as never);
+    vi.spyOn(apiClient.production, "workOrders").mockResolvedValue(paged([]) as never);
+    vi.spyOn(apiClient.resources, "operations").mockResolvedValue(paged([]) as never);
+    const createReceipt = vi.spyOn(apiClient.procurement, "createSubcontractReceipt").mockResolvedValue({
+      id: 905,
+      companyId: 1,
+      branchId: 10,
+      receiptNo: "SUB-RCV-SAVED",
+      subcontractOrderId: 904,
+      receiptDate: "2026-05-14",
+      receivedQuantity: 3,
+      acceptedQuantity: 2,
+      rejectedQuantity: 1,
+      qcStatus: "Partial",
+      status: "Received",
+      remarks: "Received with one rejection"
+    } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/procurement/subcontract-plan" element={<SubcontractPlanPage />} />
+      </Routes>,
+      { route: "/procurement/subcontract-plan", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("row", { name: "SUB-RECV-1 subcontract plan" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Receive back" }));
+    expect(await screen.findByText("Subcontract receive-back")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Received quantity"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Accepted quantity"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Rejected quantity"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("QC status"), { target: { value: "Partial" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save receive-back" }));
+
+    await waitFor(() => expect(createReceipt).toHaveBeenCalledWith(expect.objectContaining({
+      subcontractOrderId: 904,
+      receivedQuantity: 3,
+      acceptedQuantity: 2,
+      rejectedQuantity: 1,
+      qcStatus: "Partial"
     })));
   });
 

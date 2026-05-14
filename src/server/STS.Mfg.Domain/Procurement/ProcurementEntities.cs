@@ -168,6 +168,12 @@ public sealed class PurchaseOrderLine : AuditableEntity
     public long ItemId { get; private set; }
     public long? PurchaseRequisitionLineId { get; private set; }
     public decimal OrderedQuantity { get; private set; }
+    public decimal UnitPrice { get; private set; }
+    public decimal DiscountPercent { get; private set; }
+    public decimal DiscountAmount { get; private set; }
+    public decimal TaxPercent { get; private set; }
+    public decimal TaxAmount { get; private set; }
+    public decimal LineAmount { get; private set; }
     public long OrderUomId { get; private set; }
     public DateOnly ExpectedDate { get; private set; }
     public long? LinkedWorkOrderId { get; private set; }
@@ -180,6 +186,9 @@ public sealed class PurchaseOrderLine : AuditableEntity
         long itemId,
         long? purchaseRequisitionLineId,
         decimal orderedQuantity,
+        decimal unitPrice,
+        decimal discountPercent,
+        decimal taxPercent,
         long orderUomId,
         DateOnly expectedDate,
         long? linkedWorkOrderId,
@@ -195,7 +204,7 @@ public sealed class PurchaseOrderLine : AuditableEntity
             PurchaseRequisitionLineId = purchaseRequisitionLineId,
             OrderUomId = orderUomId
         };
-        entity.Update(orderedQuantity, expectedDate, linkedWorkOrderId, sourceBoqRequirementLineId, status, userId);
+        entity.Update(orderedQuantity, unitPrice, discountPercent, taxPercent, expectedDate, linkedWorkOrderId, sourceBoqRequirementLineId, status, userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
@@ -203,6 +212,9 @@ public sealed class PurchaseOrderLine : AuditableEntity
 
     public void Update(
         decimal orderedQuantity,
+        decimal unitPrice,
+        decimal discountPercent,
+        decimal taxPercent,
         DateOnly expectedDate,
         long? linkedWorkOrderId,
         long? sourceBoqRequirementLineId,
@@ -210,6 +222,14 @@ public sealed class PurchaseOrderLine : AuditableEntity
         long? userId)
     {
         OrderedQuantity = orderedQuantity;
+        UnitPrice = unitPrice;
+        DiscountPercent = discountPercent;
+        TaxPercent = taxPercent;
+        var grossAmount = decimal.Round(orderedQuantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+        DiscountAmount = decimal.Round(grossAmount * discountPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        var taxableAmount = grossAmount - DiscountAmount;
+        TaxAmount = decimal.Round(taxableAmount * taxPercent / 100m, 2, MidpointRounding.AwayFromZero);
+        LineAmount = taxableAmount + TaxAmount;
         ExpectedDate = expectedDate;
         LinkedWorkOrderId = linkedWorkOrderId;
         SourceBoqRequirementLineId = sourceBoqRequirementLineId;
@@ -268,6 +288,74 @@ public sealed class SubcontractOrder : AuditableEntity, ICompanyScoped, IBranchS
         SubcontractOrderNo = subcontractOrderNo.Trim();
         Status = status.Trim();
         ExpectedReturnDate = expectedReturnDate;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class SubcontractReceipt : AuditableEntity, ICompanyScoped, IBranchScoped
+{
+    private SubcontractReceipt()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long? BranchId { get; private set; }
+    public string ReceiptNo { get; private set; } = string.Empty;
+    public long SubcontractOrderId { get; private set; }
+    public DateOnly ReceiptDate { get; private set; }
+    public decimal ReceivedQuantity { get; private set; }
+    public decimal AcceptedQuantity { get; private set; }
+    public decimal RejectedQuantity { get; private set; }
+    public string QcStatus { get; private set; } = string.Empty;
+    public string Status { get; private set; } = string.Empty;
+    public string? Remarks { get; private set; }
+
+    public static SubcontractReceipt Create(
+        long companyId,
+        long branchId,
+        string receiptNo,
+        long subcontractOrderId,
+        DateOnly receiptDate,
+        decimal receivedQuantity,
+        decimal acceptedQuantity,
+        decimal rejectedQuantity,
+        string qcStatus,
+        string status,
+        string? remarks,
+        long? userId)
+    {
+        var entity = new SubcontractReceipt
+        {
+            CompanyId = companyId,
+            BranchId = branchId,
+            SubcontractOrderId = subcontractOrderId
+        };
+        entity.Update(receiptNo, receiptDate, receivedQuantity, acceptedQuantity, rejectedQuantity, qcStatus, status, remarks, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(
+        string receiptNo,
+        DateOnly receiptDate,
+        decimal receivedQuantity,
+        decimal acceptedQuantity,
+        decimal rejectedQuantity,
+        string qcStatus,
+        string status,
+        string? remarks,
+        long? userId)
+    {
+        ReceiptNo = receiptNo.Trim();
+        ReceiptDate = receiptDate;
+        ReceivedQuantity = receivedQuantity;
+        AcceptedQuantity = acceptedQuantity;
+        RejectedQuantity = rejectedQuantity;
+        QcStatus = qcStatus.Trim();
+        Status = status.Trim();
+        Remarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }

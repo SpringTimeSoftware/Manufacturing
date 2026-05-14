@@ -10,13 +10,16 @@ public sealed record SalesFilter(
     long? CompanyId = null,
     long? BranchId = null) : QueryFilter(Page, PageSize, Search, Status);
 
-public sealed record QuoteLineDto(long Id, int LineNo, long ItemId, long? ItemVariantId, long OrderUomId, decimal Quantity, string MakeType, DateOnly? PromisedDate, string PriorityCode, string? CustomerSpecRef, string Status);
+public sealed record QuoteLineDto(long Id, int LineNo, long ItemId, long? ItemVariantId, long OrderUomId, decimal Quantity, decimal UnitPrice, decimal DiscountPercent, decimal DiscountAmount, decimal TaxPercent, decimal TaxAmount, decimal LineAmount, string MakeType, DateOnly? PromisedDate, string PriorityCode, string? CustomerSpecRef, string Status);
 public sealed record QuoteLineUpsertRequest(
     int LineNo,
     long ItemId,
     long? ItemVariantId,
     long OrderUomId,
     decimal Quantity,
+    decimal UnitPrice,
+    decimal DiscountPercent,
+    decimal TaxPercent,
     string MakeType,
     DateOnly? PromisedDate,
     string PriorityCode,

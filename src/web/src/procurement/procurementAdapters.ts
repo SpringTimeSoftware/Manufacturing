@@ -53,6 +53,10 @@ export interface PurchaseOrderLineItem {
   itemLabel: string;
   purchaseRequisitionLineId: number | null;
   orderedQuantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  taxPercent: number;
+  lineAmount: number;
   orderUomId: number;
   expectedDate: string;
   linkedWorkOrderId: number | null;
@@ -175,6 +179,10 @@ function mapPoLine(line: PurchaseOrderLineDto): PurchaseOrderLineItem {
     itemLabel: `Item ${line.itemId}`,
     purchaseRequisitionLineId: line.purchaseRequisitionLineId,
     orderedQuantity: line.orderedQuantity,
+    unitPrice: line.unitPrice,
+    discountPercent: line.discountPercent,
+    taxPercent: line.taxPercent,
+    lineAmount: line.lineAmount,
     orderUomId: line.orderUomId,
     expectedDate: dateLabel(line.expectedDate),
     linkedWorkOrderId: line.linkedWorkOrderId,
@@ -338,6 +346,10 @@ const seededPurchaseOrders: PurchaseOrderItem[] = [
         itemLabel: "RM-SS-SHEET / Stainless Steel Sheet",
         purchaseRequisitionLineId: 31010,
         orderedQuantity: 25,
+        unitPrice: 92,
+        discountPercent: 2,
+        taxPercent: 18,
+        lineAmount: 2661.4,
         orderUomId: 1,
         expectedDate: "2026-03-04",
         linkedWorkOrderId: 44,
@@ -354,6 +366,10 @@ const seededPurchaseOrders: PurchaseOrderItem[] = [
         itemLabel: "RM-VALVE-SET / Valve Set",
         purchaseRequisitionLineId: 31020,
         orderedQuantity: 17,
+        unitPrice: 48,
+        discountPercent: 0,
+        taxPercent: 18,
+        lineAmount: 962.88,
         orderUomId: 1,
         expectedDate: "2026-03-05",
         linkedWorkOrderId: 44,

@@ -33,6 +33,40 @@ public sealed class InventoryController(IInventoryService inventoryService) : Ap
 
 [ApiController]
 [Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/stock-reservations")]
+public sealed class StockReservationsController(IInventoryService inventoryService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<StockReservationDto>>>> List(
+        [FromQuery] InventoryFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryService.ListStockReservationsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<StockReservationDto>>> Create(
+        [FromBody] StockReservationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryService.ReserveStockAsync(request, cancellationToken);
+        return OkEnvelope(response, "Stock reserved.");
+    }
+
+    [HttpPost("{id:long}/release")]
+    public async Task<ActionResult<ApiEnvelope<ActionResponse>>> Release(
+        long id,
+        [FromBody] StockReservationReleaseRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryService.ReleaseStockReservationAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Stock reservation released.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
 [Route("api/stock-issues")]
 public sealed class StockIssuesController(IInventoryService inventoryService) : ApiControllerBase
 {

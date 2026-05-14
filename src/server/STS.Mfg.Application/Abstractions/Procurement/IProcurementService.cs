@@ -22,4 +22,14 @@ public interface IProcurementService
     Task<SubcontractOrderDto> CreateSubcontractOrderAsync(SubcontractOrderUpsertRequest request, CancellationToken cancellationToken = default);
     Task<SubcontractOrderDto> UpdateSubcontractOrderAsync(long id, SubcontractOrderUpsertRequest request, CancellationToken cancellationToken = default);
     Task<SubcontractOrderDto> ApproveSubcontractOrderAsync(long id, CancellationToken cancellationToken = default);
+    Task<PagedResult<SubcontractReceiptDto>> ListSubcontractReceiptsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default);
+    Task<SubcontractReceiptDto> CreateSubcontractReceiptAsync(SubcontractReceiptUpsertRequest request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<GoodsReceiptDto>> ListGoodsReceiptsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default);
+    Task<GoodsReceiptDto> CreateGoodsReceiptAsync(GoodsReceiptUpsertRequest request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<SupplierInvoiceDto>> ListSupplierInvoicesAsync(ProcurementFilter filter, CancellationToken cancellationToken = default);
+    Task<SupplierInvoiceDto> CreateSupplierInvoiceAsync(SupplierInvoiceUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<SupplierInvoiceDto> MatchSupplierInvoiceAsync(long id, CancellationToken cancellationToken = default);
+    Task<SupplierInvoicePostingResultDto> PostSupplierInvoiceAsync(long id, CancellationToken cancellationToken = default);
 }

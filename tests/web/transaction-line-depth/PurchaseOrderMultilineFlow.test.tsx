@@ -92,20 +92,28 @@ describe("QUALITY-GATES-01 purchase order multiline flow", () => {
     const uomControls = within(dialog).getAllByLabelText("Order UOM");
     const quantityControls = within(dialog).getAllByLabelText(/Ordered quantity|Quantity/i);
     const rateControls = within(dialog).getAllByLabelText(/Rate|Unit price/i);
+    const discountControls = within(dialog).getAllByLabelText(/Discount/i);
     const taxControls = within(dialog).getAllByLabelText(/Tax/i);
 
     expect(itemControls.length).toBeGreaterThanOrEqual(2);
     expect(uomControls.length).toBeGreaterThanOrEqual(2);
     expect(quantityControls.length).toBeGreaterThanOrEqual(2);
     expect(rateControls.length).toBeGreaterThanOrEqual(2);
+    expect(discountControls.length).toBeGreaterThanOrEqual(2);
     expect(taxControls.length).toBeGreaterThanOrEqual(2);
 
     fireEvent.change(itemControls[0], { target: { value: "101" } });
     fireEvent.change(uomControls[0], { target: { value: "1" } });
     fireEvent.change(quantityControls[0], { target: { value: "3" } });
+    fireEvent.change(rateControls[0], { target: { value: "120" } });
+    fireEvent.change(discountControls[0], { target: { value: "1" } });
+    fireEvent.change(taxControls[0], { target: { value: "18" } });
     fireEvent.change(itemControls[1], { target: { value: "102" } });
     fireEvent.change(uomControls[1], { target: { value: "1" } });
     fireEvent.change(quantityControls[1], { target: { value: "5" } });
+    fireEvent.change(rateControls[1], { target: { value: "88.5" } });
+    fireEvent.change(discountControls[1], { target: { value: "3" } });
+    fireEvent.change(taxControls[1], { target: { value: "12" } });
 
     fireEvent.click(within(dialog).getAllByRole("button", { name: /Remove Line/i })[0]);
     fireEvent.click(within(dialog).getByRole("button", { name: /Save purchase order/i }));
@@ -115,7 +123,10 @@ describe("QUALITY-GATES-01 purchase order multiline flow", () => {
     expect(createPurchaseOrder.mock.calls[0][0].lines[0]).toMatchObject({
       itemId: 102,
       orderUomId: 1,
-      orderedQuantity: 5
+      orderedQuantity: 5,
+      unitPrice: 88.5,
+      discountPercent: 3,
+      taxPercent: 12
     });
   });
 });

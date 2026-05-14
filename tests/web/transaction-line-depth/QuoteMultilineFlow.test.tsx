@@ -103,9 +103,15 @@ describe("QUALITY-GATES-01 quote multiline flow", () => {
     fireEvent.change(itemControls[0], { target: { value: "301" } });
     fireEvent.change(uomControls[0], { target: { value: "41" } });
     fireEvent.change(quantityControls[0], { target: { value: "2" } });
+    fireEvent.change(rateControls[0], { target: { value: "25" } });
+    fireEvent.change(discountControls[0], { target: { value: "5" } });
+    fireEvent.change(taxControls[0], { target: { value: "18" } });
     fireEvent.change(itemControls[1], { target: { value: "302" } });
     fireEvent.change(uomControls[1], { target: { value: "41" } });
     fireEvent.change(quantityControls[1], { target: { value: "4" } });
+    fireEvent.change(rateControls[1], { target: { value: "32.5" } });
+    fireEvent.change(discountControls[1], { target: { value: "2" } });
+    fireEvent.change(taxControls[1], { target: { value: "12" } });
 
     expect(within(dialog).getAllByRole("button", { name: /Remove Line/i }).length).toBeGreaterThanOrEqual(2);
     fireEvent.click(within(dialog).getAllByRole("button", { name: /Remove Line/i })[0]);
@@ -116,7 +122,10 @@ describe("QUALITY-GATES-01 quote multiline flow", () => {
     expect(createQuote.mock.calls[0][0].lines[0]).toMatchObject({
       itemId: 302,
       orderUomId: 41,
-      quantity: 4
+      quantity: 4,
+      unitPrice: 32.5,
+      discountPercent: 2,
+      taxPercent: 12
     });
   });
 });

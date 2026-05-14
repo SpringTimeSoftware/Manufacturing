@@ -8,7 +8,8 @@ import type {
   QueryFilter,
   QuoteDto,
   QuoteUpsertRequest,
-  SalesOrderDto
+  SalesOrderDto,
+  StockBalanceDto
 } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { hasLiveSession, liveDataUnavailable } from "../api/liveData";
@@ -48,16 +49,23 @@ export interface QuoteSetupItem {
 export interface SalesOrderSetupItem {
   id: string;
   salesOrderId: number;
+  companyId: number;
+  branchId: number;
   salesOrderNo: string;
+  customerId: number;
+  billToAddressId: number | null;
+  shipToAddressId: number | null;
   customerLabel: string;
   orderDate: string;
   promisedDate: string;
   priorityCode: string;
   status: string;
+  sourceQuoteId: number | null;
   lineCount: number;
   totalQuantity: number;
   sourceQuoteLabel: string;
   source: MasterDataSource;
+  lines: SalesOrderDto["lines"];
 }
 
 export interface BlanketOrderSetupItem {
@@ -118,11 +126,19 @@ export interface MpsPlannerLineItem {
 
 export interface AvailablePromiseItem {
   id: string;
+  salesOrderId: number | null;
+  salesOrderLineId: number | null;
+  sourceOrder?: SalesOrderDto;
   orderRef: string;
   customerLabel: string;
   itemLabel: string;
+  itemId: number | null;
+  requestedQuantity: number;
+  availableQuantity: number;
+  shortageQuantity: number;
   requestedDate: string;
   promisedDate: string;
+  suggestedPromiseDate: string;
   materialSignal: string;
   capacitySignal: string;
   promiseStatus: string;
@@ -243,30 +259,44 @@ const seededSalesOrders: SalesOrderSetupItem[] = [
   {
     id: "sales-order-189",
     salesOrderId: 189,
+    companyId: 1,
+    branchId: 10,
     salesOrderNo: "SO-2026-0189",
+    customerId: 501,
+    billToAddressId: null,
+    shipToAddressId: null,
     customerLabel: "Enkay Ozone",
     orderDate: "2026-02-24",
     promisedDate: "2026-03-05",
     priorityCode: "High",
     status: "At Risk",
+    sourceQuoteId: 1001,
     lineCount: 2,
     totalQuantity: 10,
     sourceQuoteLabel: "QT-2026-0042",
-    source: "Seeded"
+    source: "Seeded",
+    lines: []
   },
   {
     id: "sales-order-194",
     salesOrderId: 194,
+    companyId: 1,
+    branchId: 10,
     salesOrderNo: "SO-2026-0194",
+    customerId: 502,
+    billToAddressId: null,
+    shipToAddressId: null,
     customerLabel: "BlueSky Industries",
     orderDate: "2026-02-27",
     promisedDate: "2026-03-12",
     priorityCode: "Medium",
     status: "Released",
+    sourceQuoteId: null,
     lineCount: 1,
     totalQuantity: 4,
     sourceQuoteLabel: "Direct order",
-    source: "Seeded"
+    source: "Seeded",
+    lines: []
   }
 ];
 
@@ -388,11 +418,18 @@ const seededMps: MpsPlannerItem[] = [
 const seededPromiseItems: AvailablePromiseItem[] = [
   {
     id: "promise-so-0189",
+    salesOrderId: null,
+    salesOrderLineId: null,
     orderRef: "SO-2026-0189",
     customerLabel: "Enkay Ozone",
     itemLabel: "FG-OZ-50 Tank Assembly",
+    itemId: null,
+    requestedQuantity: 10,
+    availableQuantity: 0,
+    shortageQuantity: 10,
     requestedDate: "2026-03-05",
     promisedDate: "2026-03-09",
+    suggestedPromiseDate: "2026-03-09",
     materialSignal: "Supplier delay on RM-SS-SHEET",
     capacitySignal: "Welding slot constrained",
     promiseStatus: "At Risk",
@@ -401,11 +438,18 @@ const seededPromiseItems: AvailablePromiseItem[] = [
   },
   {
     id: "promise-so-0194",
+    salesOrderId: null,
+    salesOrderLineId: null,
     orderRef: "SO-2026-0194",
     customerLabel: "BlueSky Industries",
     itemLabel: "FG-OZ-30 Tank Assembly",
+    itemId: null,
+    requestedQuantity: 4,
+    availableQuantity: 4,
+    shortageQuantity: 0,
     requestedDate: "2026-03-12",
     promisedDate: "2026-03-12",
+    suggestedPromiseDate: "2026-03-12",
     materialSignal: "Materials available",
     capacitySignal: "Capacity reserved",
     promiseStatus: "Promiseable",
@@ -456,16 +500,23 @@ function mapSalesOrder(dto: SalesOrderDto, source: MasterDataSource): SalesOrder
   return {
     id: `sales-order-${dto.id}`,
     salesOrderId: dto.id,
+    companyId: dto.companyId,
+    branchId: dto.branchId,
     salesOrderNo: dto.salesOrderNo,
+    customerId: dto.customerId,
+    billToAddressId: dto.billToAddressId,
+    shipToAddressId: dto.shipToAddressId,
     customerLabel: `Customer ${dto.customerId}`,
     orderDate: dto.orderDate,
     promisedDate: dto.promisedDate ?? "Unpromised",
     priorityCode: dto.priorityCode,
     status: dto.status,
+    sourceQuoteId: dto.sourceQuoteId,
     lineCount: dto.lines.length,
     totalQuantity: sumQuantities(dto.lines),
     sourceQuoteLabel: dto.sourceQuoteId ? `Quote ${dto.sourceQuoteId}` : "Direct order",
-    source
+    source,
+    lines: dto.lines
   };
 }
 
@@ -657,6 +708,80 @@ export async function listMpsPlannerSetup(
   }
 }
 
-export async function listAvailablePromiseSetup(filter: QueryFilter): Promise<AvailablePromiseItem[]> {
-  return filterSeeded(seededPromiseItems, filter, (item) => `${item.orderRef} ${item.customerLabel} ${item.itemLabel} ${item.materialSignal}`);
+function availableQtyByItem(balances: StockBalanceDto[]) {
+  return balances.reduce<Record<number, number>>((map, balance) => {
+    const available = Math.max(balance.onHandQty - balance.reservedQty - balance.qcHoldQty - balance.blockedQty, 0);
+    map[balance.itemId] = (map[balance.itemId] ?? 0) + available;
+    return map;
+  }, {});
+}
+
+function addBusinessDays(dateValue: string | null | undefined, days: number) {
+  const base = dateValue && /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? new Date(`${dateValue}T00:00:00`) : new Date();
+  base.setDate(base.getDate() + days);
+  return base.toISOString().slice(0, 10);
+}
+
+function mapLivePromise(order: SalesOrderDto, line: SalesOrderDto["lines"][number], availableByItem: Record<number, number>): AvailablePromiseItem {
+  const requestedQuantity = line.quantity;
+  const availableQuantity = availableByItem[line.itemId] ?? 0;
+  const shortageQuantity = Math.max(requestedQuantity - availableQuantity, 0);
+  const requestedDate = line.requestedShipDate ?? line.promisedDate ?? order.promisedDate ?? order.orderDate;
+  const suggestedPromiseDate = shortageQuantity > 0
+    ? addBusinessDays(requestedDate, Math.ceil(shortageQuantity))
+    : requestedDate;
+  const promiseStatus = shortageQuantity > 0 ? "At Risk" : "Promiseable";
+
+  return {
+    id: `promise-sales-order-${order.id}-${line.id}`,
+    salesOrderId: order.id,
+    salesOrderLineId: line.id,
+    sourceOrder: order,
+    orderRef: `${order.salesOrderNo} / line ${line.lineNo}`,
+    customerLabel: `Customer ${order.customerId}`,
+    itemLabel: `Item ${line.itemId}`,
+    itemId: line.itemId,
+    requestedQuantity,
+    availableQuantity,
+    shortageQuantity,
+    requestedDate,
+    promisedDate: line.promisedDate ?? order.promisedDate ?? "Unpromised",
+    suggestedPromiseDate,
+    materialSignal: shortageQuantity > 0
+      ? `Short by ${shortageQuantity}; reserve or expedite supply before commit.`
+      : `Available ${availableQuantity} against required ${requestedQuantity}.`,
+    capacitySignal: order.status.toLowerCase().includes("released")
+      ? "Released order; capacity commitment can be reviewed."
+      : "Draft order; capacity is simulated until release.",
+    promiseStatus,
+    status: promiseStatus,
+    source: "Live"
+  };
+}
+
+export async function listAvailablePromiseSetup(
+  session: AuthSessionResponse | null | undefined,
+  filter: QueryFilter
+): Promise<AvailablePromiseItem[]> {
+  if (!hasLiveSession(session)) {
+    return filterSeeded(seededPromiseItems, filter, (item) => `${item.orderRef} ${item.customerLabel} ${item.itemLabel} ${item.materialSignal}`);
+  }
+
+  try {
+    const [orders, balances] = await Promise.all([
+      apiClient.salesPlanning.salesOrders(filter),
+      apiClient.inventory.balances({
+        branchId: filter.branchId,
+        companyId: filter.companyId,
+        page: 1,
+        pageSize: 500,
+        status: "all"
+      })
+    ]);
+    const availableByItem = availableQtyByItem(balances.items);
+    const rows = orders.items.flatMap((order) => order.lines.map((line) => mapLivePromise(order, line, availableByItem)));
+    return filterSeeded(rows, filter, (item) => `${item.orderRef} ${item.customerLabel} ${item.itemLabel} ${item.materialSignal}`);
+  } catch {
+    throw liveDataUnavailable("Available to promise");
+  }
 }

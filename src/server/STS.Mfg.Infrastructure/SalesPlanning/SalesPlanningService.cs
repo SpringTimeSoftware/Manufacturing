@@ -89,6 +89,9 @@ internal sealed class SalesPlanningService(
                     itemVariantId,
                     line.OrderUomId,
                     line.Quantity,
+                    line.UnitPrice,
+                    line.DiscountPercent,
+                    line.TaxPercent,
                     line.MakeType,
                     line.PromisedDate,
                     line.PriorityCode,
@@ -142,6 +145,9 @@ internal sealed class SalesPlanningService(
                     itemVariantId,
                     line.OrderUomId,
                     line.Quantity,
+                    line.UnitPrice,
+                    line.DiscountPercent,
+                    line.TaxPercent,
                     line.MakeType,
                     line.PromisedDate,
                     line.PriorityCode,
@@ -1130,6 +1136,9 @@ internal sealed class SalesPlanningService(
             : new ApiError("validation.required", nameof(request.ItemId), "Item id or item code is required.");
         yield return Positive(request.OrderUomId, nameof(request.OrderUomId), "Order UOM is required.");
         yield return Positive(request.Quantity, nameof(request.Quantity), "Quantity must be greater than zero.");
+        yield return request.UnitPrice < 0 ? new ApiError("validation.out_of_range", nameof(request.UnitPrice), "Unit price cannot be negative.") : null;
+        yield return request.DiscountPercent is < 0 or > 100 ? new ApiError("validation.out_of_range", nameof(request.DiscountPercent), "Discount percent must be between 0 and 100.") : null;
+        yield return request.TaxPercent is < 0 or > 100 ? new ApiError("validation.out_of_range", nameof(request.TaxPercent), "Tax percent must be between 0 and 100.") : null;
         yield return Required(request.MakeType, nameof(request.MakeType), "Make type is required.");
         yield return Required(request.PriorityCode, nameof(request.PriorityCode), "Priority code is required.");
         yield return Required(request.Status, nameof(request.Status), "Status is required.");
@@ -1520,7 +1529,7 @@ internal sealed class SalesPlanningService(
     }
 
     private static QuoteLineDto MapQuoteLine(QuoteLine entity) =>
-        new(entity.Id, entity.LineNo, entity.ItemId, entity.ItemVariantId, entity.OrderUomId, entity.Quantity, entity.MakeType, entity.PromisedDate, entity.PriorityCode, entity.CustomerSpecRef, entity.Status);
+        new(entity.Id, entity.LineNo, entity.ItemId, entity.ItemVariantId, entity.OrderUomId, entity.Quantity, entity.UnitPrice, entity.DiscountPercent, entity.DiscountAmount, entity.TaxPercent, entity.TaxAmount, entity.LineAmount, entity.MakeType, entity.PromisedDate, entity.PriorityCode, entity.CustomerSpecRef, entity.Status);
 
     private static QuoteDto MapQuote(Quote entity, IReadOnlyCollection<QuoteLineDto> lines) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.QuoteNo, entity.CustomerId, entity.CustomerAddressId, entity.QuoteDate, entity.ExpiryDate, entity.PriorityCode, entity.Status, entity.CustomerSpecRef, lines);

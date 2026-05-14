@@ -11,5 +11,6 @@ IF SCHEMA_ID(N'inventory') IS NULL EXEC(N'CREATE SCHEMA inventory');
 IF SCHEMA_ID(N'production') IS NULL EXEC(N'CREATE SCHEMA production');
 IF SCHEMA_ID(N'quality') IS NULL EXEC(N'CREATE SCHEMA quality');
 IF SCHEMA_ID(N'dispatch') IS NULL EXEC(N'CREATE SCHEMA dispatch');
+IF SCHEMA_ID(N'finance') IS NULL EXEC(N'CREATE SCHEMA finance');
 IF SCHEMA_ID(N'integration') IS NULL EXEC(N'CREATE SCHEMA integration');
 IF SCHEMA_ID(N'ai') IS NULL EXEC(N'CREATE SCHEMA ai');

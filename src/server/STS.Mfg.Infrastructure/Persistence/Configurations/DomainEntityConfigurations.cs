@@ -932,6 +932,12 @@ public sealed class QuoteLineConfiguration : IEntityTypeConfiguration<QuoteLine>
         builder.ToTable("QuoteLines", "sales");
         builder.HasKey(entity => entity.Id);
         builder.Property(entity => entity.Quantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.UnitPrice).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.DiscountPercent).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.DiscountAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxPercent).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.TaxAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineAmount).HasColumnType("decimal(18,4)");
         builder.Property(entity => entity.MakeType).HasMaxLength(16).IsRequired();
         builder.Property(entity => entity.PriorityCode).HasMaxLength(16).IsRequired();
         builder.Property(entity => entity.CustomerSpecRef).HasMaxLength(128);

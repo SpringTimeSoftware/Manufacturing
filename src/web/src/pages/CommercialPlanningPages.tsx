@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { MasterProductionScheduleUpsertRequest, QuoteDto, QuoteUpsertRequest, SupplierLeadTimeUpsertRequest } from "../api/contracts";
+import type { BlanketOrderUpsertRequest, DemandForecastUpsertRequest, MasterProductionScheduleUpsertRequest, QuoteDto, QuoteUpsertRequest, SalesOrderDto, SalesOrderUpsertRequest, SupplierLeadTimeUpsertRequest } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { hasLiveSession } from "../api/liveData";
@@ -172,6 +172,23 @@ function addDaysIso(days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function toOption(value: string) {
+  return { label: value, value };
+}
+
+function numberValue(value: string) {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function optionList<T>(items: T[] | undefined, getValue: (item: T) => number, getLabel: (item: T) => string) {
+  return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
+}
+
 function buildDraftQuoteNo() {
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
   return `QT-DRAFT-${stamp}`;
@@ -202,6 +219,9 @@ function buildQuoteDraftLine(lineNo: number): QuoteUpsertRequest["lines"][number
     itemVariantId: null,
     orderUomId: 0,
     quantity: 1,
+    unitPrice: 0,
+    discountPercent: 0,
+    taxPercent: 0,
     makeType: "Make",
     promisedDate: addDaysIso(14),
     priorityCode: "Medium",
@@ -228,10 +248,111 @@ function toQuoteDraft(dto: QuoteDto): QuoteUpsertRequest {
       itemVariantId: line.itemVariantId,
       orderUomId: line.orderUomId,
       quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      discountPercent: line.discountPercent,
+      taxPercent: line.taxPercent,
       makeType: line.makeType,
       promisedDate: line.promisedDate,
       priorityCode: line.priorityCode,
       customerSpecRef: line.customerSpecRef ?? "",
+      status: line.status
+    }))
+  };
+}
+
+function buildDraftSalesOrderNo() {
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
+  return `SO-DRAFT-${stamp}`;
+}
+
+function buildSalesOrderDraft(companyId: number, branchId: number): SalesOrderUpsertRequest {
+  return {
+    companyId,
+    branchId,
+    salesOrderNo: buildDraftSalesOrderNo(),
+    customerId: 0,
+    billToAddressId: null,
+    shipToAddressId: null,
+    orderDate: todayIso(),
+    promisedDate: addDaysIso(14),
+    priorityCode: "Medium",
+    status: "Draft",
+    sourceQuoteId: null,
+    lines: [buildSalesOrderLine(10)]
+  };
+}
+
+function buildSalesOrderLine(lineNo: number): SalesOrderUpsertRequest["lines"][number] {
+  return {
+    lineNo,
+    itemId: 0,
+    itemVariantId: null,
+    orderUomId: 0,
+    quantity: 1,
+    makeType: "Make",
+    promisedDate: addDaysIso(14),
+    priorityCode: "Medium",
+    customerSpecRef: "",
+    requestedShipDate: addDaysIso(14),
+    status: "Draft"
+  };
+}
+
+function toSalesOrderDraft(record: SalesOrderSetupItem): SalesOrderUpsertRequest {
+  return {
+    companyId: record.companyId,
+    branchId: record.branchId,
+    salesOrderNo: record.salesOrderNo,
+    customerId: record.customerId,
+    billToAddressId: record.billToAddressId,
+    shipToAddressId: record.shipToAddressId,
+    orderDate: record.orderDate,
+    promisedDate: dateControlValue(record.promisedDate) || null,
+    priorityCode: record.priorityCode,
+    status: record.status,
+    sourceQuoteId: record.sourceQuoteId,
+    lines: record.lines.length
+      ? record.lines.map((line) => ({
+          lineNo: line.lineNo,
+          itemId: line.itemId,
+          itemVariantId: line.itemVariantId,
+          orderUomId: line.orderUomId,
+          quantity: line.quantity,
+          makeType: line.makeType,
+          promisedDate: line.promisedDate,
+          priorityCode: line.priorityCode,
+          customerSpecRef: line.customerSpecRef ?? "",
+          requestedShipDate: line.requestedShipDate,
+          status: line.status
+        }))
+      : [buildSalesOrderLine(10)]
+  };
+}
+
+function salesOrderDtoToDraft(dto: SalesOrderDto): SalesOrderUpsertRequest {
+  return {
+    companyId: dto.companyId,
+    branchId: dto.branchId,
+    salesOrderNo: dto.salesOrderNo,
+    customerId: dto.customerId,
+    billToAddressId: dto.billToAddressId,
+    shipToAddressId: dto.shipToAddressId,
+    orderDate: dto.orderDate,
+    promisedDate: dto.promisedDate,
+    priorityCode: dto.priorityCode,
+    status: dto.status,
+    sourceQuoteId: dto.sourceQuoteId,
+    lines: dto.lines.map((line) => ({
+      lineNo: line.lineNo,
+      itemId: line.itemId,
+      itemVariantId: line.itemVariantId,
+      orderUomId: line.orderUomId,
+      quantity: line.quantity,
+      makeType: line.makeType,
+      promisedDate: line.promisedDate,
+      priorityCode: line.priorityCode,
+      customerSpecRef: line.customerSpecRef ?? "",
+      requestedShipDate: line.requestedShipDate,
       status: line.status
     }))
   };
@@ -816,8 +937,8 @@ export function QuoteEstimateListPage() {
     { staleTime: 60_000 }
   );
   const records = query.data ?? [];
-  const source = records[0]?.source ?? "Seeded";
   const selected = records.find((record) => record.id === selectedId) ?? null;
+  const source = records[0]?.source ?? "Seeded";
   const customerOptions = (customersQuery.data ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
   const itemOptions = (itemsQuery.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
   const uomOptions = (uomsQuery.data ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));
@@ -963,9 +1084,9 @@ export function QuoteEstimateListPage() {
                   <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
                   <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} />
                   <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} />
-                  <ErpMoneyField disabled disabledReason="Quote pricing save requires the commercial pricing engine to be enabled for quote lines." label="Unit price" onChange={() => undefined} value={null} />
-                  <ErpDecimalField disabled disabledReason="Quote line discount save requires the commercial pricing engine to be enabled for quote lines." label="Discount %" onChange={() => undefined} scale={2} unit="%" value={null} />
-                  <ErpDecimalField disabled disabledReason="Quote tax calculation requires the approved tax engine for quote lines." label="Tax %" onChange={() => undefined} scale={2} unit="%" value={null} />
+                  <ErpMoneyField label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} />
+                  <ErpDecimalField label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} />
+                  <ErpDecimalField label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} />
                   <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} />
                   <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label>
                   <ErpLookupField label="Line priority" onChange={(value) => updateLine(index, { priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={line.priorityCode} />
@@ -983,15 +1104,80 @@ export function QuoteEstimateListPage() {
 
 export function SalesOrderListPage() {
   const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draftOrderId, setDraftOrderId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<SalesOrderUpsertRequest | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), [deferredSearch, status, user?.activeContext.branchId, user?.activeContext.companyId]);
   const query = useApiQuery(queryKeys.salesPlanning.salesOrders(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listSalesOrderSetup(session, filter), { staleTime: 60_000 });
+  const customers = useApiQuery(queryKeys.partners.customers(companyId, branchId, "", "Active"), () => apiClient.partners.customers({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
-  const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (live ? "Live" : "Seeded");
+  const customerOptions = (customers.data?.items ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
+  const itemOptions = (itemLookup.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
+  const uomOptions = (uoms.data?.items ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));
+  const validation = [
+    draft && !draft.salesOrderNo.trim() ? "Sales order number is required." : "",
+    draft && !draft.customerId ? "Customer is required." : "",
+    draft && draft.lines.length === 0 ? "At least one sales order line is required." : "",
+    ...(draft?.lines.flatMap((line, index) => [
+      !line.itemId ? `Line ${index + 1} item is required.` : "",
+      !line.orderUomId ? `Line ${index + 1} order UOM is required.` : "",
+      line.quantity <= 0 ? `Line ${index + 1} quantity must be greater than zero.` : "",
+      !line.promisedDate ? `Line ${index + 1} promised date is required.` : "",
+      !line.requestedShipDate ? `Line ${index + 1} requested ship date is required.` : ""
+    ]) ?? [])
+  ].filter(Boolean) as string[];
+  const saveMutation = useApiMutation(
+    (request: SalesOrderUpsertRequest) =>
+      draftOrderId ? apiClient.salesPlanning.updateSalesOrder(draftOrderId, request) : apiClient.salesPlanning.createSalesOrder(request),
+    {
+      onSuccess: async (saved) => {
+        setDraftOrderId(saved.id);
+        setDraft(salesOrderDtoToDraft(saved));
+        setSaveMessage(`Saved ${saved.salesOrderNo}.`);
+        await query.refetch();
+      },
+      onError: (error) => setSaveMessage(error.message)
+    }
+  );
+  const saveReason = !live
+    ? "Sales order save requires a live sales session."
+    : validation.length > 0
+      ? "Resolve validation issues before saving."
+      : saveMutation.isPending
+        ? "Sales order save is in progress."
+        : undefined;
+  const openNewDraft = () => {
+    setDraftOrderId(null);
+    setDraft(buildSalesOrderDraft(companyId, branchId));
+    setSaveMessage(null);
+  };
+  const openEditDraft = (record: SalesOrderSetupItem) => {
+    setDraftOrderId(record.source === "Live" ? record.salesOrderId : null);
+    setDraft(toSalesOrderDraft(record));
+    setSaveMessage(null);
+  };
+  const updateLine = (lineIndex: number, patch: Partial<SalesOrderUpsertRequest["lines"][number]>) => {
+    setDraft((current) => current ? { ...current, lines: current.lines.map((line, index) => index === lineIndex ? { ...line, ...patch } : line) } : current);
+  };
+  const addLine = () => setDraft((current) => current ? { ...current, lines: [...current.lines, buildSalesOrderLine((current.lines.length + 1) * 10)] } : current);
+  const removeLine = (lineIndex: number) => {
+    setDraft((current) => {
+      if (!current || current.lines.length <= 1) {
+        return current;
+      }
+
+      return { ...current, lines: current.lines.filter((_, index) => index !== lineIndex).map((line, index) => ({ ...line, lineNo: (index + 1) * 10 })) };
+    });
+  };
 
   return (
     <>
@@ -1000,7 +1186,7 @@ export function SalesOrderListPage() {
           <>
             <SourceBadge source={source} />
             <ErpActionBar
-              primary={[{ disabled: true, label: "New order draft", reason: "Sales order drafting requires the order-entry workflow to be enabled." }]}
+              primary={[{ disabled: !live, label: "New order draft", onClick: live ? openNewDraft : undefined, reason: live ? undefined : "Sales order drafting requires a live sales session." }]}
               secondary={[{ disabled: true, label: "Export orders", reason: "Sales order export is pending the approved reporting workflow." }]}
               testId="sales-order-action-bar"
             />
@@ -1013,17 +1199,46 @@ export function SalesOrderListPage() {
       >
         <KpiStrip items={[{ label: "Orders", value: String(records.length) }, { label: "At risk", value: String(records.filter((record) => record.status.includes("Risk")).length) }, { label: "Lines", value: String(records.reduce((total, record) => total + record.lineCount, 0)) }, { label: "Qty", value: String(records.reduce((total, record) => total + record.totalQuantity, 0)) }]} />
         <Card title="Manufacturing demand" description="Order lines, promise dates, attachments, and make type stay visible from the list.">
-          <DataGrid ariaLabel="Sales order list" columns={salesOrderColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.salesOrderNo} sales order`} virtualization={{ enabled: true }} />
+          <DataGrid ariaLabel="Sales order list" columns={salesOrderColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={openEditDraft} records={records} rowLabel={(record) => `${record.salesOrderNo} sales order`} virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Sales order detail is review-only until order-entry save is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save order draft", reason: "Sales order save requires the order-entry workflow to be enabled." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
-        isOpen={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.salesOrderNo ?? "Sales order detail"}
+        description="Create and maintain sales order demand lines before planning, production, and dispatch consume the order."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: saveMutation.isPending ? "Saving order draft" : "Save order draft", onClick: saveReason ? undefined : () => draft && saveMutation.mutate({ ...draft, lines: draft.lines.map((line, index) => ({ ...line, lineNo: (index + 1) * 10 })) }), reason: saveReason }]} utility={[{ label: "Close", onClick: () => { setDraft(null); setDraftOrderId(null); }, variant: "quiet" }]} />}
+        isOpen={Boolean(draft)}
+        onClose={() => { setDraft(null); setDraftOrderId(null); }}
+        statusMeta={<>{draft ? <StatusBadge status={draft.status} /> : null}{saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}</>}
+        title={draftOrderId ? `Sales order ${draft?.salesOrderNo}` : "New order draft"}
+        validation={<ErpValidationSummary errors={validation} title="Sales order checks" />}
       >
-        {selected ? <><div className="utility-grid"><Tile eyebrow={selected.priorityCode} label="Promise" meta={selected.status}>{selected.promisedDate}</Tile><Tile eyebrow={selected.sourceQuoteLabel} label="Total quantity" meta={`${selected.lineCount} lines`}>{selected.totalQuantity}</Tile></div><FormShell initialFingerprint={selected.id} title="Sales order detail"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><label><span>Promise date</span><input disabled readOnly title="Promise date changes require the sales order workflow." type="date" value={dateControlValue(selected.promisedDate)} /></label></FormShell></> : null}
+        {draft ? <div className="modal-form-grid" data-testid="sales-order-draft-modal">
+          <Card title="Sales order header" description="Customer, promise, and demand status drive downstream planning consumption.">
+            <FormShell initialFingerprint={`${draftOrderId ?? "new"}-${draft.salesOrderNo}`} title="Header">
+              <label><span>Sales order number</span><input onChange={(event) => setDraft({ ...draft, salesOrderNo: event.target.value })} value={draft.salesOrderNo} /></label>
+              <ErpLookupField disabled={Boolean(draftOrderId)} disabledReason={draftOrderId ? "Customer cannot be changed after the sales order is saved." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
+              <label><span>Order date</span><input onChange={(event) => setDraft({ ...draft, orderDate: event.target.value })} type="date" value={draft.orderDate} /></label>
+              <label><span>Promised date</span><input onChange={(event) => setDraft({ ...draft, promisedDate: event.target.value || null })} type="date" value={draft.promisedDate ?? ""} /></label>
+              <ErpLookupField label="Priority" onChange={(value) => setDraft({ ...draft, priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draft.priorityCode} />
+              <ErpLookupField label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Released", value: "Released" }, { label: "At Risk", value: "At Risk" }]} value={draft.status} />
+            </FormShell>
+          </Card>
+          <Card title="Sales order lines" description="Add every customer demand line before releasing the order to planning.">
+            <ErpActionBar secondary={[{ label: "Add Line", onClick: addLine }]} />
+            {draft.lines.map((line, index) => (
+              <FormShell initialFingerprint={`${draftOrderId ?? "new"}-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}>
+                <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} />
+                <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} />
+                <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} />
+                <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} />
+                <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label>
+                <label><span>Requested ship date</span><input onChange={(event) => updateLine(index, { requestedShipDate: event.target.value || null })} type="date" value={line.requestedShipDate ?? ""} /></label>
+                <ErpLookupField label="Line priority" onChange={(value) => updateLine(index, { priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={line.priorityCode} />
+                <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Released", value: "Released" }, { label: "At Risk", value: "At Risk" }]} value={line.status} />
+                <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one sales order line is required." : undefined }]} />
+              </FormShell>
+            ))}
+          </Card>
+        </div> : null}
       </ErpModalWorkspace>
     </>
   );
@@ -1031,46 +1246,133 @@ export function SalesOrderListPage() {
 
 export function BlanketOrderContractPage() {
   const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<BlanketOrderUpsertRequest | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), [deferredSearch, status, user?.activeContext.branchId, user?.activeContext.companyId]);
   const query = useApiQuery(queryKeys.salesPlanning.blanketOrders(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listBlanketOrderSetup(session, filter), { staleTime: 60_000 });
+  const customers = useApiQuery(queryKeys.partners.customers(companyId, branchId, "", "Active"), () => apiClient.partners.customers({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const items = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (live ? "Live" : "Seeded");
+  const customerOptions = optionList(customers.data?.items, (customer) => customer.id, (customer) => `${customer.customerCode} / ${customer.customerName}`);
+  const itemOptions = optionList(items.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
+  const uomOptions = optionList(uoms.data?.items, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const blanketErrors = [
+    !draft?.blanketOrderNo.trim() ? "Blanket order number is required." : "",
+    draft && !draft.customerId ? "Customer is required." : "",
+    draft && draft.schedules.length === 0 ? "At least one schedule line is required." : "",
+    ...(draft?.schedules ?? []).flatMap((line, index) => [
+      !line.itemId ? `Schedule ${index + 1} item is required.` : "",
+      !line.orderUomId ? `Schedule ${index + 1} UOM is required.` : "",
+      line.quantity <= 0 ? `Schedule ${index + 1} quantity must be greater than zero.` : ""
+    ])
+  ].filter(Boolean);
+  const saveReason = !draft
+    ? "Open a blanket-order draft before saving."
+    : !live
+      ? "Live sales planning sign-in is required before saving blanket orders."
+      : blanketErrors[0];
+  const save = useApiMutation((request: BlanketOrderUpsertRequest) => apiClient.salesPlanning.createBlanketOrder(request), {
+    onSuccess: async (record) => {
+      setMessage(`Saved blanket order ${record.blanketOrderNo}.`);
+      setDraft(null);
+      await query.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const openDraft = () => setDraft({ companyId, branchId, blanketOrderNo: `BLK-DRAFT-${Date.now().toString().slice(-6)}`, customerId: 0, startDate: todayIso(), endDate: addDaysIso(90), status: "Draft", schedules: [{ lineNo: 10, itemId: 0, scheduleDate: todayIso(), quantity: 1, orderUomId: 0, status: "Open" }] });
+  const updateSchedule = (index: number, patch: Partial<BlanketOrderUpsertRequest["schedules"][number]>) => setDraft((current) => current ? { ...current, schedules: current.schedules.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line) } : current);
+  const addSchedule = () => setDraft((current) => current ? { ...current, schedules: [...current.schedules, { lineNo: (current.schedules.length + 1) * 10, itemId: 0, scheduleDate: current.startDate, quantity: 1, orderUomId: 0, status: "Open" }] } : current);
+  const removeSchedule = (index: number) => setDraft((current) => current ? { ...current, schedules: current.schedules.filter((_, lineIndex) => lineIndex !== index).map((line, lineIndex) => ({ ...line, lineNo: (lineIndex + 1) * 10 })) } : current);
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New blanket draft", reason: "Blanket order drafting requires the contract workflow to be enabled." }]} secondary={[{ disabled: true, label: "Export contracts", reason: "Contract export is pending the approved reporting workflow." }]} testId="blanket-order-action-bar" /></>} aside={<WorkbenchAside description="Blanket orders expose recurring demand schedules without releasing production." endpoint="/api/blanket-orders" source={source} />} description="Recurring demand and schedule releases by customer and period." filters={<FilterBar><input aria-label="Search blanket orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search contract, customer, release" value={search} /><select aria-label="Blanket order status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Active">Active</option><option value="Draft">Draft</option></select></FilterBar>} title="Blanket Order / Contract">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New blanket draft", onClick: openDraft }]} secondary={[{ disabled: true, label: "Export contracts", reason: "Contract export is pending the approved reporting workflow." }]} testId="blanket-order-action-bar" /></>} aside={<WorkbenchAside description="Blanket orders expose recurring demand schedules without releasing production." endpoint="/api/blanket-orders" source={source} />} description="Recurring demand and schedule releases by customer and period." filters={<FilterBar><input aria-label="Search blanket orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search contract, customer, release" value={search} /><select aria-label="Blanket order status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Active">Active</option><option value="Draft">Draft</option></select></FilterBar>} title="Blanket Order / Contract">
+        {query.error ? <Card title="Live blanket-order data unavailable" description={query.error.message} /> : null}
+        {message ? <Badge tone={message.toLowerCase().includes("saved") ? "success" : "danger"}>{message}</Badge> : null}
         <KpiStrip items={[{ label: "Contracts", value: String(records.length) }, { label: "Schedules", value: String(records.reduce((total, record) => total + record.scheduleCount, 0)) }, { label: "Qty", value: String(records.reduce((total, record) => total + record.totalQuantity, 0)) }, { label: "Active", value: String(records.filter((record) => record.status === "Active").length) }]} />
         <Card title="Blanket contract registry" description="Schedule releases remain reviewable before demand enters planning.">
           <DataGrid ariaLabel="Blanket order list" columns={blanketOrderColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.blanketOrderNo} blanket order`} virtualization={{ enabled: true }} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Blanket order detail is review-only until contract drafting is enabled." footer={<ErpActionBar primary={[{ disabled: true, label: "Save blanket draft", reason: "Blanket order save requires the contract workflow to be enabled." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.blanketOrderNo ?? "Blanket order detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="Blanket order setup"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><ErpLookupField disabled disabledReason="Contract horizon is controlled by the blanket-order schedule." label="Horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} /><ErpLookupField disabled disabledReason="Next release is calculated from the blanket-order schedule." label="Next release" onChange={() => undefined} options={[{ label: selected.nextRelease, value: selected.nextRelease }]} value={selected.nextRelease} /></FormShell> : null}</ErpModalWorkspace>
+      <ErpModalWorkspace description="Create a blanket contract with schedule lines that feed demand planning." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || save.isPending || blanketErrors.length > 0, label: save.isPending ? "Saving blanket draft" : "Save blanket draft", onClick: draft && !saveReason && blanketErrors.length === 0 ? () => save.mutate(draft) : undefined, reason: saveReason ?? blanketErrors[0] }]} secondary={[{ disabled: !live, label: "Add schedule line", onClick: live ? addSchedule : undefined, reason: live ? undefined : "Live sales planning sign-in is required before adding schedule lines." }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />} isOpen={Boolean(draft)} onClose={() => setDraft(null)} title={draft?.blanketOrderNo ?? "Blanket draft"} validation={<ErpValidationSummary errors={blanketErrors} />}>
+        {draft ? <div className="modal-form-grid"><FormShell initialFingerprint={`${draft.blanketOrderNo}-header`} title="Blanket order controls"><label><span>Blanket order number</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, blanketOrderNo: event.target.value })} value={draft.blanketOrderNo} /></label><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live sales planning sign-in is required before selecting a customer."} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: numberValue(value) })} options={customerOptions} required value={draft.customerId ? String(draft.customerId) : ""} /><label><span>Start date</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} type="date" value={dateControlValue(draft.startDate)} /></label><label><span>End date</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} type="date" value={dateControlValue(draft.endDate)} /></label><ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live sales planning sign-in is required before changing status."} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={["Draft", "Active", "Closed"].map(toOption)} value={draft.status} /></FormShell><Card title="Schedule lines" description="Add every contract release bucket with governed item, UOM, date, and quantity controls.">{draft.schedules.map((line, index) => <FormShell initialFingerprint={`${draft.blanketOrderNo}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Schedule ${index + 1}`}><ErpLookupField disabled={!live} label="Item" onChange={(value) => updateSchedule(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /><label><span>Schedule date</span><input disabled={!live} onChange={(event) => updateSchedule(index, { scheduleDate: event.target.value })} type="date" value={dateControlValue(line.scheduleDate)} /></label><ErpDecimalField disabled={!live} label="Quantity" min={0.001} onChange={(value) => updateSchedule(index, { quantity: value ?? 0 })} value={line.quantity} /><ErpLookupField disabled={!live} label="Order UOM" onChange={(value) => updateSchedule(index, { orderUomId: numberValue(value) })} options={uomOptions} required value={line.orderUomId ? String(line.orderUomId) : ""} /><ErpLookupField disabled={!live} label="Schedule status" onChange={(value) => updateSchedule(index, { status: value })} options={["Open", "Released", "Closed"].map(toOption)} value={line.status} /><ErpActionBar danger={[{ disabled: !live || draft.schedules.length <= 1, label: "Remove Line", onClick: live && draft.schedules.length > 1 ? () => removeSchedule(index) : undefined, reason: draft.schedules.length <= 1 ? "At least one schedule line is required." : undefined }]} /></FormShell>)}</Card></div> : null}
+      </ErpModalWorkspace>
+      <ErpModalWorkspace description="Review saved blanket contract schedule and demand horizon." footer={<ErpActionBar primary={[{ disabled: true, label: "Edit blanket draft", reason: "Open a new blanket draft for new contract schedules; saved contract correction needs approval." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.blanketOrderNo ?? "Blanket order detail"}>{selected ? <FormShell initialFingerprint={selected.id} title="Blanket order setup"><ErpLookupField disabled disabledReason="Customer selection is controlled from Customer Master." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} /><ErpLookupField disabled disabledReason="Contract horizon is controlled by the blanket-order schedule." label="Horizon" onChange={() => undefined} options={[{ label: selected.horizon, value: selected.horizon }]} value={selected.horizon} /><ErpLookupField disabled disabledReason="Next release is calculated from the blanket-order schedule." label="Next release" onChange={() => undefined} options={[{ label: selected.nextRelease, value: selected.nextRelease }]} value={selected.nextRelease} /></FormShell> : null}</ErpModalWorkspace>
     </>
   );
 }
 
 export function DemandForecastPage() {
   const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [draft, setDraft] = useState<DemandForecastUpsertRequest | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), [deferredSearch, status, user?.activeContext.branchId, user?.activeContext.companyId]);
   const query = useApiQuery(queryKeys.salesPlanning.forecasts(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), () => listDemandForecastSetup(session, filter), { staleTime: 60_000 });
+  const items = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
-  const source = records[0]?.source ?? "Seeded";
+  const source = records[0]?.source ?? (live ? "Live" : "Seeded");
+  const itemOptions = optionList(items.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
+  const uomOptions = optionList(uoms.data?.items, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const forecastErrors = [
+    !draft?.forecastCode.trim() ? "Forecast code is required." : "",
+    !draft?.forecastName.trim() ? "Forecast name is required." : "",
+    draft && draft.lines.length === 0 ? "At least one forecast line is required." : "",
+    ...(draft?.lines ?? []).flatMap((line, index) => [
+      !line.itemId ? `Line ${index + 1} item is required.` : "",
+      !line.forecastUomId ? `Line ${index + 1} UOM is required.` : "",
+      line.quantity <= 0 ? `Line ${index + 1} quantity must be greater than zero.` : "",
+      line.forecastPeriodEnd < line.forecastPeriodStart ? `Line ${index + 1} period end must be after start.` : ""
+    ])
+  ].filter(Boolean);
+  const saveReason = !draft
+    ? "Open a forecast draft before saving."
+    : !live
+      ? "Live planning sign-in is required before saving forecasts."
+      : forecastErrors[0];
+  const save = useApiMutation((request: DemandForecastUpsertRequest) => apiClient.salesPlanning.createForecast(request), {
+    onSuccess: async (record) => {
+      setMessage(`Saved forecast ${record.forecastCode}.`);
+      setDraft(null);
+      await query.refetch();
+    },
+    onError: (error) => setMessage(error.message)
+  });
+  const openDraft = () => setDraft({ companyId, branchId, forecastCode: `FC-DRAFT-${Date.now().toString().slice(-6)}`, forecastName: "Demand forecast", periodType: "Monthly", status: "Draft", lines: [{ lineNo: 10, itemId: 0, forecastPeriodStart: todayIso(), forecastPeriodEnd: addDaysIso(30), quantity: 1, forecastUomId: 0 }] });
+  const updateLine = (index: number, patch: Partial<DemandForecastUpsertRequest["lines"][number]>) => setDraft((current) => current ? { ...current, lines: current.lines.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line) } : current);
+  const addLine = () => setDraft((current) => current ? { ...current, lines: [...current.lines, { lineNo: (current.lines.length + 1) * 10, itemId: 0, forecastPeriodStart: todayIso(), forecastPeriodEnd: addDaysIso(30), quantity: 1, forecastUomId: 0 }] } : current);
+  const removeLine = (index: number) => setDraft((current) => current ? { ...current, lines: current.lines.filter((_, lineIndex) => lineIndex !== index).map((line, lineIndex) => ({ ...line, lineNo: (lineIndex + 1) * 10 })) } : current);
 
   return (
-    <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New forecast", reason: "Forecast creation requires planning workflow enablement." }]} secondary={[{ disabled: true, label: "Import forecast", reason: "Forecast import requires the approved import workflow." }]} testId="forecast-action-bar" /></>} aside={<WorkbenchAside description="Demand forecast stays a planning input and does not create sales orders automatically." endpoint="/api/forecasts" source={source} />} description="Manual or imported forecast by period, item, and planning horizon." filters={<FilterBar><input aria-label="Search forecasts" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search forecast, period, horizon" value={search} /><select aria-label="Forecast status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Approved">Approved</option><option value="Draft">Draft</option></select></FilterBar>} title="Demand Forecast">
-      <KpiStrip items={[{ label: "Forecasts", value: String(records.length) }, { label: "Buckets", value: String(records.reduce((total, record) => total + record.bucketCount, 0)) }, { label: "Qty", value: String(records.reduce((total, record) => total + record.totalQuantity, 0)) }, { label: "Approved", value: String(records.filter((record) => record.status === "Approved").length) }]} />
-      <Card title="Forecast registry" description="Forecast buckets are reviewable before MPS or MRP consumption.">
-        <DataGrid ariaLabel="Demand forecast list" columns={forecastColumns} getRowId={(record) => record.id} isLoading={query.isLoading} records={records} rowLabel={(record) => `${record.forecastCode} forecast`} virtualization={{ enabled: true }} />
-      </Card>
-    </ListPageShell>
+    <>
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New forecast", onClick: openDraft }]} secondary={[{ disabled: true, label: "Import forecast", reason: "Forecast import requires the approved import workflow." }]} testId="forecast-action-bar" /></>} aside={<WorkbenchAside description="Demand forecast stays a planning input and does not create sales orders automatically." endpoint="/api/forecasts" source={source} />} description="Manual or imported forecast by period, item, and planning horizon." filters={<FilterBar><input aria-label="Search forecasts" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search forecast, period, horizon" value={search} /><select aria-label="Forecast status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Approved">Approved</option><option value="Draft">Draft</option></select></FilterBar>} title="Demand Forecast">
+        {query.error ? <Card title="Live forecast data unavailable" description={query.error.message} /> : null}
+        {message ? <Badge tone={message.toLowerCase().includes("saved") ? "success" : "danger"}>{message}</Badge> : null}
+        <KpiStrip items={[{ label: "Forecasts", value: String(records.length) }, { label: "Buckets", value: String(records.reduce((total, record) => total + record.bucketCount, 0)) }, { label: "Qty", value: String(records.reduce((total, record) => total + record.totalQuantity, 0)) }, { label: "Approved", value: String(records.filter((record) => record.status === "Approved").length) }]} />
+        <Card title="Forecast registry" description="Forecast buckets are reviewable before MPS or MRP consumption.">
+          <DataGrid ariaLabel="Demand forecast list" columns={forecastColumns} getRowId={(record) => record.id} isLoading={query.isLoading} records={records} rowLabel={(record) => `${record.forecastCode} forecast`} virtualization={{ enabled: true }} />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace description="Create demand forecast buckets with governed item, UOM, date, and quantity controls." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason) || save.isPending || forecastErrors.length > 0, label: save.isPending ? "Saving forecast" : "Save forecast", onClick: draft && !saveReason && forecastErrors.length === 0 ? () => save.mutate(draft) : undefined, reason: saveReason ?? forecastErrors[0] }]} secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addLine : undefined, reason: live ? undefined : "Live planning sign-in is required before adding forecast lines." }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />} isOpen={Boolean(draft)} onClose={() => setDraft(null)} title={draft?.forecastCode ?? "Forecast draft"} validation={<ErpValidationSummary errors={forecastErrors} />}>
+        {draft ? <div className="modal-form-grid"><FormShell initialFingerprint={`${draft.forecastCode}-header`} title="Forecast controls"><label><span>Forecast code</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, forecastCode: event.target.value })} value={draft.forecastCode} /></label><label><span>Forecast name</span><input disabled={!live} onChange={(event) => setDraft({ ...draft, forecastName: event.target.value })} value={draft.forecastName} /></label><ErpLookupField disabled={!live} label="Period type" onChange={(value) => setDraft({ ...draft, periodType: value })} options={["Weekly", "Monthly", "Quarterly"].map(toOption)} value={draft.periodType} /><ErpLookupField disabled={!live} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={["Draft", "Approved", "Closed"].map(toOption)} value={draft.status} /></FormShell><Card title="Forecast lines" description="Each line becomes planning demand for MPS and MRP review.">{draft.lines.map((line, index) => <FormShell initialFingerprint={`${draft.forecastCode}-line-${line.lineNo}`} key={`${line.lineNo}-${index}`} title={`Line ${index + 1}`}><ErpLookupField disabled={!live} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /><label><span>Period start</span><input disabled={!live} onChange={(event) => updateLine(index, { forecastPeriodStart: event.target.value })} type="date" value={dateControlValue(line.forecastPeriodStart)} /></label><label><span>Period end</span><input disabled={!live} onChange={(event) => updateLine(index, { forecastPeriodEnd: event.target.value })} type="date" value={dateControlValue(line.forecastPeriodEnd)} /></label><ErpDecimalField disabled={!live} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} value={line.quantity} /><ErpLookupField disabled={!live} label="Forecast UOM" onChange={(value) => updateLine(index, { forecastUomId: numberValue(value) })} options={uomOptions} required value={line.forecastUomId ? String(line.forecastUomId) : ""} /><ErpActionBar danger={[{ disabled: !live || draft.lines.length <= 1, label: "Remove Line", onClick: live && draft.lines.length > 1 ? () => removeLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one forecast line is required." : undefined }]} /></FormShell>)}</Card></div> : null}
+      </ErpModalWorkspace>
+    </>
   );
 }
 
@@ -1321,19 +1623,98 @@ export function MpsPlannerPage() {
 }
 
 export function AvailableToPromisePage() {
-  const { user } = useAuth();
+  const { session, user } = useAuth();
+  const live = hasLiveSession(session);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<AvailablePromiseItem | null>(null);
+  const [simulatedDate, setSimulatedDate] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, "all"), [deferredSearch, user?.activeContext.branchId, user?.activeContext.companyId]);
-  const query = useApiQuery(queryKeys.salesPlanning.availableToPromise(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch), () => listAvailablePromiseSetup(filter), { staleTime: 60_000 });
+  const query = useApiQuery(queryKeys.salesPlanning.availableToPromise(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch), () => listAvailablePromiseSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
+  const source = records[0]?.source ?? (live ? "Live" : "Deferred");
+  const openSimulation = (record: AvailablePromiseItem | null = records[0] ?? null) => {
+    setSelected(record);
+    setSimulatedDate(record?.suggestedPromiseDate ?? todayIso());
+    setMessage(null);
+  };
+  const commitMutation = useApiMutation<void, SalesOrderDto>(
+    async () => {
+      if (!selected?.sourceOrder) {
+        throw new Error("Open a live sales order promise before committing.");
+      }
+
+      const draft = salesOrderDtoToDraft(selected.sourceOrder);
+      const nextDate = simulatedDate || selected.suggestedPromiseDate || todayIso();
+      return apiClient.salesPlanning.updateSalesOrder(selected.sourceOrder.id, {
+        ...draft,
+        promisedDate: nextDate,
+        lines: draft.lines.map((line, index) => {
+          const sourceLine = selected.sourceOrder?.lines[index];
+          return sourceLine?.id === selected.salesOrderLineId
+            ? { ...line, promisedDate: nextDate, requestedShipDate: line.requestedShipDate ?? nextDate }
+            : line;
+        })
+      });
+    },
+    {
+      onSuccess: async (record) => {
+        setMessage(`Committed promise for ${record.salesOrderNo}.`);
+        await query.refetch();
+      },
+      onError: (error) => setMessage(error.message)
+    }
+  );
+  const commitReason = !live
+    ? "Live sales planning sign-in is required before committing a promise."
+    : !selected?.sourceOrder
+      ? "Select a live sales order promise before committing."
+      : !simulatedDate
+        ? "Choose a committed promise date before saving."
+        : commitMutation.isPending
+          ? "Promise commit is in progress."
+          : undefined;
 
   return (
-    <ListPageShell actions={<><SourceBadge source="Deferred" /><ErpActionBar primary={[{ disabled: true, label: "Run what-if", reason: "Promise simulation requires ATP workflow enablement." }]} secondary={[{ disabled: true, label: "Export promise check", reason: "Promise export is pending the approved reporting workflow." }]} testId="available-promise-action-bar" /></>} aside={<WorkbenchAside description="Promise rows show material and capacity readiness for planning review." endpoint="ATP endpoint deferred" source="Deferred" />} description="Committed date review using material and capacity signals." filters={<FilterBar><input aria-label="Search available to promise" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search order, customer, item, signal" value={search} /></FilterBar>} title="Available to Promise / Order Promise">
-      <KpiStrip items={[{ label: "Checks", value: String(records.length) }, { label: "At risk", value: String(records.filter((record) => record.promiseStatus.includes("Risk")).length) }, { label: "Promiseable", value: String(records.filter((record) => record.promiseStatus === "Promiseable").length) }, { label: "Planned", value: String(records.filter((record) => record.source === "Deferred").length) }]} />
-      <Card title="Promise workbench" description="Material and capacity signals are visible for order-promise review.">
-        <DataGrid ariaLabel="Available to promise list" columns={promiseColumns} getRowId={(record) => record.id} isLoading={query.isLoading} records={records} rowLabel={(record) => `${record.orderRef} promise`} virtualization={{ enabled: true }} />
-      </Card>
-    </ListPageShell>
+    <>
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: records.length === 0, label: "Run what-if", onClick: records.length > 0 ? () => openSimulation(records[0]) : undefined, reason: records.length === 0 ? "No order-promise rows match the current filter." : undefined }]} secondary={[{ disabled: true, label: "Export promise check", reason: "Promise export is pending the approved reporting workflow." }]} testId="available-promise-action-bar" /></>} aside={<WorkbenchAside description="Promise rows use live sales orders and stock balances when signed in; review mode uses planning examples only." endpoint="/api/sales-orders + /api/inventory" source={source} />} description="Committed date review using material and capacity signals." filters={<FilterBar><input aria-label="Search available to promise" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search order, customer, item, signal" value={search} /></FilterBar>} title="Available to Promise / Order Promise">
+        <KpiStrip items={[{ label: "Checks", value: String(records.length) }, { label: "At risk", value: String(records.filter((record) => record.promiseStatus.includes("Risk")).length) }, { label: "Promiseable", value: String(records.filter((record) => record.promiseStatus === "Promiseable").length) }, { label: "Live", value: String(records.filter((record) => record.source === "Live").length) }]} />
+        <Card title="Promise workbench" description="Material and capacity signals are visible for order-promise review.">
+          <DataGrid ariaLabel="Available to promise list" columns={promiseColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={openSimulation} records={records} rowLabel={(record) => `${record.orderRef} promise`} virtualization={{ enabled: true }} />
+        </Card>
+      </ListPageShell>
+      <ErpModalWorkspace
+        description="Simulate material availability and commit a promised date back to the sales order when live data is available."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(commitReason), label: commitMutation.isPending ? "Committing promise" : "Commit promise", onClick: commitReason ? undefined : () => commitMutation.mutate(undefined), reason: commitReason }]} utility={[{ label: "Close", onClick: () => setSelected(null), variant: "quiet" }]} />}
+        isOpen={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        statusMeta={<>{selected ? <StatusBadge status={selected.promiseStatus} /> : null}{message ? <ErpStatusChip tone={message.startsWith("Committed") ? "success" : "danger"}>{message}</ErpStatusChip> : null}</>}
+        title={selected?.orderRef ?? "Promise simulation"}
+      >
+        {selected ? (
+          <div className="modal-form-grid">
+            <Card title="Order promise" description="Review requested demand, current stock availability, and the proposed promise date.">
+              <FormShell initialFingerprint={`${selected.id}-${selected.suggestedPromiseDate}`} title="What-if controls">
+                <ErpLookupField disabled disabledReason="Order reference comes from the selected sales order line." label="Sales order line" onChange={() => undefined} options={[{ label: selected.orderRef, value: selected.id }]} value={selected.id} />
+                <ErpLookupField disabled disabledReason="Customer comes from the selected sales order." label="Customer" onChange={() => undefined} options={[{ label: selected.customerLabel, value: selected.customerLabel }]} value={selected.customerLabel} />
+                <ErpLookupField disabled disabledReason="Item comes from the selected sales order line." label="Item" onChange={() => undefined} options={[{ label: selected.itemLabel, value: selected.itemLabel }]} value={selected.itemLabel} />
+                <ErpDecimalField disabled label="Requested quantity" min={0} onChange={() => undefined} value={selected.requestedQuantity} />
+                <ErpDecimalField disabled label="Available quantity" min={0} onChange={() => undefined} value={selected.availableQuantity} />
+                <ErpDecimalField disabled label="Shortage quantity" min={0} onChange={() => undefined} value={selected.shortageQuantity} />
+                <label><span>Committed promise date</span><input disabled={!live} onChange={(event) => setSimulatedDate(event.target.value)} type="date" value={dateControlValue(simulatedDate)} /></label>
+              </FormShell>
+            </Card>
+            <Card title="Readiness signals" description="Material and capacity signals explain whether the promise is ready to commit.">
+              <Tile label="Requested">{selected.requestedDate}</Tile>
+              <Tile label="Current promise">{selected.promisedDate}</Tile>
+              <Tile label="Suggested promise">{selected.suggestedPromiseDate}</Tile>
+              <Tile label="Material">{selected.materialSignal}</Tile>
+              <Tile label="Capacity">{selected.capacitySignal}</Tile>
+            </Card>
+          </div>
+        ) : null}
+      </ErpModalWorkspace>
+    </>
   );
 }

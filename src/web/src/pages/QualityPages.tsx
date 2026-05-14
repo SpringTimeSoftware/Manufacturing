@@ -1,5 +1,6 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { InspectionSaveRequest } from "../api/contracts";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { hasLiveSession } from "../api/liveData";
 import { apiClient } from "../api/http";
@@ -17,7 +18,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
-import { ErpActionBar, ErpLookupField, ErpModalWorkspace } from "../ui/ErpComponents";
+import { ErpActionBar, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
 import { FilterBar } from "../ui/FilterBar";
 import { FormShell } from "../ui/FormShell";
 import { ListPageShell } from "../ui/ListPageShell";
@@ -55,6 +56,156 @@ function useQualityFilter(search: string, status: string, inspectionType = "all"
     }),
     [deferredSearch, inspectionType, status, user?.activeContext.branchId, user?.activeContext.companyId]
   );
+}
+
+interface InspectionResultDraft {
+  lineNo: number;
+  parameterCode: string;
+  expectedValue: string;
+  actualValue: string;
+  resultStatus: string;
+  remarks: string;
+}
+
+interface InspectionDraft {
+  inspectionNo: string;
+  inspectionPlanId: number | null;
+  inspectionType: string;
+  sourceDocumentType: string;
+  sourceDocumentId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  overallResult: string;
+  requestToken: string;
+  notes: string;
+  autoCreateNcr: boolean;
+  ncrNo: string;
+  ncrDisposition: string;
+  ncrRootCause: string;
+  results: InspectionResultDraft[];
+}
+
+const inspectionTypeOptions = ["Incoming", "InProcess", "Final"].map(toOption);
+const sourceDocumentOptions = ["GoodsReceipt", "JobCard", "ProductionReceipt", "Shipment", "Manual"].map(toOption);
+const resultStatusOptions = ["Pass", "Fail", "Hold", "NotApplicable"].map(toOption);
+const overallResultOptions = ["Pass", "Fail", "Hold"].map(toOption);
+const ncrDispositionOptions = ["Hold", "Reject", "Rework", "UseAsIs", "ReturnToSupplier"].map(toOption);
+
+function toOption(value: string) {
+  return { label: value, value };
+}
+
+function todayStamp() {
+  return Date.now().toString().slice(-6);
+}
+
+function numberValue(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function buildInspectionResultDraft(lineNo: number): InspectionResultDraft {
+  return {
+    lineNo,
+    parameterCode: lineNo === 10 ? "VISUAL" : "",
+    expectedValue: "",
+    actualValue: "",
+    resultStatus: "Pass",
+    remarks: ""
+  };
+}
+
+function buildInspectionDraft(defaultType: string): InspectionDraft {
+  const suffix = todayStamp();
+  return {
+    inspectionNo: `INSP-${defaultType.toUpperCase().slice(0, 2)}-${suffix}`,
+    inspectionPlanId: null,
+    inspectionType: defaultType,
+    sourceDocumentType: defaultType === "Incoming" ? "GoodsReceipt" : defaultType === "Final" ? "ProductionReceipt" : "JobCard",
+    sourceDocumentId: null,
+    lotId: null,
+    serialId: null,
+    overallResult: "Pass",
+    requestToken: `quality-${defaultType.toLowerCase()}-${suffix}`,
+    notes: "",
+    autoCreateNcr: false,
+    ncrNo: `NCR-${suffix}`,
+    ncrDisposition: "Hold",
+    ncrRootCause: "",
+    results: [buildInspectionResultDraft(10)]
+  };
+}
+
+function renumberInspectionResults(results: InspectionResultDraft[]) {
+  return results.map((result, index) => ({ ...result, lineNo: (index + 1) * 10 }));
+}
+
+function inspectionDraftErrors(draft: InspectionDraft | null) {
+  if (!draft) {
+    return [];
+  }
+
+  const errors: string[] = [];
+  if (!draft.inspectionNo.trim()) {
+    errors.push("Inspection number is required.");
+  }
+  if (!draft.inspectionType.trim()) {
+    errors.push("Inspection type is required.");
+  }
+  if (!draft.sourceDocumentType.trim()) {
+    errors.push("Source document type is required.");
+  }
+  if (draft.results.length === 0) {
+    errors.push("At least one inspection parameter line is required.");
+  }
+
+  draft.results.forEach((result, index) => {
+    if (!result.parameterCode.trim()) {
+      errors.push(`Line ${index + 1} parameter code is required.`);
+    }
+    if (!result.resultStatus.trim()) {
+      errors.push(`Line ${index + 1} result status is required.`);
+    }
+  });
+
+  if (draft.autoCreateNcr && !draft.ncrNo.trim()) {
+    errors.push("NCR number is required when auto-create NCR is selected.");
+  }
+
+  return errors;
+}
+
+function buildInspectionSaveRequest(draft: InspectionDraft, companyId: number, branchId: number): InspectionSaveRequest {
+  return {
+    companyId,
+    branchId,
+    inspectionNo: draft.inspectionNo,
+    inspectionPlanId: draft.inspectionPlanId,
+    inspectionType: draft.inspectionType,
+    sourceDocumentType: draft.sourceDocumentType,
+    sourceDocumentId: draft.sourceDocumentId,
+    lotId: draft.lotId,
+    serialId: draft.serialId,
+    requestToken: draft.requestToken || null,
+    notes: draft.notes || null,
+    overallResult: draft.overallResult,
+    autoCreateNcr: draft.autoCreateNcr,
+    ncrNo: draft.autoCreateNcr ? draft.ncrNo : null,
+    ncrDisposition: draft.autoCreateNcr ? draft.ncrDisposition : null,
+    ncrRootCause: draft.autoCreateNcr ? draft.ncrRootCause || null : null,
+    results: renumberInspectionResults(draft.results).map((result) => ({
+      lineNo: result.lineNo,
+      parameterCode: result.parameterCode,
+      expectedValue: result.expectedValue || null,
+      actualValue: result.actualValue || null,
+      resultStatus: result.resultStatus,
+      remarks: result.remarks || null
+    }))
+  };
 }
 
 const planColumns: DataGridColumn<QualityPlanItem>[] = [
@@ -119,9 +270,13 @@ const resultColumns: DataGridColumn<InspectionResultItem>[] = [
 function InspectionPage({ title, description, defaultType }: { title: string; description: string; defaultType: string }) {
   const navigate = useNavigate();
   const { session, user } = useAuth();
+  const live = hasLiveSession(session);
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [inspectionDraft, setInspectionDraft] = useState<InspectionDraft | null>(null);
   const [decisionNotes, setDecisionNotes] = useState("");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionTone, setActionTone] = useState<"success" | "warn" | "danger" | "info">("info");
@@ -131,16 +286,30 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
     () => listInspections(session, filter),
     { staleTime: 60_000 }
   );
+  const plansQuery = useApiQuery(
+    queryKeys.quality.inspectionPlans(companyId, "", "Active", defaultType),
+    () => apiClient.quality.inspectionPlans({ companyId, inspectionType: defaultType, status: "Active" }),
+    { enabled: live && companyId > 0, staleTime: 60_000 }
+  );
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
-  const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
+  const source = records[0]?.source ?? (live ? "Live" : "Seeded");
+  const planOptions = (plansQuery.data?.items ?? []).map((plan) => ({ label: `${plan.planCode} / ${plan.planName}`, value: String(plan.id) }));
+  const draftErrors = inspectionDraftErrors(inspectionDraft);
   const canRelease = selected?.status.toLowerCase().includes("hold") || selected?.overallResult.toLowerCase().includes("fail");
   const canHold = selected ? !selected.status.toLowerCase().includes("hold") && !selected.status.toLowerCase().includes("release") : false;
   const liveDecisionReason = !selected
     ? "Open an inspection before posting a quality decision."
-    : !hasLiveSession(session)
+    : !live
       ? "Live quality sign-in is required before posting inspection hold or release."
       : undefined;
+  const saveInspectionReason = !inspectionDraft
+    ? "Open an inspection draft before saving."
+    : !live
+      ? "Live quality sign-in is required before saving inspections."
+      : draftErrors.length > 0
+        ? "Resolve inspection validation issues before saving."
+        : undefined;
   const decisionMutation = useApiMutation(
     async (action: "hold" | "release") => {
       if (!selected) {
@@ -164,18 +333,105 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
       }
     }
   );
+  const saveInspection = useApiMutation(
+    (request: InspectionSaveRequest) => apiClient.quality.saveInspection(request),
+    {
+      onSuccess: async (record) => {
+        setActionTone("success");
+        setActionMessage(`Saved inspection ${record.inspectionNo}.`);
+        setInspectionDraft(null);
+        await query.refetch();
+      },
+      onError: (error) => {
+        setActionTone("danger");
+        setActionMessage(error.message);
+      }
+    }
+  );
+
+  const updateDraftLine = (index: number, patch: Partial<InspectionResultDraft>) => {
+    setInspectionDraft((current) =>
+      current
+        ? {
+            ...current,
+            results: current.results.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line))
+          }
+        : current
+    );
+  };
+
+  const addDraftLine = () => {
+    setInspectionDraft((current) =>
+      current ? { ...current, results: [...current.results, buildInspectionResultDraft((current.results.length + 1) * 10)] } : current
+    );
+  };
+
+  const removeDraftLine = (index: number) => {
+    setInspectionDraft((current) =>
+      current
+        ? {
+            ...current,
+            results: renumberInspectionResults(current.results.filter((_, lineIndex) => lineIndex !== index))
+          }
+        : current
+    );
+  };
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: true, label: "New inspection", reason: "Inspection creation requires quality execution workflow enablement." }]} secondary={[{ disabled: true, label: "Export inspections", reason: "Inspection export is pending the approved reporting workflow." }]} testId="inspection-action-bar" /></>} description={description} filters={<FilterBar><input aria-label={`Search ${title}`} onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search inspection, source, trace" value={search} /><select aria-label={`${title} status`} onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Open">Open</option><option value="Hold">Hold</option><option value="Released">Released</option></select></FilterBar>} title={title}>
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New inspection", onClick: () => { setActionMessage(null); setInspectionDraft(buildInspectionDraft(defaultType)); } }]} secondary={[{ disabled: true, label: "Export inspections", reason: "Inspection export is pending the approved reporting workflow." }]} testId="inspection-action-bar" /></>} description={description} filters={<FilterBar><input aria-label={`Search ${title}`} onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search inspection, source, trace" value={search} /><select aria-label={`${title} status`} onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Open">Open</option><option value="Hold">Hold</option><option value="Released">Released</option></select></FilterBar>} title={title}>
       <KpiStrip items={[{ label: "Inspections", value: String(records.length) }, { label: "Fail/Hold", value: String(records.filter((record) => record.overallResult.toLowerCase().includes("fail") || record.status.toLowerCase().includes("hold")).length) }, { label: "Released", value: String(records.filter((record) => record.status.toLowerCase().includes("release")).length) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
+        {query.error ? <Card title="Live quality data unavailable" description={query.error.message} /> : null}
+        {actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}
         <Card title="Inspection queue" description="Open an inspection to review parameter results and hold/release context.">
           <DataGrid ariaLabel={`${title} list`} columns={inspectionColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.inspectionNo} inspection`} />
         </Card>
       </ListPageShell>
       <ErpModalWorkspace
-        description="Inspection detail is review-only until inspection entry is enabled."
-        footer={<ErpActionBar primary={[{ disabled: true, label: "Save inspection", reason: "Inspection result entry requires mobile execution workflow enablement; hold and release decisions are available here." }]} secondary={[
+        description="Capture inspection parameters, result status, source trace context, and optional NCR creation."
+        footer={<ErpActionBar primary={[{ disabled: Boolean(saveInspectionReason) || saveInspection.isPending, label: saveInspection.isPending ? "Saving inspection" : "Save inspection", onClick: inspectionDraft && !saveInspectionReason ? () => saveInspection.mutate(buildInspectionSaveRequest(inspectionDraft, companyId, branchId)) : undefined, reason: saveInspectionReason }]} secondary={[{ disabled: !live, label: "Add Line", onClick: live ? addDraftLine : undefined, reason: live ? undefined : "Live quality sign-in is required before adding inspection lines." }]} utility={[{ label: "Close", onClick: () => setInspectionDraft(null), variant: "quiet" }]} />}
+        isOpen={Boolean(inspectionDraft)}
+        onClose={() => setInspectionDraft(null)}
+        title={inspectionDraft?.inspectionNo ?? "Inspection draft"}
+        validation={<ErpValidationSummary errors={draftErrors} />}
+      >
+        {inspectionDraft ? (
+          <div className="modal-form-grid">
+            <FormShell initialFingerprint={`${inspectionDraft.inspectionNo}-header`} title="Inspection controls">
+              <label><span>Inspection number</span><input aria-label="Inspection number" disabled={!live} onChange={(event) => setInspectionDraft({ ...inspectionDraft, inspectionNo: event.target.value })} value={inspectionDraft.inspectionNo} /></label>
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before changing inspection type."} label="Inspection type" onChange={(value) => setInspectionDraft({ ...inspectionDraft, inspectionType: value })} options={inspectionTypeOptions} required value={inspectionDraft.inspectionType} />
+              <ErpLookupField disabled={!live || plansQuery.isLoading} disabledReason={!live ? "Live quality sign-in is required before selecting a QC plan." : plansQuery.isLoading ? "QC plan list is loading." : undefined} label="QC plan" onChange={(value) => setInspectionDraft({ ...inspectionDraft, inspectionPlanId: numberValue(value) })} options={[{ label: "No plan selected", value: "" }, ...planOptions]} value={inspectionDraft.inspectionPlanId ? String(inspectionDraft.inspectionPlanId) : ""} />
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before changing source type."} label="Source type" onChange={(value) => setInspectionDraft({ ...inspectionDraft, sourceDocumentType: value })} options={sourceDocumentOptions} required value={inspectionDraft.sourceDocumentType} />
+              <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before assigning source id."} label="Source document id" min={1} onChange={(value) => setInspectionDraft({ ...inspectionDraft, sourceDocumentId: value })} value={inspectionDraft.sourceDocumentId} />
+              <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before assigning lot id."} label="Lot id" min={1} onChange={(value) => setInspectionDraft({ ...inspectionDraft, lotId: value })} value={inspectionDraft.lotId} />
+              <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before assigning serial id."} label="Serial id" min={1} onChange={(value) => setInspectionDraft({ ...inspectionDraft, serialId: value })} value={inspectionDraft.serialId} />
+              <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before changing overall result."} label="Overall result" onChange={(value) => setInspectionDraft({ ...inspectionDraft, overallResult: value })} options={overallResultOptions} required value={inspectionDraft.overallResult} />
+              <label className="form-span-2"><span>Notes</span><input aria-label="Inspection notes" disabled={!live} onChange={(event) => setInspectionDraft({ ...inspectionDraft, notes: event.target.value })} value={inspectionDraft.notes} /></label>
+            </FormShell>
+            <FormShell initialFingerprint={`${inspectionDraft.inspectionNo}-ncr`} title="NCR and disposition">
+              <label className="form-checkbox"><input checked={inspectionDraft.autoCreateNcr} disabled={!live} onChange={(event) => setInspectionDraft({ ...inspectionDraft, autoCreateNcr: event.target.checked })} type="checkbox" /><span>Create NCR on failed or held result</span></label>
+              <label><span>NCR number</span><input aria-label="NCR number" disabled={!live || !inspectionDraft.autoCreateNcr} onChange={(event) => setInspectionDraft({ ...inspectionDraft, ncrNo: event.target.value })} value={inspectionDraft.ncrNo} /></label>
+              <ErpLookupField disabled={!live || !inspectionDraft.autoCreateNcr} disabledReason={!inspectionDraft.autoCreateNcr ? "NCR disposition is only used when NCR creation is selected." : live ? undefined : "Live quality sign-in is required before changing NCR disposition."} label="NCR disposition" onChange={(value) => setInspectionDraft({ ...inspectionDraft, ncrDisposition: value })} options={ncrDispositionOptions} value={inspectionDraft.ncrDisposition} />
+              <label className="form-span-2"><span>Root cause</span><input aria-label="NCR root cause" disabled={!live || !inspectionDraft.autoCreateNcr} onChange={(event) => setInspectionDraft({ ...inspectionDraft, ncrRootCause: event.target.value })} value={inspectionDraft.ncrRootCause} /></label>
+            </FormShell>
+            <Card title="Parameter results" description="Add one row per inspection parameter. Failed or held rows can automatically create an NCR.">
+              {inspectionDraft.results.map((result, index) => (
+                <FormShell initialFingerprint={`${inspectionDraft.inspectionNo}-line-${result.lineNo}`} key={`${result.lineNo}-${index}`} title={`Line ${index + 1}`}>
+                  <label><span>Parameter code</span><input aria-label={`Parameter code ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { parameterCode: event.target.value })} value={result.parameterCode} /></label>
+                  <label><span>Expected value</span><input aria-label={`Expected value ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { expectedValue: event.target.value })} value={result.expectedValue} /></label>
+                  <label><span>Actual value</span><input aria-label={`Actual value ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { actualValue: event.target.value })} value={result.actualValue} /></label>
+                  <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live quality sign-in is required before changing result status."} label={`Result status ${index + 1}`} onChange={(value) => updateDraftLine(index, { resultStatus: value })} options={resultStatusOptions} required value={result.resultStatus} />
+                  <label className="form-span-2"><span>Remarks</span><input aria-label={`Inspection remarks ${index + 1}`} disabled={!live} onChange={(event) => updateDraftLine(index, { remarks: event.target.value })} value={result.remarks} /></label>
+                  <ErpActionBar danger={[{ disabled: !live || inspectionDraft.results.length <= 1, label: "Remove Line", onClick: live && inspectionDraft.results.length > 1 ? () => removeDraftLine(index) : undefined, reason: !live ? "Live quality sign-in is required before removing lines." : inspectionDraft.results.length <= 1 ? "At least one inspection line is required." : undefined }]} />
+                </FormShell>
+              ))}
+            </Card>
+          </div>
+        ) : null}
+      </ErpModalWorkspace>
+      <ErpModalWorkspace
+        description="Review saved inspection results, hold/release decisions, trace context, and related NCR handoff."
+        footer={<ErpActionBar primary={[{ disabled: true, label: "Edit inspection", reason: "Saved inspection correction requires an approved quality change-control reason." }]} secondary={[
           { disabled: Boolean(liveDecisionReason) || !canHold || decisionMutation.isPending, label: decisionMutation.isPending ? "Applying hold" : "Apply hold", onClick: liveDecisionReason || !canHold ? undefined : () => decisionMutation.mutate("hold"), reason: canHold ? liveDecisionReason : "Only open inspections can be placed on hold." },
           { disabled: Boolean(liveDecisionReason) || !canRelease || decisionMutation.isPending, label: decisionMutation.isPending ? "Releasing hold" : "Release hold", onClick: liveDecisionReason || !canRelease ? undefined : () => decisionMutation.mutate("release"), reason: canRelease ? liveDecisionReason : "Only held or failed inspections can be released from this action." },
           { label: "Open NCR", onClick: () => navigate(`/quality/ncr?inspection=${encodeURIComponent(selected?.inspectionNo ?? "")}`) },
@@ -192,7 +448,7 @@ function InspectionPage({ title, description, defaultType }: { title: string; de
             <Card title="Parameter results" description={selected.notes}>
               <DataGrid ariaLabel="Inspection result lines" columns={resultColumns} getRowId={(record) => record.id} records={selected.results} rowLabel={(record) => `${record.parameterCode} result`} />
             </Card>
-            <FormShell initialFingerprint={selected.id} title="Inspection controls"><ErpLookupField disabled disabledReason="Source document is controlled by receipt, job-card, or dispatch context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Trace selection is controlled by inventory and production traceability." label="Trace" onChange={() => undefined} options={[{ label: selected.traceLabel, value: selected.traceLabel }]} value={selected.traceLabel} /><label className="form-span-2"><span>Decision notes</span><input disabled={!hasLiveSession(session)} onChange={(event) => setDecisionNotes(event.target.value)} value={decisionNotes} /></label></FormShell>
+            <FormShell initialFingerprint={selected.id} title="Inspection controls"><ErpLookupField disabled disabledReason="Source document is controlled by receipt, job-card, or dispatch context." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Trace selection is controlled by inventory and production traceability." label="Trace" onChange={() => undefined} options={[{ label: selected.traceLabel, value: selected.traceLabel }]} value={selected.traceLabel} /><label className="form-span-2"><span>Decision notes</span><input disabled={!live} onChange={(event) => setDecisionNotes(event.target.value)} value={decisionNotes} /></label></FormShell>
           </>
         ) : null}
       </ErpModalWorkspace>
