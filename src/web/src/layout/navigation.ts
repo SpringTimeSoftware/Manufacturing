@@ -262,6 +262,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["SalesCoordinator", "PlanningManager", "CompanyAdmin"]
   },
   {
+    label: "Planning Workspace",
+    path: "/planning/workspace",
+    section: "Planning",
+    roles: ["PlanningManager", "PlantHead", "CompanyAdmin"]
+  },
+  {
     label: "MPS Planner",
     path: "/planning/mps",
     section: "Planning",

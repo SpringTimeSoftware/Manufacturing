@@ -5,6 +5,8 @@ using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
 using STS.Mfg.Application.Contracts.SalesPlanning;
 using STS.Mfg.Domain.Masters;
+using STS.Mfg.Domain.Procurement;
+using STS.Mfg.Domain.Production;
 using STS.Mfg.Domain.SalesPlanning;
 using STS.Mfg.Infrastructure.Application;
 using STS.Mfg.Infrastructure.Persistence;
@@ -986,6 +988,383 @@ internal sealed class SalesPlanningService(
         return converted;
     }
 
+    public async Task<PagedResult<PlanningPlanDto>> ListPlanningPlansAsync(SalesFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.PlanningPlans.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        query = ApplyPlanningPlanFilters(query, filter);
+        var page = await query.OrderByDescending(entity => entity.ModifiedOn).ThenBy(entity => entity.PlanCode).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapPlanningPlan);
+    }
+
+    public async Task<PlanningPlanDto> GetPlanningPlanAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.PlanningPlans.AsNoTracking()
+            .ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planning plan was not found in the active scope.", "planning.plan_not_found");
+        return MapPlanningPlan(entity);
+    }
+
+    public async Task<PlanningPlanDto> CreatePlanningPlanAsync(PlanningPlanUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidatePlanningPlan(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var entity = PlanningPlan.Create(
+            request.CompanyId,
+            request.BranchId,
+            request.PlanCode,
+            request.PlanName,
+            request.PlanType,
+            request.HorizonStart,
+            request.HorizonEnd,
+            request.FirmFenceDays,
+            request.ForecastFenceDays,
+            request.IncludeForecast,
+            request.IncludeCapacity,
+            request.Status,
+            GetUserId());
+
+        DbContext.PlanningPlans.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapPlanningPlan(entity);
+        await WriteAuditAsync("planning", nameof(PlanningPlan), "plan.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<PlanningPlanDto> UpdatePlanningPlanAsync(long id, PlanningPlanUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidatePlanningPlan(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var scope = GetScope();
+        var entity = await DbContext.PlanningPlans.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planning plan was not found in the active scope.", "planning.plan_not_found");
+        ThrowIfInvalid(
+            Immutable(entity.CompanyId, request.CompanyId, nameof(request.CompanyId), "Planning plan company cannot be changed."),
+            Immutable(entity.BranchId, request.BranchId, nameof(request.BranchId), "Planning plan branch cannot be changed."));
+
+        var before = MapPlanningPlan(entity);
+        entity.Update(request.PlanCode, request.PlanName, request.PlanType, request.HorizonStart, request.HorizonEnd, request.FirmFenceDays, request.ForecastFenceDays, request.IncludeForecast, request.IncludeCapacity, request.Status, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapPlanningPlan(entity);
+        await WriteAuditAsync("planning", nameof(PlanningPlan), "plan.update", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<PagedResult<PlanningSnapshotDto>> ListPlanningSnapshotsAsync(SalesFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.PlanningSnapshots.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        query = ApplyPlanningSnapshotFilters(query, filter);
+        var page = await query.OrderByDescending(entity => entity.CapturedOn).ThenBy(entity => entity.SnapshotCode).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapPlanningSnapshot);
+    }
+
+    public async Task<PlanningSnapshotDto> CreatePlanningSnapshotAsync(PlanningSnapshotCreateRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidatePlanningSnapshot(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var entity = PlanningSnapshot.Create(
+            request.CompanyId,
+            request.BranchId,
+            request.PlanningPlanId,
+            request.MrpRunId,
+            request.SnapshotCode,
+            request.SnapshotType,
+            request.InputHash,
+            request.OutputHash,
+            request.DemandLineCount,
+            request.SupplyLineCount,
+            request.ExceptionCount,
+            request.PlannedQuantity,
+            request.Status,
+            GetUserId());
+
+        DbContext.PlanningSnapshots.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapPlanningSnapshot(entity);
+        await WriteAuditAsync("planning", nameof(PlanningSnapshot), "snapshot.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<PagedResult<PlannedOrderDto>> ListPlannedOrdersAsync(SalesFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.PlannedOrders.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        query = ApplyPlannedOrderFilters(query, filter);
+        var page = await query.OrderBy(entity => entity.PlannedDueDate).ThenBy(entity => entity.PlannedOrderNo).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapPlannedOrder);
+    }
+
+    public async Task<PlannedOrderDto> GetPlannedOrderAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.PlannedOrders.AsNoTracking()
+            .ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planned order was not found in the active scope.", "planning.planned_order_not_found");
+        return MapPlannedOrder(entity);
+    }
+
+    public async Task<PlannedOrderDto> CreatePlannedOrderAsync(PlannedOrderUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidatePlannedOrder(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+        var itemId = await ResolveItemIdAsync(request.CompanyId, request.ItemId, request.ItemCode, cancellationToken);
+
+        var entity = PlannedOrder.Create(
+            request.CompanyId,
+            request.BranchId,
+            request.PlanningPlanId,
+            request.MrpRunId,
+            request.BoqRequirementLineId,
+            request.PlannedOrderNo,
+            request.OrderType,
+            itemId,
+            request.Quantity,
+            request.UomId,
+            request.PlannedStartDate,
+            request.PlannedDueDate,
+            request.SourceWarehouseId,
+            request.TargetWarehouseId,
+            request.BomRevisionId,
+            request.RoutingId,
+            request.IsFirm,
+            request.IsExpedite,
+            request.PeggingSourceType,
+            request.PeggingSourceId,
+            request.Status,
+            GetUserId());
+
+        DbContext.PlannedOrders.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapPlannedOrder(entity);
+        await WriteAuditAsync("planning", nameof(PlannedOrder), "plannedorder.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<PlannedOrderDto> UpdatePlannedOrderAsync(long id, PlannedOrderUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidatePlannedOrder(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+        var itemId = await ResolveItemIdAsync(request.CompanyId, request.ItemId, request.ItemCode, cancellationToken);
+
+        var scope = GetScope();
+        var entity = await DbContext.PlannedOrders.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planned order was not found in the active scope.", "planning.planned_order_not_found");
+        ThrowIfInvalid(
+            Immutable(entity.CompanyId, request.CompanyId, nameof(request.CompanyId), "Planned order company cannot be changed."),
+            Immutable(entity.BranchId, request.BranchId, nameof(request.BranchId), "Planned order branch cannot be changed."));
+
+        var before = MapPlannedOrder(entity);
+        entity.Update(request.PlannedOrderNo, request.OrderType, itemId, request.Quantity, request.UomId, request.PlannedStartDate, request.PlannedDueDate, request.SourceWarehouseId, request.TargetWarehouseId, request.BomRevisionId, request.RoutingId, request.IsFirm, request.IsExpedite, request.PeggingSourceType, request.PeggingSourceId, request.Status, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapPlannedOrder(entity);
+        await WriteAuditAsync("planning", nameof(PlannedOrder), "plannedorder.update", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<PlannedOrderDto> FirmPlannedOrderAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.PlannedOrders.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planned order was not found in the active scope.", "planning.planned_order_not_found");
+        var before = MapPlannedOrder(entity);
+        entity.Firm(GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapPlannedOrder(entity);
+        await WriteAuditAsync("planning", nameof(PlannedOrder), "plannedorder.firm", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<PlannedOrderConversionResultDto> ConvertPlannedOrderToPurchaseRequisitionAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.PlannedOrders.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planned order was not found in the active scope.", "planning.planned_order_not_found");
+        ThrowIfInvalid(
+            entity.OrderType.Equals("Purchase", StringComparison.OrdinalIgnoreCase) ? null : new ApiError("validation.invalid_state", nameof(entity.OrderType), "Only purchase planned orders can convert to purchase requisitions."),
+            entity.TargetDocumentId.HasValue ? new ApiError("validation.invalid_state", nameof(entity.Status), "Planned order is already converted.") : null);
+
+        var before = MapPlannedOrder(entity);
+        var requisitionNo = $"PR-PLAN-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+        var requisition = PurchaseRequisition.Create(entity.CompanyId ?? 0, entity.BranchId ?? 0, requisitionNo, "PlannedOrder", entity.Id, "Draft", GetUserId());
+        DbContext.PurchaseRequisitions.Add(requisition);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        DbContext.PurchaseRequisitionLines.Add(PurchaseRequisitionLine.Create(
+            requisition.Id,
+            10,
+            entity.ItemId,
+            entity.Quantity,
+            entity.UomId,
+            entity.PlannedDueDate,
+            entity.BoqRequirementLineId,
+            null,
+            "Draft",
+            GetUserId()));
+
+        entity.MarkConverted("PurchaseRequisition", requisition.Id, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapPlannedOrder(entity);
+        await WriteAuditAsync("planning", nameof(PlannedOrder), "plannedorder.convert.pr", entity.Id, before, after, cancellationToken);
+        return new(entity.Id, "PurchaseRequisition", requisition.Id, requisition.PurchaseRequisitionNo, entity.Status);
+    }
+
+    public async Task<PlannedOrderConversionResultDto> ConvertPlannedOrderToWorkOrderAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.PlannedOrders.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Planned order was not found in the active scope.", "planning.planned_order_not_found");
+        ThrowIfInvalid(
+            entity.OrderType.Equals("Make", StringComparison.OrdinalIgnoreCase) ? null : new ApiError("validation.invalid_state", nameof(entity.OrderType), "Only make planned orders can convert to work orders."),
+            !entity.BomRevisionId.HasValue || entity.BomRevisionId.Value <= 0 ? new ApiError("validation.required", nameof(entity.BomRevisionId), "Released BOM revision is required before converting to a work order.") : null,
+            entity.TargetDocumentId.HasValue ? new ApiError("validation.invalid_state", nameof(entity.Status), "Planned order is already converted.") : null);
+
+        var before = MapPlannedOrder(entity);
+        var workOrderNo = $"WO-PLAN-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+        var workOrder = WorkOrder.Create(
+            entity.CompanyId ?? 0,
+            entity.BranchId ?? 0,
+            workOrderNo,
+            null,
+            entity.ItemId,
+            entity.BomRevisionId ?? 0,
+            entity.RoutingId,
+            entity.Quantity,
+            entity.UomId,
+            entity.PlannedStartDate,
+            entity.PlannedDueDate,
+            "Draft",
+            $"Created from planned order {entity.PlannedOrderNo}.",
+            GetUserId());
+
+        DbContext.WorkOrders.Add(workOrder);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        entity.MarkConverted("WorkOrder", workOrder.Id, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapPlannedOrder(entity);
+        await WriteAuditAsync("planning", nameof(PlannedOrder), "plannedorder.convert.wo", entity.Id, before, after, cancellationToken);
+        return new(entity.Id, "WorkOrder", workOrder.Id, workOrder.WorkOrderNo, entity.Status);
+    }
+
+    public async Task<PagedResult<ShortageActionDto>> ListShortageActionsAsync(SalesFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.ShortageActions.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        query = ApplyShortageActionFilters(query, filter);
+        var page = await query.OrderBy(entity => entity.DueDate).ThenBy(entity => entity.Id).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapShortageAction);
+    }
+
+    public async Task<ShortageActionDto> CreateShortageActionAsync(ShortageActionUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateShortageAction(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+        var itemId = await ResolveItemIdAsync(request.CompanyId, request.ItemId, request.ItemCode, cancellationToken);
+
+        var entity = ShortageAction.Create(request.CompanyId, request.BranchId, request.PlannedOrderId, request.MrpRunItemId, itemId, request.ShortageQuantity, request.ActionType, request.OwnerUserId, request.DueDate, request.ReasonCode, request.Status, request.ResolutionNote, GetUserId());
+        DbContext.ShortageActions.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapShortageAction(entity);
+        await WriteAuditAsync("planning", nameof(ShortageAction), "shortageaction.create", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<ShortageActionDto> UpdateShortageActionAsync(long id, ShortageActionUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateShortageAction(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+        var itemId = await ResolveItemIdAsync(request.CompanyId, request.ItemId, request.ItemCode, cancellationToken);
+
+        var scope = GetScope();
+        var entity = await DbContext.ShortageActions.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+
+        entity = EnsureFound(entity, "Shortage action was not found in the active scope.", "planning.shortage_action_not_found");
+        ThrowIfInvalid(
+            Immutable(entity.CompanyId, request.CompanyId, nameof(request.CompanyId), "Shortage action company cannot be changed."),
+            Immutable(entity.BranchId, request.BranchId, nameof(request.BranchId), "Shortage action branch cannot be changed."));
+
+        var before = MapShortageAction(entity);
+        entity.Update(itemId, request.ShortageQuantity, request.ActionType, request.OwnerUserId, request.DueDate, request.ReasonCode, request.Status, request.ResolutionNote, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapShortageAction(entity);
+        await WriteAuditAsync("planning", nameof(ShortageAction), "shortageaction.update", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
     private static IQueryable<Quote> ApplyQuoteFilters(IQueryable<Quote> query, SalesFilter filter)
     {
         if (!string.IsNullOrWhiteSpace(filter.Status))
@@ -1100,6 +1479,74 @@ internal sealed class SalesPlanningService(
         {
             var search = filter.Search.Trim();
             query = query.Where(entity => entity.SourceDocumentType.Contains(search));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<PlanningPlan> ApplyPlanningPlanFilters(IQueryable<PlanningPlan> query, SalesFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.PlanCode.Contains(search) || entity.PlanName.Contains(search) || entity.PlanType.Contains(search));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<PlanningSnapshot> ApplyPlanningSnapshotFilters(IQueryable<PlanningSnapshot> query, SalesFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.SnapshotCode.Contains(search) || entity.SnapshotType.Contains(search) || entity.InputHash.Contains(search) || entity.OutputHash.Contains(search));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<PlannedOrder> ApplyPlannedOrderFilters(IQueryable<PlannedOrder> query, SalesFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.PlannedOrderNo.Contains(search) || entity.OrderType.Contains(search) || entity.PeggingSourceType.Contains(search));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<ShortageAction> ApplyShortageActionFilters(IQueryable<ShortageAction> query, SalesFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.ActionType.Contains(search) || entity.ReasonCode.Contains(search) || entity.ResolutionNote.Contains(search));
         }
 
         return query;
@@ -1302,6 +1749,63 @@ internal sealed class SalesPlanningService(
         }
 
         ThrowIfInvalid(errors);
+    }
+
+    private static void ValidatePlanningPlan(PlanningPlanUpsertRequest request)
+    {
+        ThrowIfInvalid(
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            Required(request.PlanCode, nameof(request.PlanCode), "Plan code is required."),
+            Required(request.PlanName, nameof(request.PlanName), "Plan name is required."),
+            Required(request.PlanType, nameof(request.PlanType), "Plan type is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."),
+            request.HorizonEnd < request.HorizonStart ? new ApiError("validation.out_of_range", nameof(request.HorizonEnd), "Plan horizon end must be on or after start.") : null,
+            NonNegative(request.FirmFenceDays, nameof(request.FirmFenceDays), "Firm fence days cannot be negative."),
+            NonNegative(request.ForecastFenceDays, nameof(request.ForecastFenceDays), "Forecast fence days cannot be negative."));
+    }
+
+    private static void ValidatePlanningSnapshot(PlanningSnapshotCreateRequest request)
+    {
+        ThrowIfInvalid(
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            Required(request.SnapshotCode, nameof(request.SnapshotCode), "Snapshot code is required."),
+            Required(request.SnapshotType, nameof(request.SnapshotType), "Snapshot type is required."),
+            Required(request.InputHash, nameof(request.InputHash), "Input hash is required."),
+            Required(request.OutputHash, nameof(request.OutputHash), "Output hash is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."),
+            NonNegative(request.DemandLineCount, nameof(request.DemandLineCount), "Demand line count cannot be negative."),
+            NonNegative(request.SupplyLineCount, nameof(request.SupplyLineCount), "Supply line count cannot be negative."),
+            NonNegative(request.ExceptionCount, nameof(request.ExceptionCount), "Exception count cannot be negative."),
+            NonNegative(request.PlannedQuantity, nameof(request.PlannedQuantity), "Planned quantity cannot be negative."));
+    }
+
+    private static void ValidatePlannedOrder(PlannedOrderUpsertRequest request)
+    {
+        ThrowIfInvalid(
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            Required(request.PlannedOrderNo, nameof(request.PlannedOrderNo), "Planned order number is required."),
+            Required(request.OrderType, nameof(request.OrderType), "Order type is required."),
+            request.ItemId > 0 || !string.IsNullOrWhiteSpace(request.ItemCode) ? null : new ApiError("validation.required", nameof(request.ItemId), "Item id or item code is required."),
+            Positive(request.Quantity, nameof(request.Quantity), "Quantity must be greater than zero."),
+            Positive(request.UomId, nameof(request.UomId), "UOM is required."),
+            request.PlannedDueDate < request.PlannedStartDate ? new ApiError("validation.out_of_range", nameof(request.PlannedDueDate), "Planned due date must be on or after start date.") : null,
+            Required(request.PeggingSourceType, nameof(request.PeggingSourceType), "Pegging source type is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."));
+    }
+
+    private static void ValidateShortageAction(ShortageActionUpsertRequest request)
+    {
+        ThrowIfInvalid(
+            Positive(request.CompanyId, nameof(request.CompanyId), "Company is required."),
+            Positive(request.BranchId, nameof(request.BranchId), "Branch is required."),
+            request.ItemId > 0 || !string.IsNullOrWhiteSpace(request.ItemCode) ? null : new ApiError("validation.required", nameof(request.ItemId), "Item id or item code is required."),
+            Positive(request.ShortageQuantity, nameof(request.ShortageQuantity), "Shortage quantity must be greater than zero."),
+            Required(request.ActionType, nameof(request.ActionType), "Action type is required."),
+            Required(request.ReasonCode, nameof(request.ReasonCode), "Reason code is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."));
     }
 
     private async Task<long> ResolveCustomerIdAsync(long companyId, long customerId, string? customerCode, CancellationToken cancellationToken)
@@ -1569,4 +2073,16 @@ internal sealed class SalesPlanningService(
 
     private static BoqRequirementDto MapBoq(BoqRequirement entity, IReadOnlyCollection<BoqRequirementLineDto> lines) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.MrpRunId, entity.SourceDocumentType, entity.SourceDocumentId, entity.Status, lines);
+
+    private static PlanningPlanDto MapPlanningPlan(PlanningPlan entity) =>
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PlanCode, entity.PlanName, entity.PlanType, entity.HorizonStart, entity.HorizonEnd, entity.FirmFenceDays, entity.ForecastFenceDays, entity.IncludeForecast, entity.IncludeCapacity, entity.Status);
+
+    private static PlanningSnapshotDto MapPlanningSnapshot(PlanningSnapshot entity) =>
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PlanningPlanId, entity.MrpRunId, entity.SnapshotCode, entity.SnapshotType, entity.InputHash, entity.OutputHash, entity.DemandLineCount, entity.SupplyLineCount, entity.ExceptionCount, entity.PlannedQuantity, entity.CapturedOn, entity.Status);
+
+    private static PlannedOrderDto MapPlannedOrder(PlannedOrder entity) =>
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PlanningPlanId, entity.MrpRunId, entity.BoqRequirementLineId, entity.PlannedOrderNo, entity.OrderType, entity.ItemId, entity.Quantity, entity.UomId, entity.PlannedStartDate, entity.PlannedDueDate, entity.SourceWarehouseId, entity.TargetWarehouseId, entity.BomRevisionId, entity.RoutingId, entity.IsFirm, entity.IsReleased, entity.IsExpedite, entity.PeggingSourceType, entity.PeggingSourceId, entity.Status, entity.TargetDocumentId, entity.TargetDocumentType);
+
+    private static ShortageActionDto MapShortageAction(ShortageAction entity) =>
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PlannedOrderId, entity.MrpRunItemId, entity.ItemId, entity.ShortageQuantity, entity.ActionType, entity.OwnerUserId, entity.DueDate, entity.ReasonCode, entity.Status, entity.ResolutionNote);
 }

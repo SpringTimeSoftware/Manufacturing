@@ -41,4 +41,24 @@ public interface ISalesPlanningService
     Task<BoqRequirementLineDto> ApproveBoqLineAsync(long boqRequirementId, long lineId, BoqLineActionRequest request, CancellationToken cancellationToken = default);
     Task<BoqRequirementLineDto> ConvertBoqLineAsync(long boqRequirementId, long lineId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<BoqRequirementLineDto>> ConvertReviewedBoqLinesAsync(long boqRequirementId, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<PlanningPlanDto>> ListPlanningPlansAsync(SalesFilter filter, CancellationToken cancellationToken = default);
+    Task<PlanningPlanDto> GetPlanningPlanAsync(long id, CancellationToken cancellationToken = default);
+    Task<PlanningPlanDto> CreatePlanningPlanAsync(PlanningPlanUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<PlanningPlanDto> UpdatePlanningPlanAsync(long id, PlanningPlanUpsertRequest request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<PlanningSnapshotDto>> ListPlanningSnapshotsAsync(SalesFilter filter, CancellationToken cancellationToken = default);
+    Task<PlanningSnapshotDto> CreatePlanningSnapshotAsync(PlanningSnapshotCreateRequest request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<PlannedOrderDto>> ListPlannedOrdersAsync(SalesFilter filter, CancellationToken cancellationToken = default);
+    Task<PlannedOrderDto> GetPlannedOrderAsync(long id, CancellationToken cancellationToken = default);
+    Task<PlannedOrderDto> CreatePlannedOrderAsync(PlannedOrderUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<PlannedOrderDto> UpdatePlannedOrderAsync(long id, PlannedOrderUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<PlannedOrderDto> FirmPlannedOrderAsync(long id, CancellationToken cancellationToken = default);
+    Task<PlannedOrderConversionResultDto> ConvertPlannedOrderToPurchaseRequisitionAsync(long id, CancellationToken cancellationToken = default);
+    Task<PlannedOrderConversionResultDto> ConvertPlannedOrderToWorkOrderAsync(long id, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<ShortageActionDto>> ListShortageActionsAsync(SalesFilter filter, CancellationToken cancellationToken = default);
+    Task<ShortageActionDto> CreateShortageActionAsync(ShortageActionUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<ShortageActionDto> UpdateShortageActionAsync(long id, ShortageActionUpsertRequest request, CancellationToken cancellationToken = default);
 }

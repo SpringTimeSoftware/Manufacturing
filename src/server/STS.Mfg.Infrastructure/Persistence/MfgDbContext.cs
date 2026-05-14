@@ -160,6 +160,10 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<MrpRunItem> MrpRunItems => Set<MrpRunItem>();
     public DbSet<BoqRequirement> BoqRequirements => Set<BoqRequirement>();
     public DbSet<BoqRequirementLine> BoqRequirementLines => Set<BoqRequirementLine>();
+    public DbSet<PlanningPlan> PlanningPlans => Set<PlanningPlan>();
+    public DbSet<PlanningSnapshot> PlanningSnapshots => Set<PlanningSnapshot>();
+    public DbSet<PlannedOrder> PlannedOrders => Set<PlannedOrder>();
+    public DbSet<ShortageAction> ShortageActions => Set<ShortageAction>();
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<ExchangeRateSetup> ExchangeRateSetups => Set<ExchangeRateSetup>();
     public DbSet<TaxCategory> TaxCategories => Set<TaxCategory>();

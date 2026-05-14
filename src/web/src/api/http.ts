@@ -100,6 +100,13 @@ import type {
   MasterProductionScheduleUpsertRequest,
   MrpRunDto,
   MrpRunStartRequest,
+  PlannedOrderConversionResultDto,
+  PlannedOrderDto,
+  PlannedOrderUpsertRequest,
+  PlanningPlanDto,
+  PlanningPlanUpsertRequest,
+  PlanningSnapshotCreateRequest,
+  PlanningSnapshotDto,
   NonConformanceDto,
   NonConformanceActionRequest,
   NonConformanceUpsertRequest,
@@ -142,6 +149,8 @@ import type {
   GoodsReceiptUpsertRequest,
   ShiftDto,
   ShiftUpsertRequest,
+  ShortageActionDto,
+  ShortageActionUpsertRequest,
   StageWiseDashboardItem,
   SalesOrderDto,
   SalesOrderUpsertRequest,
@@ -1009,6 +1018,29 @@ export const apiClient = {
       })
   },
   planning: {
+    plans: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<PlanningPlanDto>>(`/api/planning/plans?${query}`);
+    },
+    createPlan: (body: PlanningPlanUpsertRequest) =>
+      request<PlanningPlanDto>("/api/planning/plans", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updatePlan: (id: number, body: PlanningPlanUpsertRequest) =>
+      request<PlanningPlanDto>(`/api/planning/plans/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    snapshots: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<PlanningSnapshotDto>>(`/api/planning/snapshots?${query}`);
+    },
+    createSnapshot: (body: PlanningSnapshotCreateRequest) =>
+      request<PlanningSnapshotDto>("/api/planning/snapshots", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     mrpRuns: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<MrpRunDto>>(`/api/mrp?${query}`);
@@ -1034,6 +1066,46 @@ export const apiClient = {
     convertReviewedBoqLines: (boqRequirementId: number) =>
       request<BoqRequirementLineDto[]>(`/api/boq-requirements/${boqRequirementId}/lines/convert-reviewed`, {
         method: "POST"
+      }),
+    plannedOrders: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<PlannedOrderDto>>(`/api/planning/planned-orders?${query}`);
+    },
+    createPlannedOrder: (body: PlannedOrderUpsertRequest) =>
+      request<PlannedOrderDto>("/api/planning/planned-orders", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updatePlannedOrder: (id: number, body: PlannedOrderUpsertRequest) =>
+      request<PlannedOrderDto>(`/api/planning/planned-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    firmPlannedOrder: (id: number) =>
+      request<PlannedOrderDto>(`/api/planning/planned-orders/${id}/firm`, {
+        method: "POST"
+      }),
+    convertPlannedOrderToPurchaseRequisition: (id: number) =>
+      request<PlannedOrderConversionResultDto>(`/api/planning/planned-orders/${id}/convert/purchase-requisition`, {
+        method: "POST"
+      }),
+    convertPlannedOrderToWorkOrder: (id: number) =>
+      request<PlannedOrderConversionResultDto>(`/api/planning/planned-orders/${id}/convert/work-order`, {
+        method: "POST"
+      }),
+    shortageActions: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ShortageActionDto>>(`/api/planning/shortage-actions?${query}`);
+    },
+    createShortageAction: (body: ShortageActionUpsertRequest) =>
+      request<ShortageActionDto>("/api/planning/shortage-actions", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateShortageAction: (id: number, body: ShortageActionUpsertRequest) =>
+      request<ShortageActionDto>(`/api/planning/shortage-actions/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
       })
   },
   procurement: {

@@ -2599,6 +2599,164 @@ export interface BoqLineActionRequest {
   overrideReasonCode: string | null;
 }
 
+export interface PlanningPlanDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  planCode: string;
+  planName: string;
+  planType: string;
+  horizonStart: string;
+  horizonEnd: string;
+  firmFenceDays: number;
+  forecastFenceDays: number;
+  includeForecast: boolean;
+  includeCapacity: boolean;
+  status: string;
+}
+
+export interface PlanningPlanUpsertRequest {
+  companyId: number;
+  branchId: number;
+  planCode: string;
+  planName: string;
+  planType: string;
+  horizonStart: string;
+  horizonEnd: string;
+  firmFenceDays: number;
+  forecastFenceDays: number;
+  includeForecast: boolean;
+  includeCapacity: boolean;
+  status: string;
+}
+
+export interface PlanningSnapshotDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  planningPlanId: number | null;
+  mrpRunId: number | null;
+  snapshotCode: string;
+  snapshotType: string;
+  inputHash: string;
+  outputHash: string;
+  demandLineCount: number;
+  supplyLineCount: number;
+  exceptionCount: number;
+  plannedQuantity: number;
+  capturedOn: string;
+  status: string;
+}
+
+export interface PlanningSnapshotCreateRequest {
+  companyId: number;
+  branchId: number;
+  planningPlanId: number | null;
+  mrpRunId: number | null;
+  snapshotCode: string;
+  snapshotType: string;
+  inputHash: string;
+  outputHash: string;
+  demandLineCount: number;
+  supplyLineCount: number;
+  exceptionCount: number;
+  plannedQuantity: number;
+  status: string;
+}
+
+export interface PlannedOrderDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  planningPlanId: number | null;
+  mrpRunId: number | null;
+  boqRequirementLineId: number | null;
+  plannedOrderNo: string;
+  orderType: string;
+  itemId: number;
+  quantity: number;
+  uomId: number;
+  plannedStartDate: string;
+  plannedDueDate: string;
+  sourceWarehouseId: number | null;
+  targetWarehouseId: number | null;
+  bomRevisionId: number | null;
+  routingId: number | null;
+  isFirm: boolean;
+  isReleased: boolean;
+  isExpedite: boolean;
+  peggingSourceType: string;
+  peggingSourceId: number | null;
+  status: string;
+  targetDocumentId: number | null;
+  targetDocumentType: string | null;
+}
+
+export interface PlannedOrderUpsertRequest {
+  companyId: number;
+  branchId: number;
+  planningPlanId: number | null;
+  mrpRunId: number | null;
+  boqRequirementLineId: number | null;
+  plannedOrderNo: string;
+  orderType: string;
+  itemId: number;
+  quantity: number;
+  uomId: number;
+  plannedStartDate: string;
+  plannedDueDate: string;
+  sourceWarehouseId: number | null;
+  targetWarehouseId: number | null;
+  bomRevisionId: number | null;
+  routingId: number | null;
+  isFirm: boolean;
+  isExpedite: boolean;
+  peggingSourceType: string;
+  peggingSourceId: number | null;
+  status: string;
+  itemCode?: string | null;
+}
+
+export interface PlannedOrderConversionResultDto {
+  plannedOrderId: number;
+  targetDocumentType: string;
+  targetDocumentId: number;
+  targetDocumentNo: string;
+  status: string;
+}
+
+export interface ShortageActionDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  plannedOrderId: number | null;
+  mrpRunItemId: number | null;
+  itemId: number;
+  shortageQuantity: number;
+  actionType: string;
+  ownerUserId: number | null;
+  dueDate: string;
+  reasonCode: string;
+  status: string;
+  resolutionNote: string;
+}
+
+export interface ShortageActionUpsertRequest {
+  companyId: number;
+  branchId: number;
+  plannedOrderId: number | null;
+  mrpRunItemId: number | null;
+  itemId: number;
+  shortageQuantity: number;
+  actionType: string;
+  ownerUserId: number | null;
+  dueDate: string;
+  reasonCode: string;
+  status: string;
+  resolutionNote: string;
+  itemCode?: string | null;
+}
+
 export interface PurchaseRequisitionLineDto {
   id: number;
   lineNo: number;

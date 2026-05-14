@@ -524,3 +524,226 @@ public sealed class BoqRequirementLine : AuditableEntity, IUserOwnedRecord
         ModifiedByUserId = userId;
     }
 }
+
+public sealed class PlanningPlan : AuditableEntity, ICompanyScoped, IBranchScoped
+{
+    private PlanningPlan()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long? BranchId { get; private set; }
+    public string PlanCode { get; private set; } = string.Empty;
+    public string PlanName { get; private set; } = string.Empty;
+    public string PlanType { get; private set; } = string.Empty;
+    public DateOnly HorizonStart { get; private set; }
+    public DateOnly HorizonEnd { get; private set; }
+    public int FirmFenceDays { get; private set; }
+    public int ForecastFenceDays { get; private set; }
+    public bool IncludeForecast { get; private set; }
+    public bool IncludeCapacity { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static PlanningPlan Create(long companyId, long branchId, string planCode, string planName, string planType, DateOnly horizonStart, DateOnly horizonEnd, int firmFenceDays, int forecastFenceDays, bool includeForecast, bool includeCapacity, string status, long? userId)
+    {
+        var entity = new PlanningPlan { CompanyId = companyId, BranchId = branchId };
+        entity.Update(planCode, planName, planType, horizonStart, horizonEnd, firmFenceDays, forecastFenceDays, includeForecast, includeCapacity, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string planCode, string planName, string planType, DateOnly horizonStart, DateOnly horizonEnd, int firmFenceDays, int forecastFenceDays, bool includeForecast, bool includeCapacity, string status, long? userId)
+    {
+        PlanCode = planCode.Trim();
+        PlanName = planName.Trim();
+        PlanType = planType.Trim();
+        HorizonStart = horizonStart;
+        HorizonEnd = horizonEnd;
+        FirmFenceDays = firmFenceDays;
+        ForecastFenceDays = forecastFenceDays;
+        IncludeForecast = includeForecast;
+        IncludeCapacity = includeCapacity;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class PlanningSnapshot : AuditableEntity, ICompanyScoped, IBranchScoped
+{
+    private PlanningSnapshot()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long? BranchId { get; private set; }
+    public long? PlanningPlanId { get; private set; }
+    public long? MrpRunId { get; private set; }
+    public string SnapshotCode { get; private set; } = string.Empty;
+    public string SnapshotType { get; private set; } = string.Empty;
+    public string InputHash { get; private set; } = string.Empty;
+    public string OutputHash { get; private set; } = string.Empty;
+    public int DemandLineCount { get; private set; }
+    public int SupplyLineCount { get; private set; }
+    public int ExceptionCount { get; private set; }
+    public decimal PlannedQuantity { get; private set; }
+    public DateTimeOffset CapturedOn { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static PlanningSnapshot Create(long companyId, long branchId, long? planningPlanId, long? mrpRunId, string snapshotCode, string snapshotType, string inputHash, string outputHash, int demandLineCount, int supplyLineCount, int exceptionCount, decimal plannedQuantity, string status, long? userId)
+    {
+        var entity = new PlanningSnapshot { CompanyId = companyId, BranchId = branchId, PlanningPlanId = planningPlanId, MrpRunId = mrpRunId };
+        entity.Update(snapshotCode, snapshotType, inputHash, outputHash, demandLineCount, supplyLineCount, exceptionCount, plannedQuantity, status, userId);
+        entity.CapturedOn = DateTimeOffset.UtcNow;
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string snapshotCode, string snapshotType, string inputHash, string outputHash, int demandLineCount, int supplyLineCount, int exceptionCount, decimal plannedQuantity, string status, long? userId)
+    {
+        SnapshotCode = snapshotCode.Trim();
+        SnapshotType = snapshotType.Trim();
+        InputHash = inputHash.Trim();
+        OutputHash = outputHash.Trim();
+        DemandLineCount = demandLineCount;
+        SupplyLineCount = supplyLineCount;
+        ExceptionCount = exceptionCount;
+        PlannedQuantity = plannedQuantity;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class PlannedOrder : AuditableEntity, ICompanyScoped, IBranchScoped
+{
+    private PlannedOrder()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long? BranchId { get; private set; }
+    public long? PlanningPlanId { get; private set; }
+    public long? MrpRunId { get; private set; }
+    public long? BoqRequirementLineId { get; private set; }
+    public string PlannedOrderNo { get; private set; } = string.Empty;
+    public string OrderType { get; private set; } = string.Empty;
+    public long ItemId { get; private set; }
+    public decimal Quantity { get; private set; }
+    public long UomId { get; private set; }
+    public DateOnly PlannedStartDate { get; private set; }
+    public DateOnly PlannedDueDate { get; private set; }
+    public long? SourceWarehouseId { get; private set; }
+    public long? TargetWarehouseId { get; private set; }
+    public long? BomRevisionId { get; private set; }
+    public long? RoutingId { get; private set; }
+    public bool IsFirm { get; private set; }
+    public bool IsReleased { get; private set; }
+    public bool IsExpedite { get; private set; }
+    public string PeggingSourceType { get; private set; } = string.Empty;
+    public long? PeggingSourceId { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+    public long? TargetDocumentId { get; private set; }
+    public string? TargetDocumentType { get; private set; }
+
+    public static PlannedOrder Create(long companyId, long branchId, long? planningPlanId, long? mrpRunId, long? boqRequirementLineId, string plannedOrderNo, string orderType, long itemId, decimal quantity, long uomId, DateOnly plannedStartDate, DateOnly plannedDueDate, long? sourceWarehouseId, long? targetWarehouseId, long? bomRevisionId, long? routingId, bool isFirm, bool isExpedite, string peggingSourceType, long? peggingSourceId, string status, long? userId)
+    {
+        var entity = new PlannedOrder
+        {
+            CompanyId = companyId,
+            BranchId = branchId,
+            PlanningPlanId = planningPlanId,
+            MrpRunId = mrpRunId,
+            BoqRequirementLineId = boqRequirementLineId
+        };
+        entity.Update(plannedOrderNo, orderType, itemId, quantity, uomId, plannedStartDate, plannedDueDate, sourceWarehouseId, targetWarehouseId, bomRevisionId, routingId, isFirm, isExpedite, peggingSourceType, peggingSourceId, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string plannedOrderNo, string orderType, long itemId, decimal quantity, long uomId, DateOnly plannedStartDate, DateOnly plannedDueDate, long? sourceWarehouseId, long? targetWarehouseId, long? bomRevisionId, long? routingId, bool isFirm, bool isExpedite, string peggingSourceType, long? peggingSourceId, string status, long? userId)
+    {
+        PlannedOrderNo = plannedOrderNo.Trim();
+        OrderType = orderType.Trim();
+        ItemId = itemId;
+        Quantity = quantity;
+        UomId = uomId;
+        PlannedStartDate = plannedStartDate;
+        PlannedDueDate = plannedDueDate;
+        SourceWarehouseId = sourceWarehouseId;
+        TargetWarehouseId = targetWarehouseId;
+        BomRevisionId = bomRevisionId;
+        RoutingId = routingId;
+        IsFirm = isFirm;
+        IsExpedite = isExpedite;
+        PeggingSourceType = peggingSourceType.Trim();
+        PeggingSourceId = peggingSourceId;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void Firm(long? userId)
+    {
+        IsFirm = true;
+        Status = "Firm";
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void MarkConverted(string targetDocumentType, long targetDocumentId, long? userId)
+    {
+        TargetDocumentType = targetDocumentType.Trim();
+        TargetDocumentId = targetDocumentId;
+        IsReleased = true;
+        Status = "Converted";
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class ShortageAction : AuditableEntity, ICompanyScoped, IBranchScoped, IUserOwnedRecord
+{
+    private ShortageAction()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long? BranchId { get; private set; }
+    public long? PlannedOrderId { get; private set; }
+    public long? MrpRunItemId { get; private set; }
+    public long ItemId { get; private set; }
+    public decimal ShortageQuantity { get; private set; }
+    public string ActionType { get; private set; } = string.Empty;
+    public long? OwnerUserId { get; private set; }
+    public DateOnly DueDate { get; private set; }
+    public string ReasonCode { get; private set; } = string.Empty;
+    public string Status { get; private set; } = string.Empty;
+    public string ResolutionNote { get; private set; } = string.Empty;
+
+    public static ShortageAction Create(long companyId, long branchId, long? plannedOrderId, long? mrpRunItemId, long itemId, decimal shortageQuantity, string actionType, long? ownerUserId, DateOnly dueDate, string reasonCode, string status, string resolutionNote, long? userId)
+    {
+        var entity = new ShortageAction { CompanyId = companyId, BranchId = branchId, PlannedOrderId = plannedOrderId, MrpRunItemId = mrpRunItemId };
+        entity.Update(itemId, shortageQuantity, actionType, ownerUserId, dueDate, reasonCode, status, resolutionNote, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(long itemId, decimal shortageQuantity, string actionType, long? ownerUserId, DateOnly dueDate, string reasonCode, string status, string resolutionNote, long? userId)
+    {
+        ItemId = itemId;
+        ShortageQuantity = shortageQuantity;
+        ActionType = actionType.Trim();
+        OwnerUserId = ownerUserId;
+        DueDate = dueDate;
+        ReasonCode = reasonCode.Trim();
+        Status = status.Trim();
+        ResolutionNote = resolutionNote.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}

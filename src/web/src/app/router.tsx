@@ -100,6 +100,7 @@ import {
   NotificationInboxPage
 } from "../pages/PlatformPages";
 import { CapacityPlanningBoardPage } from "../pages/PlanningContinuationPages";
+import { PlanningWorkspacePage } from "../pages/PlanningCompletionPages";
 import { BoqRequirementsPage, MrpResultsExceptionsPage, MrpRunConsolePage } from "../pages/PlanningPages";
 import {
   LandedCostPage,
@@ -216,6 +217,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("sales/orders", <SalesOrderListPage />),
       guardedRoute("sales/blanket-orders", <BlanketOrderContractPage />),
       guardedRoute("sales/forecasts", <DemandForecastPage />),
+      guardedRoute("planning/workspace", <PlanningWorkspacePage />),
       guardedRoute("planning/mps", <MpsPlannerPage />),
       guardedRoute("planning/mrp", <MrpRunConsolePage />),
       guardedRoute("planning/mrp-results", <MrpResultsExceptionsPage />),

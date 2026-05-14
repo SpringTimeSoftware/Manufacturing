@@ -1,0 +1,270 @@
+{
+  "pack_name": "planning_mrp_boq_capacity_completion_pack_v1",
+  "generated_at_utc": "2026-05-14 17:28:50Z",
+  "target_repo": "https://github.com/SpringTimeSoftware/Manufacturing",
+  "target_local_path": "C:\\StsPackages\\Manufacturing_ERP",
+  "recommended_pack_path": "C:\\StsPackages\\Manufacturing_ERP\\docs\\erp_completion_packs_v1\\planning_mrp_boq_capacity_completion_pack_v1",
+  "artifacts": [
+    "planning_mrp_boq_capacity_benchmark_workbook_v1.xlsx",
+    "planning_mrp_boq_capacity_completion_spec_v1.md",
+    "planning_mrp_boq_capacity_codex_execution_prompt_v1.md",
+    "planning_mrp_boq_capacity_validation_checklist_v1.md",
+    "planning_mrp_boq_capacity_invalid_output_rules_v1.md",
+    "planning_mrp_boq_capacity_pack_manifest.json",
+    "README.md"
+  ],
+  "workbook_counts": {
+    "source_references": 29,
+    "vendor_benchmark_rows": 178,
+    "target_field_rules": 547,
+    "mps_rules": 46,
+    "mrp_run_rules": 114,
+    "snapshot_planned_order_rules": 159,
+    "boq_requirement_rules": 59,
+    "capacity_board_rules": 89,
+    "forecast_exception_rules": 100,
+    "lookup_numeric_truth_rules": 320,
+    "action_contract_rows": 105,
+    "workflow_contract_rows": 42,
+    "test_case_rows": 312,
+    "anti_pattern_rows": 30,
+    "screenshot_gates": 22,
+    "completion_gates": 20,
+    "invalid_output_rules": 16
+  },
+  "official_sources": [
+    {
+      "Source_ID": "SAP_MRP_LIVE",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Material Requirements Planning",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/fe39e10a9a864a8f8dc9537704f0fa13/7c453d53ea2c0050e10000000a44176d.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "MRP run evaluation must show active MRP-view materials and planning run results; output must not be black-box."
+    },
+    {
+      "Source_ID": "SAP_PLANNING_MODE",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA MRP planning mode",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/fe39e10a9a864a8f8dc9537704f0fa13/a497b6535fe6b74ce10000000a174cb4.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Planning mode controls handling of procurement proposals such as planned orders, purchase requisitions, and scheduling agreement lines."
+    },
+    {
+      "Source_ID": "SAP_PIR",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Planned Independent Requirements",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/9905622a5c1f49ba84e9076fc83a9c2c/fccae457d5e7f132e10000000a441470.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Planned independent requirements represent planned quantity by date/period for demand management; forecast/MPS inputs require item/date/quantity truth."
+    },
+    {
+      "Source_ID": "SAP_STOCK_REQUIREMENTS",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Stock/Requirements List",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/fe39e10a9a864a8f8dc9537704f0fa13/daf35d93b67542c0b1f6a18807e9f6e9.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Planner must be able to inspect up-to-date stock and requirement elements, not just aggregate totals."
+    },
+    {
+      "Source_ID": "SAP_MATERIAL_COVERAGE",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Material Coverage",
+      "URL": "https://help.sap.com/docs/SAP_FIORI/5d441ea8c6ba4ee798d1a679165b3970/58fca552d161224fe10000000a445394.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Material coverage must monitor shortages by area of responsibility and support shortage analysis/resolution."
+    },
+    {
+      "Source_ID": "SAP_RESOLVE_COVERAGE",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Resolve Coverage Issues",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_CLOUD/2bba750d1e124e1ea2a039bb1cd9b6c5/c6df7690e07848e196f3a1ee7ed020af.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Coverage exceptions must offer corrective actions, not merely warning text."
+    },
+    {
+      "Source_ID": "SAP_WORK_CENTER_CAPACITY",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Work Center Capacity",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/21aead0c98bd4755abdacd91c99e3393/74e3356c89914b1495667e7d1f76eb23.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Work center capacity screen must visualize capacities, load, and overload situations."
+    },
+    {
+      "Source_ID": "SAP_CAPACITY_BOARD",
+      "Vendor": "SAP",
+      "Product_Area": "S/4HANA Capacity Scheduling Board",
+      "URL": "https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/21aead0c98bd4755abdacd91c99e3393/063ae12de0c74b01b6fd49c78e895564.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Capacity board must visualize operations at work centers over time."
+    },
+    {
+      "Source_ID": "ORACLE_SUPPLY_PLANNING",
+      "Vendor": "Oracle",
+      "Product_Area": "Fusion Cloud SCM Supply Planning",
+      "URL": "https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25d/fausp/using-supply-planning.pdf",
+      "Source_Type": "Official guide",
+      "Relevant_Expectation": "Supply Planning transforms demand to supply, supports data collection, inventory planning, supply planning, plan automation, and adjustment at any stage."
+    },
+    {
+      "Source_ID": "ORACLE_PLAN_ATTRIBUTES",
+      "Vendor": "Oracle",
+      "Product_Area": "Fusion Cloud SCM Supply Plan Attributes",
+      "URL": "https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25d/fausp/considerations-for-configuring-supply-plan-attributes.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Supply plan attributes include demand/planning time fence control, assignment set, overwrite firm orders, netting rule, and sales-order date rules."
+    },
+    {
+      "Source_ID": "ORACLE_EXCEPTIONS",
+      "Vendor": "Oracle",
+      "Product_Area": "Fusion Cloud Supply Planning Exceptions",
+      "URL": "https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25d/fausp/predefined-supply-planning-exceptions.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Planning exceptions include resource and supplier capacity overload and other planned-order/resource/component issues."
+    },
+    {
+      "Source_ID": "ORACLE_BUILD_PLAN",
+      "Vendor": "Oracle",
+      "Product_Area": "Fusion Cloud SCM Build Plan View",
+      "URL": "https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25d/fausp/build-plan-view.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Build plan must analyze end-to-end relationships across end items, components, suppliers, resources, shortages, root causes, and corrective actions."
+    },
+    {
+      "Source_ID": "ORACLE_PLAN_RECOMMENDATIONS",
+      "Vendor": "Oracle",
+      "Product_Area": "Fusion Cloud Plan Recommendations",
+      "URL": "https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25d/faupc/how-plan-recommendations-are-processed.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Plan recommendations must release planned supplies into purchasing/logistics/work execution through orchestration."
+    },
+    {
+      "Source_ID": "ORACLE_PEGGING",
+      "Vendor": "Oracle",
+      "Product_Area": "Fusion Cloud SCM Pegging",
+      "URL": "https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25d/fausp/how-fifo-pegging-is-used-in-supply-chain-planning.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Pegging must link demand to supply and supply to demand for root-cause planning decisions."
+    },
+    {
+      "Source_ID": "MS_MASTER_PLANNING",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Supply Chain Master Planning",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/master-planning-home-page",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Master planning must balance raw material and capacity needs and generate planned orders."
+    },
+    {
+      "Source_ID": "MS_MASTER_PLANS",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Master Plans",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/master-plans",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Master plans include action messages, calculated delays, sequencing, and planned order strategies."
+    },
+    {
+      "Source_ID": "MS_FIRMING",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Firm Planned Orders",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/planning-optimization/planned-order-firming",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Planned orders must be firmed/released into actual purchase orders, transfer orders, or production orders."
+    },
+    {
+      "Source_ID": "MS_ACTION_MESSAGES",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Action Messages",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/action-messages",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Action messages are system-generated suggestions to change existing planned/approved/firmed orders."
+    },
+    {
+      "Source_ID": "MS_DEMAND_FORECAST",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Demand Forecast in Master Planning",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/planning-optimization/demand-forecast",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Forecast plan time fence, forecast model, and reduction rules must govern how forecast affects master planning."
+    },
+    {
+      "Source_ID": "MS_COVERAGE_TIME_FENCE",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Coverage Time Fences",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/planning-optimization/coverage-time-fence",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Coverage time fence controls planning horizon at group/item/master-plan level and suppresses noise beyond horizon."
+    },
+    {
+      "Source_ID": "MS_NET_REQUIREMENTS",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Net Requirements and Pegging",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/planning-optimization/net-requirements",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Net requirements must show coverage settings, transaction-type breakdown, period view, and pegging."
+    },
+    {
+      "Source_ID": "MS_REDUCTION_KEYS",
+      "Vendor": "Microsoft",
+      "Product_Area": "Dynamics 365 Forecast Reduction Keys",
+      "URL": "https://learn.microsoft.com/en-us/dynamics365/supply-chain/master-planning/reduction-keys",
+      "Source_Type": "Official documentation",
+      "Relevant_Expectation": "Forecast requirements can be reduced by none, percent, transaction reduction key, or dynamic period; actual demand can consume forecast."
+    },
+    {
+      "Source_ID": "NS_SUPPLY_OVERVIEW",
+      "Vendor": "NetSuite",
+      "Product_Area": "NetSuite Supply Planning Overview",
+      "URL": "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_159172025754.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Supply planning balances supply and demand for financial/service objectives and supports planner review."
+    },
+    {
+      "Source_ID": "NS_PLAN_DEFINITION",
+      "Vendor": "NetSuite",
+      "Product_Area": "NetSuite Supply Plan Definition",
+      "URL": "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_159180786193.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Supply plan definition must include name, planning rules, horizon, planning item group, location scope, pegging, and schedule."
+    },
+    {
+      "Source_ID": "NS_SUPPLY_PROCESS",
+      "Vendor": "NetSuite",
+      "Product_Area": "NetSuite Supply Planning Process",
+      "URL": "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_159172577944.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Supply planning creates snapshots, explodes BOMs, nets inventory/orders, creates planned orders, suggestions, exceptions, and pegging."
+    },
+    {
+      "Source_ID": "NS_WORKBENCH",
+      "Vendor": "NetSuite",
+      "Product_Area": "NetSuite Supply Planning Workbench",
+      "URL": "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_159187932855.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Workbench must show supply/demand alignment, inventory, delay issues, planned order actions, reschedule/cancel suggestions, and pegging drilldown."
+    },
+    {
+      "Source_ID": "NS_PLANNED_ORDER",
+      "Vendor": "NetSuite",
+      "Product_Area": "NetSuite Planned Order Creation",
+      "URL": "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/subsect_161945475641.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "Planned order must have item, location, source location, transaction type, start/end dates, quantity, firm/release/expedite flags, memo."
+    },
+    {
+      "Source_ID": "NS_GLOSSARY_MPS_MRP",
+      "Vendor": "NetSuite",
+      "Product_Area": "NetSuite Supply Planning Glossary",
+      "URL": "https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_163664509886.html",
+      "Source_Type": "Official help",
+      "Relevant_Expectation": "MPS is build schedule for MPS items and drives MRP; MRP/MPS quantities are time-phased calculations."
+    },
+    {
+      "Source_ID": "EPICOR_PLANNING",
+      "Vendor": "Epicor",
+      "Product_Area": "Epicor Kinetic Planning and Scheduling",
+      "URL": "https://www.epicor.com/en/products/enterprise-resource-planning-erp/kinetic/planning-and-scheduling/",
+      "Source_Type": "Official product documentation page",
+      "Relevant_Expectation": "Kinetic supports forecasting, MPS, multilevel MRP, cross-plant planning, resource views, overloads/slack, APS, drag-drop scheduling, and capacity analysis."
+    }
+  ],
+  "completion_policy": "No P0 gate failure may be called complete."
+}

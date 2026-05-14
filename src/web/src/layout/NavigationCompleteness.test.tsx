@@ -52,6 +52,7 @@ const implementedProtectedRoutes = [
   "/sales/blanket-orders",
   "/sales/forecasts",
   "/sales/available-to-promise",
+  "/planning/workspace",
   "/planning/mps",
   "/planning/mrp",
   "/planning/mrp-results",

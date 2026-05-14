@@ -157,12 +157,20 @@ export const queryKeys = {
       ["engineering", "documents", companyId ?? 0, search, status] as const
   },
   planning: {
+    plans: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["planning", "plans", companyId ?? 0, branchId ?? 0, search, status] as const,
+    snapshots: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["planning", "snapshots", companyId ?? 0, branchId ?? 0, search, status] as const,
     mrpRuns: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
       ["planning", "mrp-runs", companyId ?? 0, branchId ?? 0, search, status] as const,
     mrpResults: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
       ["planning", "mrp-results", companyId ?? 0, branchId ?? 0, search, status] as const,
     boqRequirements: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
       ["planning", "boq-requirements", companyId ?? 0, branchId ?? 0, search, status] as const,
+    plannedOrders: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["planning", "planned-orders", companyId ?? 0, branchId ?? 0, search, status] as const,
+    shortageActions: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["planning", "shortage-actions", companyId ?? 0, branchId ?? 0, search, status] as const,
     capacityBoard: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
       ["planning", "capacity-board", companyId ?? 0, branchId ?? 0, search, status] as const
   },

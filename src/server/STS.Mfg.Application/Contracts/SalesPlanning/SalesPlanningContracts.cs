@@ -141,3 +141,152 @@ public sealed record BoqRequirementLineUpsertRequest(
 public sealed record BoqRequirementDto(long Id, long CompanyId, long BranchId, long? MrpRunId, string SourceDocumentType, long? SourceDocumentId, string Status, IReadOnlyCollection<BoqRequirementLineDto> Lines);
 public sealed record BoqRequirementUpsertRequest(long CompanyId, long BranchId, long? MrpRunId, string SourceDocumentType, long? SourceDocumentId, string Status, IReadOnlyCollection<BoqRequirementLineUpsertRequest> Lines);
 public sealed record BoqLineActionRequest(string ApprovedAction, string? OverrideReasonCode);
+
+public sealed record PlanningPlanDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    string PlanCode,
+    string PlanName,
+    string PlanType,
+    DateOnly HorizonStart,
+    DateOnly HorizonEnd,
+    int FirmFenceDays,
+    int ForecastFenceDays,
+    bool IncludeForecast,
+    bool IncludeCapacity,
+    string Status);
+
+public sealed record PlanningPlanUpsertRequest(
+    long CompanyId,
+    long BranchId,
+    string PlanCode,
+    string PlanName,
+    string PlanType,
+    DateOnly HorizonStart,
+    DateOnly HorizonEnd,
+    int FirmFenceDays,
+    int ForecastFenceDays,
+    bool IncludeForecast,
+    bool IncludeCapacity,
+    string Status);
+
+public sealed record PlanningSnapshotDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    long? PlanningPlanId,
+    long? MrpRunId,
+    string SnapshotCode,
+    string SnapshotType,
+    string InputHash,
+    string OutputHash,
+    int DemandLineCount,
+    int SupplyLineCount,
+    int ExceptionCount,
+    decimal PlannedQuantity,
+    DateTimeOffset CapturedOn,
+    string Status);
+
+public sealed record PlanningSnapshotCreateRequest(
+    long CompanyId,
+    long BranchId,
+    long? PlanningPlanId,
+    long? MrpRunId,
+    string SnapshotCode,
+    string SnapshotType,
+    string InputHash,
+    string OutputHash,
+    int DemandLineCount,
+    int SupplyLineCount,
+    int ExceptionCount,
+    decimal PlannedQuantity,
+    string Status);
+
+public sealed record PlannedOrderDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    long? PlanningPlanId,
+    long? MrpRunId,
+    long? BoqRequirementLineId,
+    string PlannedOrderNo,
+    string OrderType,
+    long ItemId,
+    decimal Quantity,
+    long UomId,
+    DateOnly PlannedStartDate,
+    DateOnly PlannedDueDate,
+    long? SourceWarehouseId,
+    long? TargetWarehouseId,
+    long? BomRevisionId,
+    long? RoutingId,
+    bool IsFirm,
+    bool IsReleased,
+    bool IsExpedite,
+    string PeggingSourceType,
+    long? PeggingSourceId,
+    string Status,
+    long? TargetDocumentId,
+    string? TargetDocumentType);
+
+public sealed record PlannedOrderUpsertRequest(
+    long CompanyId,
+    long BranchId,
+    long? PlanningPlanId,
+    long? MrpRunId,
+    long? BoqRequirementLineId,
+    string PlannedOrderNo,
+    string OrderType,
+    long ItemId,
+    decimal Quantity,
+    long UomId,
+    DateOnly PlannedStartDate,
+    DateOnly PlannedDueDate,
+    long? SourceWarehouseId,
+    long? TargetWarehouseId,
+    long? BomRevisionId,
+    long? RoutingId,
+    bool IsFirm,
+    bool IsExpedite,
+    string PeggingSourceType,
+    long? PeggingSourceId,
+    string Status,
+    string? ItemCode = null);
+
+public sealed record PlannedOrderConversionResultDto(
+    long PlannedOrderId,
+    string TargetDocumentType,
+    long TargetDocumentId,
+    string TargetDocumentNo,
+    string Status);
+
+public sealed record ShortageActionDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    long? PlannedOrderId,
+    long? MrpRunItemId,
+    long ItemId,
+    decimal ShortageQuantity,
+    string ActionType,
+    long? OwnerUserId,
+    DateOnly DueDate,
+    string ReasonCode,
+    string Status,
+    string ResolutionNote);
+
+public sealed record ShortageActionUpsertRequest(
+    long CompanyId,
+    long BranchId,
+    long? PlannedOrderId,
+    long? MrpRunItemId,
+    long ItemId,
+    decimal ShortageQuantity,
+    string ActionType,
+    long? OwnerUserId,
+    DateOnly DueDate,
+    string ReasonCode,
+    string Status,
+    string ResolutionNote,
+    string? ItemCode = null);

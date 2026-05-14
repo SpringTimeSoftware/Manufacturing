@@ -1594,15 +1594,18 @@ function mpsValidation(draft: MpsDraftState | null) {
     !draft.planningHorizonEnd ? "Planning horizon end is required." : "",
     draft.planningHorizonStart && draft.planningHorizonEnd && draft.planningHorizonEnd < draft.planningHorizonStart ? "Planning horizon end must be on or after the start date." : "",
     draft.lines.length === 0 ? "At least one MPS line is required." : "",
-    ...draft.lines.flatMap((line) => [
-      line.lineNo <= 0 ? "Each MPS line needs a positive line number." : "",
-      !line.itemId ? "Each MPS line needs an item." : "",
-      !line.periodStart ? "Each MPS line needs a period start date." : "",
-      !line.periodEnd ? "Each MPS line needs a period end date." : "",
-      line.periodStart && line.periodEnd && line.periodEnd < line.periodStart ? "Each MPS line period end must be on or after the start date." : "",
-      line.plannedQuantity <= 0 ? "Each MPS line quantity must be greater than zero." : "",
-      !line.planningUomId ? "Each MPS line needs a planning UOM." : ""
-    ])
+    ...draft.lines.flatMap((line, index) => {
+      const label = `Line ${line.lineNo || index + 1}`;
+      return [
+        line.lineNo <= 0 ? `${label}: positive line number is required.` : "",
+        !line.itemId ? `${label}: item is required.` : "",
+        !line.periodStart ? `${label}: period start date is required.` : "",
+        !line.periodEnd ? `${label}: period end date is required.` : "",
+        line.periodStart && line.periodEnd && line.periodEnd < line.periodStart ? `${label}: period end must be on or after the start date.` : "",
+        line.plannedQuantity <= 0 ? `${label}: planned quantity must be greater than zero.` : "",
+        !line.planningUomId ? `${label}: planning UOM is required.` : ""
+      ];
+    })
   ].filter(Boolean);
 }
 

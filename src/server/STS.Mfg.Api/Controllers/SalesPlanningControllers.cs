@@ -313,3 +313,164 @@ public sealed class BoqRequirementsController(ISalesPlanningService salesPlannin
         return OkEnvelope(response, "Reviewed BOQ lines converted.");
     }
 }
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/planning/plans")]
+public sealed class PlanningPlansController(ISalesPlanningService salesPlanningService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<PlanningPlanDto>>>> List(
+        [FromQuery] SalesFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ListPlanningPlansAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<PlanningPlanDto>>> Get(long id, CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.GetPlanningPlanAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<PlanningPlanDto>>> Create(
+        [FromBody] PlanningPlanUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.CreatePlanningPlanAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(Get), new { id = response.Id }, response, "Planning plan created.");
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<PlanningPlanDto>>> Update(
+        long id,
+        [FromBody] PlanningPlanUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.UpdatePlanningPlanAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Planning plan updated.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/planning/snapshots")]
+public sealed class PlanningSnapshotsController(ISalesPlanningService salesPlanningService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<PlanningSnapshotDto>>>> List(
+        [FromQuery] SalesFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ListPlanningSnapshotsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<PlanningSnapshotDto>>> Create(
+        [FromBody] PlanningSnapshotCreateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.CreatePlanningSnapshotAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(List), new { id = response.Id }, response, "Planning snapshot created.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/planning/planned-orders")]
+public sealed class PlannedOrdersController(ISalesPlanningService salesPlanningService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<PlannedOrderDto>>>> List(
+        [FromQuery] SalesFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ListPlannedOrdersAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<PlannedOrderDto>>> Get(long id, CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.GetPlannedOrderAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<PlannedOrderDto>>> Create(
+        [FromBody] PlannedOrderUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.CreatePlannedOrderAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(Get), new { id = response.Id }, response, "Planned order created.");
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<PlannedOrderDto>>> Update(
+        long id,
+        [FromBody] PlannedOrderUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.UpdatePlannedOrderAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Planned order updated.");
+    }
+
+    [HttpPost("{id:long}/firm")]
+    public async Task<ActionResult<ApiEnvelope<PlannedOrderDto>>> Firm(long id, CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.FirmPlannedOrderAsync(id, cancellationToken);
+        return OkEnvelope(response, "Planned order firmed.");
+    }
+
+    [HttpPost("{id:long}/convert/purchase-requisition")]
+    public async Task<ActionResult<ApiEnvelope<PlannedOrderConversionResultDto>>> ConvertToPurchaseRequisition(long id, CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ConvertPlannedOrderToPurchaseRequisitionAsync(id, cancellationToken);
+        return OkEnvelope(response, "Planned order converted to purchase requisition.");
+    }
+
+    [HttpPost("{id:long}/convert/work-order")]
+    public async Task<ActionResult<ApiEnvelope<PlannedOrderConversionResultDto>>> ConvertToWorkOrder(long id, CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ConvertPlannedOrderToWorkOrderAsync(id, cancellationToken);
+        return OkEnvelope(response, "Planned order converted to work order.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/planning/shortage-actions")]
+public sealed class ShortageActionsController(ISalesPlanningService salesPlanningService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<ShortageActionDto>>>> List(
+        [FromQuery] SalesFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ListShortageActionsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<ShortageActionDto>>> Create(
+        [FromBody] ShortageActionUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.CreateShortageActionAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(List), new { id = response.Id }, response, "Shortage action created.");
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<ShortageActionDto>>> Update(
+        long id,
+        [FromBody] ShortageActionUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.UpdateShortageActionAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Shortage action updated.");
+    }
+}

@@ -12,6 +12,7 @@ import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface MrpExceptionItem {
   id: string;
+  itemId: number;
   itemLabel: string;
   demandSourceType: string;
   grossRequirementQty: number;
@@ -44,8 +45,10 @@ export interface BoqRequirementLineItem {
   id: string;
   lineId: number | null;
   lineNo: number;
+  itemId: number;
   itemLabel: string;
   requiredQuantity: number;
+  requirementUomId: number;
   availableQuantity: number;
   incomingQuantity: number;
   wipQuantity: number;
@@ -114,6 +117,7 @@ function dateLabel(value: string | null | undefined) {
 function mapMrpItem(item: MrpRunItemDto): MrpExceptionItem {
   return {
     id: `mrp-line-${item.id}`,
+    itemId: item.itemId,
     itemLabel: `Item ${item.itemId}`,
     demandSourceType: item.demandSourceType,
     grossRequirementQty: item.grossRequirementQty,
@@ -156,8 +160,10 @@ function mapBoqLine(line: BoqRequirementLineDto): BoqRequirementLineItem {
     id: `boq-line-${line.id}`,
     lineId: line.id,
     lineNo: line.lineNo,
+    itemId: line.itemId,
     itemLabel: `Item ${line.itemId}`,
     requiredQuantity: line.requiredQuantity,
+    requirementUomId: line.requirementUomId,
     availableQuantity,
     incomingQuantity,
     wipQuantity,
@@ -208,6 +214,7 @@ const seededMrpRuns: MrpRunConsoleItem[] = [
     items: [
       {
         id: "mrp-seeded-1-line-1",
+        itemId: 10001,
         itemLabel: "RM-SS-SHEET / Stainless Steel Sheet",
         demandSourceType: "Sales order",
         grossRequirementQty: 25,
@@ -218,6 +225,7 @@ const seededMrpRuns: MrpRunConsoleItem[] = [
       },
       {
         id: "mrp-seeded-1-line-2",
+        itemId: 10002,
         itemLabel: "WIP-OZG-MOD / Ozone Generator Module",
         demandSourceType: "BOM explosion",
         grossRequirementQty: 10,
@@ -228,6 +236,7 @@ const seededMrpRuns: MrpRunConsoleItem[] = [
       },
       {
         id: "mrp-seeded-1-line-3",
+        itemId: 10003,
         itemLabel: "RM-VALVE-SET / Valve Set",
         demandSourceType: "BOM explosion",
         grossRequirementQty: 10,
@@ -258,8 +267,10 @@ const seededBoqRequirements: BoqRequirementItem[] = [
         id: "boq-seeded-1-line-1",
         lineId: null,
         lineNo: 10,
+        itemId: 10001,
         itemLabel: "RM-SS-SHEET / Stainless Steel Sheet",
         requiredQuantity: 25,
+        requirementUomId: 1,
         availableQuantity: 8,
         incomingQuantity: 0,
         wipQuantity: 0,
@@ -274,8 +285,10 @@ const seededBoqRequirements: BoqRequirementItem[] = [
         id: "boq-seeded-1-line-2",
         lineId: null,
         lineNo: 20,
+        itemId: 10002,
         itemLabel: "WIP-OZG-MOD / Ozone Generator Module",
         requiredQuantity: 10,
+        requirementUomId: 1,
         availableQuantity: 0,
         incomingQuantity: 0,
         wipQuantity: 2,
@@ -290,8 +303,10 @@ const seededBoqRequirements: BoqRequirementItem[] = [
         id: "boq-seeded-1-line-3",
         lineId: null,
         lineNo: 30,
+        itemId: 10003,
         itemLabel: "RM-VALVE-SET / Valve Set",
         requiredQuantity: 10,
+        requirementUomId: 1,
         availableQuantity: 4,
         incomingQuantity: 2,
         wipQuantity: 0,
@@ -385,7 +400,43 @@ export async function listBoqRequirementSetup(session: AuthSessionResponse | nul
 
 export async function listCapacityBoardSetup(session: AuthSessionResponse | null | undefined, filter: QueryFilter): Promise<CapacityBucketItem[]> {
   if (hasLiveSession(session)) {
-    throw liveDataUnavailable("Capacity board");
+    try {
+      const items = await apiClient.production.machineBoard({
+        ...filter,
+        dateFrom: filter.dateFrom ?? new Date().toISOString(),
+        dateTo: filter.dateTo ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        pageSize: 250
+      });
+
+      return items.map((item, index) => {
+        const start = item.plannedStartOn ? new Date(item.plannedStartOn) : null;
+        const end = item.plannedEndOn ? new Date(item.plannedEndOn) : null;
+        const loadedMinutes = start && end ? Math.max(Math.round((end.getTime() - start.getTime()) / 60000), 0) : item.activeJobCardId ? 240 : 0;
+        const availableMinutes = 480;
+        const utilizationPercent = availableMinutes > 0 ? Math.round((loadedMinutes / availableMinutes) * 100) : 0;
+        const overloadMinutes = Math.max(loadedMinutes - availableMinutes, 0);
+        const risk = item.riskStatus ?? item.currentStatus;
+
+        return {
+          id: `capacity-live-${item.machineId}-${item.activeJobCardId ?? index}`,
+          bucketId: item.activeJobCardId ?? item.machineId,
+          workCenterLabel: item.workCenterId ? `Work Center ${item.workCenterId}` : "Unassigned work center",
+          machineLabel: `${item.machineCode} / ${item.machineName}`,
+          shiftLabel: start ? start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "Open shift",
+          bucketDate: start ? start.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+          availableMinutes,
+          loadedMinutes,
+          utilizationPercent,
+          overloadMinutes,
+          plannedOrderRef: item.activeWorkOrderNo ?? item.activeJobCardNo ?? "No active operation",
+          constraintSignal: risk ?? "No active constraint",
+          status: overloadMinutes > 0 || risk?.toLowerCase().includes("risk") ? "Overloaded" : loadedMinutes > 0 ? "Loaded" : "Available",
+          source: "Live"
+        };
+      });
+    } catch {
+      throw liveDataUnavailable("Capacity board");
+    }
   }
 
   return filterSeeded(

@@ -1100,3 +1100,63 @@ public sealed class BoqRequirementLineConfiguration : IEntityTypeConfiguration<B
         builder.HasIndex(entity => new { entity.BoqRequirementId, entity.LineNo }).IsUnique();
     }
 }
+
+public sealed class PlanningPlanConfiguration : IEntityTypeConfiguration<PlanningPlan>
+{
+    public void Configure(EntityTypeBuilder<PlanningPlan> builder)
+    {
+        builder.ToTable("PlanningPlans", "planning");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.PlanCode).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.PlanName).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.PlanType).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.PlanCode }).IsUnique();
+    }
+}
+
+public sealed class PlanningSnapshotConfiguration : IEntityTypeConfiguration<PlanningSnapshot>
+{
+    public void Configure(EntityTypeBuilder<PlanningSnapshot> builder)
+    {
+        builder.ToTable("PlanningSnapshots", "planning");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.SnapshotCode).HasMaxLength(40).IsRequired();
+        builder.Property(entity => entity.SnapshotType).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.InputHash).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.OutputHash).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.PlannedQuantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.SnapshotCode }).IsUnique();
+    }
+}
+
+public sealed class PlannedOrderConfiguration : IEntityTypeConfiguration<PlannedOrder>
+{
+    public void Configure(EntityTypeBuilder<PlannedOrder> builder)
+    {
+        builder.ToTable("PlannedOrders", "planning");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.PlannedOrderNo).HasMaxLength(40).IsRequired();
+        builder.Property(entity => entity.OrderType).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.Quantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.PeggingSourceType).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.TargetDocumentType).HasMaxLength(32);
+        builder.HasIndex(entity => new { entity.CompanyId, entity.PlannedOrderNo }).IsUnique();
+    }
+}
+
+public sealed class ShortageActionConfiguration : IEntityTypeConfiguration<ShortageAction>
+{
+    public void Configure(EntityTypeBuilder<ShortageAction> builder)
+    {
+        builder.ToTable("ShortageActions", "planning");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.ShortageQuantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.ActionType).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.ReasonCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.ResolutionNote).HasMaxLength(512);
+    }
+}
