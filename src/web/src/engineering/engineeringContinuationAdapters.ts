@@ -294,7 +294,7 @@ function mapBomEditor(dto: BomDto, source: MasterDataSource): BomEditorItem {
     status: revision?.approvalStatus ?? dto.status,
     effectiveFrom: dateLabel(revision?.effectiveFrom),
     effectiveTo: revision?.effectiveTo ?? null,
-    defaultIssueMethod: components[0]?.issueMethod ?? "Manual",
+    defaultIssueMethod: components.at(0)?.issueMethod ?? "Manual",
     routingId: revision?.routingId ?? null,
     changeSummary: revision?.changeSummary ?? null,
     isPhantomParentAllowed: revision?.isPhantomParentAllowed ?? false,

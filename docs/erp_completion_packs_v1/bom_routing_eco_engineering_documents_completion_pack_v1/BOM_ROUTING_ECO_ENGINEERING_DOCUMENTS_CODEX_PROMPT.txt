@@ -1,0 +1,323 @@
+Work only on branch main.
+
+This is BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01.
+
+This pack must be executed from:
+docs/erp_completion_packs_v1/bom_routing_eco_engineering_documents_completion_pack_v1/
+
+Required files:
+- BOM_ROUTING_ECO_ENGINEERING_DOCUMENTS_BENCHMARK_V1.xlsx
+- BOM_ROUTING_ECO_ENGINEERING_DOCUMENTS_COMPLETION_SPEC.md
+- BOM_ROUTING_ECO_ENGINEERING_DOCUMENTS_CODEX_PROMPT.txt
+- README.md
+
+Do NOT start unrelated domains.
+Do NOT do cosmetic-only cleanup.
+Do NOT summarize and skip implementation.
+Do NOT mark this pack complete unless its field/action/workflow/tests/screenshots/validation gates pass.
+
+MISSION
+
+Complete the Engineering / BOM / Routing / ECO / Engineering Documents foundation to an ERP-grade baseline.
+
+This pack covers:
+- BOM Library
+- BOM Detail / Editor
+- BOM Comparison
+- Routing Library
+- Routing Editor
+- Operation Standards
+- Alternate Items
+- Engineering Documents
+- ECO / Change Order
+- Impact Analysis
+- Engineering-to-planning and engineering-to-production handoff truth
+
+READ FIRST
+
+1. AGENTS.md
+2. docs/codex-progress/README.md
+3. docs/erp_completion_packs_v1/README.md
+4. docs/erp_completion_packs_v1/transaction_line_grid_standardization_pack_v1/TRANSACTION_LINE_GRID_STANDARD_ADDENDUM.md if present
+5. docs/erp_completion_packs_v1/bom_routing_eco_engineering_documents_completion_pack_v1/BOM_ROUTING_ECO_ENGINEERING_DOCUMENTS_BENCHMARK_V1.xlsx
+6. docs/erp_completion_packs_v1/bom_routing_eco_engineering_documents_completion_pack_v1/BOM_ROUTING_ECO_ENGINEERING_DOCUMENTS_COMPLETION_SPEC.md
+7. docs/design/erp-ui-interaction-standards.md
+8. docs/design/erp-field-governance-standards.md
+9. 07-ux-governance/action_truth_matrix.csv
+10. 07-governance/entity_field_schema_matrix.csv
+11. 07-governance/screen_field_violation_matrix.csv
+12. docs/final-audit/07_screen_issue_register.csv
+13. current source tree under src/
+14. tests/
+15. database/README.md
+
+GLOBAL HARD RULES
+
+1. No visible touched action may remain dead.
+2. Every visible touched action must end as:
+   - WORKING
+   - DISABLED WITH REASON
+   - HIDDEN
+3. Desktop BOM/routing/ECO line entry must use compact editable grids/tables.
+4. Card-per-line desktop line entry is a failure condition.
+5. No line editor may save only components[0], operations[0], or first line.
+6. No governed field may remain unrestricted free text where source exists.
+7. No numeric/decimal/time/quantity field may remain unrestricted text.
+8. Released BOM/routing/document revisions cannot be directly editable.
+9. Engineering changes to released objects must go through clone/revision/ECO or be disabled with reason.
+10. Upload/document actions must work or be disabled with reason.
+11. Linked-record actions must open exact records or be disabled with reason.
+12. No internal/scaffold wording in production-facing UI.
+
+PHASE 0 — Repo scan and pack mapping
+
+Scan current implementation for:
+- BOM screens
+- Routing screens
+- Operation Standards
+- Alternate Items
+- Engineering Documents
+- ECO screens
+- Impact Analysis
+- approval/release routes
+- backend APIs
+- DB/DDL/seed
+- tests
+- screenshots
+
+Create/update:
+- docs/final-audit/11_bom_routing_eco_engineering_gap_matrix.csv
+
+Columns:
+- Domain
+- Screen
+- Route
+- PageFile
+- Backend/API
+- DB
+- CurrentState
+- ExpectedState
+- FieldGaps
+- ActionGaps
+- WorkflowGaps
+- LineGridGaps
+- UploadDocumentGaps
+- ReleaseApprovalGaps
+- FixApplied
+- RemainingBlocker
+- Priority
+
+PHASE 1 — Write tests and anti-pattern checks first
+
+Add/update tests for:
+- BOM can add at least 3 component lines in compact grid.
+- BOM can remove the middle component line.
+- BOM save/reopen preserves all remaining component lines.
+- BOM release locks direct edit.
+- BOM clone/new revision preserves lines.
+- Routing can add at least 3 operation rows in compact grid.
+- Routing can remove one operation row.
+- Routing save/reopen preserves operation lines.
+- Routing release locks direct edit.
+- Operation standard is selected through lookup.
+- ECO can create affected object grid.
+- ECO approval requires impact analysis or explicit waiver.
+- Document upload is real or disabled with reason.
+- No engineering desktop line editor uses card-per-line pattern.
+- No engineering line editor updates only first line.
+
+If audit scripts exist, extend them for:
+- BOM components[0] anti-pattern
+- routing operations[0] anti-pattern
+- card-style desktop line editor anti-pattern
+- released-object direct edit anti-pattern
+
+PHASE 2 — BOM completion
+
+Implement/fix:
+- BOM header fields
+- parent item lookup
+- parent revision
+- plant/branch
+- base quantity/UOM
+- status/effectivity
+- ECO/change number linkage
+- component line editable grid
+- add component line
+- remove component line
+- duplicate component line
+- component item lookup
+- component UOM lookup
+- quantity/scrap numeric fields
+- issue method selector
+- line type selector
+- operation link selector
+- warehouse/bin selectors
+- line effectivity
+- save draft
+- submit/approve/release or disabled with reason
+- clone/new revision
+- released lock
+- compare revision or disabled with reason
+- print/export truth
+
+PHASE 3 — Routing completion
+
+Implement/fix:
+- routing header fields
+- output item lookup
+- default BOM lookup
+- status/effectivity
+- ECO/change number linkage
+- operation editable grid
+- add operation
+- remove operation
+- reorder operation if practical or disabled with reason
+- operation standard lookup
+- work center lookup
+- machine lookup
+- setup/run/teardown/queue/move/overlap/yield numeric fields
+- QC checkpoint
+- outside processing flag and supplier dependency
+- control key/cost category selector
+- save draft
+- submit/approve/release or disabled with reason
+- clone/new revision
+- released lock
+
+PHASE 4 — Supporting engineering masters
+
+Implement/fix:
+- Operation Standards
+- Alternate Items
+- Engineering Documents
+
+Required:
+- create/edit/save/inactivate actions truthful
+- governed selectors
+- numeric controls
+- document upload real or disabled with reason
+- audit/history truth
+- save/reopen if persistence exists
+
+PHASE 5 — ECO and impact analysis
+
+Implement/fix:
+- ECO create/detail workspace
+- affected item/BOM/routing/document grid
+- change type/reason/owner/effective date
+- impact summary
+- impact analysis grid
+- submit/approve/reject/request change
+- implement effectivity or disabled with reason
+- linked record navigation
+- audit/history
+
+If full ECO implementation is not feasible:
+- disable unsupported actions with exact business reason
+- do not leave fake approval/release buttons
+- still provide affected-object and impact review UI where possible
+
+PHASE 6 — Planning/production handoff truth
+
+Ensure:
+- released BOM/routing can be identified as planning-ready
+- draft/unapproved BOM/routing is not used for planning/production
+- work order/job card references BOM/routing revision where exposed
+- unsupported handoff actions are disabled with reason
+
+PHASE 7 — Update matrices
+
+Update:
+- 07-ux-governance/action_truth_matrix.csv
+- 07-governance/entity_field_schema_matrix.csv
+- 07-governance/screen_field_violation_matrix.csv
+- docs/final-audit/07_screen_issue_register.csv
+- docs/final-audit/11_bom_routing_eco_engineering_gap_matrix.csv
+
+PHASE 8 — Validation
+
+Run:
+- npm run typecheck
+- npm test
+- npm run audit:erp-completion if available
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+If validation fails:
+- fix trivial issues and rerun
+- stop only on real blocker
+
+PHASE 9 — Screenshot evidence
+
+Capture:
+- BOM Library
+- BOM Editor with component grid
+- BOM add/remove component line
+- BOM released/locked or disabled reason
+- BOM comparison or disabled reason
+- Routing Library
+- Routing Editor with operation grid
+- Routing add/remove operation
+- Routing released/locked or disabled reason
+- Operation Standards
+- Alternate Items
+- Engineering Documents
+- ECO detail
+- ECO impact analysis
+- linked-record action working or disabled with reason
+
+If a screen scrolls, max 3 screenshots:
+- top
+- middle
+- bottom
+
+Store under:
+docs/codex-review-screens/BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01/
+
+PHASE 10 — Output and review pack
+
+Create/update:
+- docs/codex-progress/BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01-output.md
+- docs/codex-progress/README.md
+
+Create:
+- artifacts/review-packs/BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01-review-pack.zip
+
+Include:
+- benchmark/spec/prompt files
+- gap matrix
+- updated action/field/screen matrices
+- screenshots
+- changed DB README/DDL/seed if any
+- output markdown
+
+COMPLETION GATE
+
+This pack is COMPLETE only if:
+- BOM component grid supports add/remove/save/reopen or is blocked with exact reason.
+- Routing operation grid supports add/remove/save/reopen or is blocked with exact reason.
+- Released BOM/routing direct edit is locked.
+- Clone/new revision/ECO path is working or blocked with reason.
+- ECO affected-object and impact truth is implemented or blocked with reason.
+- Document upload is real or disabled with reason.
+- No desktop card-line editor remains in touched engineering screens.
+- No first-line-only engineering line editor remains.
+- validation passes.
+- screenshots and review pack are produced.
+
+Before stopping:
+1. commit all changes
+2. push main
+3. return only:
+   - files changed
+   - screens fixed
+   - fields/actions/workflows corrected
+   - line-grid anti-patterns removed
+   - remaining blockers
+   - validation results
+   - screenshot folder
+   - review pack path

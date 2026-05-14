@@ -215,7 +215,9 @@ describe("Wave 5B engineering authoring and planning workflow completion", () =>
     fireEvent.click(await screen.findByRole("row", { name: "BOM-100 bom editor" }));
     expect(await screen.findByText("BOM edit controls")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add component line" }));
+    const addLineButton = screen.getAllByRole("button", { name: "Add Line" }).find((button) => !button.hasAttribute("disabled"));
+    expect(addLineButton).toBeDefined();
+    fireEvent.click(addLineButton!);
 
     fireEvent.change(screen.getAllByLabelText("Component item")[1], { target: { value: "202" } });
     fireEvent.change(screen.getAllByLabelText("Issue UOM")[1], { target: { value: "1" } });
@@ -233,7 +235,7 @@ describe("Wave 5B engineering authoring and planning workflow completion", () =>
     expect(document.body.textContent ?? "").not.toMatch(internalTerms);
   });
 
-  it("saves live routing edits and clones routings through truthful endpoints", async () => {
+  it("locks released routing edits and saves cloned routing drafts through truthful endpoints", async () => {
     vi.spyOn(apiClient.engineering, "routings").mockResolvedValue(paged([liveRouting]) as never);
     vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue(itemLookup as never);
     vi.spyOn(apiClient.resources, "operations").mockResolvedValue(operations as never);
@@ -263,15 +265,15 @@ describe("Wave 5B engineering authoring and planning workflow completion", () =>
     expect(screen.getByLabelText("Machine assignment")).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Routing name"), { target: { value: "Pump Housing Route Updated" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save routing" }));
-
-    await waitFor(() => expect(updateRouting).toHaveBeenCalledTimes(1));
-    expect(updateRouting.mock.calls[0][1]).toMatchObject({ routingName: "Pump Housing Route Updated" });
+    expect(screen.getByRole("button", { name: "Save routing" })).toBeDisabled();
+    expect(screen.getAllByText("Create a cloned routing draft before changing a released routing.").length).toBeGreaterThan(0);
+    expect(updateRouting).not.toHaveBeenCalled();
 
     const cloneButton = screen.getAllByRole("button", { name: "Clone routing" }).find((button) => !button.hasAttribute("disabled"));
     expect(cloneButton).toBeDefined();
 
     fireEvent.click(cloneButton!);
+    fireEvent.change(screen.getByLabelText("Routing name"), { target: { value: "Pump Housing Route Copy" } });
     fireEvent.click(screen.getByRole("button", { name: "Save routing" }));
 
     await waitFor(() => expect(createRouting).toHaveBeenCalledTimes(1));

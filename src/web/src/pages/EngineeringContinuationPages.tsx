@@ -3,6 +3,7 @@ import type {
   AlternateItemUpsertRequest,
   AttachmentUploadRequest,
   BomUpsertRequest,
+  EngineeringChangeUpsertRequest,
   ExportJobCreateRequest,
   OperationUpsertRequest,
   RoutingUpsertRequest
@@ -42,7 +43,6 @@ import {
 } from "../engineering/engineeringContinuationAdapters";
 import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataAdapters";
 import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { type DataGridColumn } from "../ui/DataGrid";
 import {
@@ -54,6 +54,7 @@ import {
   ErpLookupField,
   ErpModalWorkspace,
   ErpNumberField,
+  ErpTransactionLineGrid,
   ErpValidationSummary
 } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
@@ -89,31 +90,6 @@ function nextSequence(values: number[]) {
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function GovernedInlineAction({
-  disabled,
-  label,
-  onClick,
-  reason,
-  variant = "secondary"
-}: {
-  disabled: boolean;
-  label: string;
-  onClick: () => void;
-  reason?: string;
-  variant?: "primary" | "secondary" | "ghost" | "quiet";
-}) {
-  const disabledReason = disabled ? reason ?? "Action requires an enabled engineering workflow." : undefined;
-
-  return (
-    <span className="erp-action-bar__action">
-      <Button disabled={disabled} onClick={disabled ? undefined : onClick} title={disabledReason} variant={variant}>
-        {label}
-      </Button>
-      {disabledReason ? <small className="erp-action-bar__reason">{disabledReason}</small> : null}
-    </span>
-  );
 }
 
 function NumericEditField({
@@ -233,6 +209,29 @@ interface EngineeringDocumentDraftState {
   mode: "create" | "view";
   relatedDocumentId: number;
   relatedDocumentType: string;
+}
+
+interface EcoDraftLineState {
+  id: string;
+  actionType: string;
+  effectiveFrom: string;
+  fromValueSummary: string;
+  impactType: string;
+  lineNo: number;
+  targetEntityId: number | null;
+  toValueSummary: string;
+}
+
+interface EcoDraftState {
+  changeType: string;
+  companyId: number;
+  ecoCode: string;
+  ecoTitle: string;
+  effectiveFrom: string;
+  lines: EcoDraftLineState[];
+  reasonCode: string;
+  requestedByUserId: number;
+  requestedOn: string;
 }
 
 function useEngineeringFilter(search: string, status: string) {
@@ -437,6 +436,33 @@ function toEngineeringDocumentDraft(record: EngineeringAttachmentItem): Engineer
     mode: "view",
     relatedDocumentId: record.relatedDocumentId ?? 0,
     relatedDocumentType: record.relatedDocumentType
+  };
+}
+
+function createEmptyEcoLine(lineNo = 10): EcoDraftLineState {
+  return {
+    id: `draft-eco-line-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    actionType: "Revise",
+    effectiveFrom: todayIso(),
+    fromValueSummary: "",
+    impactType: "BOM",
+    lineNo,
+    targetEntityId: null,
+    toValueSummary: ""
+  };
+}
+
+function createEcoDraft(companyId: number, requestedByUserId: number): EcoDraftState {
+  return {
+    changeType: "Engineering change",
+    companyId,
+    ecoCode: `ECO-${todayIso().replaceAll("-", "")}`,
+    ecoTitle: "",
+    effectiveFrom: todayIso(),
+    lines: [createEmptyEcoLine()],
+    reasonCode: "",
+    requestedByUserId,
+    requestedOn: new Date().toISOString()
   };
 }
 
@@ -703,45 +729,52 @@ export function BomDetailEditorPage() {
               <label><span>Change summary</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, changeSummary: event.target.value })} value={draft.changeSummary} /></label>
               <ErpLookupField disabled disabledReason="Issue method is maintained on each BOM line." label="Default issue method" onChange={() => undefined} options={[{ label: selected.defaultIssueMethod, value: selected.defaultIssueMethod }]} value={selected.defaultIssueMethod} />
             </FormShell>
-            <Card title="Component lines" description="Add, edit, and remove BOM component lines with controlled item and UOM lookups.">
-              <div className="compact-stack" data-testid="bom-component-editor">
-                {draft.components.map((component) => (
-                  <div className="form-grid form-grid--three" key={component.id}>
-                    <NumericEditField disabled={!canEditDraft} label="Sequence" min={10} onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, sequenceNo: value ?? 0 } : entry) })} value={component.sequenceNo} />
-                    <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Component item" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, componentItemId: Number(value) || 0 } : entry) })} options={itemOptions} required value={String(component.componentItemId || "")} />
-                    <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Issue UOM" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, issueUomId: Number(value) || 0 } : entry) })} options={uomOptions} required value={String(component.issueUomId || "")} />
-                    <DecimalEditField disabled={!canEditDraft} label="Quantity per" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, quantityPer: value === null ? "" : String(value) } : entry) })} scale={3} value={component.quantityPer ? Number(component.quantityPer) : null} />
-                    <DecimalEditField disabled={!canEditDraft} label="Scrap %" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, scrapPercent: value ?? 0 } : entry) })} scale={2} step={0.1} value={component.scrapPercent} />
-                    <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Issue method" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, issueMethod: value } : entry) })} options={[{ label: "Manual", value: "Manual" }, { label: "Backflush", value: "Backflush" }]} value={component.issueMethod} />
-                    <label><span>Effective from</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveFrom: event.target.value || null } : entry) })} type="date" value={component.effectiveFrom ?? ""} /></label>
-                    <label><span>Effective to</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveTo: event.target.value || null } : entry) })} type="date" value={component.effectiveTo ?? ""} /></label>
-                    <div className="compact-stack">
-                      <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Line mode" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, recommendation: value } : entry) })} options={[{ label: "Stock", value: "BUY" }, { label: "Phantom", value: "MAKE" }]} value={component.recommendation} />
-                      <GovernedInlineAction disabled={!canEditDraft} label="Remove line" onClick={() => setDraft({ ...draft, components: draft.components.filter((entry) => entry.id !== component.id) })} reason={!canEditDraft ? saveReason : undefined} variant="quiet" />
-                    </div>
-                  </div>
-                ))}
-                <GovernedInlineAction disabled={!canEditDraft} label="Add component line" onClick={addComponentLine} reason={!canEditDraft ? saveReason : undefined} variant="secondary" />
-              </div>
+            <Card title="Component lines" description="Add, edit, duplicate, and remove BOM component rows in the desktop line grid.">
+              <ErpTransactionLineGrid
+                addDisabled={!canEditDraft}
+                addDisabledReason={!canEditDraft ? saveReason : undefined}
+                addLabel="Add Line"
+                ariaLabel="BOM component line grid"
+                columns={[
+                  { key: "seq", header: "Seq", width: "88px", render: (component) => <NumericEditField disabled={!canEditDraft} label="Sequence" min={10} onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, sequenceNo: value ?? 0 } : entry) })} value={component.sequenceNo} /> },
+                  { key: "item", header: "Component item", width: "220px", render: (component) => <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Component item" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, componentItemId: Number(value) || 0 } : entry) })} options={itemOptions} required value={String(component.componentItemId || "")} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (component) => <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Issue UOM" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, issueUomId: Number(value) || 0 } : entry) })} options={uomOptions} required value={String(component.issueUomId || "")} /> },
+                  { key: "qty", header: "Qty per", width: "120px", render: (component) => <DecimalEditField disabled={!canEditDraft} label="Quantity per" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, quantityPer: value === null ? "" : String(value) } : entry) })} scale={3} value={component.quantityPer ? Number(component.quantityPer) : null} /> },
+                  { key: "scrap", header: "Scrap %", width: "110px", render: (component) => <DecimalEditField disabled={!canEditDraft} label="Scrap %" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, scrapPercent: value ?? 0 } : entry) })} scale={2} step={0.1} value={component.scrapPercent} /> },
+                  { key: "issue", header: "Issue", width: "145px", render: (component) => <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Issue method" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, issueMethod: value } : entry) })} options={[{ label: "Manual", value: "Manual" }, { label: "Backflush", value: "Backflush" }]} value={component.issueMethod} /> },
+                  { key: "lineType", header: "Line type", width: "145px", render: (component) => <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Line mode" onChange={(value) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, recommendation: value } : entry) })} options={[{ label: "Stock", value: "BUY" }, { label: "Phantom", value: "MAKE" }]} value={component.recommendation} /> },
+                  { key: "operation", header: "Operation link", width: "170px", render: () => <ErpLookupField disabled disabledReason="Operation-specific component issue is enabled after operation-linked BOM lines are approved for this process." label="Operation link" onChange={() => undefined} options={operationOptions} value="" /> },
+                  { key: "from", header: "From", width: "140px", render: (component) => <label><span>Effective from</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveFrom: event.target.value || null } : entry) })} type="date" value={component.effectiveFrom ?? ""} /></label> },
+                  { key: "to", header: "To", width: "140px", render: (component) => <label><span>Effective to</span><input disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, components: draft.components.map((entry) => entry.id === component.id ? { ...entry, effectiveTo: event.target.value || null } : entry) })} type="date" value={component.effectiveTo ?? ""} /></label> },
+                  { key: "actions", header: "Actions", width: "180px", render: (component) => <ErpActionBar secondary={[{ disabled: !canEditDraft, label: "Duplicate Line", onClick: canEditDraft ? () => setDraft({ ...draft, components: draft.components.flatMap((entry) => entry.id === component.id ? [entry, { ...entry, id: `draft-bom-line-${Date.now()}-${Math.random().toString(36).slice(2)}`, sequenceNo: nextSequence(draft.components.map((line) => line.sequenceNo)) }] : [entry]) }) : undefined, reason: !canEditDraft ? saveReason : undefined }]} danger={[{ disabled: !canEditDraft || draft.components.length <= 1, label: "Remove Line", onClick: canEditDraft && draft.components.length > 1 ? () => setDraft({ ...draft, components: draft.components.filter((entry) => entry.id !== component.id) }) : undefined, reason: !canEditDraft ? saveReason : draft.components.length <= 1 ? "At least one component line is required." : undefined }]} /> }
+                ]}
+                getRowId={(component) => component.id}
+                lines={draft.components}
+                onAddLine={addComponentLine}
+                testId="bom-component-line-grid"
+              />
             </Card>
-            <Card title="Operation links" description="Maintain BOM operation references with controlled operation lookups and cycle values.">
-              <div className="compact-stack" data-testid="bom-operation-editor">
-                {draft.operations.map((operation) => (
-                  <div className="form-grid form-grid--three" key={operation.id}>
-                    <NumericEditField disabled={!canEditDraft} label="Sequence" min={10} onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, sequenceNo: value ?? 0 } : entry) })} value={operation.sequenceNo} />
-                    <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Operation standard" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, operationId: Number(value) || null } : entry) })} options={operationOptions} required value={String(operation.operationId ?? "")} />
-                    <DecimalEditField disabled={!canEditDraft} label="Setup minutes" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, setupMinutes: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.setupMinutes} />
-                    <DecimalEditField disabled={!canEditDraft} label="Run minutes / unit" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, runMinutesPerUnit: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.runMinutesPerUnit} />
-                    <DecimalEditField disabled={!canEditDraft} label="Teardown minutes" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, teardownMinutes: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.teardownMinutes} />
-                    <div className="compact-stack">
-                      <label><span>QC checkpoint</span><input checked={operation.requiresQcCheckpoint} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, requiresQcCheckpoint: event.target.checked } : entry) })} type="checkbox" /></label>
-                      <label><span>Optional</span><input checked={operation.isOptional} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, isOptional: event.target.checked } : entry) })} type="checkbox" /></label>
-                      <GovernedInlineAction disabled={!canEditDraft} label="Remove operation" onClick={() => setDraft({ ...draft, operations: draft.operations.filter((entry) => entry.id !== operation.id) })} reason={!canEditDraft ? saveReason : undefined} variant="quiet" />
-                    </div>
-                  </div>
-                ))}
-                <GovernedInlineAction disabled={!canEditDraft} label="Add operation line" onClick={addOperationLine} reason={!canEditDraft ? saveReason : undefined} variant="secondary" />
-              </div>
+            <Card title="Operation links" description="Maintain BOM operation references and cycle values in the desktop line grid.">
+              <ErpTransactionLineGrid
+                addDisabled={!canEditDraft}
+                addDisabledReason={!canEditDraft ? saveReason : undefined}
+                addLabel="Add Line"
+                ariaLabel="BOM operation line grid"
+                columns={[
+                  { key: "seq", header: "Seq", width: "88px", render: (operation) => <NumericEditField disabled={!canEditDraft} label="Sequence" min={10} onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, sequenceNo: value ?? 0 } : entry) })} value={operation.sequenceNo} /> },
+                  { key: "operation", header: "Operation standard", width: "230px", render: (operation) => <ErpLookupField disabled={!canEditDraft} disabledReason={!canEditDraft ? saveReason : undefined} label="Operation standard" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, operationId: Number(value) || null } : entry) })} options={operationOptions} required value={String(operation.operationId ?? "")} /> },
+                  { key: "setup", header: "Setup", width: "120px", render: (operation) => <DecimalEditField disabled={!canEditDraft} label="Setup minutes" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, setupMinutes: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.setupMinutes} /> },
+                  { key: "run", header: "Run / unit", width: "120px", render: (operation) => <DecimalEditField disabled={!canEditDraft} label="Run minutes / unit" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, runMinutesPerUnit: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.runMinutesPerUnit} /> },
+                  { key: "teardown", header: "Teardown", width: "120px", render: (operation) => <DecimalEditField disabled={!canEditDraft} label="Teardown minutes" onChange={(value) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, teardownMinutes: value ?? 0 } : entry) })} scale={2} step={0.1} value={operation.teardownMinutes} /> },
+                  { key: "qc", header: "QC", width: "120px", render: (operation) => <label><span>QC checkpoint</span><input checked={operation.requiresQcCheckpoint} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, requiresQcCheckpoint: event.target.checked } : entry) })} type="checkbox" /></label> },
+                  { key: "optional", header: "Optional", width: "120px", render: (operation) => <label><span>Optional</span><input checked={operation.isOptional} disabled={!canEditDraft} onChange={(event) => setDraft({ ...draft, operations: draft.operations.map((entry) => entry.id === operation.id ? { ...entry, isOptional: event.target.checked } : entry) })} type="checkbox" /></label> },
+                  { key: "actions", header: "Actions", width: "150px", render: (operation) => <ErpActionBar danger={[{ disabled: !canEditDraft || draft.operations.length <= 1, label: "Remove Line", onClick: canEditDraft && draft.operations.length > 1 ? () => setDraft({ ...draft, operations: draft.operations.filter((entry) => entry.id !== operation.id) }) : undefined, reason: !canEditDraft ? saveReason : draft.operations.length <= 1 ? "At least one BOM operation line is required." : undefined }]} /> }
+                ]}
+                getRowId={(operation) => operation.id}
+                lines={draft.operations}
+                onAddLine={addOperationLine}
+                testId="bom-operation-line-grid"
+              />
             </Card>
             {saveMessage ? <Card title="Save status" description={saveMessage}><StatusBadge status={saveMessage.includes("saved") ? "Saved" : "Review"} /></Card> : null}
           </>
@@ -804,30 +837,69 @@ const ecoLineColumns: DataGridColumn<EcoRevisionLineItem>[] = [
   { key: "target", header: "Target", render: (record) => <strong>{record.targetLabel}</strong> },
   { key: "impact", header: "Impact", width: "18%", render: (record) => record.impactType },
   { key: "action", header: "Action", width: "18%", render: (record) => record.actionType },
-  { key: "after", header: "After", width: "18%", render: (record) => record.after }
+  { key: "after", header: "After", width: "18%", render: (record) => record.after },
+  { key: "open", header: "Linked record", width: "18%", render: () => <ErpActionBar secondary={[{ disabled: true, label: "Open linked record", reason: "Exact linked-record navigation is enabled after the affected object route is confirmed for this ECO line." }]} /> }
 ];
 
 export function EcoRevisionControlPage() {
   const { session, user } = useAuth();
+  const canWrite = hasLiveWrite(session);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [ecoDraft, setEcoDraft] = useState<EcoDraftState | null>(null);
+  const [ecoMessage, setEcoMessage] = useState<string | null>(null);
   const { deferredSearch, filter } = useEngineeringFilter(search, status);
   const query = useApiQuery(queryKeys.engineering.engineeringChanges(user?.activeContext.companyId, deferredSearch, status), () => listEcoRevisionSetup(session, filter), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
+  const newEcoReason = !canWrite
+    ? "ECO drafting requires a live signed-in engineering session."
+    : !user?.activeContext.companyId
+      ? "Select an operating company before creating an ECO."
+      : !user.userId
+        ? "A named engineering user is required before creating an ECO."
+        : undefined;
+  const ecoDraftValidation = ecoDraft
+    ? [
+        !ecoDraft.ecoCode.trim() ? "ECO code is required." : "",
+        !ecoDraft.ecoTitle.trim() ? "ECO title is required." : "",
+        !ecoDraft.changeType.trim() ? "Change type is required." : "",
+        ecoDraft.lines.length === 0 ? "At least one affected object is required." : "",
+        ...ecoDraft.lines.flatMap((line, index) => [
+          line.lineNo <= 0 ? `Affected object ${index + 1} needs a valid line number.` : "",
+          !line.impactType ? `Affected object ${index + 1} needs an impact type.` : "",
+          !line.targetEntityId ? `Affected object ${index + 1} needs a target record ID.` : "",
+          !line.actionType ? `Affected object ${index + 1} needs an action.` : "",
+          !line.toValueSummary.trim() ? `Affected object ${index + 1} needs an impact summary.` : ""
+        ])
+      ].filter(Boolean)
+    : [];
   const submitMutation = useApiMutation((item: EcoRevisionItem) => submitEngineeringChange(item));
   const approveMutation = useApiMutation((item: EcoRevisionItem) => approveEngineeringChange(item));
   const implementMutation = useApiMutation((item: EcoRevisionItem) => implementEngineeringChange(item));
+  const saveEcoMutation = useApiMutation(
+    (request: EngineeringChangeUpsertRequest) => apiClient.engineering.createEngineeringChange(request),
+    {
+      onError: (error) => setEcoMessage(error.message),
+      onSuccess: async (saved) => {
+        setEcoMessage(`ECO ${saved.ecoCode} was saved as draft.`);
+        setEcoDraft(null);
+        await query.refetch();
+      }
+    }
+  );
   const isLiveSelected = isLiveEngineeringRecord(selected);
-  const canSubmit = Boolean(selected && isLiveSelected && selected.ecoId && selected.approvalStatus === "Draft" && !submitMutation.isPending);
+  const canSubmit = Boolean(selected && isLiveSelected && selected.ecoId && selected.approvalStatus === "Draft" && selected.impactedLineCount > 0 && !submitMutation.isPending);
   const canApprove = Boolean(selected && isLiveSelected && selected.ecoId && selected.approvalStatus === "Submitted" && !approveMutation.isPending);
   const canImplement = Boolean(selected && isLiveSelected && selected.ecoId && selected.approvalStatus === "Approved" && !implementMutation.isPending);
   const submitReason = selected
     ? canSubmit
       ? undefined
-      : "Submission is available for live draft ECOs."
+      : selected.approvalStatus === "Draft" && selected.impactedLineCount === 0
+        ? "Add at least one affected object and impact summary before submission."
+        : "Submission is available for live draft ECOs."
     : "Select an ECO before submission.";
   const approveReason = selected
     ? canApprove
@@ -840,14 +912,118 @@ export function EcoRevisionControlPage() {
       : "Implementation is available after a live ECO is approved."
     : "Select an ECO before implementation.";
 
+  const openNewEco = () => {
+    if (newEcoReason || !user?.activeContext.companyId) {
+      return;
+    }
+
+    setSelectedId(null);
+    setEcoDraft(createEcoDraft(user.activeContext.companyId, user.userId));
+    setEcoMessage(null);
+  };
+
+  const addEcoLine = () => {
+    setEcoDraft((current) =>
+      current
+        ? {
+            ...current,
+            lines: [
+              ...current.lines,
+              createEmptyEcoLine(nextSequence(current.lines.map((line) => line.lineNo)))
+            ]
+          }
+        : current
+    );
+  };
+
+  const updateEcoLine = (lineId: string, patch: Partial<EcoDraftLineState>) => {
+    setEcoDraft((current) =>
+      current
+        ? {
+            ...current,
+            lines: current.lines.map((line) => (line.id === lineId ? { ...line, ...patch } : line))
+          }
+        : current
+    );
+  };
+
+  const saveEcoDraft = () => {
+    if (!ecoDraft || ecoDraftValidation.length > 0) {
+      return;
+    }
+
+    saveEcoMutation.mutate({
+      companyId: ecoDraft.companyId,
+      ecoCode: ecoDraft.ecoCode,
+      ecoTitle: ecoDraft.ecoTitle,
+      changeType: ecoDraft.changeType,
+      requestedByUserId: ecoDraft.requestedByUserId,
+      requestedOn: ecoDraft.requestedOn,
+      effectiveFrom: ecoDraft.effectiveFrom || null,
+      approvalStatus: "Draft",
+      reasonCode: ecoDraft.reasonCode.trim() || null,
+      lines: ecoDraft.lines.map((line) => ({
+        lineNo: line.lineNo,
+        impactType: line.impactType,
+        targetEntityId: line.targetEntityId ?? 0,
+        actionType: line.actionType,
+        fromValueSummary: line.fromValueSummary.trim() || null,
+        toValueSummary: line.toValueSummary.trim() || null,
+        effectiveFrom: line.effectiveFrom || null
+      }))
+    });
+  };
+
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !canApprove, label: approveMutation.isPending ? "Approving ECO" : "Approve selected", onClick: selected && canApprove ? () => approveMutation.mutate(selected) : undefined, reason: approveReason }]} secondary={[{ disabled: !canSubmit, label: submitMutation.isPending ? "Submitting ECO" : "Submit ECO", onClick: selected && canSubmit ? () => submitMutation.mutate(selected) : undefined, reason: submitReason }]} utility={[{ disabled: !canImplement, label: implementMutation.isPending ? "Implementing ECO" : "Implement ECO", onClick: selected && canImplement ? () => implementMutation.mutate(selected) : undefined, reason: implementReason }]} testId="eco-action-bar" /></>} description="Approve and release revision changes with audit-friendly action labels." filters={<ErpFilterBar ariaLabel="ECO filters" onClear={() => { setSearch(""); setStatus("all"); }} testId="eco-filter-bar"><input aria-label="Search ECO" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search ECO, title, reason" value={search} /><select aria-label="ECO status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Submitted">Submitted</option><option value="Approved">Approved</option><option value="Implemented">Implemented</option></select></ErpFilterBar>} title="ECO / Revision Control">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: Boolean(newEcoReason), label: "New ECO", onClick: newEcoReason ? undefined : openNewEco, reason: newEcoReason }, { disabled: !canApprove, label: approveMutation.isPending ? "Approving ECO" : "Approve selected", onClick: selected && canApprove ? () => approveMutation.mutate(selected) : undefined, reason: approveReason }]} secondary={[{ disabled: !canSubmit, label: submitMutation.isPending ? "Submitting ECO" : "Submit ECO", onClick: selected && canSubmit ? () => submitMutation.mutate(selected) : undefined, reason: submitReason }]} utility={[{ disabled: !canImplement, label: implementMutation.isPending ? "Implementing ECO" : "Implement ECO", onClick: selected && canImplement ? () => implementMutation.mutate(selected) : undefined, reason: implementReason }]} testId="eco-action-bar" /></>} description="Approve and release revision changes with audit-friendly action labels." filters={<ErpFilterBar ariaLabel="ECO filters" onClear={() => { setSearch(""); setStatus("all"); }} testId="eco-filter-bar"><input aria-label="Search ECO" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search ECO, title, reason" value={search} /><select aria-label="ECO status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Submitted">Submitted</option><option value="Approved">Approved</option><option value="Implemented">Implemented</option></select></ErpFilterBar>} title="ECO / Revision Control">
         <KpiStrip items={[{ label: "ECOs", value: String(records.length) }, { label: "Submitted", value: String(records.filter((record) => record.approvalStatus === "Submitted").length) }, { label: "Lines", value: String(records.reduce((total, record) => total + record.impactedLineCount, 0)) }, { label: "Approved", value: String(records.filter((record) => record.approvalStatus === "Approved").length) }]} />
         <Card title="Engineering change register" description="Status changes stay explicit and do not auto-release production.">
           <ErpGrid ariaLabel="ECO revision list" columns={ecoColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.ecoCode} engineering change`} testId="eco-grid" />
         </Card>
+        {ecoMessage ? <Card title="ECO action status" description={ecoMessage}><StatusBadge status={ecoMessage.includes("saved") ? "Saved" : "Review"} /></Card> : null}
       </ListPageShell>
+      <ErpModalWorkspace
+        description="Create an ECO draft with affected objects and impact summaries before submission."
+        footer={<ErpActionBar primary={[{ disabled: ecoDraftValidation.length > 0 || saveEcoMutation.isPending, label: saveEcoMutation.isPending ? "Saving ECO" : "Save ECO draft", onClick: ecoDraftValidation.length > 0 ? undefined : saveEcoDraft, reason: ecoDraftValidation[0] }]} utility={[{ label: "Close", onClick: () => setEcoDraft(null), variant: "quiet" }]} />}
+        isOpen={Boolean(ecoDraft)}
+        onClose={() => setEcoDraft(null)}
+        panelClassName="ui-modal__panel--item-master"
+        title="ECO draft"
+        validation={<ErpValidationSummary errors={ecoDraftValidation} title="ECO checks" />}
+      >
+        {ecoDraft ? (
+          <>
+            <FormShell initialFingerprint={`${ecoDraft.ecoCode}-${ecoDraft.requestedOn}`} title="ECO header">
+              <label><span>ECO code</span><input onChange={(event) => setEcoDraft({ ...ecoDraft, ecoCode: event.target.value })} value={ecoDraft.ecoCode} /></label>
+              <label><span>ECO title</span><input onChange={(event) => setEcoDraft({ ...ecoDraft, ecoTitle: event.target.value })} value={ecoDraft.ecoTitle} /></label>
+              <ErpLookupField label="Change type" onChange={(value) => setEcoDraft({ ...ecoDraft, changeType: value })} options={[{ label: "Engineering change", value: "Engineering change" }, { label: "Cost reduction", value: "Cost reduction" }, { label: "Quality correction", value: "Quality correction" }, { label: "Customer requirement", value: "Customer requirement" }]} value={ecoDraft.changeType} />
+              <label><span>Effective from</span><input onChange={(event) => setEcoDraft({ ...ecoDraft, effectiveFrom: event.target.value })} type="date" value={ecoDraft.effectiveFrom} /></label>
+              <ErpLookupField label="Reason code" onChange={(value) => setEcoDraft({ ...ecoDraft, reasonCode: value })} options={[{ label: "QUALITY", value: "QUALITY" }, { label: "COST", value: "COST" }, { label: "CUSTOMER", value: "CUSTOMER" }, { label: "PROCESS", value: "PROCESS" }]} value={ecoDraft.reasonCode} />
+            </FormShell>
+            <Card title="Affected objects and impact analysis" description="Each affected object must include the exact target record and impact summary before ECO submission.">
+              <ErpTransactionLineGrid
+                addLabel="Add Line"
+                ariaLabel="ECO affected object line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "88px", render: (line) => <NumericEditField label="Line no" min={10} onChange={(value) => updateEcoLine(line.id, { lineNo: value ?? 0 })} value={line.lineNo} /> },
+                  { key: "impact", header: "Impact type", width: "160px", render: (line) => <ErpLookupField label="Impact type" onChange={(value) => updateEcoLine(line.id, { impactType: value })} options={[{ label: "BOM", value: "BOM" }, { label: "Routing", value: "Routing" }, { label: "Document", value: "Document" }, { label: "Item", value: "Item" }]} required value={line.impactType} /> },
+                  { key: "target", header: "Target ID", width: "120px", render: (line) => <NumericEditField label="Target record ID" min={1} onChange={(value) => updateEcoLine(line.id, { targetEntityId: value })} value={line.targetEntityId} /> },
+                  { key: "action", header: "Action", width: "145px", render: (line) => <ErpLookupField label="Action" onChange={(value) => updateEcoLine(line.id, { actionType: value })} options={[{ label: "Revise", value: "Revise" }, { label: "Set released state", value: "Release" }, { label: "Obsolete", value: "Obsolete" }, { label: "Correct", value: "Correct" }]} value={line.actionType} /> },
+                  { key: "from", header: "Before", width: "190px", render: (line) => <label><span>Before summary</span><input onChange={(event) => updateEcoLine(line.id, { fromValueSummary: event.target.value })} value={line.fromValueSummary} /></label> },
+                  { key: "after", header: "Impact summary", width: "220px", render: (line) => <label><span>Impact summary</span><input onChange={(event) => updateEcoLine(line.id, { toValueSummary: event.target.value })} value={line.toValueSummary} /></label> },
+                  { key: "effective", header: "Effective", width: "140px", render: (line) => <label><span>Line effective from</span><input onChange={(event) => updateEcoLine(line.id, { effectiveFrom: event.target.value })} type="date" value={line.effectiveFrom} /></label> },
+                  { key: "actions", header: "Actions", width: "150px", render: (line) => <ErpActionBar danger={[{ disabled: ecoDraft.lines.length <= 1, label: "Remove Line", onClick: ecoDraft.lines.length > 1 ? () => setEcoDraft({ ...ecoDraft, lines: ecoDraft.lines.filter((entry) => entry.id !== line.id) }) : undefined, reason: ecoDraft.lines.length <= 1 ? "At least one affected object is required." : undefined }]} /> }
+                ]}
+                getRowId={(line) => line.id}
+                lines={ecoDraft.lines}
+                onAddLine={addEcoLine}
+                testId="eco-affected-object-line-grid"
+              />
+            </Card>
+          </>
+        ) : null}
+      </ErpModalWorkspace>
       <ErpModalWorkspace
         description="ECO detail uses controlled lifecycle actions; unavailable transitions stay disabled."
         footer={<ErpActionBar primary={[{ disabled: !canApprove, label: approveMutation.isPending ? "Approving ECO" : "Approve ECO", onClick: selected && canApprove ? () => approveMutation.mutate(selected) : undefined, reason: approveReason }]} secondary={[{ disabled: !canSubmit, label: submitMutation.isPending ? "Submitting ECO" : "Submit ECO", onClick: selected && canSubmit ? () => submitMutation.mutate(selected) : undefined, reason: submitReason }, { disabled: !canImplement, label: implementMutation.isPending ? "Implementing ECO" : "Implement ECO", onClick: selected && canImplement ? () => implementMutation.mutate(selected) : undefined, reason: implementReason }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
@@ -948,8 +1124,10 @@ export function RoutingLibraryPage() {
       ? "Routing authoring requires a live signed-in engineering session."
       : mode === "edit" && draft.source !== "Live"
         ? "Reference routing records are read-only. Create a new routing draft instead."
+        : mode === "edit" && draft.status !== "Draft"
+          ? "Create a cloned routing draft before changing a released routing."
         : undefined;
-  const canEditRouting = Boolean(draft && canWrite && (mode !== "edit" || draft.source === "Live"));
+  const canEditRouting = Boolean(draft && canWrite && (mode !== "edit" || (draft.source === "Live" && draft.status === "Draft")));
   const validation = draft
     ? [
         !draft.routingCode.trim() ? "Routing code is required." : "",
@@ -1084,27 +1262,30 @@ export function RoutingLibraryPage() {
               <label><span>Revision</span><input disabled={!canEditRouting} onChange={(event) => setDraft({ ...draft, revisionCode: event.target.value })} value={draft.revisionCode} /></label>
             </FormShell>
             <Card title="Operation sequence" description="Work center, machine, and QC controls stay visible for planning review.">
-              <div className="compact-stack" data-testid="routing-step-editor">
-                {draft.steps.map((step) => (
-                  <div className="form-grid form-grid--three" key={step.id}>
-                    <NumericEditField disabled={!canEditRouting} label="Sequence" min={10} onChange={(value) => updateStep(step.id, { sequenceNo: value ?? 0 })} value={step.sequenceNo} />
-                    <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Operation standard" onChange={(value) => updateStep(step.id, { operationId: Number(value) || 0 })} options={operationOptions} required value={String(step.operationId || "")} />
-                    <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Work center" onChange={(value) => updateStep(step.id, { workCenterId: value ? Number(value) : null })} options={workCenterOptions} value={String(step.workCenterId ?? "")} />
-                    <DecimalEditField disabled={!canEditRouting} label="Setup minutes" onChange={(value) => updateStep(step.id, { setupMinutes: value ?? 0 })} scale={2} step={0.1} value={step.setupMinutes} />
-                    <DecimalEditField disabled={!canEditRouting} label="Run minutes / unit" onChange={(value) => updateStep(step.id, { runMinutesPerUnit: value ?? 0 })} scale={2} step={0.1} value={step.runMinutesPerUnit} />
-                    <DecimalEditField disabled={!canEditRouting} label="Teardown minutes" onChange={(value) => updateStep(step.id, { teardownMinutes: value ?? 0 })} scale={2} step={0.1} value={step.teardownMinutes} />
-                    <DecimalEditField disabled={!canEditRouting} label="Overlap %" onChange={(value) => updateStep(step.id, { overlapPercentValue: value, overlapPercent: `${value ?? 0}%` })} scale={2} step={0.1} value={step.overlapPercentValue ?? 0} />
-                    <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Step status" onChange={(value) => updateStep(step.id, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Active", value: "Active" }]} value={step.status} />
-                    <ErpLookupField disabled disabledReason="Machine assignment stays in capacity planning until routing-machine control is enabled." label="Machine assignment" onChange={() => undefined} options={machineOptions} value="" />
-                    <div className="compact-stack">
-                      <label><span>QC checkpoint</span><input checked={step.requiresQcCheckpoint} disabled={!canEditRouting} onChange={(event) => updateStep(step.id, { requiresQcCheckpoint: event.target.checked })} type="checkbox" /></label>
-                      <label><span>Outside processing</span><input checked={step.isOutsideProcessing} disabled={!canEditRouting} onChange={(event) => updateStep(step.id, { isOutsideProcessing: event.target.checked })} type="checkbox" /></label>
-                      <GovernedInlineAction disabled={!canEditRouting} label="Remove step" onClick={() => setDraft({ ...draft, steps: draft.steps.filter((entry) => entry.id !== step.id) })} reason={!canEditRouting ? saveReason : undefined} variant="quiet" />
-                    </div>
-                  </div>
-                ))}
-                <GovernedInlineAction disabled={!canEditRouting} label="Add routing step" onClick={addStep} reason={!canEditRouting ? saveReason : undefined} variant="secondary" />
-              </div>
+              <ErpTransactionLineGrid
+                addDisabled={!canEditRouting}
+                addDisabledReason={!canEditRouting ? saveReason : undefined}
+                addLabel="Add Line"
+                ariaLabel="Routing operation line grid"
+                columns={[
+                  { key: "seq", header: "Seq", width: "88px", render: (step) => <NumericEditField disabled={!canEditRouting} label="Sequence" min={10} onChange={(value) => updateStep(step.id, { sequenceNo: value ?? 0 })} value={step.sequenceNo} /> },
+                  { key: "operation", header: "Operation standard", width: "220px", render: (step) => <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Operation standard" onChange={(value) => updateStep(step.id, { operationId: Number(value) || 0 })} options={operationOptions} required value={String(step.operationId || "")} /> },
+                  { key: "workCenter", header: "Work center", width: "190px", render: (step) => <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Work center" onChange={(value) => updateStep(step.id, { workCenterId: value ? Number(value) : null })} options={workCenterOptions} value={String(step.workCenterId ?? "")} /> },
+                  { key: "machine", header: "Machine", width: "170px", render: () => <ErpLookupField disabled disabledReason="Machine assignment is controlled from capacity planning until routing-machine assignment is enabled." label="Machine assignment" onChange={() => undefined} options={machineOptions} value="" /> },
+                  { key: "setup", header: "Setup", width: "120px", render: (step) => <DecimalEditField disabled={!canEditRouting} label="Setup minutes" onChange={(value) => updateStep(step.id, { setupMinutes: value ?? 0 })} scale={2} step={0.1} value={step.setupMinutes} /> },
+                  { key: "run", header: "Run / unit", width: "120px", render: (step) => <DecimalEditField disabled={!canEditRouting} label="Run minutes / unit" onChange={(value) => updateStep(step.id, { runMinutesPerUnit: value ?? 0 })} scale={2} step={0.1} value={step.runMinutesPerUnit} /> },
+                  { key: "teardown", header: "Teardown", width: "120px", render: (step) => <DecimalEditField disabled={!canEditRouting} label="Teardown minutes" onChange={(value) => updateStep(step.id, { teardownMinutes: value ?? 0 })} scale={2} step={0.1} value={step.teardownMinutes} /> },
+                  { key: "overlap", header: "Overlap %", width: "120px", render: (step) => <DecimalEditField disabled={!canEditRouting} label="Overlap %" onChange={(value) => updateStep(step.id, { overlapPercentValue: value, overlapPercent: `${value ?? 0}%` })} scale={2} step={0.1} value={step.overlapPercentValue ?? 0} /> },
+                  { key: "qc", header: "QC", width: "115px", render: (step) => <label><span>QC checkpoint</span><input checked={step.requiresQcCheckpoint} disabled={!canEditRouting} onChange={(event) => updateStep(step.id, { requiresQcCheckpoint: event.target.checked })} type="checkbox" /></label> },
+                  { key: "osp", header: "OSP", width: "125px", render: (step) => <label><span>Outside processing</span><input checked={step.isOutsideProcessing} disabled={!canEditRouting} onChange={(event) => updateStep(step.id, { isOutsideProcessing: event.target.checked })} type="checkbox" /></label> },
+                  { key: "status", header: "Status", width: "135px", render: (step) => <ErpLookupField disabled={!canEditRouting} disabledReason={!canEditRouting ? saveReason : undefined} label="Step status" onChange={(value) => updateStep(step.id, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Active", value: "Active" }]} value={step.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (step) => <ErpActionBar danger={[{ disabled: !canEditRouting || draft.steps.length <= 1, label: "Remove Line", onClick: canEditRouting && draft.steps.length > 1 ? () => setDraft({ ...draft, steps: draft.steps.filter((entry) => entry.id !== step.id) }) : undefined, reason: !canEditRouting ? saveReason : draft.steps.length <= 1 ? "At least one routing operation line is required." : undefined }]} /> }
+                ]}
+                getRowId={(step) => step.id}
+                lines={draft.steps}
+                onAddLine={addStep}
+                testId="routing-operation-line-grid"
+              />
             </Card>
             {saveMessage ? <Card title="Save status" description={saveMessage}><StatusBadge status={saveMessage.includes("saved") ? "Saved" : "Review"} /></Card> : null}
           </>

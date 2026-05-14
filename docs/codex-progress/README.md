@@ -303,6 +303,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - P1-PENDING-GAP-DETAIL-REPORT completed on 2026-05-14 to explain why planning depth, report/dashboard builder depth, live provider verification, and native mobile runtime remain pending and what is needed to close them. Output: `/docs/codex-progress/P1-PENDING-GAP-DETAIL-REPORT-output.md`
 - PROCURE-TO-PAY-COMPLETION-01 completed P0 procurement sourcing depth on 2026-05-14 by adding RFQ, supplier quotation, quote comparison, supplier selection, and selected-quote-to-PO conversion, while blocking vendor return, landed cost, and buyer queue with business-safe reasons. Output: `/docs/codex-progress/PROCURE-TO-PAY-COMPLETION-output.md`
 - TRANSACTION-LINE-GRID-STANDARDIZATION-RETROFIT-01 completed on 2026-05-14 to retrofit implemented desktop transaction line-entry screens from repeated cards to compact editable grids and add the `audit:transaction-line-grid` gate. Output: `/docs/codex-progress/TRANSACTION-LINE-GRID-STANDARDIZATION-RETROFIT-01-output.md`
+- BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01 completed on 2026-05-14 to retrofit engineering BOM/routing/ECO line editors to compact grids, add ECO affected-object drafting, extend line-grid audits, and preserve released-object locks. Output: `/docs/codex-progress/BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01-output.md`
 
 ## Remediation Log
 

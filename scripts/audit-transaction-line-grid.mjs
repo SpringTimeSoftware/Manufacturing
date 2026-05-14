@@ -17,6 +17,10 @@ const screens = [
   { domain: "Procure-to-Pay", screen: "Purchase Order", file: "src/web/src/pages/ProcurementPages.tsx", grid: "Purchase order line grid" },
   { domain: "Procure-to-Pay", screen: "GRN", file: "src/web/src/pages/ProcurementPages.tsx", grid: "GRN receipt line grid" },
   { domain: "Procure-to-Pay", screen: "Purchase Invoice Match", file: "src/web/src/pages/ProcurementPages.tsx", grid: "Supplier invoice match line grid" },
+  { domain: "Engineering", screen: "BOM Components", file: "src/web/src/pages/EngineeringContinuationPages.tsx", grid: "BOM component line grid" },
+  { domain: "Engineering", screen: "BOM Operations", file: "src/web/src/pages/EngineeringContinuationPages.tsx", grid: "BOM operation line grid" },
+  { domain: "Engineering", screen: "Routing Operations", file: "src/web/src/pages/EngineeringContinuationPages.tsx", grid: "Routing operation line grid" },
+  { domain: "Engineering", screen: "ECO Affected Objects", file: "src/web/src/pages/EngineeringContinuationPages.tsx", grid: "ECO affected object line grid" },
   { domain: "Inventory", screen: "Material Issue / Return / Transfer", file: "src/web/src/pages/InventoryPages.tsx", grid: "Stock posting line grid" },
   { domain: "Production", screen: "Production Receipt", file: "src/web/src/pages/ProductionOutputPages.tsx", grid: "Production receipt line grid" },
   { domain: "Quality", screen: "QC Inspection", file: "src/web/src/pages/QualityPages.tsx", grid: "Inspection result line grid" },
@@ -26,11 +30,14 @@ const screens = [
 
 const forbiddenPatterns = [
   { name: "direct lines[0] access", regex: /\blines\s*\[\s*0\s*\]/gi },
+  { name: "direct components[0] access", regex: /\bcomponents\s*\[\s*0\s*\]/gi },
+  { name: "direct operations[0] access", regex: /\boperations\s*\[\s*0\s*\]/gi },
   { name: "firstLine-only editor", regex: /\bfirstLine\b/gi },
   { name: "first quote line wording", regex: /First\s+quote\s+line/gi },
   { name: "index-zero line-only update", regex: /\bindex\s*={2,3}\s*0\b/gi },
   { name: "card-per-line FormShell", regex: /<Card[^>]*title=["'](?:Quote lines|Sales order lines|Purchase requisition lines|Purchase order lines|RFQ lines|Supplier quote lines|Receipt lines|Invoice match lines|Stock posting lines|Parameter results|Pack lines|Shipment lines)["'][\s\S]{0,2500}<FormShell[\s\S]{0,300}title=\{`?(?:Line|Schedule|Receipt line|Invoice line)/gi },
-  { name: "repeated line FormShell", regex: /<FormShell[^>]*initialFingerprint=\{[^}]*line[^}]*\}[^>]*title=\{`?(?:Line|Schedule|Receipt line|Invoice line)/gi }
+  { name: "engineering card-line editor marker", regex: /\b(?:bom-component-editor|bom-operation-editor|routing-step-editor)\b/gi },
+  { name: "repeated line FormShell", regex: /<FormShell[^>]*initialFingerprint=\{[^}]*line[^}]*\}[^>]*title=\{`?(?:Line|Schedule|Receipt line|Invoice line|Component|Operation|Affected object)/gi }
 ];
 
 function relativePath(file) {
@@ -52,6 +59,9 @@ function readSource(relativeFile) {
 }
 
 const failures = [];
+const extraFiles = [
+  "src/web/src/engineering/engineeringContinuationAdapters.ts"
+];
 
 for (const screen of screens) {
   const text = readSource(screen.file);
@@ -66,6 +76,10 @@ for (const screen of screens) {
       failures.push(`${screen.domain} / ${screen.screen}: compact grid marker "${screen.grid}" was not found and no disabled-with-reason state was detected.`);
     }
   }
+}
+
+for (const file of extraFiles) {
+  readSource(file);
 }
 
 for (const [relativeFile, text] of sourceCache) {

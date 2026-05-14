@@ -85,7 +85,7 @@ describe("Wave 5A engineering and planning depth", () => {
 
     expect(await screen.findByText("Routing release controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Output item")).toBeDisabled();
-    expect(screen.getByTestId("routing-step-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("routing-operation-line-grid")).toHaveAttribute("data-line-entry-pattern", "compact-grid");
 
     renderWithApp(
       <Routes>
