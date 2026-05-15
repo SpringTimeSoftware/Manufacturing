@@ -1,0 +1,43 @@
+{
+  "pack_name": "inventory_warehouse_traceability_completion_pack_v1",
+  "created_date": "2026-05-15",
+  "module": "Inventory / Warehouse / Bin / Traceability",
+  "recommended_repo_path": "C:\\StsPackages\\Manufacturing_ERP\\docs\\erp_completion_packs_v1\\inventory_warehouse_traceability_completion_pack_v1",
+  "files": [
+    "START_HERE_CODEX_PROMPT.txt",
+    "inventory_warehouse_traceability_benchmark_workbook_v1.xlsx",
+    "inventory_warehouse_traceability_completion_spec_v1.md",
+    "inventory_warehouse_traceability_codex_execution_prompt_v1.md",
+    "README.md",
+    "inventory_warehouse_traceability_validation_checklist_v1.md",
+    "inventory_warehouse_traceability_invalid_output_rules_v1.md",
+    "anti_pattern_scan_queries.txt",
+    "inventory_warehouse_traceability_review_pack_template_v1.md",
+    "inventory_warehouse_traceability_pack_manifest.json"
+  ],
+  "counts": {
+    "vendor_benchmark_rows": 250,
+    "target_field_rules": 505,
+    "action_contract_rows": 164,
+    "workflow_contract_rows": 44,
+    "lookup_numeric_truth_rows": 420,
+    "test_cases": 753,
+    "anti_patterns": 40,
+    "screenshot_gates": 28,
+    "completion_gates": 26,
+    "invalid_output_rules": 42
+  },
+  "p0_non_negotiables": [
+    "No free-text governed master fields",
+    "No unrestricted text numeric/date fields",
+    "No dead visible actions",
+    "No fake upload/barcode/export/print",
+    "No seeded operational stock in live mode",
+    "Desktop stock documents must use compact editable grids",
+    "All stock documents must save/reopen all lines",
+    "Lot/serial/license plate traceability must be real",
+    "Cycle count/physical inventory must include variance approval/posting",
+    "Completion requires screenshots, tests, scans, workbook updates, and review pack"
+  ],
+  "source_reference_count": 17
+}

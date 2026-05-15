@@ -306,6 +306,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - TRANSACTION-LINE-GRID-STANDARDIZATION-RETROFIT-01 completed on 2026-05-14 to retrofit implemented desktop transaction line-entry screens from repeated cards to compact editable grids and add the `audit:transaction-line-grid` gate. Output: `/docs/codex-progress/TRANSACTION-LINE-GRID-STANDARDIZATION-RETROFIT-01-output.md`
 - BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01 completed on 2026-05-14 to retrofit engineering BOM/routing/ECO line editors to compact grids, add ECO affected-object drafting, extend line-grid audits, and preserve released-object locks. Output: `/docs/codex-progress/BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01-output.md`
 - PLANNING-MRP-BOQ-CAPACITY-COMPLETION completed on 2026-05-14 to add planning plan/snapshot/planned-order/shortage APIs, `/planning/workspace`, governed planning controls, compact evidence grids, workbook evidence, screenshots, validation evidence, and review artifacts. Output: `/docs/codex-progress/PLANNING-MRP-BOQ-CAPACITY-COMPLETION-output.md`
+- INVENTORY-WAREHOUSE-TRACEABILITY-COMPLETION-01 completed on 2026-05-15 to close P0 inventory movement, traceability deep-link, cycle-count grid, action truth, screenshot, workbook, validation, and review-pack gates. Output: `/docs/codex-progress/INVENTORY-WAREHOUSE-TRACEABILITY-COMPLETION-01-output.md`
 
 ## Remediation Log
 

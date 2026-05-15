@@ -357,3 +357,10 @@
 "WorkOrder","plannedQuantity","Planned quantity","decimal","Decimal","","Yes","18,6","Production UOM","No","Save work order","Rendered as ErpDecimalField and API validates positive quantity."
 "StockIssue","sourceDocumentId","Source document id","long","Number","Work order/job card context","Conditional","","","No","Post issue","Deep links now prefill numeric source id for work-order material postings."
 "ProductionReceipt","workOrderId","Work order id","long","Number","Work order context","Conditional","","","No","Post receipt","Deep links now prefill numeric work-order id for production output postings."
+StockTransaction,lotId,Lot,long,Lookup,inventory.Lots,No,,,No,Post issue/return/transfer,Line grid uses governed lot selector from live balances.
+StockTransaction,serialId,Serial,long,Lookup,inventory.Serials,No,,,No,Post issue/return/transfer,Line grid uses governed serial selector from live balances.
+StockTransaction,licensePlateId,License plate / PCID,long,Lookup,Future LP/PCID containment ledger,No,,,No,Post issue/return/transfer,Disabled with reason until LP ledger exists; no free text.
+CycleCountLine,itemId,Item,long,Lookup,Item master,Yes,,,No,Save count sheet,Compact count grid uses governed item selector.
+CycleCountLine,binId,Bin,long,Lookup,Bin master,No,,,No,Save count sheet,Compact count grid uses governed bin selector.
+CycleCountLine,countedQuantity,Counted quantity,decimal,Decimal,,Yes,"18,6",Stock UOM,No,Save/post count sheet,Rendered through ErpDecimalField and saved across all lines.
+CycleCountLine,varianceQuantity,Variance quantity,decimal,Decimal,,Yes,"18,6",Stock UOM,No,Post count sheet,Calculated from counted minus system quantity.

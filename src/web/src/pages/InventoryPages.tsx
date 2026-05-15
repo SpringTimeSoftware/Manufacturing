@@ -121,6 +121,21 @@ function entityOptions<T>(items: T[] | undefined, getValue: (item: T) => number,
   return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
 }
 
+function traceabilityOptionsFromBalances(
+  balances: { itemId: number; lotId: number | null; serialId: number | null }[] | undefined,
+  kind: "lot" | "serial"
+) {
+  const pairs = new Map<number, string>();
+  (balances ?? []).forEach((balance) => {
+    const id = kind === "lot" ? balance.lotId : balance.serialId;
+    if (id && !pairs.has(id)) {
+      pairs.set(id, `${kind === "lot" ? "Lot" : "Serial"} ${id} / Item ${balance.itemId}`);
+    }
+  });
+
+  return Array.from(pairs.entries()).map(([id, label]) => ({ label, value: String(id) }));
+}
+
 function buildStockPostingLine(lineNo: number): StockPostingLineDraft {
   return {
     lineNo,
@@ -335,9 +350,11 @@ function StockPostingModal({
   isLive,
   isPosting,
   itemOptions,
+  lotOptions,
   onPost,
   postLabel,
   postReason,
+  serialOptions,
   setWorkspace,
   validationErrors,
   warehouseOptions,
@@ -347,9 +364,11 @@ function StockPostingModal({
   isLive: boolean;
   isPosting: boolean;
   itemOptions: { label: string; value: string }[];
+  lotOptions: { label: string; value: string }[];
   onPost: () => void;
   postLabel: string;
   postReason?: string;
+  serialOptions: { label: string; value: string }[];
   setWorkspace: (workspace: StockPostingWorkspace | null) => void;
   validationErrors: string[];
   warehouseOptions: { label: string; value: string }[];
@@ -410,11 +429,14 @@ function StockPostingModal({
               ariaLabel="Stock posting line grid"
               columns={[
                 { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
-                { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value) })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
+                { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting an item."} label="Item" onChange={(value) => updateLine(index, { itemId: numberValue(value), lotId: null, serialId: null })} options={itemOptions} required value={line.itemId ? String(line.itemId) : ""} /> },
                 { key: "fromWarehouse", header: "Source wh", width: "160px", render: (line, index) => workspace.mode !== "return" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting source warehouse."} label="Source warehouse" onChange={(value) => updateLine(index, { fromWarehouseId: numberValue(value), fromBinId: null })} options={warehouseOptions} required value={line.fromWarehouseId ? String(line.fromWarehouseId) : ""} /> : <span className="muted">Return receipt</span> },
                 { key: "fromBin", header: "Source bin", width: "140px", render: (line, index) => workspace.mode !== "return" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting source bin."} label="Source bin" onChange={(value) => updateLine(index, { fromBinId: numberValue(value) })} options={binOptions} value={line.fromBinId ? String(line.fromBinId) : ""} /> : <span className="muted">N/A</span> },
                 { key: "toWarehouse", header: "Dest wh", width: "160px", render: (line, index) => workspace.mode !== "issue" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting destination warehouse."} label="Destination warehouse" onChange={(value) => updateLine(index, { toWarehouseId: numberValue(value), toBinId: null })} options={warehouseOptions} required value={line.toWarehouseId ? String(line.toWarehouseId) : ""} /> : <span className="muted">Issue out</span> },
                 { key: "toBin", header: "Dest bin", width: "140px", render: (line, index) => workspace.mode !== "issue" ? <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting destination bin."} label="Destination bin" onChange={(value) => updateLine(index, { toBinId: numberValue(value) })} options={binOptions} value={line.toBinId ? String(line.toBinId) : ""} /> : <span className="muted">N/A</span> },
+                { key: "lot", header: "Lot", width: "150px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting lot."} label="Lot" onChange={(value) => updateLine(index, { lotId: numberValue(value) })} options={lotOptions} value={line.lotId ? String(line.lotId) : ""} /> },
+                { key: "serial", header: "Serial", width: "150px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before selecting serial."} label="Serial" onChange={(value) => updateLine(index, { serialId: numberValue(value) })} options={serialOptions} value={line.serialId ? String(line.serialId) : ""} /> },
+                { key: "licensePlate", header: "LP / PCID", width: "160px", render: () => <ErpLookupField disabled disabledReason="License plate / PCID containment ledger is not enabled for this warehouse policy." label="License plate / PCID" onChange={() => undefined} options={[]} value="" /> },
                 { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing quantity."} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required value={line.quantity} /> },
                 { key: "cw", header: "Catch wt", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing catch weight."} label="Catch weight" min={0} onChange={(value) => updateLine(index, { catchWeightQty: value })} value={line.catchWeightQty} /> },
                 { key: "state", header: "State", width: "150px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={isLive ? undefined : "Live inventory sign-in is required before changing inventory state."} label="Inventory state" onChange={(value) => updateLine(index, { inventoryState: value })} options={inventoryStateOptions} required value={line.inventoryState} /> },
@@ -541,7 +563,8 @@ const traceEventColumns: DataGridColumn<TraceabilityEventItem>[] = [
 
 export function TraceabilityPage() {
   const { session, user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("trace") ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, "all"), [deferredSearch, user?.activeContext.branchId, user?.activeContext.companyId]);
@@ -591,12 +614,15 @@ export function MaterialIssuePage() {
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const warehouses = useApiQuery(queryKeys.organization.warehouses(companyId, branchId, "", "Active"), () => apiClient.organization.warehouses({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const bins = useApiQuery(queryKeys.organization.bins(companyId, branchId, "", "Active"), () => apiClient.organization.bins({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const balanceLookup = useApiQuery(queryKeys.inventory.balances(companyId, branchId, "traceability-options", "all"), () => apiClient.inventory.balances({ companyId, branchId, pageSize: 100 }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
   const itemOptions = entityOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
+  const lotOptions = traceabilityOptionsFromBalances(balanceLookup.data?.items, "lot");
+  const serialOptions = traceabilityOptionsFromBalances(balanceLookup.data?.items, "serial");
   const validationErrors = stockPostingValidationErrors(draft);
   const linkedSource = getStockPostingSource(searchParams);
   const postIssue = useApiMutation((request: StockIssueRequest) => apiClient.inventory.issueStock(request), {
@@ -627,7 +653,7 @@ export function MaterialIssuePage() {
       <ErpModalWorkspace description="Posted material issue detail is review-only; use Prepare issue draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save issue draft", reason: "Posted issue records cannot be changed; create a new issue draft for additional movement." }]} secondary={[{ disabled: true, label: "Post issue", reason: "This issue is already posted or loaded as a read-only ledger movement." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?workOrder=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material issue"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Material issue controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From location" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpNumberField disabled disabledReason="Issued quantity is controlled by inventory posting." label="Issue quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Issue mode is controlled by inventory posting policy." label="Issue mode" onChange={() => undefined} options={[{ label: selected.issueMode, value: selected.issueMode }]} value={selected.issueMode} /></FormShell> : null}
       </ErpModalWorkspace>
-      <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postIssue.isPending} itemOptions={itemOptions} onPost={() => draft && postIssue.mutate(buildIssueRequest(draft, companyId, branchId))} postLabel="Post issue" postReason={postReason} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
+      <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postIssue.isPending} itemOptions={itemOptions} lotOptions={lotOptions} onPost={() => draft && postIssue.mutate(buildIssueRequest(draft, companyId, branchId))} postLabel="Post issue" postReason={postReason} serialOptions={serialOptions} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
     </>
   );
 }
@@ -658,12 +684,15 @@ export function MaterialReturnPage() {
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const warehouses = useApiQuery(queryKeys.organization.warehouses(companyId, branchId, "", "Active"), () => apiClient.organization.warehouses({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const bins = useApiQuery(queryKeys.organization.bins(companyId, branchId, "", "Active"), () => apiClient.organization.bins({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const balanceLookup = useApiQuery(queryKeys.inventory.balances(companyId, branchId, "traceability-options", "all"), () => apiClient.inventory.balances({ companyId, branchId, pageSize: 100 }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
   const itemOptions = entityOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
+  const lotOptions = traceabilityOptionsFromBalances(balanceLookup.data?.items, "lot");
+  const serialOptions = traceabilityOptionsFromBalances(balanceLookup.data?.items, "serial");
   const validationErrors = stockPostingValidationErrors(draft);
   const linkedSource = getStockPostingSource(searchParams);
   const postReturn = useApiMutation((request: StockReturnRequest) => apiClient.inventory.returnStock(request), {
@@ -694,7 +723,7 @@ export function MaterialReturnPage() {
       <ErpModalWorkspace description="Posted material return detail is review-only; use Prepare return draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save return draft", reason: "Posted return records cannot be changed; create a new return draft for additional movement." }]} secondary={[{ disabled: true, label: "Post return", reason: "This return is already posted or loaded as a read-only ledger movement." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?workOrder=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material return"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Material return controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Return location is controlled by warehouse and bin master." label="Return location" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpNumberField disabled disabledReason="Returned quantity is controlled by inventory posting." label="Return quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Return reason is controlled by reason-code master." label="Return reason" onChange={() => undefined} options={[{ label: selected.returnReason, value: selected.returnReason }]} value={selected.returnReason} /></FormShell> : null}
       </ErpModalWorkspace>
-      <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postReturn.isPending} itemOptions={itemOptions} onPost={() => draft && postReturn.mutate(buildReturnRequest(draft, companyId, branchId))} postLabel="Post return" postReason={postReason} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
+      <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postReturn.isPending} itemOptions={itemOptions} lotOptions={lotOptions} onPost={() => draft && postReturn.mutate(buildReturnRequest(draft, companyId, branchId))} postLabel="Post return" postReason={postReason} serialOptions={serialOptions} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
     </>
   );
 }
@@ -724,12 +753,15 @@ export function StockTransferPutawayPage() {
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const warehouses = useApiQuery(queryKeys.organization.warehouses(companyId, branchId, "", "Active"), () => apiClient.organization.warehouses({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const bins = useApiQuery(queryKeys.organization.bins(companyId, branchId, "", "Active"), () => apiClient.organization.bins({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const balanceLookup = useApiQuery(queryKeys.inventory.balances(companyId, branchId, "traceability-options", "all"), () => apiClient.inventory.balances({ companyId, branchId, pageSize: 100 }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
   const itemOptions = entityOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
+  const lotOptions = traceabilityOptionsFromBalances(balanceLookup.data?.items, "lot");
+  const serialOptions = traceabilityOptionsFromBalances(balanceLookup.data?.items, "serial");
   const validationErrors = stockPostingValidationErrors(draft);
   const postTransfer = useApiMutation((request: StockTransferRequest) => apiClient.inventory.transferStock(request), {
     onSuccess: async (movements) => {
@@ -759,7 +791,7 @@ export function StockTransferPutawayPage() {
       <ErpModalWorkspace description="Posted stock movement detail is review-only; use Prepare transfer draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save transfer draft", reason: "Posted transfer records cannot be changed; create a new transfer draft for additional movement." }]} secondary={[{ disabled: true, label: "Post transfer", reason: "This transfer is already posted or loaded as a read-only ledger movement." }, { label: "Open balances", onClick: () => navigate(`/inventory/balances?item=${encodeURIComponent(selected?.itemLabel ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Stock movement"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Stock transfer controls"><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpLookupField disabled disabledReason="Destination location is controlled by warehouse and bin master." label="To" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpNumberField disabled disabledReason="Movement quantity is controlled by inventory posting." label="Movement quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Movement type is controlled by inventory posting policy." label="Movement type" onChange={() => undefined} options={[{ label: selected.movementType, value: selected.movementType }]} value={selected.movementType} /></FormShell> : null}
       </ErpModalWorkspace>
-      <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postTransfer.isPending} itemOptions={itemOptions} onPost={() => draft && postTransfer.mutate(buildTransferRequest(draft, companyId, branchId))} postLabel="Post transfer" postReason={postReason} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
+      <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postTransfer.isPending} itemOptions={itemOptions} lotOptions={lotOptions} onPost={() => draft && postTransfer.mutate(buildTransferRequest(draft, companyId, branchId))} postLabel="Post transfer" postReason={postReason} serialOptions={serialOptions} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
     </>
   );
 }

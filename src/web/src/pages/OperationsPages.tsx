@@ -30,7 +30,7 @@ import { ListPageShell } from "../ui/ListPageShell";
 import { FilterBar } from "../ui/FilterBar";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
-import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpValidationSummary } from "../ui/ErpComponents";
+import { ErpActionBar, ErpDecimalField, ErpLookupField, ErpModalWorkspace, ErpNumberField, ErpTransactionLineGrid, ErpValidationSummary } from "../ui/ErpComponents";
 import { FormShell } from "../ui/FormShell";
 import { Timeline } from "../ui/Timeline";
 import { KpiStrip, LaneBoard, OccupancyCalendar, type Lane, type LaneSlot } from "../ui/boards";
@@ -208,16 +208,6 @@ const cycleCountColumns: DataGridColumn<CycleCountSetupItem>[] = [
   { key: "status", header: "Status", width: "14%", render: (record) => <StatusBadge status={record.status} /> }
 ];
 
-const cycleLineColumns: DataGridColumn<CycleCountLineItem>[] = [
-  { key: "line", header: "Line", width: "8%", render: (record) => record.lineNo },
-  { key: "item", header: "Item", render: (record) => <strong>{record.itemLabel}</strong> },
-  { key: "tracking", header: "Lot / serial", width: "16%", render: (record) => record.trackingLabel },
-  { key: "bin", header: "Bin", width: "12%", render: (record) => record.binLabel },
-  { key: "system", header: "System", width: "10%", render: (record) => record.systemQuantity },
-  { key: "counted", header: "Counted", width: "10%", render: (record) => record.countedQuantity },
-  { key: "variance", header: "Variance", width: "10%", render: (record) => <Badge tone={record.varianceQuantity === 0 ? "success" : "warn"}>{record.varianceQuantity}</Badge> }
-];
-
 interface CycleCountDraftLine extends CycleCountLineItem {
   countedQuantity: number;
   status: string;
@@ -262,6 +252,48 @@ function buildCycleDraft(record: CycleCountSetupItem): CycleCountDraft {
   };
 }
 
+function lookupOptions<T>(items: T[] | undefined, getValue: (item: T) => number, getLabel: (item: T) => string) {
+  return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
+}
+
+function mergeOptions(options: { label: string; value: string }[], fallbacks: { label: string; value: string }[]) {
+  const merged = new Map<string, string>();
+  [...options, ...fallbacks].forEach((option) => {
+    if (option.value && !merged.has(option.value)) {
+      merged.set(option.value, option.label);
+    }
+  });
+
+  return Array.from(merged.entries()).map(([value, label]) => ({ label, value }));
+}
+
+function renumberCycleLines(lines: CycleCountDraftLine[]) {
+  return lines.map((line, index) => ({ ...line, lineNo: (index + 1) * 10 }));
+}
+
+function buildCycleDraftLine(lineNo: number, template?: CycleCountDraftLine): CycleCountDraftLine {
+  const systemQuantity = template?.systemQuantity ?? 0;
+  const countedQuantity = template?.countedQuantity ?? systemQuantity;
+
+  return {
+    id: `cycle-count-draft-${Date.now()}-${lineNo}`,
+    lineNo,
+    itemId: template?.itemId ?? 0,
+    itemVariantId: template?.itemVariantId ?? null,
+    binId: template?.binId ?? null,
+    lotId: template?.lotId ?? null,
+    serialId: template?.serialId ?? null,
+    itemLabel: template?.itemLabel ?? "Select item",
+    trackingLabel: template?.trackingLabel ?? "Non-tracked",
+    binLabel: template?.binLabel ?? "Select bin",
+    systemQuantity,
+    countedQuantity,
+    varianceQuantity: countedQuantity - systemQuantity,
+    status: template?.status ?? "Review",
+    remarks: template?.remarks ?? ""
+  };
+}
+
 function buildCycleRequest(draft: CycleCountDraft): CycleCountUpsertRequest {
   return {
     companyId: draft.companyId,
@@ -288,6 +320,8 @@ function buildCycleRequest(draft: CycleCountDraft): CycleCountUpsertRequest {
 
 export function CycleCountPage() {
   const { session, user } = useAuth();
+  const companyId = user?.activeContext.companyId ?? 0;
+  const branchId = user?.activeContext.branchId ?? 0;
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -304,11 +338,24 @@ export function CycleCountPage() {
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? (hasLiveSession(session) ? "Live" : "Seeded");
   const isLive = hasLiveSession(session);
+  const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: isLive && companyId > 0, staleTime: 60_000 });
+  const bins = useApiQuery(queryKeys.organization.bins(companyId, branchId, "", "Active"), () => apiClient.organization.bins({ companyId, branchId, status: "Active" }), { enabled: isLive && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const itemOptions = mergeOptions(
+    lookupOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`),
+    draft?.lines.map((line) => ({ label: line.itemLabel, value: String(line.itemId) })) ?? []
+  );
+  const binOptions = mergeOptions(
+    lookupOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`),
+    draft?.lines.map((line) => ({ label: line.binLabel, value: String(line.binId ?? "") })) ?? []
+  );
+  const lotOptions = mergeOptions([], draft?.lines.filter((line) => line.lotId).map((line) => ({ label: `Lot ${line.lotId}`, value: String(line.lotId) })) ?? []);
+  const serialOptions = mergeOptions([], draft?.lines.filter((line) => line.serialId).map((line) => ({ label: `Serial ${line.serialId}`, value: String(line.serialId) })) ?? []);
   const validation = draft
     ? [
         draft.countNo.trim() ? "" : "Count number is required.",
         draft.countDate ? "" : "Count date is required.",
         draft.lines.length > 0 ? "" : "At least one count line is required.",
+        draft.lines.some((line) => !line.itemId || line.itemId <= 0) ? "Every count line requires an item." : "",
         draft.lines.some((line) => line.countedQuantity < 0) ? "Counted quantity cannot be negative." : ""
       ].filter(Boolean)
     : [];
@@ -393,8 +440,27 @@ export function CycleCountPage() {
     setDraft((current) => current ? { ...current, ...patch } : current);
   };
 
+  const addLine = () => {
+    setDraft((current) => current ? { ...current, lines: renumberCycleLines([...current.lines, buildCycleDraftLine((current.lines.length + 1) * 10, current.lines.find((_line, index) => index === 0))]) } : current);
+  };
+
+  const removeLine = (index: number) => {
+    setDraft((current) => current ? { ...current, lines: renumberCycleLines(current.lines.filter((_line, lineIndex) => lineIndex !== index)) } : current);
+  };
+
   const updateLine = (index: number, patch: Partial<CycleCountDraftLine>) => {
-    setDraft((current) => current ? { ...current, lines: current.lines.map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line) } : current);
+    setDraft((current) => current ? {
+      ...current,
+      lines: current.lines.map((line, lineIndex) => {
+        if (lineIndex !== index) {
+          return line;
+        }
+
+        const next = { ...line, ...patch };
+        next.varianceQuantity = next.countedQuantity - next.systemQuantity;
+        return next;
+      })
+    } : current);
   };
 
   return (
@@ -430,18 +496,29 @@ export function CycleCountPage() {
               <label className="form-span-2"><span>Remarks</span><input disabled={!isLive} onChange={(event) => updateDraft({ remarks: event.target.value })} value={draft.remarks} /></label>
             </FormShell>
             <Card title="Count lines" description={draft.remarks}>
-              <DataGrid ariaLabel="Cycle count lines" columns={cycleLineColumns} getRowId={(record) => record.id} records={draft.lines} rowLabel={(record) => `${record.itemLabel} count line`} />
+              <ErpTransactionLineGrid
+                addDisabled={!isLive || draft.status.toLowerCase().includes("posted")}
+                addDisabledReason={!isLive ? "Live inventory sign-in is required before adding count lines." : draft.status.toLowerCase().includes("posted") ? "Posted count sheets cannot be changed." : undefined}
+                addLabel="Add Line"
+                ariaLabel="Cycle count line grid"
+                columns={[
+                  { key: "line", header: "Line", width: "70px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing count items." : undefined} label="Item" onChange={(value) => updateLine(index, { itemId: Number(value), itemLabel: itemOptions.find((option) => option.value === value)?.label ?? `Item ${value}` })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                  { key: "bin", header: "Bin", width: "150px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing count bins." : undefined} label="Bin" onChange={(value) => updateLine(index, { binId: value ? Number(value) : null, binLabel: binOptions.find((option) => option.value === value)?.label ?? "No bin" })} options={binOptions} value={String(line.binId ?? "")} /> },
+                  { key: "lot", header: "Lot", width: "140px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing lot." : undefined} label="Lot" onChange={(value) => updateLine(index, { lotId: value ? Number(value) : null, trackingLabel: value ? `Lot ${value}` : line.serialId ? `Serial ${line.serialId}` : "Non-tracked" })} options={lotOptions} value={String(line.lotId ?? "")} /> },
+                  { key: "serial", header: "Serial", width: "140px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing serial." : undefined} label="Serial" onChange={(value) => updateLine(index, { serialId: value ? Number(value) : null, trackingLabel: value ? `Serial ${value}` : line.lotId ? `Lot ${line.lotId}` : "Non-tracked" })} options={serialOptions} value={String(line.serialId ?? "")} /> },
+                  { key: "system", header: "System", width: "110px", render: (line) => <ErpDecimalField disabled disabledReason="System quantity is calculated from stock balances." label="System quantity" onChange={() => undefined} value={line.systemQuantity} /> },
+                  { key: "counted", header: "Counted", width: "120px", render: (line, index) => <ErpDecimalField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before updating counted quantity." : undefined} label="Counted quantity" min={0} onChange={(value) => updateLine(index, { countedQuantity: value ?? 0 })} value={line.countedQuantity} /> },
+                  { key: "variance", header: "Variance", width: "110px", render: (line) => <ErpDecimalField disabled disabledReason="Variance is calculated from counted minus system quantity." label="Variance quantity" onChange={() => undefined} value={line.varianceQuantity} /> },
+                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing line status." : undefined} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Matched", value: "Matched" }, { label: "Variance", value: "Variance" }, { label: "Review", value: "Review" }]} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !isLive || draft.lines.length <= 1 || draft.status.toLowerCase().includes("posted"), label: "Remove Line", onClick: isLive && draft.lines.length > 1 && !draft.status.toLowerCase().includes("posted") ? () => removeLine(index) : undefined, reason: !isLive ? "Live inventory sign-in is required before removing count lines." : draft.lines.length <= 1 ? "At least one count line is required." : draft.status.toLowerCase().includes("posted") ? "Posted count sheets cannot be changed." : undefined }]} /> }
+                ]}
+                getRowId={(line, index) => `${line.id}-${index}`}
+                lines={draft.lines}
+                onAddLine={addLine}
+                testId="cycle-count-line-grid"
+              />
             </Card>
-            {draft.lines.map((line, index) => (
-              <FormShell initialFingerprint={`${line.id}-${line.countedQuantity}`} key={line.id} title={`Count line ${line.lineNo}`}>
-                <ErpLookupField disabled disabledReason="Item is controlled by the count sheet." label="Item" onChange={() => undefined} options={[{ label: line.itemLabel, value: String(line.itemId) }]} value={String(line.itemId)} />
-                <ErpLookupField disabled disabledReason="Bin is controlled by warehouse/bin master." label="Bin" onChange={() => undefined} options={[{ label: line.binLabel, value: String(line.binId ?? "") }]} value={String(line.binId ?? "")} />
-                <ErpLookupField disabled disabledReason="Lot or serial is controlled by inventory traceability." label="Lot / serial" onChange={() => undefined} options={[{ label: line.trackingLabel, value: line.trackingLabel }]} value={line.trackingLabel} />
-                <ErpDecimalField disabled disabledReason="System quantity is calculated from stock balances." label="System quantity" onChange={() => undefined} value={line.systemQuantity} />
-                <ErpDecimalField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before updating counted quantity." : undefined} label="Counted quantity" min={0} onChange={(value) => updateLine(index, { countedQuantity: value ?? 0 })} value={line.countedQuantity} />
-                <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live inventory sign-in is required before changing line status." : undefined} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Matched", value: "Matched" }, { label: "Variance", value: "Variance" }, { label: "Review", value: "Review" }]} value={line.status} />
-              </FormShell>
-            ))}
           </>
         ) : null}
       </ErpModalWorkspace>

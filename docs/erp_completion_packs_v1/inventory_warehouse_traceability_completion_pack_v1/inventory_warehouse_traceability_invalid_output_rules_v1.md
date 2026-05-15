@@ -1,0 +1,44 @@
+# Inventory / Warehouse / Traceability Invalid Output Rules v1
+
+- **IO-001**: A shallow prompt pack with no field-level workbook is invalid.
+- **IO-002**: Representative/sample-only field rows are invalid.
+- **IO-003**: Benchmark rows without source URLs are invalid.
+- **IO-004**: Calling inventory complete without warehouse/bin/lot/serial/LP truth is invalid.
+- **IO-005**: Free-text item, UOM, warehouse, bin, lot, serial, reason, status, owner, supplier, customer, QC, GL fields are invalid.
+- **IO-006**: Numeric quantities/costs/capacities/counts stored as unrestricted text are invalid.
+- **IO-007**: Material movements with only one line or first-line save are invalid.
+- **IO-008**: Desktop card-per-line movement entry is invalid except mobile/preview/detail expansion.
+- **IO-009**: No Add Line or Remove Line on stock movement/transfer/adjust/count grids is invalid.
+- **IO-010**: Visible dead buttons are invalid.
+- **IO-011**: Fake upload/photo/barcode/export/print actions are invalid.
+- **IO-012**: Live screens showing seeded operational stock silently are invalid.
+- **IO-013**: On-hand balances not derived from stock ledger/status/reservation data are invalid.
+- **IO-014**: Lot-controlled item movements without lot identity are invalid.
+- **IO-015**: Serialized item movements without one serial per base unit are invalid.
+- **IO-016**: Duplicate active serial numbers for the same item/tenant are invalid.
+- **IO-017**: Expired/blocked stock used for issue/pick/dispatch without policy is invalid.
+- **IO-018**: Quality hold stock available for production/sales/transfer is invalid.
+- **IO-019**: Stock status changes without audit/ledger are invalid.
+- **IO-020**: Adjustments without reason and approval thresholds are invalid.
+- **IO-021**: Cycle count posting without variance review is invalid.
+- **IO-022**: Physical inventory with no freeze/control policy is invalid.
+- **IO-023**: Traceability that only shows current stock and not source/destination documents is invalid.
+- **IO-024**: Recall impact without customer/document/current-balance view is invalid.
+- **IO-025**: Barcode scanning that accepts raw free text without validation is invalid.
+- **IO-026**: Warehouse/bin relationships not enforced by DB/API are invalid.
+- **IO-027**: LP/PCID movement without contained-stock reconciliation is invalid.
+- **IO-028**: Silent delete of movements/serials/lots/LPs is invalid; use reversals/voids with audit.
+- **IO-029**: Reports/dashboards with hardcoded sample values are invalid.
+- **IO-030**: RBAC not covering approve/post actions is invalid.
+- **IO-031**: Maker-checker bypass for high-risk stock changes is invalid.
+- **IO-032**: No save/reopen tests for inventory documents is invalid.
+- **IO-033**: No screenshot evidence for P0 workflows is invalid.
+- **IO-034**: No anti-pattern scan logs is invalid.
+- **IO-035**: No Current_Mapping/Gaps update is invalid.
+- **IO-036**: No review pack is invalid.
+- **IO-037**: No API/server-side validation is invalid.
+- **IO-038**: No database-level integrity strategy is invalid.
+- **IO-039**: Deep create/edit only in cramped right drawer is invalid.
+- **IO-040**: Commit/push before P0 gates pass is invalid.
+- **IO-041**: Claims of completion without tests, screenshots, scan logs, and workbook evidence are invalid.
+- **IO-042**: Letting Codex infer ERP depth from names alone is invalid.

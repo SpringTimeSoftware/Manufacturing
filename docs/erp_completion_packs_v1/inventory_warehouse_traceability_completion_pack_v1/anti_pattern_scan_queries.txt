@@ -1,0 +1,48 @@
+# Anti-pattern scan queries for inventory_warehouse_traceability_completion_pack_v1
+
+Run these from the repository root and save outputs in the review pack.
+
+## First-line / one-line-only transaction failures
+
+rg -n "lines\[0\]|firstLine|First quote line|first stock line|firstMovementLine|firstTransferLine|firstAdjustmentLine|firstCountLine" .
+rg -n "only one editable line|single line only|line 0|index 0|first row only|first-line" .
+
+## Missing desktop editable grid behavior
+
+rg -n "Add Line|Remove Line|addLine|removeLine|deleteLine|appendLine" web src apps -g "*.tsx" -g "*.ts"
+rg -n "card-per-line|LineCard|MovementLineCard|TransferLineCard|CountLineCard" web src apps -g "*.tsx" -g "*.ts"
+
+## Fake / dead actions
+
+rg -n "TODO|NotImplemented|coming soon|placeholder|stub|mock|fake|alert\(|console\.log\(" web src api -g "*.tsx" -g "*.ts" -g "*.cs"
+rg -n "upload.*TODO|barcode.*TODO|export.*TODO|print.*TODO|scan.*TODO|download.*placeholder" .
+
+## Free-text governed fields
+
+rg -n "warehouse.*input|bin.*input|uom.*input|lot.*input|serial.*input|reason.*input|status.*input|license.*input" web src apps -g "*.tsx" -g "*.ts"
+rg -n "type=\"text\".*(Warehouse|Bin|UOM|Lot|Serial|Reason|Status|License|Item)" web src apps -g "*.tsx"
+
+## Numeric as text
+
+rg -n "type=\"text\".*(qty|quantity|cost|weight|volume|capacity|count|variance|reorder|min|max|tolerance)" web src apps -g "*.tsx"
+rg -n "quantity.*string|qty.*string|unitCost.*string|variance.*string|capacity.*string" api src web apps -g "*.cs" -g "*.ts" -g "*.tsx"
+
+## Seeded/fake operational data
+
+rg -n "demo inventory|seeded on-hand|sample stock|hardcoded lot|hardcoded serial|fake stock|mock inventory|sample movement|demo lot|demo serial" .
+
+## Traceability failures
+
+rg -n "trace.*current stock|trace.*placeholder|recall.*placeholder|genealogy.*mock|lot trace.*mock|serial trace.*mock" .
+
+## Status/hold failures
+
+rg -n "blocked.*available|hold.*available|expired.*selectable|quarantine.*available|quality hold.*issue" .
+
+## Upload/barcode/export truth
+
+rg -n "fake upload|fake barcode|placeholder PDF|dummy export|mock label|sample barcode|TODO.*barcode|TODO.*upload|TODO.*export|TODO.*print" .
+
+## Right drawer deep edit
+
+rg -n "Drawer|SidePanel|RightDrawer" web src apps -g "*.tsx" -g "*.ts"
