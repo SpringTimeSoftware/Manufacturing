@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../api/http";
 import { buildDemoSession } from "../auth/AuthContext";
 import { renderWithApp } from "../test/render";
+import { MaterialIssuePage } from "./InventoryPages";
 import { JobCardsPage, WorkOrdersPage } from "./OperationsPages";
+import { ProductionReceiptPage } from "./ProductionOutputPages";
 
 function buildLiveSession() {
   const session = buildDemoSession();
@@ -213,6 +215,121 @@ describe("WS05 production shop-floor execution", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Generate job cards" }));
 
     await waitFor(() => expect(createJobCards).toHaveBeenCalledWith({ workOrderId: 401, regenerateIfExists: false }));
+  });
+
+  it("keeps traveler printing truthful when no traveler print-log workflow is available", async () => {
+    const summary = {
+      id: 401,
+      companyId: 1,
+      branchId: 10,
+      workOrderNo: "WO-LIVE-401",
+      salesOrderLineId: null,
+      itemId: 100,
+      bomRevisionId: 21,
+      routingId: 31,
+      plannedQuantity: 5,
+      productionUomId: 1,
+      plannedStartDate: "2026-05-14",
+      plannedEndDate: "2026-05-16",
+      status: "Released",
+      releasedOn: "2026-05-14T10:00:00Z",
+      operationCount: 1,
+      completedOperationCount: 0
+    };
+    const detail = {
+      ...summary,
+      remarks: null,
+      closedOn: null,
+      cancelledOn: null,
+      operations: [
+        { id: 901, sequenceNo: 10, operationId: 77, routingOperationId: 31, workCenterId: 5, plannedQuantity: 5, completedQuantity: 0, requiresQcCheckpoint: false, status: "Ready" }
+      ]
+    };
+
+    vi.spyOn(apiClient.production, "workOrders").mockResolvedValue(paged([summary]) as never);
+    vi.spyOn(apiClient.production, "workOrder").mockResolvedValue(detail as never);
+    vi.spyOn(apiClient.production, "workOrderReadiness").mockResolvedValue({
+      workOrderId: 401,
+      workOrderNo: "WO-LIVE-401",
+      status: "Released",
+      canRelease: true,
+      engineeringReady: true,
+      materialReady: true,
+      capacityReady: true,
+      workflowReady: true,
+      blockingReasons: [],
+      materialReadiness: [],
+      operationReadiness: [
+        { sequenceNo: 10, operationId: 77, routingOperationId: 31, workCenterId: 5, status: "Ready", capacityReady: true, capacityMessage: null }
+      ]
+    } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/production/work-orders" element={<WorkOrdersPage />} />
+      </Routes>,
+      { route: "/production/work-orders", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByText("WO-LIVE-401"));
+
+    const traveler = await screen.findByRole("button", { name: "Print traveler" });
+    expect(traveler).toBeDisabled();
+    expect(traveler).toHaveAttribute("title", "Traveler print requires the production print-log workflow before it can be used.");
+  });
+
+  it("prefills exact work-order source context when opening material issue from a deep link", async () => {
+    vi.spyOn(apiClient.inventory, "transactions").mockResolvedValue(paged([]) as never);
+    vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue([
+      { id: 100, itemCode: "RM-100", itemName: "Raw material", itemType: "RM", status: "Active" }
+    ] as never);
+    vi.spyOn(apiClient.organization, "warehouses").mockResolvedValue(paged([
+      { id: 201, companyId: 1, branchId: 10, warehouseCode: "RM", warehouseName: "Raw stores", warehouseType: "Raw", status: "Active" }
+    ]) as never);
+    vi.spyOn(apiClient.organization, "bins").mockResolvedValue(paged([
+      { id: 301, companyId: 1, branchId: 10, warehouseId: 201, binCode: "A01", binName: "Aisle 01", binType: "Pick", status: "Active" }
+    ]) as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/inventory/material-issue" element={<MaterialIssuePage />} />
+      </Routes>,
+      { route: "/inventory/material-issue?sourceType=WorkOrder&sourceId=401", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Prepare issue draft" }));
+
+    expect(await screen.findByText("Material issue posting")).toBeInTheDocument();
+    expect(screen.getByLabelText("Source document type")).toHaveValue("WorkOrder");
+    expect(screen.getByLabelText("Source document id")).toHaveValue(401);
+  });
+
+  it("prefills exact work-order source context when opening production receipt from a deep link", async () => {
+    vi.spyOn(apiClient.production, "productionReceipts").mockResolvedValue(paged([]) as never);
+    vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue([
+      { id: 100, itemCode: "FG-100", itemName: "Finished item", itemType: "FG", status: "Active" }
+    ] as never);
+    vi.spyOn(apiClient.measurements, "uoms").mockResolvedValue(paged([
+      { id: 1, uomCode: "EA", uomName: "Each", symbol: "EA", uomClassId: 1, decimalPrecision: 0, isSystemBase: true, status: "Active" }
+    ]) as never);
+    vi.spyOn(apiClient.organization, "warehouses").mockResolvedValue(paged([
+      { id: 301, companyId: 1, branchId: 10, warehouseCode: "FG", warehouseName: "Finished goods", warehouseType: "Finished", status: "Active" }
+    ]) as never);
+    vi.spyOn(apiClient.organization, "bins").mockResolvedValue(paged([
+      { id: 401, companyId: 1, branchId: 10, warehouseId: 301, binCode: "FG01", binName: "Finished 01", binType: "Storage", status: "Active" }
+    ]) as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/production/receipts" element={<ProductionReceiptPage />} />
+      </Routes>,
+      { route: "/production/receipts?sourceType=WorkOrder&sourceId=401", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Prepare receipt draft" }));
+
+    expect(await screen.findByText("Production receipt posting")).toBeInTheDocument();
+    expect(screen.getByLabelText("Work order id")).toHaveValue(401);
   });
 
   it("opens a job card from a deep link and posts a live completion action", async () => {

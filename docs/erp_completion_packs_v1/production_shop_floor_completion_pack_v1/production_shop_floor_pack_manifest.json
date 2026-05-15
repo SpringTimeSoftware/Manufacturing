@@ -1,0 +1,46 @@
+{
+  "pack_name": "production_shop_floor_completion_pack_v1",
+  "created": "2026-05-14",
+  "repo_path": "C:\\StsPackages\\Manufacturing_ERP",
+  "intended_folder": "C:\\StsPackages\\Manufacturing_ERP\\docs\\erp_completion_packs_v1\\production_shop_floor_completion_pack_v1",
+  "module": "Production / Shop Floor / Work Orders / Job Cards / MES-lite",
+  "files": [
+    "production_shop_floor_benchmark_workbook_v1.xlsx",
+    "production_shop_floor_completion_spec_v1.md",
+    "production_shop_floor_codex_execution_prompt_v1.md",
+    "START_HERE_CODEX_PROMPT.txt",
+    "production_shop_floor_validation_checklist_v1.md",
+    "production_shop_floor_invalid_output_rules_v1.md",
+    "production_shop_floor_pack_manifest.json",
+    "anti_pattern_scan_queries.txt"
+  ],
+  "counts": {
+    "vendor_benchmark_rows": 200,
+    "target_field_rules": 374,
+    "action_contract_rows": 105,
+    "workflow_contract_rows": 44,
+    "test_cases": 494,
+    "lookup_numeric_truth_rows": 331,
+    "anti_pattern_rows": 30,
+    "screenshot_gates": 25,
+    "completion_gates": 25,
+    "invalid_output_rules": 40,
+    "formula_errors_found": 0
+  },
+  "source_reference_ids": [
+    "SAP_PROD_LIFECYCLE",
+    "SAP_GOODS_ISSUE",
+    "SAP_CONFIRMATION",
+    "ORACLE_EXECUTION",
+    "ORACLE_DISPATCH",
+    "ORACLE_DISPATCH_API",
+    "MS_REGISTRATION",
+    "MS_PFE_CONFIG",
+    "NETSUITE_ROUTING",
+    "NETSUITE_WIP",
+    "NETSUITE_WIP_ROUTINGS",
+    "EPICOR_PRODUCTION",
+    "EPICOR_MANUFACTURING"
+  ],
+  "minimum_completion_rule": "All P0 Completion_Gates complete with updated workbook, tests, screenshots, scan logs and review pack evidence."
+}

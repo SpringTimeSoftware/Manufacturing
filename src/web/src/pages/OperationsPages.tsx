@@ -687,6 +687,7 @@ export function WorkOrdersPage() {
   const detail = detailQuery.data ?? selected;
   const source = records[0]?.source ?? "Seeded";
   const requestedWorkOrder = searchParams.get("workOrder");
+  const requestedWorkOrderId = Number(searchParams.get("workOrderId") ?? searchParams.get("sourceId") ?? "");
   const itemOptions = entityOption(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const bomOptions = releasedBomRevisionOptions(bomQuery.data);
   const routingOptions = entityOption(routingQuery.data, (routing) => routing.id, (routing) => `${routing.routingCode} / ${routing.routingName}`);
@@ -776,13 +777,14 @@ export function WorkOrdersPage() {
   };
 
   useEffect(() => {
-    if (!requestedWorkOrder || records.length === 0) {
+    if ((!requestedWorkOrder && (!Number.isFinite(requestedWorkOrderId) || requestedWorkOrderId <= 0)) || records.length === 0) {
       return;
     }
 
-    const normalized = requestedWorkOrder.toLowerCase();
+    const normalized = requestedWorkOrder?.toLowerCase() ?? "";
     const match = records.find(
       (record) =>
+        (Number.isFinite(requestedWorkOrderId) && requestedWorkOrderId > 0 && record.workOrderId === requestedWorkOrderId) ||
         record.workOrderNo.toLowerCase() === normalized ||
         record.workOrderNo.toLowerCase().includes(normalized)
     );
@@ -790,7 +792,7 @@ export function WorkOrdersPage() {
     if (match) {
       setSelectedId(match.id);
     }
-  }, [records, requestedWorkOrder]);
+  }, [records, requestedWorkOrder, requestedWorkOrderId]);
 
   return (
     <>
@@ -807,7 +809,7 @@ export function WorkOrdersPage() {
       </ListPageShell>
       <ErpModalWorkspace
         description="Materials, operations, readiness, reservations, and release action labels."
-        footer={<ErpActionBar primary={[{ disabled: Boolean(workOrderActionReason(session, detail, "release", lifecycleMutation.isPending)), label: lifecycleMutation.isPending ? "Releasing" : "Release work order", onClick: () => lifecycleMutation.mutate("release"), reason: workOrderActionReason(session, detail, "release", lifecycleMutation.isPending) }, { disabled: Boolean(workOrderActionReason(session, detail, "generate-job-cards", lifecycleMutation.isPending)), label: lifecycleMutation.isPending ? "Generating" : "Generate job cards", onClick: () => lifecycleMutation.mutate("generate-job-cards"), reason: workOrderActionReason(session, detail, "generate-job-cards", lifecycleMutation.isPending) }]} secondary={[{ disabled: Boolean(workOrderActionReason(session, detail, "re-release", lifecycleMutation.isPending)), label: "Re-release", onClick: () => lifecycleMutation.mutate("re-release"), reason: workOrderActionReason(session, detail, "re-release", lifecycleMutation.isPending) }, { disabled: Boolean(workOrderActionReason(session, detail, "close", lifecycleMutation.isPending)), label: "Close work order", onClick: () => lifecycleMutation.mutate("close"), reason: workOrderActionReason(session, detail, "close", lifecycleMutation.isPending) }, { label: "Issue materials", onClick: () => navigate(`/inventory/material-issue?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Receive production", onClick: () => navigate(`/production/receipts?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }, { label: "Print traveler", onClick: () => navigate(`/reports/print-pack?workOrder=${encodeURIComponent(detail?.workOrderNo ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
+        footer={<ErpActionBar primary={[{ disabled: Boolean(workOrderActionReason(session, detail, "release", lifecycleMutation.isPending)), label: lifecycleMutation.isPending ? "Releasing" : "Release work order", onClick: () => lifecycleMutation.mutate("release"), reason: workOrderActionReason(session, detail, "release", lifecycleMutation.isPending) }, { disabled: Boolean(workOrderActionReason(session, detail, "generate-job-cards", lifecycleMutation.isPending)), label: lifecycleMutation.isPending ? "Generating" : "Generate job cards", onClick: () => lifecycleMutation.mutate("generate-job-cards"), reason: workOrderActionReason(session, detail, "generate-job-cards", lifecycleMutation.isPending) }]} secondary={[{ disabled: Boolean(workOrderActionReason(session, detail, "re-release", lifecycleMutation.isPending)), label: "Re-release", onClick: () => lifecycleMutation.mutate("re-release"), reason: workOrderActionReason(session, detail, "re-release", lifecycleMutation.isPending) }, { disabled: Boolean(workOrderActionReason(session, detail, "close", lifecycleMutation.isPending)), label: "Close work order", onClick: () => lifecycleMutation.mutate("close"), reason: workOrderActionReason(session, detail, "close", lifecycleMutation.isPending) }, { label: "Issue materials", onClick: () => navigate(`/inventory/material-issue?sourceType=WorkOrder&sourceId=${detail?.workOrderId ?? ""}`) }, { label: "Return materials", onClick: () => navigate(`/inventory/material-return?sourceType=WorkOrder&sourceId=${detail?.workOrderId ?? ""}`) }, { label: "Receive production", onClick: () => navigate(`/production/receipts?sourceType=WorkOrder&sourceId=${detail?.workOrderId ?? ""}`) }, { disabled: true, label: "Print traveler", reason: "Traveler print requires the production print-log workflow before it can be used." }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(detail)}
         onClose={() => setSelectedId(null)}
         statusMeta={actionMessage ? <Badge tone={actionTone}>{actionMessage}</Badge> : null}

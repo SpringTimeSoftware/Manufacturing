@@ -1,0 +1,70 @@
+- generic [ref=e16]:
+  - link "Skip to content" [ref=e17] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary [ref=e18]:
+    - generic [ref=e21]:
+      - strong [ref=e22]: STS Manufacturing ERP
+      - paragraph [ref=e23]: Planning, production, inventory, quality, and dispatch control.
+    - navigation "Primary" [ref=e24]:
+      - generic [ref=e25]:
+        - button "OVERVIEW" [expanded] [ref=e26] [cursor=pointer]
+        - generic [ref=e32]
+      - generic [ref=e59]:
+        - button "PLANNING" [ref=e60] [cursor=pointer]
+        - generic [ref=e65]
+      - generic [ref=e99]:
+        - button "ENGINEERING & PRODUCTION" [expanded] [ref=e100] [cursor=pointer]
+        - generic [ref=e105]
+      - generic [ref=e224]:
+        - button "ORGANIZATION" [ref=e225] [cursor=pointer]
+        - generic [ref=e231]
+      - generic [ref=e269]:
+        - button "MASTER DATA" [ref=e270] [cursor=pointer]
+        - generic [ref=e275]
+      - generic [ref=e320]:
+        - button "COMMERCIAL SETUP" [ref=e321] [cursor=pointer]
+        - generic [ref=e326]
+      - generic [ref=e349]:
+        - button "PROCUREMENT" [ref=e350] [cursor=pointer]
+        - generic [ref=e356]
+      - generic [ref=e390]:
+        - button "INVENTORY" [ref=e391] [cursor=pointer]
+        - generic [ref=e397]
+      - generic [ref=e431]:
+        - button "QUALITY" [ref=e432] [cursor=pointer]
+        - generic [ref=e438]
+      - generic [ref=e469]:
+        - button "DISPATCH" [ref=e470] [cursor=pointer]
+        - generic [ref=e476]
+      - generic [ref=e499]:
+        - button "INTEGRATIONS & AI" [ref=e500] [cursor=pointer]
+        - generic [ref=e505]
+      - generic [ref=e552]:
+        - button "PLATFORM" [ref=e553] [cursor=pointer]
+        - generic [ref=e558]
+      - generic [ref=e602]:
+        - button "REPORTS" [ref=e603] [cursor=pointer]
+        - generic [ref=e609]
+    - generic [ref=e640]:
+      - generic [ref=e641]: Signed in
+      - strong [ref=e642]: Super Admin
+      - paragraph [ref=e643]: Access follows approved company, branch, and role scope.
+  - main [ref=e644]:
+    - generic [ref=e647]:
+      - generic [ref=e648]:
+        - generic [ref=e649]: ENGINEERING & PRODUCTION workspace
+        - heading "Work Orders" [level=1] [ref=e650]
+        - generic [ref=e652]: Warehouse RM-STORE
+      - generic "Workspace controls" [ref=e653]:
+        - generic [ref=e654]
+    - generic [ref=e667]:
+      - generic [ref=e668]:
+        - generic [ref=e669]
+        - generic [ref=e672]
+      - generic [ref=e691]:
+        - textbox "Search work orders" [ref=e692]:
+          - /placeholder: Search WO, item, sales order
+        - combobox "Work order status" [ref=e693]
+      - generic [ref=e695]:
+        - generic [ref=e696]
+        - generic [ref=e709]

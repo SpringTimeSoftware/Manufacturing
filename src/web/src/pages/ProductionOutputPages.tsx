@@ -1,5 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ProductionReceiptCreateRequest, ReworkOrderCreateRequest, ScrapEntryCreateRequest } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
@@ -109,15 +109,17 @@ function entityOptions<T>(items: T[] | undefined, getValue: (item: T) => number,
   return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
 }
 
-function buildOutputDraft(mode: OutputPostingMode): OutputPostingDraft {
+function buildOutputDraft(mode: OutputPostingMode, sourceType?: string | null, sourceId?: number | null): OutputPostingDraft {
   const receiptLine = buildReceiptLine(10);
+  const workOrderId = sourceType === "WorkOrder" ? sourceId ?? null : null;
+  const jobCardId = sourceType === "JobCard" ? sourceId ?? null : null;
 
   return {
     mode,
     documentNo: nextDocumentNo(mode === "receipt" ? "PRC" : mode === "scrap" ? "SCR" : "RWK"),
     postingDate: todayIsoDate(),
-    workOrderId: null,
-    jobCardId: null,
+    workOrderId,
+    jobCardId,
     receiptLines: [receiptLine],
     itemId: null,
     outputUomId: null,
@@ -132,6 +134,16 @@ function buildOutputDraft(mode: OutputPostingMode): OutputPostingDraft {
     inventoryState: mode === "scrap" ? "Available" : "QC_Hold",
     instructions: null,
     remarks: null
+  };
+}
+
+function getOutputSource(searchParams: URLSearchParams) {
+  const sourceType = searchParams.get("sourceType");
+  const parsedId = numberValue(searchParams.get("sourceId") ?? "");
+
+  return {
+    sourceType: sourceType === "JobCard" || sourceType === "WorkOrder" ? sourceType : undefined,
+    sourceId: parsedId
   };
 }
 
@@ -403,6 +415,7 @@ const receiptColumns: DataGridColumn<ProductionReceiptItem>[] = [
 
 export function ProductionReceiptPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const live = hasLiveSession(session);
   const companyId = user?.activeContext.companyId ?? 0;
@@ -430,6 +443,7 @@ export function ProductionReceiptPage() {
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
   const validationErrors = outputValidationErrors(draft);
+  const linkedSource = getOutputSource(searchParams);
   const createReceipt = useApiMutation((request: ProductionReceiptCreateRequest) => apiClient.production.createProductionReceipt(request), {
     onSuccess: async (record) => {
       setMessage(`Posted production receipt ${record.receiptNo}.`);
@@ -449,7 +463,7 @@ export function ProductionReceiptPage() {
   return (
     <>
       <ListPageShell
-        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare receipt draft", onClick: live ? () => { setMessage(null); setDraft(buildOutputDraft("receipt")); } : undefined, reason: live ? undefined : "Production receipt drafting requires a live production session." }]} secondary={[{ disabled: true, label: "Print receipt", reason: "Receipt printing is pending document workflow enablement." }]} testId="production-receipt-action-bar" /></>}
+        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare receipt draft", onClick: live ? () => { setMessage(null); setDraft(buildOutputDraft("receipt", linkedSource.sourceType, linkedSource.sourceId)); } : undefined, reason: live ? undefined : "Production receipt drafting requires a live production session." }]} secondary={[{ disabled: true, label: "Print receipt", reason: "Receipt printing is pending document workflow enablement." }]} testId="production-receipt-action-bar" /></>}
         description="Receive WIP/FG output with lot, serial, catch-weight, warehouse, and posting context."
         filters={<FilterBar><input aria-label="Search production receipts" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search receipt, WO, job card, item" value={search} /><select aria-label="Production receipt status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Posted">Posted</option><option value="Draft">Draft</option></select></FilterBar>}
         title="Production Receipt"
@@ -485,6 +499,7 @@ const scrapColumns: DataGridColumn<ScrapByProductItem>[] = [
 
 export function ScrapByProductPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const live = hasLiveSession(session);
   const companyId = user?.activeContext.companyId ?? 0;
@@ -510,6 +525,7 @@ export function ScrapByProductPage() {
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
   const validationErrors = outputValidationErrors(draft);
+  const linkedSource = getOutputSource(searchParams);
   const createScrap = useApiMutation((request: ScrapEntryCreateRequest) => apiClient.production.createScrapEntry(request), {
     onSuccess: async (record) => {
       setMessage(`Posted scrap entry ${record.scrapNo}.`);
@@ -528,7 +544,7 @@ export function ScrapByProductPage() {
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare scrap draft", onClick: live ? () => { setMessage(null); setDraft(buildOutputDraft("scrap")); } : undefined, reason: live ? undefined : "Scrap draft creation requires a live production session." }]} secondary={[{ disabled: true, label: "Export scrap", reason: "Scrap export is pending the approved reporting workflow." }]} testId="scrap-action-bar" /></>} description="Capture scrap, by-product, reason, and valuation status for production review." filters={<FilterBar><input aria-label="Search scrap by-products" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search scrap, by-product, reason, item" value={search} /><select aria-label="Scrap status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Posted">Posted</option><option value="Draft">Draft</option><option value="ByProduct">By-product</option></select></FilterBar>} title="Scrap / By-product Entry">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare scrap draft", onClick: live ? () => { setMessage(null); setDraft(buildOutputDraft("scrap", linkedSource.sourceType, linkedSource.sourceId)); } : undefined, reason: live ? undefined : "Scrap draft creation requires a live production session." }]} secondary={[{ disabled: true, label: "Export scrap", reason: "Scrap export is pending the approved reporting workflow." }]} testId="scrap-action-bar" /></>} description="Capture scrap, by-product, reason, and valuation status for production review." filters={<FilterBar><input aria-label="Search scrap by-products" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search scrap, by-product, reason, item" value={search} /><select aria-label="Scrap status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Posted">Posted</option><option value="Draft">Draft</option><option value="ByProduct">By-product</option></select></FilterBar>} title="Scrap / By-product Entry">
       <KpiStrip items={[{ label: "Entries", value: String(records.length) }, { label: "Quantity", value: String(records.reduce((total, record) => total + record.quantity, 0)) }, { label: "By-product", value: String(records.filter((record) => record.inventoryState.toLowerCase().includes("byproduct")).length) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
         {message ? <Badge tone={message.startsWith("Posted") ? "success" : "danger"}>{message}</Badge> : null}
         <Card title="Scrap and by-product register" description="Existing scrap entries are review-only; new scrap drafts post through the controlled production output workflow.">
@@ -560,6 +576,7 @@ const reworkColumns: DataGridColumn<ReworkOrderItem>[] = [
 
 export function ReworkOrderPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const live = hasLiveSession(session);
   const companyId = user?.activeContext.companyId ?? 0;
@@ -585,6 +602,7 @@ export function ReworkOrderPage() {
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
   const validationErrors = outputValidationErrors(draft);
+  const linkedSource = getOutputSource(searchParams);
   const createRework = useApiMutation((request: ReworkOrderCreateRequest) => apiClient.production.createReworkOrder(request), {
     onSuccess: async (record) => {
       setMessage(`Created rework order ${record.reworkNo}.`);
@@ -620,7 +638,7 @@ export function ReworkOrderPage() {
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "New rework order", onClick: live ? () => { setMessage(null); setDraft(buildOutputDraft("rework")); } : undefined, reason: live ? undefined : "Rework order creation requires a live production session." }]} secondary={[{ disabled: true, label: "Export rework", reason: "Rework export is pending the approved reporting workflow." }]} testId="rework-action-bar" /></>} description="Review rework loops linked to NCR, job card, and inventory hold context." filters={<FilterBar><input aria-label="Search rework orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search rework, NCR, WO, item" value={search} /><select aria-label="Rework status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Released">Released</option><option value="Open">Open</option><option value="Closed">Closed</option></select></FilterBar>} title="Rework Order">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "New rework order", onClick: live ? () => { setMessage(null); setDraft(buildOutputDraft("rework", linkedSource.sourceType, linkedSource.sourceId)); } : undefined, reason: live ? undefined : "Rework order creation requires a live production session." }]} secondary={[{ disabled: true, label: "Export rework", reason: "Rework export is pending the approved reporting workflow." }]} testId="rework-action-bar" /></>} description="Review rework loops linked to NCR, job card, and inventory hold context." filters={<FilterBar><input aria-label="Search rework orders" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search rework, NCR, WO, item" value={search} /><select aria-label="Rework status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Released">Released</option><option value="Open">Open</option><option value="Closed">Closed</option></select></FilterBar>} title="Rework Order">
       <KpiStrip items={[{ label: "Rework orders", value: String(records.length) }, { label: "Released", value: String(records.filter((record) => record.status.toLowerCase().includes("release")).length) }, { label: "Quantity", value: String(records.reduce((total, record) => total + record.quantity, 0)) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
         {message ? <Badge tone={message.startsWith("Created") || message.startsWith("Released") ? "success" : "danger"}>{message}</Badge> : null}
         <Card title="Rework loop register" description="Rework links remain tied to the NCR, job card, and hold context for review.">

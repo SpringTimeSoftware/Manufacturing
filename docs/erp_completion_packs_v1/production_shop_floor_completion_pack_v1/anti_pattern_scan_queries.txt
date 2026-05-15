@@ -1,0 +1,31 @@
+# Anti-pattern scan queries for production_shop_floor_completion_pack_v1
+
+Run from repo root.
+
+## First-line / single-line transaction defects
+
+rg -n "lines\s*\[\s*0\s*\]|firstLine|First\s+line|first\s+line|only\s+first|lineItems\s*\[\s*0\s*\]|components\s*\[\s*0\s*\]|operations\s*\[\s*0\s*\]" .
+
+## Fake/dead actions
+
+rg -n "TODO|FIXME|placeholder|not implemented|coming soon|mock|fake|dummy|alert\(|toast\(|console\.log" src web . --glob '!**/node_modules/**' --glob '!**/bin/**' --glob '!**/obj/**'
+
+## Upload/document/print/export truth
+
+rg -n "upload|attachment|document|traveler|label|print|export|download" src web . --glob '!**/node_modules/**' --glob '!**/bin/**' --glob '!**/obj/**'
+
+## Seeded/demo live operational data
+
+rg -n "seed|demo|sample|mockOrders|mockJobs|fakeOrders|fakeJobs|dummy|hardcoded" src web . --glob '!**/node_modules/**' --glob '!**/bin/**' --glob '!**/obj/**'
+
+## Numeric fields as text
+
+rg -n "type=['\"]text['\"].*(qty|quantity|minutes|duration|cost|amount|rate|percent|scrap|rework|yield)|string\s+(Quantity|Qty|Cost|Minutes|Duration|Amount|Percent|Rate)" src web . --glob '!**/node_modules/**' --glob '!**/bin/**' --glob '!**/obj/**'
+
+## Governed lookup fields as text inputs
+
+rg -n "type=['\"]text['\"].*(item|bom|routing|workCenter|work center|machine|warehouse|bin|uom|operator|reason|lot|serial)" src web . --glob '!**/node_modules/**' --glob '!**/bin/**' --glob '!**/obj/**'
+
+## Desktop card-per-line transaction entry
+
+rg -n "Card|card|cards|grid-cols|TransactionCard|LineCard|ComponentCard|OperationCard" src web . --glob '!**/node_modules/**' --glob '!**/bin/**' --glob '!**/obj/**'

@@ -1,5 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { StockIssueRequest, StockReservationRequest, StockReturnRequest, StockTransferRequest } from "../api/contracts";
 import { apiClient } from "../api/http";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
@@ -137,17 +137,34 @@ function buildStockPostingLine(lineNo: number): StockPostingLineDraft {
   };
 }
 
-function buildStockPostingWorkspace(mode: StockPostingMode): StockPostingWorkspace {
+function buildStockPostingWorkspace(
+  mode: StockPostingMode,
+  sourceDocumentType?: string | null,
+  sourceDocumentId?: number | null
+): StockPostingWorkspace {
   const prefix = mode === "issue" ? "MI-DRAFT" : mode === "return" ? "MR-DRAFT" : "ST-DRAFT";
+  const defaultSourceType = mode === "transfer" ? "Manual" : "WorkOrder";
 
   return {
     mode,
     transactionNo: nextStockTransactionNo(prefix),
     postingDate: todayIsoDate(),
-    sourceDocumentType: mode === "transfer" ? "Manual" : "WorkOrder",
-    sourceDocumentId: null,
+    sourceDocumentType: sourceDocumentType || defaultSourceType,
+    sourceDocumentId: sourceDocumentId ?? null,
     remarks: null,
     lines: [buildStockPostingLine(10)]
+  };
+}
+
+function getStockPostingSource(searchParams: URLSearchParams) {
+  const requestedType = searchParams.get("sourceType");
+  const sourceDocumentType = requestedType && sourceDocumentOptions.some((option) => option.value === requestedType)
+    ? requestedType
+    : undefined;
+
+  return {
+    sourceDocumentType,
+    sourceDocumentId: numberValue(searchParams.get("sourceId") ?? "")
   };
 }
 
@@ -559,6 +576,7 @@ const issueColumns: DataGridColumn<MaterialIssueItem>[] = [
 
 export function MaterialIssuePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const live = hasLiveSession(session);
   const companyId = user?.activeContext.companyId ?? 0;
@@ -580,6 +598,7 @@ export function MaterialIssuePage() {
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
   const validationErrors = stockPostingValidationErrors(draft);
+  const linkedSource = getStockPostingSource(searchParams);
   const postIssue = useApiMutation((request: StockIssueRequest) => apiClient.inventory.issueStock(request), {
     onSuccess: async (movements) => {
       setMessage(`Posted ${movements.length} material issue movement${movements.length === 1 ? "" : "s"}.`);
@@ -598,14 +617,14 @@ export function MaterialIssuePage() {
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare issue draft", onClick: live ? () => { setMessage(null); setDraft(buildStockPostingWorkspace("issue")); } : undefined, reason: live ? undefined : "Material issue drafting requires a live inventory session." }]} secondary={[{ disabled: true, label: "Print pick slip", reason: "Pick-slip printing is pending document workflow enablement." }]} testId="material-issue-action-bar" /></>} description="Issue reserved or actual material to a work order or job card with audit-friendly review controls." filters={<FilterBar><input aria-label="Search material issues" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search issue, work order, item, bin" value={search} /><select aria-label="Material issue status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Issued">Issued</option><option value="Reserved">Reserved</option><option value="Draft">Draft</option></select></FilterBar>} title="Material Issue to WO">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare issue draft", onClick: live ? () => { setMessage(null); setDraft(buildStockPostingWorkspace("issue", linkedSource.sourceDocumentType, linkedSource.sourceDocumentId)); } : undefined, reason: live ? undefined : "Material issue drafting requires a live inventory session." }]} secondary={[{ disabled: true, label: "Print pick slip", reason: "Pick-slip printing is pending document workflow enablement." }]} testId="material-issue-action-bar" /></>} description="Issue reserved or actual material to a work order or job card with audit-friendly review controls." filters={<FilterBar><input aria-label="Search material issues" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search issue, work order, item, bin" value={search} /><select aria-label="Material issue status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Issued">Issued</option><option value="Reserved">Reserved</option><option value="Draft">Draft</option></select></FilterBar>} title="Material Issue to WO">
       <KpiStrip items={[{ label: "Issues", value: String(records.length) }, { label: "Quantity", value: String(records.reduce((total, record) => total + record.quantity, 0)) }, { label: "WO-linked", value: String(records.filter((record) => record.sourceDocument.includes("WO")).length) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
         {message ? <Badge tone={message.startsWith("Posted") ? "success" : "danger"}>{message}</Badge> : null}
         <Card title="Material issue workbench" description="Existing issue records are review-only; new issue drafts post through the controlled stock ledger.">
           <DataGrid ariaLabel="Material issue list" columns={issueColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.transactionNo} material issue`} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Posted material issue detail is review-only; use Prepare issue draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save issue draft", reason: "Posted issue records cannot be changed; create a new issue draft for additional movement." }]} secondary={[{ disabled: true, label: "Post issue", reason: "This issue is already posted or loaded as a read-only ledger movement." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material issue"}>
+      <ErpModalWorkspace description="Posted material issue detail is review-only; use Prepare issue draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save issue draft", reason: "Posted issue records cannot be changed; create a new issue draft for additional movement." }]} secondary={[{ disabled: true, label: "Post issue", reason: "This issue is already posted or loaded as a read-only ledger movement." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?workOrder=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material issue"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Material issue controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Source location is controlled by warehouse and bin master." label="From location" onChange={() => undefined} options={[{ label: selected.fromLocation, value: selected.fromLocation }]} value={selected.fromLocation} /><ErpNumberField disabled disabledReason="Issued quantity is controlled by inventory posting." label="Issue quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Issue mode is controlled by inventory posting policy." label="Issue mode" onChange={() => undefined} options={[{ label: selected.issueMode, value: selected.issueMode }]} value={selected.issueMode} /></FormShell> : null}
       </ErpModalWorkspace>
       <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postIssue.isPending} itemOptions={itemOptions} onPost={() => draft && postIssue.mutate(buildIssueRequest(draft, companyId, branchId))} postLabel="Post issue" postReason={postReason} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
@@ -624,6 +643,7 @@ const returnColumns: DataGridColumn<MaterialReturnItem>[] = [
 
 export function MaterialReturnPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, user } = useAuth();
   const live = hasLiveSession(session);
   const companyId = user?.activeContext.companyId ?? 0;
@@ -645,6 +665,7 @@ export function MaterialReturnPage() {
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const binOptions = entityOptions(bins.data?.items, (bin) => bin.id, (bin) => `${bin.binCode} / ${bin.binName}`);
   const validationErrors = stockPostingValidationErrors(draft);
+  const linkedSource = getStockPostingSource(searchParams);
   const postReturn = useApiMutation((request: StockReturnRequest) => apiClient.inventory.returnStock(request), {
     onSuccess: async (movements) => {
       setMessage(`Posted ${movements.length} material return movement${movements.length === 1 ? "" : "s"}.`);
@@ -663,14 +684,14 @@ export function MaterialReturnPage() {
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare return draft", onClick: live ? () => { setMessage(null); setDraft(buildStockPostingWorkspace("return")); } : undefined, reason: live ? undefined : "Material return drafting requires a live inventory session." }]} secondary={[{ disabled: true, label: "Print return note", reason: "Return-note printing is pending document workflow enablement." }]} testId="material-return-action-bar" /></>} description="Return unused production material to stock or bin with lot and catch-weight context retained." filters={<FilterBar><input aria-label="Search material returns" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search return, work order, item, bin" value={search} /><select aria-label="Material return status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Returned">Returned</option><option value="Draft">Draft</option></select></FilterBar>} title="Material Return from WO">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Prepare return draft", onClick: live ? () => { setMessage(null); setDraft(buildStockPostingWorkspace("return", linkedSource.sourceDocumentType, linkedSource.sourceDocumentId)); } : undefined, reason: live ? undefined : "Material return drafting requires a live inventory session." }]} secondary={[{ disabled: true, label: "Print return note", reason: "Return-note printing is pending document workflow enablement." }]} testId="material-return-action-bar" /></>} description="Return unused production material to stock or bin with lot and catch-weight context retained." filters={<FilterBar><input aria-label="Search material returns" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search return, work order, item, bin" value={search} /><select aria-label="Material return status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Returned">Returned</option><option value="Draft">Draft</option></select></FilterBar>} title="Material Return from WO">
       <KpiStrip items={[{ label: "Returns", value: String(records.length) }, { label: "Quantity", value: String(records.reduce((total, record) => total + record.quantity, 0)) }, { label: "WO-linked", value: String(records.filter((record) => record.sourceDocument.includes("WO")).length) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
         {message ? <Badge tone={message.startsWith("Posted") ? "success" : "danger"}>{message}</Badge> : null}
         <Card title="Material return workbench" description="Existing return records are review-only; new return drafts post through the controlled stock ledger.">
           <DataGrid ariaLabel="Material return list" columns={returnColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.transactionNo} material return`} />
         </Card>
       </ListPageShell>
-      <ErpModalWorkspace description="Posted material return detail is review-only; use Prepare return draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save return draft", reason: "Posted return records cannot be changed; create a new return draft for additional movement." }]} secondary={[{ disabled: true, label: "Post return", reason: "This return is already posted or loaded as a read-only ledger movement." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?source=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material return"}>
+      <ErpModalWorkspace description="Posted material return detail is review-only; use Prepare return draft for new ledger postings." footer={<ErpActionBar primary={[{ disabled: true, label: "Save return draft", reason: "Posted return records cannot be changed; create a new return draft for additional movement." }]} secondary={[{ disabled: true, label: "Post return", reason: "This return is already posted or loaded as a read-only ledger movement." }, { label: "Open source", onClick: () => navigate(`/production/work-orders?workOrder=${encodeURIComponent(selected?.sourceDocument ?? "")}`) }]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} title={selected?.transactionNo ?? "Material return"}>
         {selected ? <FormShell initialFingerprint={selected.id} title="Material return controls"><ErpLookupField disabled disabledReason="Source document is controlled by work-order and job-card release." label="Source" onChange={() => undefined} options={[{ label: selected.sourceDocument, value: selected.sourceDocument }]} value={selected.sourceDocument} /><ErpLookupField disabled disabledReason="Return location is controlled by warehouse and bin master." label="Return location" onChange={() => undefined} options={[{ label: selected.toLocation, value: selected.toLocation }]} value={selected.toLocation} /><ErpNumberField disabled disabledReason="Returned quantity is controlled by inventory posting." label="Return quantity" onChange={() => undefined} value={selected.quantity} /><ErpLookupField disabled disabledReason="Return reason is controlled by reason-code master." label="Return reason" onChange={() => undefined} options={[{ label: selected.returnReason, value: selected.returnReason }]} value={selected.returnReason} /></FormShell> : null}
       </ErpModalWorkspace>
       <StockPostingModal binOptions={binOptions} isLive={live} isPosting={postReturn.isPending} itemOptions={itemOptions} onPost={() => draft && postReturn.mutate(buildReturnRequest(draft, companyId, branchId))} postLabel="Post return" postReason={postReason} setWorkspace={setDraft} validationErrors={validationErrors} warehouseOptions={warehouseOptions} workspace={draft} />
