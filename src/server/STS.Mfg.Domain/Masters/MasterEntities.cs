@@ -1136,6 +1136,17 @@ public sealed class CustomerPartnerProfile : AuditableEntity, ICompanyScoped
     public decimal? CreditLimitAmount { get; private set; }
     public string? CreditHoldRule { get; private set; }
     public string? PaymentTermsCode { get; private set; }
+    public long? DefaultSalesOwnerUserId { get; private set; }
+    public string? DefaultSalesOwnerName { get; private set; }
+    public long? DefaultSalesTeamId { get; private set; }
+    public long? DefaultTerritoryId { get; private set; }
+    public long? DefaultPriceListId { get; private set; }
+    public long? DefaultDiscountSchemeId { get; private set; }
+    public long? DefaultPaymentTermsId { get; private set; }
+    public long? DefaultTaxCategoryId { get; private set; }
+    public string? DefaultTaxTreatment { get; private set; }
+    public long? DefaultCurrencyId { get; private set; }
+    public long? DefaultTradeTermsId { get; private set; }
     public string? CommercialSegment { get; private set; }
     public string? OrderReleaseControl { get; private set; }
     public string? DispatchPreference { get; private set; }
@@ -1151,6 +1162,35 @@ public sealed class CustomerPartnerProfile : AuditableEntity, ICompanyScoped
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
+    }
+
+    public void UpdateCommercialDefaults(
+        long? defaultSalesOwnerUserId,
+        string? defaultSalesOwnerName,
+        long? defaultSalesTeamId,
+        long? defaultTerritoryId,
+        long? defaultPriceListId,
+        long? defaultDiscountSchemeId,
+        long? defaultPaymentTermsId,
+        long? defaultTaxCategoryId,
+        string? defaultTaxTreatment,
+        long? defaultCurrencyId,
+        long? defaultTradeTermsId,
+        long? userId)
+    {
+        DefaultSalesOwnerUserId = defaultSalesOwnerUserId;
+        DefaultSalesOwnerName = Clean(defaultSalesOwnerName);
+        DefaultSalesTeamId = defaultSalesTeamId;
+        DefaultTerritoryId = defaultTerritoryId;
+        DefaultPriceListId = defaultPriceListId;
+        DefaultDiscountSchemeId = defaultDiscountSchemeId;
+        DefaultPaymentTermsId = defaultPaymentTermsId;
+        DefaultTaxCategoryId = defaultTaxCategoryId;
+        DefaultTaxTreatment = Clean(defaultTaxTreatment);
+        DefaultCurrencyId = defaultCurrencyId;
+        DefaultTradeTermsId = defaultTradeTermsId;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
     }
 
     public void Update(string? legalName, string? taxCategory, string? currencyCode, string? creditStatus, decimal? creditLimitAmount, string? creditHoldRule, string? paymentTermsCode, string? commercialSegment, string? orderReleaseControl, string? dispatchPreference, string? dispatchInstruction, bool catalogVisible, string? catalogSegment, string status, long? userId)

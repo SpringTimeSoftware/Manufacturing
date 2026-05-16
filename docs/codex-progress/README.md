@@ -80,6 +80,8 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - `QUALITY-GATES-01` completed on 2026-05-13 to add ERP completion audit scripts and focused tests that now fail on real transaction-line, governed-field, and numeric-field gaps instead of allowing incomplete screens to be marked complete.
 - `ERP-COMPLETION-PACKS-V1-RUNNER-01` completed on 2026-05-14 to execute the Item/Product, Customer/Dealer/Distributor, Supplier/Vendor, and Quote/Sales Order/Forecast/ATP completion packs with validation, screenshots, and review-pack evidence.
 - `PRODUCTION-SHOP-FLOOR-COMPLETION-01` completed on 2026-05-15 to execute the Production / Shop Floor / Work Order / Job Card completion pack, retrofit production source handoffs, disable traveler print truthfully, update workbook evidence, and pass validation.
+- `COMMERCIAL-DOCUMENT-CONTRACT-HARDENING-01` completed on 2026-05-16 to harden Quote/Sales Order commercial contracts, add server-side price/discount/tax calculation, persist release snapshots, and implement exact Quote-to-Sales-Order conversion.
+- `CUSTOMER-COMMERCIAL-ASSIGNMENT-SALES-TERRITORY-OWNER-02` completed on 2026-05-16 to add governed customer commercial defaults, sales owner/team/territory assignment foundation, server-side Quote/Sales Order default resolution, and regression coverage preserving exact Quote-to-Sales-Order conversion.
 
 ## Prompt Log
 

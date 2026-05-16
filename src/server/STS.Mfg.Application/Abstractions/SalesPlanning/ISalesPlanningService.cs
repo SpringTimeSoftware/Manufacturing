@@ -9,6 +9,9 @@ public interface ISalesPlanningService
     Task<QuoteDto> GetQuoteAsync(long id, CancellationToken cancellationToken = default);
     Task<QuoteDto> CreateQuoteAsync(QuoteUpsertRequest request, CancellationToken cancellationToken = default);
     Task<QuoteDto> UpdateQuoteAsync(long id, QuoteUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<QuoteDto> ReleaseQuoteAsync(long id, CancellationToken cancellationToken = default);
+    Task<QuoteDto> ReopenQuoteAsync(long id, QuoteReopenRequest request, CancellationToken cancellationToken = default);
+    Task<SalesOrderDto> ConvertQuoteToSalesOrderAsync(long id, QuoteConvertRequest request, CancellationToken cancellationToken = default);
 
     Task<PagedResult<SalesOrderDto>> ListSalesOrdersAsync(SalesFilter filter, CancellationToken cancellationToken = default);
     Task<SalesOrderDto> GetSalesOrderAsync(long id, CancellationToken cancellationToken = default);

@@ -32,12 +32,11 @@ describe("CUSTOMER-DEALER-DISTRIBUTOR-MASTER completion pack", () => {
     expect(within(dialog).getByLabelText("Payment terms").tagName).toBe("SELECT");
     expect(within(dialog).getByLabelText("Credit limit")).toHaveAttribute("type", "number");
     expect(within(dialog).getByLabelText("Credit days")).toHaveAttribute("type", "number");
-    expect(within(dialog).getByLabelText("Price list")).toBeDisabled();
-    expect(within(dialog).getByText("Maintain customer price-list assignment from Price Lists.")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Discount scheme")).toBeDisabled();
-    expect(within(dialog).getByText("Maintain customer discount assignment from Discount Schemes.")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Salesperson")).toBeDisabled();
-    expect(within(dialog).getByText("Salesperson assignment requires an approved sales user source.")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Default price list").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Default discount scheme").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Sales owner").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Sales team").tagName).toBe("SELECT");
+    expect(within(dialog).getByLabelText("Sales territory").tagName).toBe("SELECT");
     expect(within(dialog).getByRole("button", { name: "Save Draft" })).toBeDisabled();
     expect(within(dialog).getAllByText("Sign in with partner master write access to save this record.").length).toBeGreaterThan(0);
   });

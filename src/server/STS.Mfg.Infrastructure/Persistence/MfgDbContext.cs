@@ -150,6 +150,10 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<QuoteLine> QuoteLines => Set<QuoteLine>();
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
+    public DbSet<SalesTerritory> SalesTerritories => Set<SalesTerritory>();
+    public DbSet<SalesTeam> SalesTeams => Set<SalesTeam>();
+    public DbSet<SalesTeamMember> SalesTeamMembers => Set<SalesTeamMember>();
+    public DbSet<CustomerSalesAssignment> CustomerSalesAssignments => Set<CustomerSalesAssignment>();
     public DbSet<BlanketOrder> BlanketOrders => Set<BlanketOrder>();
     public DbSet<BlanketOrderSchedule> BlanketOrderSchedules => Set<BlanketOrderSchedule>();
     public DbSet<DemandForecast> DemandForecasts => Set<DemandForecast>();

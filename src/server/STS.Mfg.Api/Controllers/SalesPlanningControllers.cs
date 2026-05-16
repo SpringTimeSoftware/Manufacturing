@@ -46,6 +46,35 @@ public sealed class QuotesController(ISalesPlanningService salesPlanningService)
         var response = await salesPlanningService.UpdateQuoteAsync(id, request, cancellationToken);
         return OkEnvelope(response, "Quote updated.");
     }
+
+    [HttpPost("{id:long}/release")]
+    public async Task<ActionResult<ApiEnvelope<QuoteDto>>> Release(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ReleaseQuoteAsync(id, cancellationToken);
+        return OkEnvelope(response, "Quote released.");
+    }
+
+    [HttpPost("{id:long}/reopen")]
+    public async Task<ActionResult<ApiEnvelope<QuoteDto>>> Reopen(
+        long id,
+        [FromBody] QuoteReopenRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ReopenQuoteAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Quote reopened.");
+    }
+
+    [HttpPost("{id:long}/convert-to-sales-order")]
+    public async Task<ActionResult<ApiEnvelope<SalesOrderDto>>> ConvertToSalesOrder(
+        long id,
+        [FromBody] QuoteConvertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await salesPlanningService.ConvertQuoteToSalesOrderAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Quote converted to sales order.");
+    }
 }
 
 [ApiController]

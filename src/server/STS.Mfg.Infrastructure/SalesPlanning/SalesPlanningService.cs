@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using STS.Mfg.Application.Abstractions.Audit;
+using STS.Mfg.Application.Abstractions.Commercial;
 using STS.Mfg.Application.Abstractions.SalesPlanning;
 using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
+using STS.Mfg.Application.Contracts.Commercial;
 using STS.Mfg.Application.Contracts.SalesPlanning;
 using STS.Mfg.Domain.Masters;
 using STS.Mfg.Domain.Procurement;
@@ -17,7 +19,9 @@ internal sealed class SalesPlanningService(
     MfgDbContext dbContext,
     IDataScopeService dataScopeService,
     ICurrentUserContextAccessor currentUserContextAccessor,
-    IAuditTrail auditTrail)
+    IAuditTrail auditTrail,
+    ICommercialCalculationService commercialCalculationService,
+    ICustomerCommercialDefaultsService customerCommercialDefaultsService)
     : ApplicationServiceBase(dbContext, dataScopeService, currentUserContextAccessor, auditTrail), ISalesPlanningService
 {
     public async Task<PagedResult<QuoteDto>> ListQuotesAsync(SalesFilter filter, CancellationToken cancellationToken = default)
@@ -60,6 +64,10 @@ internal sealed class SalesPlanningService(
         EnsureContextAccess(request.CompanyId, request.BranchId);
         var customerId = await ResolveCustomerIdAsync(request.CompanyId, request.CustomerId, request.CustomerCode, cancellationToken);
         var customerAddressId = await ResolveCustomerAddressIdAsync(request.CompanyId, customerId, request.CustomerAddressId, request.CustomerAddressCode, nameof(request.CustomerAddressCode), cancellationToken);
+        request = await ApplyQuoteCustomerDefaultsAsync(request, customerId, customerAddressId, cancellationToken);
+        var resolvedLines = await ResolveQuoteLinesAsync(request.CompanyId, request.Lines, cancellationToken);
+        await ValidateRevisionReferencesAsync(resolvedLines.Select(line => line.Request), cancellationToken);
+        var calculation = await CalculateQuoteAsync(request, customerId, resolvedLines, cancellationToken);
 
         var entity = Quote.Create(
             request.CompanyId,
@@ -72,6 +80,32 @@ internal sealed class SalesPlanningService(
             request.PriorityCode,
             request.Status,
             Normalize(request.CustomerSpecRef),
+            request.SalesOwnerUserId,
+            Normalize(request.SalesOwnerName),
+            Normalize(request.InternalRemarks),
+            Normalize(request.CustomerFacingRemarks),
+            Normalize(request.PrintRemarks),
+            request.PaymentTermsId,
+            request.PriceListId,
+            request.DiscountSchemeId,
+            request.TaxCategoryId,
+            Normalize(request.TaxTreatment),
+            calculation.CurrencyId,
+            calculation.ExchangeRateId,
+            calculation.ExchangeRateSnapshot,
+            request.TradeTermsId,
+            request.FreightAmount,
+            request.PackingAmount,
+            request.InsuranceAmount,
+            request.OtherChargesAmount,
+            request.AddLessAmount,
+            request.RoundOffAmount,
+            calculation.SubtotalAmount,
+            calculation.DiscountTotalAmount,
+            calculation.TaxableAmount,
+            calculation.TaxTotalAmount,
+            calculation.GrandTotalAmount,
+            request.CommercialStatus ?? request.Status,
             GetUserId());
 
         DbContext.Quotes.Add(entity);
@@ -80,25 +114,45 @@ internal sealed class SalesPlanningService(
         if (request.Lines.Count > 0)
         {
             var lines = new List<QuoteLine>();
-            foreach (var line in request.Lines.OrderBy(record => record.LineNo))
+            var calculatedByLine = calculation.Lines.ToDictionary(line => line.LineNo);
+            foreach (var resolved in resolvedLines.OrderBy(record => record.Request.LineNo))
             {
-                var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-                var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
+                var line = resolved.Request;
+                var calculated = calculatedByLine[line.LineNo];
                 lines.Add(QuoteLine.Create(
                     entity.Id,
                     line.LineNo,
-                    itemId,
-                    itemVariantId,
+                    resolved.ItemId,
+                    resolved.ItemVariantId,
                     line.OrderUomId,
                     line.Quantity,
-                    line.UnitPrice,
-                    line.DiscountPercent,
-                    line.TaxPercent,
+                    calculated.UnitPrice,
+                    calculated.DiscountPercent,
+                    calculated.DiscountAmount,
+                    calculated.TaxRateSnapshot,
+                    calculated.TaxAmount,
+                    calculated.LineTotalAmount,
                     line.MakeType,
                     line.PromisedDate,
                     line.PriorityCode,
                     Normalize(line.CustomerSpecRef),
                     line.Status,
+                    line.ItemRevisionId,
+                    line.EngineeringDocumentRevisionId,
+                    line.BomRevisionId,
+                    line.RoutingId,
+                    calculated.PriceSourceType,
+                    calculated.PriceListLineId,
+                    calculated.DiscountSchemeId,
+                    calculated.DiscountRuleId,
+                    calculated.TaxCodeId,
+                    calculated.TaxRateSnapshot,
+                    calculated.LineSubtotal,
+                    calculated.LineTaxableAmount,
+                    calculated.LineTotalAmount,
+                    Normalize(line.LineInternalRemarks),
+                    Normalize(line.LineCustomerFacingRemarks),
+                    calculated.OverrideReason,
                     GetUserId()));
             }
 
@@ -120,8 +174,17 @@ internal sealed class SalesPlanningService(
             .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
 
         entity = EnsureFound(entity, "Quote was not found in the active scope.", "sales.quote_not_found");
+        ThrowIfInvalid(
+            entity.CommercialStatus.Equals("Released", StringComparison.OrdinalIgnoreCase) ||
+            entity.CommercialStatus.Equals("Converted", StringComparison.OrdinalIgnoreCase)
+                ? new ApiError("validation.invalid_state", nameof(entity.CommercialStatus), "Released or converted quotes cannot be edited directly. Reopen the quote with audit before changing the commercial snapshot.")
+                : null);
         var customerId = await ResolveCustomerIdAsync(request.CompanyId, request.CustomerId, request.CustomerCode, cancellationToken);
         var customerAddressId = await ResolveCustomerAddressIdAsync(request.CompanyId, customerId, request.CustomerAddressId, request.CustomerAddressCode, nameof(request.CustomerAddressCode), cancellationToken);
+        request = await ApplyQuoteCustomerDefaultsAsync(request, customerId, customerAddressId, cancellationToken);
+        var resolvedLines = await ResolveQuoteLinesAsync(request.CompanyId, request.Lines, cancellationToken);
+        await ValidateRevisionReferencesAsync(resolvedLines.Select(line => line.Request), cancellationToken);
+        var calculation = await CalculateQuoteAsync(request, customerId, resolvedLines, cancellationToken);
         ThrowIfInvalid(
             Immutable(entity.CompanyId ?? 0, request.CompanyId, nameof(request.CompanyId), "Quote company cannot be changed."),
             Immutable(entity.BranchId ?? 0, request.BranchId, nameof(request.BranchId), "Quote branch cannot be changed."),
@@ -129,32 +192,85 @@ internal sealed class SalesPlanningService(
             Immutable(entity.CustomerAddressId, customerAddressId, nameof(request.CustomerAddressId), "Quote address cannot be changed."));
 
         var before = await GetQuoteAsync(id, cancellationToken);
-        entity.Update(request.QuoteNo, request.QuoteDate, request.ExpiryDate, request.PriorityCode, request.Status, Normalize(request.CustomerSpecRef), GetUserId());
+        entity.Update(
+            request.QuoteNo,
+            request.QuoteDate,
+            request.ExpiryDate,
+            request.PriorityCode,
+            request.Status,
+            Normalize(request.CustomerSpecRef),
+            request.SalesOwnerUserId,
+            Normalize(request.SalesOwnerName),
+            Normalize(request.InternalRemarks),
+            Normalize(request.CustomerFacingRemarks),
+            Normalize(request.PrintRemarks),
+            request.PaymentTermsId,
+            request.PriceListId,
+            request.DiscountSchemeId,
+            request.TaxCategoryId,
+            Normalize(request.TaxTreatment),
+            calculation.CurrencyId,
+            calculation.ExchangeRateId,
+            calculation.ExchangeRateSnapshot,
+            request.TradeTermsId,
+            request.FreightAmount,
+            request.PackingAmount,
+            request.InsuranceAmount,
+            request.OtherChargesAmount,
+            request.AddLessAmount,
+            request.RoundOffAmount,
+            calculation.SubtotalAmount,
+            calculation.DiscountTotalAmount,
+            calculation.TaxableAmount,
+            calculation.TaxTotalAmount,
+            calculation.GrandTotalAmount,
+            request.CommercialStatus ?? request.Status,
+            GetUserId());
 
         var existingLines = await DbContext.QuoteLines.Where(record => record.QuoteId == id).ToListAsync(cancellationToken);
         DbContext.QuoteLines.RemoveRange(existingLines);
         if (request.Lines.Count > 0)
         {
             var lines = new List<QuoteLine>();
-            foreach (var line in request.Lines.OrderBy(record => record.LineNo))
+            var calculatedByLine = calculation.Lines.ToDictionary(line => line.LineNo);
+            foreach (var resolved in resolvedLines.OrderBy(record => record.Request.LineNo))
             {
-                var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-                var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
+                var line = resolved.Request;
+                var calculated = calculatedByLine[line.LineNo];
                 lines.Add(QuoteLine.Create(
                     entity.Id,
                     line.LineNo,
-                    itemId,
-                    itemVariantId,
+                    resolved.ItemId,
+                    resolved.ItemVariantId,
                     line.OrderUomId,
                     line.Quantity,
-                    line.UnitPrice,
-                    line.DiscountPercent,
-                    line.TaxPercent,
+                    calculated.UnitPrice,
+                    calculated.DiscountPercent,
+                    calculated.DiscountAmount,
+                    calculated.TaxRateSnapshot,
+                    calculated.TaxAmount,
+                    calculated.LineTotalAmount,
                     line.MakeType,
                     line.PromisedDate,
                     line.PriorityCode,
                     Normalize(line.CustomerSpecRef),
                     line.Status,
+                    line.ItemRevisionId,
+                    line.EngineeringDocumentRevisionId,
+                    line.BomRevisionId,
+                    line.RoutingId,
+                    calculated.PriceSourceType,
+                    calculated.PriceListLineId,
+                    calculated.DiscountSchemeId,
+                    calculated.DiscountRuleId,
+                    calculated.TaxCodeId,
+                    calculated.TaxRateSnapshot,
+                    calculated.LineSubtotal,
+                    calculated.LineTaxableAmount,
+                    calculated.LineTotalAmount,
+                    Normalize(line.LineInternalRemarks),
+                    Normalize(line.LineCustomerFacingRemarks),
+                    calculated.OverrideReason,
                     GetUserId()));
             }
 
@@ -166,6 +282,175 @@ internal sealed class SalesPlanningService(
         var after = await GetQuoteAsync(id, cancellationToken);
         await WriteAuditAsync("sales", nameof(Quote), "quote.update", entity.Id, before, after, cancellationToken);
         return after;
+    }
+
+    public async Task<QuoteDto> ReleaseQuoteAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var entity = await DbContext.Quotes.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "Quote was not found in the active scope.", "sales.quote_not_found");
+        ThrowIfInvalid(
+            entity.CommercialStatus.Equals("Converted", StringComparison.OrdinalIgnoreCase)
+                ? new ApiError("validation.invalid_state", nameof(entity.CommercialStatus), "Converted quotes cannot be released again.")
+                : null,
+            entity.CommercialStatus.Equals("Released", StringComparison.OrdinalIgnoreCase)
+                ? new ApiError("validation.invalid_state", nameof(entity.CommercialStatus), "Quote is already released.")
+                : null);
+
+        var lines = await DbContext.QuoteLines.Where(record => record.QuoteId == id).OrderBy(record => record.LineNo).ToListAsync(cancellationToken);
+        ThrowIfInvalid(lines.Count == 0 ? new ApiError("validation.required", nameof(QuoteLine), "At least one quote line is required before release.") : null);
+
+        var before = await GetQuoteAsync(id, cancellationToken);
+        var calculation = await CalculateQuoteEntityAsync(entity, lines, cancellationToken);
+        ApplyQuoteCalculation(entity, lines, calculation);
+        entity.MarkReleased(GetUserId());
+
+        await DbContext.SaveChangesAsync(cancellationToken);
+        var after = await GetQuoteAsync(id, cancellationToken);
+        await WriteAuditAsync("sales", nameof(Quote), "quote.release", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+    public async Task<QuoteDto> ReopenQuoteAsync(long id, QuoteReopenRequest request, CancellationToken cancellationToken = default)
+    {
+        ThrowIfInvalid(Required(request.Reason, nameof(request.Reason), "Reopen reason is required."));
+        var scope = GetScope();
+        var entity = await DbContext.Quotes.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "Quote was not found in the active scope.", "sales.quote_not_found");
+        ThrowIfInvalid(
+            entity.CommercialStatus.Equals("Converted", StringComparison.OrdinalIgnoreCase)
+                ? new ApiError("validation.invalid_state", nameof(entity.CommercialStatus), "Converted quotes cannot be reopened.")
+                : null,
+            !entity.CommercialStatus.Equals("Released", StringComparison.OrdinalIgnoreCase)
+                ? new ApiError("validation.invalid_state", nameof(entity.CommercialStatus), "Only released quotes can be reopened.")
+                : null);
+
+        var before = await GetQuoteAsync(id, cancellationToken);
+        entity.Reopen(GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+        var after = await GetQuoteAsync(id, cancellationToken);
+        await WriteAuditAsync("sales", nameof(Quote), "quote.reopen", entity.Id, before, new { after, request.Reason }, cancellationToken);
+        return after;
+    }
+
+    public async Task<SalesOrderDto> ConvertQuoteToSalesOrderAsync(long id, QuoteConvertRequest request, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        await using var transaction = await DbContext.Database.BeginTransactionAsync(cancellationToken);
+        var quote = await DbContext.Quotes.ApplyActiveOrganizationScope(scope)
+            .FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        quote = EnsureFound(quote, "Quote was not found in the active scope.", "sales.quote_not_found");
+        ThrowIfInvalid(
+            quote.CommercialStatus.Equals("Released", StringComparison.OrdinalIgnoreCase)
+                ? null
+                : new ApiError("validation.invalid_state", nameof(quote.CommercialStatus), "Only released quotes can be converted to a sales order."),
+            quote.ConvertedAt.HasValue
+                ? new ApiError("validation.invalid_state", nameof(quote.ConvertedAt), "Quote has already been converted.")
+                : null);
+
+        var quoteLines = await DbContext.QuoteLines.AsNoTracking()
+            .Where(record => record.QuoteId == id)
+            .OrderBy(record => record.LineNo)
+            .ToListAsync(cancellationToken);
+        ThrowIfInvalid(quoteLines.Count == 0 ? new ApiError("validation.required", nameof(QuoteLine), "At least one quote line is required before conversion.") : null);
+
+        var before = await GetQuoteAsync(id, cancellationToken);
+        var salesOrderNo = string.IsNullOrWhiteSpace(request.SalesOrderNo)
+            ? $"SO-{quote.QuoteNo}-{DateTimeOffset.UtcNow:HHmmss}"
+            : request.SalesOrderNo.Trim();
+        var salesOrder = SalesOrder.Create(
+            quote.CompanyId ?? 0,
+            quote.BranchId ?? 0,
+            salesOrderNo,
+            quote.CustomerId,
+            request.BillToAddressId ?? quote.CustomerAddressId,
+            request.ShipToAddressId ?? quote.CustomerAddressId,
+            request.OrderDate ?? quote.QuoteDate,
+            request.PromisedDate,
+            quote.PriorityCode,
+            "Released",
+            quote.Id,
+            quote.RevisionNo,
+            quote.RevisionNo,
+            quote.SalesOwnerUserId,
+            quote.SalesOwnerName,
+            quote.InternalRemarks,
+            quote.CustomerFacingRemarks,
+            quote.PrintRemarks,
+            quote.PaymentTermsId,
+            quote.PriceListId,
+            quote.DiscountSchemeId,
+            quote.TaxCategoryId,
+            quote.TaxTreatment,
+            quote.CurrencyId,
+            quote.ExchangeRateId,
+            quote.ExchangeRateSnapshot,
+            quote.TradeTermsId,
+            quote.FreightAmount,
+            quote.PackingAmount,
+            quote.InsuranceAmount,
+            quote.OtherChargesAmount,
+            quote.AddLessAmount,
+            quote.RoundOffAmount,
+            quote.SubtotalAmount,
+            quote.DiscountTotalAmount,
+            quote.TaxableAmount,
+            quote.TaxTotalAmount,
+            quote.GrandTotalAmount,
+            "Released",
+            DateTimeOffset.UtcNow,
+            GetUserId(),
+            GetUserId());
+
+        DbContext.SalesOrders.Add(salesOrder);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        DbContext.SalesOrderLines.AddRange(quoteLines.Select(line => SalesOrderLine.Create(
+            salesOrder.Id,
+            line.LineNo,
+            line.ItemId,
+            line.ItemVariantId,
+            line.OrderUomId,
+            line.Quantity,
+            line.MakeType,
+            line.PromisedDate,
+            line.PriorityCode,
+            line.CustomerSpecRef,
+            line.PromisedDate,
+            "Released",
+            line.ItemRevisionId,
+            line.EngineeringDocumentRevisionId,
+            line.BomRevisionId,
+            line.RoutingId,
+            line.UnitPrice,
+            line.PriceSourceType,
+            line.PriceListLineId,
+            line.DiscountSchemeId,
+            line.DiscountRuleId,
+            line.DiscountPercent,
+            line.DiscountAmount,
+            line.TaxCodeId,
+            line.TaxRateSnapshot,
+            line.TaxAmount,
+            line.LineSubtotal,
+            line.LineTaxableAmount,
+            line.LineTotalAmount,
+            line.LineInternalRemarks,
+            line.LineCustomerFacingRemarks,
+            line.OverrideReason,
+            GetUserId())));
+
+        quote.MarkConverted(GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        var after = await GetQuoteAsync(id, cancellationToken);
+        var orderDto = await GetSalesOrderAsync(salesOrder.Id, cancellationToken);
+        await WriteAuditAsync("sales", nameof(Quote), "quote.convert.salesorder", quote.Id, before, after, cancellationToken);
+        await WriteAuditAsync("sales", nameof(SalesOrder), "salesorder.create.from_quote", salesOrder.Id, null, orderDto, cancellationToken);
+        return orderDto;
     }
 
     public async Task<PagedResult<SalesOrderDto>> ListSalesOrdersAsync(SalesFilter filter, CancellationToken cancellationToken = default)
@@ -209,6 +494,10 @@ internal sealed class SalesPlanningService(
         var customerId = await ResolveCustomerIdAsync(request.CompanyId, request.CustomerId, request.CustomerCode, cancellationToken);
         var billToAddressId = await ResolveCustomerAddressIdAsync(request.CompanyId, customerId, request.BillToAddressId, request.BillToAddressCode, nameof(request.BillToAddressCode), cancellationToken);
         var shipToAddressId = await ResolveCustomerAddressIdAsync(request.CompanyId, customerId, request.ShipToAddressId, request.ShipToAddressCode, nameof(request.ShipToAddressCode), cancellationToken);
+        request = await ApplySalesOrderCustomerDefaultsAsync(request, customerId, billToAddressId, cancellationToken);
+        var resolvedLines = await ResolveSalesOrderLinesAsync(request.CompanyId, request.Lines, cancellationToken);
+        await ValidateRevisionReferencesAsync(resolvedLines.Select(line => line.Request), cancellationToken);
+        var calculation = await CalculateSalesOrderAsync(request, customerId, resolvedLines, cancellationToken);
 
         var entity = SalesOrder.Create(
             request.CompanyId,
@@ -222,6 +511,36 @@ internal sealed class SalesPlanningService(
             request.PriorityCode,
             request.Status,
             request.SourceQuoteId,
+            request.SourceQuoteRevisionNo,
+            request.SourceQuoteVersionNo,
+            request.SalesOwnerUserId,
+            Normalize(request.SalesOwnerName),
+            Normalize(request.InternalRemarks),
+            Normalize(request.CustomerFacingRemarks),
+            Normalize(request.PrintRemarks),
+            request.PaymentTermsId,
+            request.PriceListId,
+            request.DiscountSchemeId,
+            request.TaxCategoryId,
+            Normalize(request.TaxTreatment),
+            calculation.CurrencyId,
+            calculation.ExchangeRateId,
+            calculation.ExchangeRateSnapshot,
+            request.TradeTermsId,
+            request.FreightAmount,
+            request.PackingAmount,
+            request.InsuranceAmount,
+            request.OtherChargesAmount,
+            request.AddLessAmount,
+            request.RoundOffAmount,
+            calculation.SubtotalAmount,
+            calculation.DiscountTotalAmount,
+            calculation.TaxableAmount,
+            calculation.TaxTotalAmount,
+            calculation.GrandTotalAmount,
+            request.CommercialStatus ?? request.Status,
+            request.Status.Equals("Released", StringComparison.OrdinalIgnoreCase) ? DateTimeOffset.UtcNow : null,
+            request.Status.Equals("Released", StringComparison.OrdinalIgnoreCase) ? GetUserId() : null,
             GetUserId());
 
         DbContext.SalesOrders.Add(entity);
@@ -230,15 +549,16 @@ internal sealed class SalesPlanningService(
         if (request.Lines.Count > 0)
         {
             var lines = new List<SalesOrderLine>();
-            foreach (var line in request.Lines.OrderBy(record => record.LineNo))
+            var calculatedByLine = calculation.Lines.ToDictionary(line => line.LineNo);
+            foreach (var resolved in resolvedLines.OrderBy(record => record.Request.LineNo))
             {
-                var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-                var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
+                var line = resolved.Request;
+                var calculated = calculatedByLine[line.LineNo];
                 lines.Add(SalesOrderLine.Create(
                     entity.Id,
                     line.LineNo,
-                    itemId,
-                    itemVariantId,
+                    resolved.ItemId,
+                    resolved.ItemVariantId,
                     line.OrderUomId,
                     line.Quantity,
                     line.MakeType,
@@ -247,6 +567,26 @@ internal sealed class SalesPlanningService(
                     Normalize(line.CustomerSpecRef),
                     line.RequestedShipDate,
                     line.Status,
+                    line.ItemRevisionId,
+                    line.EngineeringDocumentRevisionId,
+                    line.BomRevisionId,
+                    line.RoutingId,
+                    calculated.UnitPrice,
+                    calculated.PriceSourceType,
+                    calculated.PriceListLineId,
+                    calculated.DiscountSchemeId,
+                    calculated.DiscountRuleId,
+                    calculated.DiscountPercent,
+                    calculated.DiscountAmount,
+                    calculated.TaxCodeId,
+                    calculated.TaxRateSnapshot,
+                    calculated.TaxAmount,
+                    calculated.LineSubtotal,
+                    calculated.LineTaxableAmount,
+                    calculated.LineTotalAmount,
+                    Normalize(line.LineInternalRemarks),
+                    Normalize(line.LineCustomerFacingRemarks),
+                    calculated.OverrideReason,
                     GetUserId()));
             }
 
@@ -271,6 +611,10 @@ internal sealed class SalesPlanningService(
         var customerId = await ResolveCustomerIdAsync(request.CompanyId, request.CustomerId, request.CustomerCode, cancellationToken);
         var billToAddressId = await ResolveCustomerAddressIdAsync(request.CompanyId, customerId, request.BillToAddressId, request.BillToAddressCode, nameof(request.BillToAddressCode), cancellationToken);
         var shipToAddressId = await ResolveCustomerAddressIdAsync(request.CompanyId, customerId, request.ShipToAddressId, request.ShipToAddressCode, nameof(request.ShipToAddressCode), cancellationToken);
+        request = await ApplySalesOrderCustomerDefaultsAsync(request, customerId, billToAddressId, cancellationToken);
+        var resolvedLines = await ResolveSalesOrderLinesAsync(request.CompanyId, request.Lines, cancellationToken);
+        await ValidateRevisionReferencesAsync(resolvedLines.Select(line => line.Request), cancellationToken);
+        var calculation = await CalculateSalesOrderAsync(request, customerId, resolvedLines, cancellationToken);
         ThrowIfInvalid(
             Immutable(entity.CompanyId ?? 0, request.CompanyId, nameof(request.CompanyId), "Sales-order company cannot be changed."),
             Immutable(entity.BranchId ?? 0, request.BranchId, nameof(request.BranchId), "Sales-order branch cannot be changed."),
@@ -280,22 +624,57 @@ internal sealed class SalesPlanningService(
             Immutable(entity.SourceQuoteId, request.SourceQuoteId, nameof(request.SourceQuoteId), "Source quote cannot be changed."));
 
         var before = await GetSalesOrderAsync(id, cancellationToken);
-        entity.Update(request.SalesOrderNo, request.OrderDate, request.PromisedDate, request.PriorityCode, request.Status, GetUserId());
+        entity.Update(
+            request.SalesOrderNo,
+            request.OrderDate,
+            request.PromisedDate,
+            request.PriorityCode,
+            request.Status,
+            request.SalesOwnerUserId,
+            Normalize(request.SalesOwnerName),
+            Normalize(request.InternalRemarks),
+            Normalize(request.CustomerFacingRemarks),
+            Normalize(request.PrintRemarks),
+            request.PaymentTermsId,
+            request.PriceListId,
+            request.DiscountSchemeId,
+            request.TaxCategoryId,
+            Normalize(request.TaxTreatment),
+            calculation.CurrencyId,
+            calculation.ExchangeRateId,
+            calculation.ExchangeRateSnapshot,
+            request.TradeTermsId,
+            request.FreightAmount,
+            request.PackingAmount,
+            request.InsuranceAmount,
+            request.OtherChargesAmount,
+            request.AddLessAmount,
+            request.RoundOffAmount,
+            calculation.SubtotalAmount,
+            calculation.DiscountTotalAmount,
+            calculation.TaxableAmount,
+            calculation.TaxTotalAmount,
+            calculation.GrandTotalAmount,
+            request.CommercialStatus ?? request.Status,
+            entity.ReleasedAt,
+            entity.ReleasedByUserId,
+            GetUserId());
 
         var existingLines = await DbContext.SalesOrderLines.Where(record => record.SalesOrderId == id).ToListAsync(cancellationToken);
         DbContext.SalesOrderLines.RemoveRange(existingLines);
         if (request.Lines.Count > 0)
         {
             var lines = new List<SalesOrderLine>();
-            foreach (var line in request.Lines.OrderBy(record => record.LineNo))
+            var calculatedByLine = calculation.Lines.ToDictionary(line => line.LineNo);
+            foreach (var resolved in resolvedLines.OrderBy(record => record.Request.LineNo))
             {
-                var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-                var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
+                var line = resolved.Request;
+                var calculated = calculatedByLine[line.LineNo];
                 lines.Add(SalesOrderLine.Create(
                     entity.Id,
                     line.LineNo,
-                    itemId,
-                    itemVariantId,
+                    resolved.ItemId,
+                    resolved.ItemVariantId,
                     line.OrderUomId,
                     line.Quantity,
                     line.MakeType,
@@ -304,6 +683,26 @@ internal sealed class SalesPlanningService(
                     Normalize(line.CustomerSpecRef),
                     line.RequestedShipDate,
                     line.Status,
+                    line.ItemRevisionId,
+                    line.EngineeringDocumentRevisionId,
+                    line.BomRevisionId,
+                    line.RoutingId,
+                    calculated.UnitPrice,
+                    calculated.PriceSourceType,
+                    calculated.PriceListLineId,
+                    calculated.DiscountSchemeId,
+                    calculated.DiscountRuleId,
+                    calculated.DiscountPercent,
+                    calculated.DiscountAmount,
+                    calculated.TaxCodeId,
+                    calculated.TaxRateSnapshot,
+                    calculated.TaxAmount,
+                    calculated.LineSubtotal,
+                    calculated.LineTaxableAmount,
+                    calculated.LineTotalAmount,
+                    Normalize(line.LineInternalRemarks),
+                    Normalize(line.LineCustomerFacingRemarks),
+                    calculated.OverrideReason,
                     GetUserId()));
             }
 
@@ -1552,6 +1951,337 @@ internal sealed class SalesPlanningService(
         return query;
     }
 
+    private async Task<ResolvedQuoteLine[]> ResolveQuoteLinesAsync(long companyId, IReadOnlyCollection<QuoteLineUpsertRequest> lines, CancellationToken cancellationToken)
+    {
+        var resolved = new List<ResolvedQuoteLine>();
+        foreach (var line in lines.OrderBy(record => record.LineNo))
+        {
+            var itemId = await ResolveItemIdAsync(companyId, line.ItemId, line.ItemCode, cancellationToken);
+            var itemVariantId = await ResolveItemVariantIdAsync(companyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
+            resolved.Add(new ResolvedQuoteLine(line, itemId, itemVariantId));
+        }
+
+        return resolved.ToArray();
+    }
+
+    private async Task<ResolvedSalesOrderLine[]> ResolveSalesOrderLinesAsync(long companyId, IReadOnlyCollection<SalesOrderLineUpsertRequest> lines, CancellationToken cancellationToken)
+    {
+        var resolved = new List<ResolvedSalesOrderLine>();
+        foreach (var line in lines.OrderBy(record => record.LineNo))
+        {
+            var itemId = await ResolveItemIdAsync(companyId, line.ItemId, line.ItemCode, cancellationToken);
+            var itemVariantId = await ResolveItemVariantIdAsync(companyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
+            resolved.Add(new ResolvedSalesOrderLine(line, itemId, itemVariantId));
+        }
+
+        return resolved.ToArray();
+    }
+
+    private async Task ValidateRevisionReferencesAsync(IEnumerable<QuoteLineUpsertRequest> lines, CancellationToken cancellationToken)
+    {
+        foreach (var line in lines)
+        {
+            await ValidateRevisionReferenceAsync(line.ItemRevisionId, line.EngineeringDocumentRevisionId, line.BomRevisionId, line.RoutingId, cancellationToken);
+        }
+    }
+
+    private async Task ValidateRevisionReferencesAsync(IEnumerable<SalesOrderLineUpsertRequest> lines, CancellationToken cancellationToken)
+    {
+        foreach (var line in lines)
+        {
+            await ValidateRevisionReferenceAsync(line.ItemRevisionId, line.EngineeringDocumentRevisionId, line.BomRevisionId, line.RoutingId, cancellationToken);
+        }
+    }
+
+    private async Task ValidateRevisionReferenceAsync(long? itemRevisionId, long? engineeringDocumentRevisionId, long? bomRevisionId, long? routingId, CancellationToken cancellationToken)
+    {
+        ThrowIfInvalid(
+            itemRevisionId.HasValue ? new ApiError("validation.unsupported_revision", nameof(itemRevisionId), "Item revision references are not enabled in Item Master yet; do not silently use the latest revision.") : null,
+            engineeringDocumentRevisionId.HasValue ? new ApiError("validation.unsupported_revision", nameof(engineeringDocumentRevisionId), "Engineering document revision references are not enabled for sales documents yet; do not silently use the latest revision.") : null);
+
+        if (bomRevisionId.HasValue)
+        {
+            var bomRevision = await DbContext.BomRevisions.AsNoTracking().FirstOrDefaultAsync(record => record.Id == bomRevisionId.Value, cancellationToken);
+            ThrowIfInvalid(
+                bomRevision is null ? new ApiError("validation.lookup", nameof(bomRevisionId), "BOM revision was not found.") : null,
+                bomRevision is not null && !bomRevision.ApprovalStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase)
+                    ? new ApiError("validation.invalid_state", nameof(bomRevisionId), "Only approved BOM revisions can be referenced by quote or sales-order lines.")
+                    : null);
+        }
+
+        if (routingId.HasValue)
+        {
+            var routing = await DbContext.Routings.AsNoTracking().FirstOrDefaultAsync(record => record.Id == routingId.Value, cancellationToken);
+            ThrowIfInvalid(
+                routing is null ? new ApiError("validation.lookup", nameof(routingId), "Routing was not found.") : null,
+                routing is not null && !routing.Status.Equals("Active", StringComparison.OrdinalIgnoreCase)
+                    ? new ApiError("validation.invalid_state", nameof(routingId), "Only active routings can be referenced by quote or sales-order lines.")
+                    : null);
+        }
+    }
+
+    private async Task<QuoteUpsertRequest> ApplyQuoteCustomerDefaultsAsync(
+        QuoteUpsertRequest request,
+        long customerId,
+        long? customerAddressId,
+        CancellationToken cancellationToken)
+    {
+        var defaults = await customerCommercialDefaultsService.ResolveAsync(
+            new CustomerCommercialDefaultsRequest(
+                request.CompanyId,
+                request.BranchId,
+                customerId,
+                customerAddressId,
+                request.QuoteDate,
+                request.SalesOwnerUserId,
+                request.SalesOwnerName,
+                request.PriceListId,
+                request.DiscountSchemeId,
+                request.PaymentTermsId,
+                request.TaxCategoryId,
+                request.TaxTreatment,
+                request.CurrencyId,
+                request.TradeTermsId),
+            cancellationToken);
+
+        return request with
+        {
+            SalesOwnerUserId = defaults.SalesOwner.Value,
+            SalesOwnerName = defaults.SalesOwner.Display ?? request.SalesOwnerName,
+            PriceListId = defaults.PriceList.Value,
+            DiscountSchemeId = defaults.DiscountScheme.Value,
+            PaymentTermsId = defaults.PaymentTerms.Value,
+            TaxCategoryId = defaults.TaxCategory.Value,
+            TaxTreatment = defaults.TaxTreatment.Value,
+            CurrencyId = defaults.Currency.Value,
+            TradeTermsId = defaults.TradeTerms.Value
+        };
+    }
+
+    private async Task<SalesOrderUpsertRequest> ApplySalesOrderCustomerDefaultsAsync(
+        SalesOrderUpsertRequest request,
+        long customerId,
+        long? billToAddressId,
+        CancellationToken cancellationToken)
+    {
+        if (request.SourceQuoteId.HasValue && request.SourceQuoteId.Value > 0)
+        {
+            return request;
+        }
+
+        var defaults = await customerCommercialDefaultsService.ResolveAsync(
+            new CustomerCommercialDefaultsRequest(
+                request.CompanyId,
+                request.BranchId,
+                customerId,
+                billToAddressId,
+                request.OrderDate,
+                request.SalesOwnerUserId,
+                request.SalesOwnerName,
+                request.PriceListId,
+                request.DiscountSchemeId,
+                request.PaymentTermsId,
+                request.TaxCategoryId,
+                request.TaxTreatment,
+                request.CurrencyId,
+                request.TradeTermsId),
+            cancellationToken);
+
+        return request with
+        {
+            SalesOwnerUserId = defaults.SalesOwner.Value,
+            SalesOwnerName = defaults.SalesOwner.Display ?? request.SalesOwnerName,
+            PriceListId = defaults.PriceList.Value,
+            DiscountSchemeId = defaults.DiscountScheme.Value,
+            PaymentTermsId = defaults.PaymentTerms.Value,
+            TaxCategoryId = defaults.TaxCategory.Value,
+            TaxTreatment = defaults.TaxTreatment.Value,
+            CurrencyId = defaults.Currency.Value,
+            TradeTermsId = defaults.TradeTerms.Value
+        };
+    }
+
+    private Task<CommercialDocumentCalculationResult> CalculateQuoteAsync(
+        QuoteUpsertRequest request,
+        long customerId,
+        IReadOnlyCollection<ResolvedQuoteLine> lines,
+        CancellationToken cancellationToken) =>
+        commercialCalculationService.CalculateAsync(
+            new CommercialDocumentCalculationRequest(
+                request.CompanyId,
+                request.BranchId,
+                customerId,
+                request.QuoteDate,
+                request.PriceListId,
+                request.DiscountSchemeId,
+                request.TaxCategoryId,
+                request.TaxTreatment,
+                request.CurrencyId,
+                request.ExchangeRateId,
+                request.ExchangeRateSnapshot,
+                new CommercialChargeInput(request.FreightAmount, request.PackingAmount, request.InsuranceAmount, request.OtherChargesAmount, request.AddLessAmount, request.RoundOffAmount),
+                lines.Select(line => new CommercialLineCalculationRequest(
+                    line.Request.LineNo,
+                    line.ItemId,
+                    line.ItemVariantId,
+                    line.Request.OrderUomId,
+                    line.Request.Quantity,
+                    line.Request.UnitPrice,
+                    line.Request.PriceSourceType,
+                    line.Request.PriceListLineId,
+                    line.Request.DiscountSchemeId ?? request.DiscountSchemeId,
+                    line.Request.DiscountRuleId,
+                    line.Request.DiscountPercent,
+                    line.Request.DiscountAmount,
+                    line.Request.TaxCodeId,
+                    line.Request.TaxRateSnapshot ?? line.Request.TaxPercent,
+                    line.Request.OverrideReason)).ToArray()),
+            cancellationToken);
+
+    private Task<CommercialDocumentCalculationResult> CalculateSalesOrderAsync(
+        SalesOrderUpsertRequest request,
+        long customerId,
+        IReadOnlyCollection<ResolvedSalesOrderLine> lines,
+        CancellationToken cancellationToken) =>
+        commercialCalculationService.CalculateAsync(
+            new CommercialDocumentCalculationRequest(
+                request.CompanyId,
+                request.BranchId,
+                customerId,
+                request.OrderDate,
+                request.PriceListId,
+                request.DiscountSchemeId,
+                request.TaxCategoryId,
+                request.TaxTreatment,
+                request.CurrencyId,
+                request.ExchangeRateId,
+                request.ExchangeRateSnapshot,
+                new CommercialChargeInput(request.FreightAmount, request.PackingAmount, request.InsuranceAmount, request.OtherChargesAmount, request.AddLessAmount, request.RoundOffAmount),
+                lines.Select(line => new CommercialLineCalculationRequest(
+                    line.Request.LineNo,
+                    line.ItemId,
+                    line.ItemVariantId,
+                    line.Request.OrderUomId,
+                    line.Request.Quantity,
+                    line.Request.UnitPrice,
+                    line.Request.PriceSourceType,
+                    line.Request.PriceListLineId,
+                    line.Request.DiscountSchemeId ?? request.DiscountSchemeId,
+                    line.Request.DiscountRuleId,
+                    line.Request.DiscountPercent,
+                    line.Request.DiscountAmount,
+                    line.Request.TaxCodeId,
+                    line.Request.TaxRateSnapshot,
+                    line.Request.OverrideReason)).ToArray()),
+            cancellationToken);
+
+    private Task<CommercialDocumentCalculationResult> CalculateQuoteEntityAsync(Quote quote, IReadOnlyCollection<QuoteLine> lines, CancellationToken cancellationToken) =>
+        commercialCalculationService.CalculateAsync(
+            new CommercialDocumentCalculationRequest(
+                quote.CompanyId ?? 0,
+                quote.BranchId ?? 0,
+                quote.CustomerId,
+                quote.QuoteDate,
+                quote.PriceListId,
+                quote.DiscountSchemeId,
+                quote.TaxCategoryId,
+                quote.TaxTreatment,
+                quote.CurrencyId,
+                quote.ExchangeRateId,
+                quote.ExchangeRateSnapshot,
+                new CommercialChargeInput(quote.FreightAmount, quote.PackingAmount, quote.InsuranceAmount, quote.OtherChargesAmount, quote.AddLessAmount, quote.RoundOffAmount),
+                lines.Select(line => new CommercialLineCalculationRequest(
+                    line.LineNo,
+                    line.ItemId,
+                    line.ItemVariantId,
+                    line.OrderUomId,
+                    line.Quantity,
+                    line.UnitPrice,
+                    line.PriceSourceType,
+                    line.PriceListLineId,
+                    line.DiscountSchemeId ?? quote.DiscountSchemeId,
+                    line.DiscountRuleId,
+                    line.DiscountPercent,
+                    line.DiscountAmount,
+                    line.TaxCodeId,
+                    line.TaxRateSnapshot,
+                    line.OverrideReason)).ToArray()),
+            cancellationToken);
+
+    private void ApplyQuoteCalculation(Quote quote, IReadOnlyCollection<QuoteLine> lines, CommercialDocumentCalculationResult calculation)
+    {
+        quote.Update(
+            quote.QuoteNo,
+            quote.QuoteDate,
+            quote.ExpiryDate,
+            quote.PriorityCode,
+            quote.Status,
+            quote.CustomerSpecRef,
+            quote.SalesOwnerUserId,
+            quote.SalesOwnerName,
+            quote.InternalRemarks,
+            quote.CustomerFacingRemarks,
+            quote.PrintRemarks,
+            quote.PaymentTermsId,
+            quote.PriceListId,
+            quote.DiscountSchemeId,
+            quote.TaxCategoryId,
+            quote.TaxTreatment,
+            calculation.CurrencyId,
+            calculation.ExchangeRateId,
+            calculation.ExchangeRateSnapshot,
+            quote.TradeTermsId,
+            quote.FreightAmount,
+            quote.PackingAmount,
+            quote.InsuranceAmount,
+            quote.OtherChargesAmount,
+            quote.AddLessAmount,
+            quote.RoundOffAmount,
+            calculation.SubtotalAmount,
+            calculation.DiscountTotalAmount,
+            calculation.TaxableAmount,
+            calculation.TaxTotalAmount,
+            calculation.GrandTotalAmount,
+            quote.CommercialStatus,
+            GetUserId());
+
+        var byLine = calculation.Lines.ToDictionary(line => line.LineNo);
+        foreach (var line in lines)
+        {
+            var calculated = byLine[line.LineNo];
+            line.Update(
+                line.Quantity,
+                calculated.UnitPrice,
+                calculated.DiscountPercent,
+                calculated.DiscountAmount,
+                calculated.TaxRateSnapshot,
+                calculated.TaxAmount,
+                calculated.LineTotalAmount,
+                line.MakeType,
+                line.PromisedDate,
+                line.PriorityCode,
+                line.CustomerSpecRef,
+                line.Status,
+                line.ItemRevisionId,
+                line.EngineeringDocumentRevisionId,
+                line.BomRevisionId,
+                line.RoutingId,
+                calculated.PriceSourceType,
+                calculated.PriceListLineId,
+                calculated.DiscountSchemeId,
+                calculated.DiscountRuleId,
+                calculated.TaxCodeId,
+                calculated.TaxRateSnapshot,
+                calculated.LineSubtotal,
+                calculated.LineTaxableAmount,
+                calculated.LineTotalAmount,
+                line.LineInternalRemarks,
+                line.LineCustomerFacingRemarks,
+                calculated.OverrideReason,
+                GetUserId());
+        }
+    }
+
     private static void ValidateQuote(QuoteUpsertRequest request)
     {
         var errors = new List<ApiError?>
@@ -2033,16 +2763,175 @@ internal sealed class SalesPlanningService(
     }
 
     private static QuoteLineDto MapQuoteLine(QuoteLine entity) =>
-        new(entity.Id, entity.LineNo, entity.ItemId, entity.ItemVariantId, entity.OrderUomId, entity.Quantity, entity.UnitPrice, entity.DiscountPercent, entity.DiscountAmount, entity.TaxPercent, entity.TaxAmount, entity.LineAmount, entity.MakeType, entity.PromisedDate, entity.PriorityCode, entity.CustomerSpecRef, entity.Status);
+        new(
+            entity.Id,
+            entity.LineNo,
+            entity.ItemId,
+            entity.ItemVariantId,
+            entity.OrderUomId,
+            entity.Quantity,
+            entity.UnitPrice,
+            entity.DiscountPercent,
+            entity.DiscountAmount,
+            entity.TaxPercent,
+            entity.TaxAmount,
+            entity.LineAmount,
+            entity.MakeType,
+            entity.PromisedDate,
+            entity.PriorityCode,
+            entity.CustomerSpecRef,
+            entity.Status,
+            entity.ItemRevisionId,
+            entity.EngineeringDocumentRevisionId,
+            entity.BomRevisionId,
+            entity.RoutingId,
+            entity.PriceSourceType,
+            entity.PriceListLineId,
+            entity.DiscountSchemeId,
+            entity.DiscountRuleId,
+            entity.TaxCodeId,
+            entity.TaxRateSnapshot,
+            entity.LineSubtotal,
+            entity.LineTaxableAmount,
+            entity.LineTotalAmount,
+            entity.LineInternalRemarks,
+            entity.LineCustomerFacingRemarks,
+            entity.OverrideReason,
+            entity.OverrideByUserId,
+            entity.OverrideAt);
 
     private static QuoteDto MapQuote(Quote entity, IReadOnlyCollection<QuoteLineDto> lines) =>
-        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.QuoteNo, entity.CustomerId, entity.CustomerAddressId, entity.QuoteDate, entity.ExpiryDate, entity.PriorityCode, entity.Status, entity.CustomerSpecRef, lines);
+        new(
+            entity.Id,
+            entity.CompanyId ?? 0,
+            entity.BranchId ?? 0,
+            entity.QuoteNo,
+            entity.CustomerId,
+            entity.CustomerAddressId,
+            entity.QuoteDate,
+            entity.ExpiryDate,
+            entity.PriorityCode,
+            entity.Status,
+            entity.CustomerSpecRef,
+            entity.SalesOwnerUserId,
+            entity.SalesOwnerName,
+            entity.InternalRemarks,
+            entity.CustomerFacingRemarks,
+            entity.PrintRemarks,
+            entity.PaymentTermsId,
+            entity.PriceListId,
+            entity.DiscountSchemeId,
+            entity.TaxCategoryId,
+            entity.TaxTreatment,
+            entity.CurrencyId,
+            entity.ExchangeRateId,
+            entity.ExchangeRateSnapshot,
+            entity.TradeTermsId,
+            entity.FreightAmount,
+            entity.PackingAmount,
+            entity.InsuranceAmount,
+            entity.OtherChargesAmount,
+            entity.AddLessAmount,
+            entity.RoundOffAmount,
+            entity.SubtotalAmount,
+            entity.DiscountTotalAmount,
+            entity.TaxableAmount,
+            entity.TaxTotalAmount,
+            entity.GrandTotalAmount,
+            entity.CommercialStatus,
+            entity.RevisionNo,
+            entity.ReleasedAt,
+            entity.ReleasedByUserId,
+            entity.ConvertedAt,
+            entity.ConvertedByUserId,
+            entity.ReopenedAt,
+            entity.ReopenedByUserId,
+            entity.LegacyCommercialIncomplete,
+            lines);
 
     private static SalesOrderLineDto MapSalesOrderLine(SalesOrderLine entity) =>
-        new(entity.Id, entity.LineNo, entity.ItemId, entity.ItemVariantId, entity.OrderUomId, entity.Quantity, entity.MakeType, entity.PromisedDate, entity.PriorityCode, entity.CustomerSpecRef, entity.RequestedShipDate, entity.Status);
+        new(
+            entity.Id,
+            entity.LineNo,
+            entity.ItemId,
+            entity.ItemVariantId,
+            entity.OrderUomId,
+            entity.Quantity,
+            entity.MakeType,
+            entity.PromisedDate,
+            entity.PriorityCode,
+            entity.CustomerSpecRef,
+            entity.RequestedShipDate,
+            entity.Status,
+            entity.ItemRevisionId,
+            entity.EngineeringDocumentRevisionId,
+            entity.BomRevisionId,
+            entity.RoutingId,
+            entity.UnitPrice,
+            entity.PriceSourceType,
+            entity.PriceListLineId,
+            entity.DiscountSchemeId,
+            entity.DiscountRuleId,
+            entity.DiscountPercent,
+            entity.DiscountAmount,
+            entity.TaxCodeId,
+            entity.TaxRateSnapshot,
+            entity.TaxAmount,
+            entity.LineSubtotal,
+            entity.LineTaxableAmount,
+            entity.LineTotalAmount,
+            entity.LineInternalRemarks,
+            entity.LineCustomerFacingRemarks,
+            entity.OverrideReason,
+            entity.OverrideByUserId,
+            entity.OverrideAt);
 
     private static SalesOrderDto MapSalesOrder(SalesOrder entity, IReadOnlyCollection<SalesOrderLineDto> lines) =>
-        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.SalesOrderNo, entity.CustomerId, entity.BillToAddressId, entity.ShipToAddressId, entity.OrderDate, entity.PromisedDate, entity.PriorityCode, entity.Status, entity.SourceQuoteId, lines);
+        new(
+            entity.Id,
+            entity.CompanyId ?? 0,
+            entity.BranchId ?? 0,
+            entity.SalesOrderNo,
+            entity.CustomerId,
+            entity.BillToAddressId,
+            entity.ShipToAddressId,
+            entity.OrderDate,
+            entity.PromisedDate,
+            entity.PriorityCode,
+            entity.Status,
+            entity.SourceQuoteId,
+            entity.SourceQuoteRevisionNo,
+            entity.SourceQuoteVersionNo,
+            entity.SalesOwnerUserId,
+            entity.SalesOwnerName,
+            entity.InternalRemarks,
+            entity.CustomerFacingRemarks,
+            entity.PrintRemarks,
+            entity.PaymentTermsId,
+            entity.PriceListId,
+            entity.DiscountSchemeId,
+            entity.TaxCategoryId,
+            entity.TaxTreatment,
+            entity.CurrencyId,
+            entity.ExchangeRateId,
+            entity.ExchangeRateSnapshot,
+            entity.TradeTermsId,
+            entity.FreightAmount,
+            entity.PackingAmount,
+            entity.InsuranceAmount,
+            entity.OtherChargesAmount,
+            entity.AddLessAmount,
+            entity.RoundOffAmount,
+            entity.SubtotalAmount,
+            entity.DiscountTotalAmount,
+            entity.TaxableAmount,
+            entity.TaxTotalAmount,
+            entity.GrandTotalAmount,
+            entity.CommercialStatus,
+            entity.ReleasedAt,
+            entity.ReleasedByUserId,
+            entity.LegacyCommercialIncomplete,
+            lines);
 
     private static BlanketOrderScheduleDto MapBlanketSchedule(BlanketOrderSchedule entity) =>
         new(entity.Id, entity.LineNo, entity.ItemId, entity.ScheduleDate, entity.Quantity, entity.OrderUomId, entity.Status);
@@ -2085,4 +2974,8 @@ internal sealed class SalesPlanningService(
 
     private static ShortageActionDto MapShortageAction(ShortageAction entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PlannedOrderId, entity.MrpRunItemId, entity.ItemId, entity.ShortageQuantity, entity.ActionType, entity.OwnerUserId, entity.DueDate, entity.ReasonCode, entity.Status, entity.ResolutionNote);
+
+    private sealed record ResolvedQuoteLine(QuoteLineUpsertRequest Request, long ItemId, long? ItemVariantId);
+
+    private sealed record ResolvedSalesOrderLine(SalesOrderLineUpsertRequest Request, long ItemId, long? ItemVariantId);
 }

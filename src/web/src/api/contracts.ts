@@ -1774,6 +1774,17 @@ export interface CustomerPartnerProfileDto {
   creditLimitAmount: number | null;
   creditHoldRule: string | null;
   paymentTermsCode: string | null;
+  defaultSalesOwnerUserId: number | null;
+  defaultSalesOwnerName: string | null;
+  defaultSalesTeamId: number | null;
+  defaultTerritoryId: number | null;
+  defaultPriceListId: number | null;
+  defaultDiscountSchemeId: number | null;
+  defaultPaymentTermsId: number | null;
+  defaultTaxCategoryId: number | null;
+  defaultTaxTreatment: string | null;
+  defaultCurrencyId: number | null;
+  defaultTradeTermsId: number | null;
   commercialSegment: string | null;
   orderReleaseControl: string | null;
   dispatchPreference: string | null;
@@ -1843,6 +1854,49 @@ export interface CustomerPartnerProfileUpsertRequest {
   contactPoints: Array<Omit<CustomerContactPointDto, "id" | "companyId" | "customerId"> & { id: number | null }>;
   itemReferences: Array<Omit<CustomerItemReferenceProfileDto, "id" | "companyId" | "customerId"> & { id: number | null }>;
   documents: Array<Omit<CustomerDocumentDto, "id" | "companyId" | "customerId"> & { id: number | null }>;
+}
+
+export interface CommercialDefaultValueDto<T> {
+  value: T | null;
+  display: string | null;
+  source: string;
+  isDefaulted: boolean;
+  isOverridden: boolean;
+}
+
+export interface CustomerCommercialDefaultsDto {
+  customerId: number;
+  salesTeamId: number | null;
+  salesTeamName: string | null;
+  territoryId: number | null;
+  territoryName: string | null;
+  salesOwner: CommercialDefaultValueDto<number>;
+  priceList: CommercialDefaultValueDto<number>;
+  discountScheme: CommercialDefaultValueDto<number>;
+  paymentTerms: CommercialDefaultValueDto<number>;
+  taxCategory: CommercialDefaultValueDto<number>;
+  taxTreatment: CommercialDefaultValueDto<string>;
+  currency: CommercialDefaultValueDto<number>;
+  tradeTerms: CommercialDefaultValueDto<number>;
+  validationMessages: string[];
+}
+
+export interface SalesTerritoryDto {
+  id: number;
+  companyId: number;
+  territoryCode: string;
+  territoryName: string;
+  parentTerritoryId: number | null;
+  status: string;
+}
+
+export interface SalesTeamDto {
+  id: number;
+  companyId: number;
+  teamCode: string;
+  teamName: string;
+  defaultTerritoryId: number | null;
+  status: string;
 }
 
 export interface SupplierPartnerProfileDto {
@@ -1943,6 +1997,24 @@ export interface QuoteLineDto {
   priorityCode: string;
   customerSpecRef: string | null;
   status: string;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  priceSourceType?: string;
+  priceListLineId?: number | null;
+  discountSchemeId?: number | null;
+  discountRuleId?: number | null;
+  taxCodeId?: number | null;
+  taxRateSnapshot?: number;
+  lineSubtotal?: number;
+  lineTaxableAmount?: number;
+  lineTotalAmount?: number;
+  lineInternalRemarks?: string | null;
+  lineCustomerFacingRemarks?: string | null;
+  overrideReason?: string | null;
+  overrideByUserId?: number | null;
+  overrideAt?: string | null;
 }
 
 export interface QuoteLineUpsertRequest {
@@ -1961,6 +2033,20 @@ export interface QuoteLineUpsertRequest {
   status: string;
   itemCode?: string | null;
   itemVariantCode?: string | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  priceSourceType?: string | null;
+  priceListLineId?: number | null;
+  discountSchemeId?: number | null;
+  discountRuleId?: number | null;
+  discountAmount?: number;
+  taxCodeId?: number | null;
+  taxRateSnapshot?: number | null;
+  lineInternalRemarks?: string | null;
+  lineCustomerFacingRemarks?: string | null;
+  overrideReason?: string | null;
 }
 
 export interface QuoteDto {
@@ -1975,6 +2061,40 @@ export interface QuoteDto {
   priorityCode: string;
   status: string;
   customerSpecRef: string | null;
+  salesOwnerUserId?: number | null;
+  salesOwnerName?: string | null;
+  internalRemarks?: string | null;
+  customerFacingRemarks?: string | null;
+  printRemarks?: string | null;
+  paymentTermsId?: number | null;
+  priceListId?: number | null;
+  discountSchemeId?: number | null;
+  taxCategoryId?: number | null;
+  taxTreatment?: string | null;
+  currencyId?: number | null;
+  exchangeRateId?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tradeTermsId?: number | null;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+  subtotalAmount?: number;
+  discountTotalAmount?: number;
+  taxableAmount?: number;
+  taxTotalAmount?: number;
+  grandTotalAmount?: number;
+  commercialStatus?: string;
+  revisionNo?: number;
+  releasedAt?: string | null;
+  releasedByUserId?: number | null;
+  convertedAt?: string | null;
+  convertedByUserId?: number | null;
+  reopenedAt?: string | null;
+  reopenedByUserId?: number | null;
+  legacyCommercialIncomplete?: boolean;
   lines: QuoteLineDto[];
 }
 
@@ -1992,6 +2112,39 @@ export interface QuoteUpsertRequest {
   lines: QuoteLineUpsertRequest[];
   customerCode?: string | null;
   customerAddressCode?: string | null;
+  salesOwnerUserId?: number | null;
+  salesOwnerName?: string | null;
+  internalRemarks?: string | null;
+  customerFacingRemarks?: string | null;
+  printRemarks?: string | null;
+  paymentTermsId?: number | null;
+  priceListId?: number | null;
+  discountSchemeId?: number | null;
+  taxCategoryId?: number | null;
+  taxTreatment?: string | null;
+  currencyId?: number | null;
+  exchangeRateId?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tradeTermsId?: number | null;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+  commercialStatus?: string | null;
+}
+
+export interface QuoteReopenRequest {
+  reason: string;
+}
+
+export interface QuoteConvertRequest {
+  salesOrderNo?: string | null;
+  orderDate?: string | null;
+  promisedDate?: string | null;
+  billToAddressId?: number | null;
+  shipToAddressId?: number | null;
 }
 
 export interface SalesOrderLineDto {
@@ -2007,6 +2160,28 @@ export interface SalesOrderLineDto {
   customerSpecRef: string | null;
   requestedShipDate: string | null;
   status: string;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  unitPrice?: number;
+  priceSourceType?: string;
+  priceListLineId?: number | null;
+  discountSchemeId?: number | null;
+  discountRuleId?: number | null;
+  discountPercent?: number;
+  discountAmount?: number;
+  taxCodeId?: number | null;
+  taxRateSnapshot?: number;
+  taxAmount?: number;
+  lineSubtotal?: number;
+  lineTaxableAmount?: number;
+  lineTotalAmount?: number;
+  lineInternalRemarks?: string | null;
+  lineCustomerFacingRemarks?: string | null;
+  overrideReason?: string | null;
+  overrideByUserId?: number | null;
+  overrideAt?: string | null;
 }
 
 export interface SalesOrderLineUpsertRequest {
@@ -2023,6 +2198,22 @@ export interface SalesOrderLineUpsertRequest {
   status: string;
   itemCode?: string | null;
   itemVariantCode?: string | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  unitPrice?: number;
+  priceSourceType?: string | null;
+  priceListLineId?: number | null;
+  discountSchemeId?: number | null;
+  discountRuleId?: number | null;
+  discountPercent?: number;
+  discountAmount?: number;
+  taxCodeId?: number | null;
+  taxRateSnapshot?: number | null;
+  lineInternalRemarks?: string | null;
+  lineCustomerFacingRemarks?: string | null;
+  overrideReason?: string | null;
 }
 
 export interface SalesOrderDto {
@@ -2038,6 +2229,37 @@ export interface SalesOrderDto {
   priorityCode: string;
   status: string;
   sourceQuoteId: number | null;
+  sourceQuoteRevisionNo?: number | null;
+  sourceQuoteVersionNo?: number | null;
+  salesOwnerUserId?: number | null;
+  salesOwnerName?: string | null;
+  internalRemarks?: string | null;
+  customerFacingRemarks?: string | null;
+  printRemarks?: string | null;
+  paymentTermsId?: number | null;
+  priceListId?: number | null;
+  discountSchemeId?: number | null;
+  taxCategoryId?: number | null;
+  taxTreatment?: string | null;
+  currencyId?: number | null;
+  exchangeRateId?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tradeTermsId?: number | null;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+  subtotalAmount?: number;
+  discountTotalAmount?: number;
+  taxableAmount?: number;
+  taxTotalAmount?: number;
+  grandTotalAmount?: number;
+  commercialStatus?: string;
+  releasedAt?: string | null;
+  releasedByUserId?: number | null;
+  legacyCommercialIncomplete?: boolean;
   lines: SalesOrderLineDto[];
 }
 
@@ -2057,6 +2279,29 @@ export interface SalesOrderUpsertRequest {
   customerCode?: string | null;
   billToAddressCode?: string | null;
   shipToAddressCode?: string | null;
+  sourceQuoteRevisionNo?: number | null;
+  sourceQuoteVersionNo?: number | null;
+  salesOwnerUserId?: number | null;
+  salesOwnerName?: string | null;
+  internalRemarks?: string | null;
+  customerFacingRemarks?: string | null;
+  printRemarks?: string | null;
+  paymentTermsId?: number | null;
+  priceListId?: number | null;
+  discountSchemeId?: number | null;
+  taxCategoryId?: number | null;
+  taxTreatment?: string | null;
+  currencyId?: number | null;
+  exchangeRateId?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tradeTermsId?: number | null;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+  commercialStatus?: string | null;
 }
 
 export interface BlanketOrderScheduleDto {

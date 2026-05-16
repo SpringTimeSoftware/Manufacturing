@@ -1,0 +1,50 @@
+Work only on branch main.
+
+This is QUALITY-GATES-01.
+
+Goal:
+Create automated audit/test gates so missing ERP behavior cannot be marked complete.
+
+Create/ensure scripts:
+- scripts/audit-transaction-line-depth.mjs
+- scripts/audit-governed-fields.mjs
+- scripts/audit-numeric-fields.mjs
+- scripts/audit-action-truth.mjs
+- scripts/audit-upload-truth.mjs
+- scripts/audit-live-data-truth.mjs
+
+Add npm scripts:
+- audit:transaction-lines
+- audit:governed-fields
+- audit:numeric-fields
+- audit:action-truth
+- audit:upload-truth
+- audit:live-data-truth
+- audit:erp-completion
+
+The transaction audit must fail on:
+- lines[0]
+- firstLine
+- First quote line
+- updating only index 0
+- transaction has lines[] but no Add Line / Remove Line
+- save only persists first line
+
+Create tests for:
+- Quote multiline flow
+- Sales Order multiline or disabled-with-reason
+- Purchase Order multiline or disabled-with-reason
+- Item Master governed fields
+- New Draft action truth
+
+This pass is successful if the gates exist and correctly expose real gaps.
+Do not hide failures.
+
+Validate:
+- npm run typecheck
+- npm test
+- npm run audit:erp-completion
+
+Create:
+- docs/governance/QUALITY_GATES.md
+- docs/codex-progress/QUALITY-GATES-01-output.md

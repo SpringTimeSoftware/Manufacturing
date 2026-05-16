@@ -3,6 +3,7 @@ import type { CustomerUpsertRequest, SupplierUpsertRequest } from "../api/contra
 import { apiClient } from "../api/http";
 import { queryKeys, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
+import { hasLiveSession } from "../api/liveData";
 import {
   buildMasterFilter,
   canPersistMasterData,
@@ -140,6 +141,11 @@ const saveDisabledReason = "Sign in with partner master write access to save thi
 
 function toOption(value: string) {
   return { label: value, value };
+}
+
+function directoryUserNumericId(id: string) {
+  const match = id.match(/(\d+)$/);
+  return match ? Number(match[1]) : 0;
 }
 
 function uniqueOptions(values: string[], defaults: string[] = []) {
@@ -718,6 +724,8 @@ interface CustomerEditorProps {
   documentDisabledReason?: string;
   isSaving: boolean;
   mode: PartnerEditorMode;
+  currencyIdOptions: Array<{ label: string; value: string }>;
+  discountSchemeOptions: Array<{ label: string; value: string }>;
   onAddAddress: () => void;
   onAddContact: () => void;
   onAddDocument: () => void;
@@ -729,14 +737,24 @@ interface CustomerEditorProps {
   onWorkspaceChange: (workspace: CustomerPartnerWorkspaceSetup) => void;
   saveMessage: string | null;
   saveTone: SaveTone;
+  paymentTermIdOptions: Array<{ label: string; value: string }>;
+  priceListOptions: Array<{ label: string; value: string }>;
+  salesOwnerOptions: Array<{ label: string; value: string }>;
+  salesTeamOptions: Array<{ label: string; value: string }>;
+  taxCategoryIdOptions: Array<{ label: string; value: string }>;
+  taxTreatmentOptions: Array<{ label: string; value: string }>;
+  territoryOptions: Array<{ label: string; value: string }>;
+  tradeTermOptions: Array<{ label: string; value: string }>;
   workspace: CustomerPartnerWorkspaceSetup;
 }
 
 function CustomerEditor({
   addresses,
   canSave,
+  currencyIdOptions,
   customer,
   customers,
+  discountSchemeOptions,
   documentDisabledReason,
   isSaving,
   mode,
@@ -751,6 +769,14 @@ function CustomerEditor({
   onWorkspaceChange,
   saveMessage,
   saveTone,
+  paymentTermIdOptions,
+  priceListOptions,
+  salesOwnerOptions,
+  salesTeamOptions,
+  taxCategoryIdOptions,
+  taxTreatmentOptions,
+  territoryOptions,
+  tradeTermOptions,
   workspace
 }: CustomerEditorProps) {
   const validationIssues = customerValidation(customer, addresses, mode);
@@ -764,6 +790,11 @@ function CustomerEditor({
   const canUploadDocument = Boolean(onUploadDocument);
   const updateProfile = <K extends keyof CustomerPartnerWorkspaceSetup["profile"]>(key: K, value: CustomerPartnerWorkspaceSetup["profile"][K]) =>
     onWorkspaceChange({ ...workspace, profile: { ...workspace.profile, [key]: value } });
+  const updateSalesOwner = (value: string) => {
+    const ownerId = value ? Number(value) : null;
+    const ownerName = salesOwnerOptions.find((option) => option.value === value)?.label ?? null;
+    onWorkspaceChange({ ...workspace, profile: { ...workspace.profile, defaultSalesOwnerUserId: ownerId, defaultSalesOwnerName: ownerName } });
+  };
   const updateContact = <K extends keyof PartnerContactPointSetupItem>(key: K, value: PartnerContactPointSetupItem[K]) => {
     if (!firstContact) {
       return;
@@ -927,11 +958,18 @@ function CustomerEditor({
         <Card title={CUSTOMER_SECTIONS[6]} description="Payment terms, commercial classification, and order release controls.">
           <div className="item-master__editor-grid">
             <ErpLookupField label="Payment terms" onChange={(value) => onChange("paymentTermsCode", value)} options={uniqueOptions(customers.map((record) => record.paymentTermsCode), paymentTermOptions.map((option) => option.value))} required value={customer.paymentTermsCode} />
+            <ErpLookupField label="Default payment terms" onChange={(value) => updateProfile("defaultPaymentTermsId", value ? Number(value) : null)} options={paymentTermIdOptions} value={workspace.profile.defaultPaymentTermsId ? String(workspace.profile.defaultPaymentTermsId) : ""} />
+            <ErpLookupField label="Sales owner" onChange={updateSalesOwner} options={salesOwnerOptions} value={workspace.profile.defaultSalesOwnerUserId ? String(workspace.profile.defaultSalesOwnerUserId) : ""} />
+            <ErpLookupField label="Sales team" onChange={(value) => updateProfile("defaultSalesTeamId", value ? Number(value) : null)} options={salesTeamOptions} value={workspace.profile.defaultSalesTeamId ? String(workspace.profile.defaultSalesTeamId) : ""} />
+            <ErpLookupField label="Sales territory" onChange={(value) => updateProfile("defaultTerritoryId", value ? Number(value) : null)} options={territoryOptions} value={workspace.profile.defaultTerritoryId ? String(workspace.profile.defaultTerritoryId) : ""} />
+            <ErpLookupField label="Default price list" onChange={(value) => updateProfile("defaultPriceListId", value ? Number(value) : null)} options={priceListOptions} value={workspace.profile.defaultPriceListId ? String(workspace.profile.defaultPriceListId) : ""} />
+            <ErpLookupField label="Default discount scheme" onChange={(value) => updateProfile("defaultDiscountSchemeId", value ? Number(value) : null)} options={discountSchemeOptions} value={workspace.profile.defaultDiscountSchemeId ? String(workspace.profile.defaultDiscountSchemeId) : ""} />
+            <ErpLookupField label="Default tax category" onChange={(value) => updateProfile("defaultTaxCategoryId", value ? Number(value) : null)} options={taxCategoryIdOptions} value={workspace.profile.defaultTaxCategoryId ? String(workspace.profile.defaultTaxCategoryId) : ""} />
+            <ErpLookupField label="Default tax treatment" onChange={(value) => updateProfile("defaultTaxTreatment", value || null)} options={taxTreatmentOptions} value={workspace.profile.defaultTaxTreatment ?? ""} />
+            <ErpLookupField label="Default currency" onChange={(value) => updateProfile("defaultCurrencyId", value ? Number(value) : null)} options={currencyIdOptions} value={workspace.profile.defaultCurrencyId ? String(workspace.profile.defaultCurrencyId) : ""} />
+            <ErpLookupField label="Default trade terms" onChange={(value) => updateProfile("defaultTradeTermsId", value ? Number(value) : null)} options={tradeTermOptions} value={workspace.profile.defaultTradeTermsId ? String(workspace.profile.defaultTradeTermsId) : ""} />
             <ErpLookupField label="Customer commercial segment" onChange={(value) => updateProfile("commercialSegment", value)} options={["Standard", "Strategic", "Project", "Aftermarket"].map(toOption)} value={workspace.profile.commercialSegment ?? "Standard"} />
             <ErpLookupField label="Order release control" onChange={(value) => updateProfile("orderReleaseControl", value)} options={["Standard", "Credit review", "Advance payment"].map(toOption)} value={workspace.profile.orderReleaseControl ?? "Standard"} />
-            <ErpLookupField disabled disabledReason="Maintain customer price-list assignment from Price Lists." label="Price list" onChange={() => undefined} options={[]} value="" />
-            <ErpLookupField disabled disabledReason="Maintain customer discount assignment from Discount Schemes." label="Discount scheme" onChange={() => undefined} options={[]} value="" />
-            <ErpLookupField disabled disabledReason="Salesperson assignment requires an approved sales user source." label="Salesperson" onChange={() => undefined} options={[]} value="" />
           </div>
         </Card>
 
@@ -1327,8 +1365,31 @@ export function CustomerListDetailPage() {
     () => listCustomerAddressSetup(session, filter),
     { staleTime: 60_000 }
   );
+  const activeCompanyId = user?.activeContext.companyId ?? 0;
+  const live = hasLiveSession(session);
+  const usersQuery = useApiQuery(["partners", "customer-sales-owner-users"], () => live ? apiClient.platform.users() : Promise.resolve([]), { staleTime: 60_000 });
+  const priceListsQuery = useApiQuery(queryKeys.commercial.priceLists(activeCompanyId, "", "Active"), () => live ? apiClient.commercial.priceLists({ companyId: activeCompanyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const discountSchemesQuery = useApiQuery(queryKeys.commercial.discountSchemes(activeCompanyId, "", "Active"), () => live ? apiClient.commercial.discountSchemes({ companyId: activeCompanyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const taxCategoriesQuery = useApiQuery(queryKeys.commercial.taxCategories(activeCompanyId, "", "Active"), () => live ? apiClient.commercial.taxCategories({ companyId: activeCompanyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const currenciesQuery = useApiQuery(queryKeys.commercial.currencies(activeCompanyId, "", "Active"), () => live ? apiClient.commercial.currencies({ companyId: activeCompanyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const paymentTermsQuery = useApiQuery(queryKeys.commercial.paymentTerms(activeCompanyId, "", "Active"), () => live ? apiClient.commercial.paymentTerms({ companyId: activeCompanyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const tradeTermsQuery = useApiQuery(queryKeys.commercial.tradeTerms(activeCompanyId, "", "Active"), () => live ? apiClient.commercial.tradeTerms({ companyId: activeCompanyId, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const salesTerritoriesQuery = useApiQuery(["partners", "sales-territories", activeCompanyId], () => live && activeCompanyId > 0 ? apiClient.partners.salesTerritories(activeCompanyId) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
+  const salesTeamsQuery = useApiQuery(["partners", "sales-teams", activeCompanyId], () => live && activeCompanyId > 0 ? apiClient.partners.salesTeams(activeCompanyId) : Promise.resolve([]), { enabled: live && activeCompanyId > 0, staleTime: 60_000 });
   const customers = customersQuery.data ?? [];
   const addresses = addressesQuery.data ?? [];
+  const salesOwnerOptions = (usersQuery.data ?? [])
+    .filter((userRecord) => userRecord.status === "Active" && directoryUserNumericId(userRecord.id) > 0)
+    .map((userRecord) => ({ label: userRecord.displayName || userRecord.userName, value: String(directoryUserNumericId(userRecord.id)) }));
+  const priceListOptions = (priceListsQuery.data ?? []).map((list) => ({ label: `${list.priceListCode} / ${list.priceListName}`, value: String(list.id) }));
+  const discountSchemeOptions = (discountSchemesQuery.data ?? []).map((scheme) => ({ label: `${scheme.schemeCode} / ${scheme.schemeName}`, value: String(scheme.id) }));
+  const taxCategoryIdOptions = (taxCategoriesQuery.data ?? []).map((tax) => ({ label: `${tax.taxCategoryCode} / ${tax.taxCategoryName}`, value: String(tax.id) }));
+  const currencyIdOptions = (currenciesQuery.data ?? []).map((currency) => ({ label: `${currency.currencyCode} / ${currency.currencyName}`, value: String(currency.id) }));
+  const paymentTermIdOptions = (paymentTermsQuery.data ?? []).map((term) => ({ label: `${term.paymentTermsCode} / ${term.paymentTermsName}`, value: String(term.id) }));
+  const tradeTermOptions = (tradeTermsQuery.data ?? []).map((term) => ({ label: `${term.tradeTermsCode} / ${term.tradeTermsName}`, value: String(term.id) }));
+  const territoryOptions = (salesTerritoriesQuery.data ?? []).map((territory) => ({ label: `${territory.territoryCode} / ${territory.territoryName}`, value: String(territory.id) }));
+  const salesTeamOptions = (salesTeamsQuery.data ?? []).map((team) => ({ label: `${team.teamCode} / ${team.teamName}`, value: String(team.id) }));
+  const taxTreatmentOptions = ["Taxable", "Exempt", "ZeroRated", "OutOfScope"].map(toOption);
   const source = customers[0]?.source ?? addresses[0]?.source ?? "Seeded";
   const canSave = canPersistMasterData(session);
   const customerDocumentDisabledReason = !canSave
@@ -1761,8 +1822,10 @@ export function CustomerListDetailPage() {
         <CustomerEditor
           addresses={selectedAddresses}
           canSave={canSave}
+          currencyIdOptions={currencyIdOptions}
           customer={editorDraft}
           customers={customers}
+          discountSchemeOptions={discountSchemeOptions}
           documentDisabledReason={customerDocumentDisabledReason}
           isSaving={isSaving}
           mode={editorMode}
@@ -1777,6 +1840,14 @@ export function CustomerListDetailPage() {
           onWorkspaceChange={(workspace) => setWorkspaceDraft(workspace)}
           saveMessage={saveMessage}
           saveTone={saveTone}
+          paymentTermIdOptions={paymentTermIdOptions}
+          priceListOptions={priceListOptions}
+          salesOwnerOptions={salesOwnerOptions}
+          salesTeamOptions={salesTeamOptions}
+          taxCategoryIdOptions={taxCategoryIdOptions}
+          taxTreatmentOptions={taxTreatmentOptions}
+          territoryOptions={territoryOptions}
+          tradeTermOptions={tradeTermOptions}
           workspace={workspaceDraft ?? buildCustomerWorkspaceDraft(editorDraft, selectedAddresses)}
         />
       ) : null}

@@ -56,6 +56,14 @@ describe("QUALITY-GATES-01 quote multiline flow", () => {
     vi.spyOn(apiClient.measurements, "uoms").mockResolvedValue(paged([
       { id: 41, uomCode: "PCS", uomName: "Pieces", symbol: "pcs", uomClassId: 4, decimalPrecision: 0, isSystemBase: false, status: "Active" }
     ]));
+    vi.spyOn(apiClient.platform, "users").mockResolvedValue([]);
+    vi.spyOn(apiClient.commercial, "priceLists").mockResolvedValue(paged([]));
+    vi.spyOn(apiClient.commercial, "discountSchemes").mockResolvedValue(paged([]));
+    vi.spyOn(apiClient.commercial, "taxCategories").mockResolvedValue(paged([]));
+    vi.spyOn(apiClient.commercial, "currencies").mockResolvedValue(paged([]));
+    vi.spyOn(apiClient.commercial, "exchangeRates").mockResolvedValue(paged([]));
+    vi.spyOn(apiClient.commercial, "paymentTerms").mockResolvedValue(paged([]));
+    vi.spyOn(apiClient.commercial, "tradeTerms").mockResolvedValue(paged([]));
     const createQuote = vi.spyOn(apiClient.salesPlanning, "createQuote").mockResolvedValue({
       id: 9001,
       companyId: 1,
@@ -89,9 +97,9 @@ describe("QUALITY-GATES-01 quote multiline flow", () => {
     const itemControls = within(dialog).getAllByLabelText("Item");
     const uomControls = within(dialog).getAllByLabelText("Order UOM");
     const quantityControls = within(dialog).getAllByLabelText("Quantity");
-    const rateControls = within(dialog).getAllByLabelText(/Rate|Unit price/i);
-    const discountControls = within(dialog).getAllByLabelText(/Discount/i);
-    const taxControls = within(dialog).getAllByLabelText(/Tax/i);
+    const rateControls = within(dialog).getAllByLabelText("Unit price");
+    const discountControls = within(dialog).getAllByLabelText("Discount %");
+    const taxControls = within(dialog).getAllByLabelText("Tax %");
 
     expect(itemControls.length).toBeGreaterThanOrEqual(2);
     expect(uomControls.length).toBeGreaterThanOrEqual(2);

@@ -1,17 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using STS.Mfg.Application.Abstractions.Resources;
+using STS.Mfg.Application.Abstractions.SalesPlanning;
 using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
 using STS.Mfg.Application.Contracts.Masters;
 using STS.Mfg.Application.Contracts.Resources;
+using STS.Mfg.Application.Contracts.SalesPlanning;
 
 namespace STS.Mfg.Api.Controllers;
 
 [ApiController]
 [Authorize(Policy = AppPolicies.AuthenticatedUser)]
 [Route("api/customers")]
-public sealed class CustomersController(IResourceService resourceService) : ApiControllerBase
+public sealed class CustomersController(
+    IResourceService resourceService,
+    ICustomerCommercialDefaultsService customerCommercialDefaultsService) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<CustomerDto>>>> List(
@@ -49,6 +53,39 @@ public sealed class CustomersController(IResourceService resourceService) : ApiC
         CancellationToken cancellationToken)
     {
         var response = await resourceService.GetCustomerPartnerWorkspaceAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("{id:long}/commercial-defaults")]
+    public async Task<ActionResult<ApiEnvelope<CustomerCommercialDefaultsDto>>> GetCommercialDefaults(
+        long id,
+        [FromQuery] long companyId,
+        [FromQuery] long branchId,
+        [FromQuery] long? customerAddressId,
+        [FromQuery] DateOnly documentDate,
+        CancellationToken cancellationToken)
+    {
+        var response = await customerCommercialDefaultsService.ResolveAsync(
+            new CustomerCommercialDefaultsRequest(companyId, branchId, id, customerAddressId, documentDate),
+            cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("sales-territories")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<SalesTerritoryDto>>>> ListSalesTerritories(
+        [FromQuery] long companyId,
+        CancellationToken cancellationToken)
+    {
+        var response = await customerCommercialDefaultsService.ListSalesTerritoriesAsync(companyId, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("sales-teams")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<SalesTeamDto>>>> ListSalesTeams(
+        [FromQuery] long companyId,
+        CancellationToken cancellationToken)
+    {
+        var response = await customerCommercialDefaultsService.ListSalesTeamsAsync(companyId, cancellationToken);
         return OkEnvelope(response);
     }
 

@@ -1,0 +1,34 @@
+Work only on branch main.
+
+This is MASTER-RESOURCE-COMMERCIAL-01.
+
+Goal:
+Complete master/resource/commercial fields and actions according to market fit-gap workbook.
+
+Focus:
+- Item Master
+- Item Groups / Category / Subcategory / Product Family / Business Segment / Reporting Bucket
+- UOM Classes / Conversions / Measurement Profiles
+- Customer / Supplier dependent commercial fields
+- Work Centers / Machines / Tools / Operators
+- Price Lists / Price Lines
+- Discounts / Schemes
+- Tax / Currency / Terms
+
+Hard gates:
+- no category/subcategory/product-family/business-segment/reporting-bucket as unrestricted text
+- no UOM/warehouse/customer/supplier/currency/tax/payment term as unrestricted text
+- no net/gross weight/dimension/price/discount/tax/exchange-rate as unrestricted text
+- upload/media/document actions working or disabled with reason
+- New/Create/Save actions truthful
+- deep editors centered modal/full-page
+
+Validation:
+- npm run audit:governed-fields
+- npm run audit:numeric-fields
+- npm run audit:action-truth
+- full web/backend build/test/publish
+
+Create:
+- docs/codex-progress/MASTER-RESOURCE-COMMERCIAL-01-output.md
+- docs/codex-review-screens/MASTER-RESOURCE-COMMERCIAL-01/

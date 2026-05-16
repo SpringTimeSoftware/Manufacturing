@@ -1,0 +1,36 @@
+Work only on branch main.
+
+This is PRODUCTION-INVENTORY-QC-DISPATCH-01.
+
+Goal:
+Complete production execution, inventory, QC, dispatch, traceability and documents to demo/UAT-grade for current scope.
+
+Scope:
+- Work Orders
+- Job Cards
+- Material Issue / Return
+- Stock Transfer / Bin movement
+- Production Receipt
+- Scrap/Rework
+- QC Plans / Inspections / NCR / Hold Release
+- Pack List / Shipment / Gate Pass / POD
+- Traceability by lot/serial/bin/work order
+- Document/media truth
+
+Hard gates:
+- posting actions either working or disabled with reason
+- item/warehouse/bin/lot/serial/reason code lookup truth
+- quantities numeric
+- no fake upload/print/export/proof
+- no silent seeded live data
+- save/reopen tests for critical transactions
+
+Validation:
+- npm run audit:governed-fields
+- npm run audit:numeric-fields
+- npm run audit:action-truth
+- full build/test/publish
+
+Create:
+- docs/codex-progress/PRODUCTION-INVENTORY-QC-DISPATCH-01-output.md
+- docs/codex-review-screens/PRODUCTION-INVENTORY-QC-DISPATCH-01/

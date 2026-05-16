@@ -589,6 +589,8 @@ public sealed class CustomerPartnerProfileConfiguration : IEntityTypeConfigurati
         builder.Property(entity => entity.CreditLimitAmount).HasColumnType("decimal(18,2)");
         builder.Property(entity => entity.CreditHoldRule).HasMaxLength(80);
         builder.Property(entity => entity.PaymentTermsCode).HasMaxLength(32);
+        builder.Property(entity => entity.DefaultSalesOwnerName).HasMaxLength(160);
+        builder.Property(entity => entity.DefaultTaxTreatment).HasMaxLength(32);
         builder.Property(entity => entity.CommercialSegment).HasMaxLength(80);
         builder.Property(entity => entity.OrderReleaseControl).HasMaxLength(80);
         builder.Property(entity => entity.DispatchPreference).HasMaxLength(80);
@@ -597,6 +599,56 @@ public sealed class CustomerPartnerProfileConfiguration : IEntityTypeConfigurati
         builder.Property(entity => entity.Status).HasMaxLength(30).IsRequired();
         builder.HasIndex(entity => entity.CustomerId).IsUnique();
         builder.HasIndex(entity => new { entity.CompanyId, entity.Status });
+    }
+}
+
+public sealed class SalesTerritoryConfiguration : IEntityTypeConfiguration<SalesTerritory>
+{
+    public void Configure(EntityTypeBuilder<SalesTerritory> builder)
+    {
+        builder.ToTable("SalesTerritories", "sales");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.TerritoryCode).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.TerritoryName).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(30).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.TerritoryCode }).IsUnique();
+    }
+}
+
+public sealed class SalesTeamConfiguration : IEntityTypeConfiguration<SalesTeam>
+{
+    public void Configure(EntityTypeBuilder<SalesTeam> builder)
+    {
+        builder.ToTable("SalesTeams", "sales");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.TeamCode).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.TeamName).HasMaxLength(128).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(30).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.TeamCode }).IsUnique();
+    }
+}
+
+public sealed class SalesTeamMemberConfiguration : IEntityTypeConfiguration<SalesTeamMember>
+{
+    public void Configure(EntityTypeBuilder<SalesTeamMember> builder)
+    {
+        builder.ToTable("SalesTeamMembers", "sales");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.RoleCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(30).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.SalesTeamId, entity.UserId, entity.EffectiveFrom }).IsUnique();
+    }
+}
+
+public sealed class CustomerSalesAssignmentConfiguration : IEntityTypeConfiguration<CustomerSalesAssignment>
+{
+    public void Configure(EntityTypeBuilder<CustomerSalesAssignment> builder)
+    {
+        builder.ToTable("CustomerSalesAssignments", "sales");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.Status).HasMaxLength(30).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.CustomerId, entity.EffectiveFrom });
+        builder.HasIndex(entity => new { entity.CustomerId, entity.Status });
     }
 }
 
@@ -921,6 +973,24 @@ public sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
         builder.Property(entity => entity.PriorityCode).HasMaxLength(16).IsRequired();
         builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
         builder.Property(entity => entity.CustomerSpecRef).HasMaxLength(128);
+        builder.Property(entity => entity.SalesOwnerName).HasMaxLength(128);
+        builder.Property(entity => entity.InternalRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.CustomerFacingRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.PrintRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.TaxTreatment).HasMaxLength(32);
+        builder.Property(entity => entity.ExchangeRateSnapshot).HasColumnType("decimal(18,8)");
+        builder.Property(entity => entity.FreightAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.PackingAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.InsuranceAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.OtherChargesAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.AddLessAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.RoundOffAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.SubtotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.DiscountTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxableAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.GrandTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.CommercialStatus).HasMaxLength(24).IsRequired();
         builder.HasIndex(entity => new { entity.CompanyId, entity.QuoteNo }).IsUnique();
     }
 }
@@ -942,6 +1012,14 @@ public sealed class QuoteLineConfiguration : IEntityTypeConfiguration<QuoteLine>
         builder.Property(entity => entity.PriorityCode).HasMaxLength(16).IsRequired();
         builder.Property(entity => entity.CustomerSpecRef).HasMaxLength(128);
         builder.Property(entity => entity.Status).HasMaxLength(16).IsRequired();
+        builder.Property(entity => entity.PriceSourceType).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.TaxRateSnapshot).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.LineSubtotal).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineTaxableAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineInternalRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.LineCustomerFacingRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.OverrideReason).HasMaxLength(512);
         builder.HasIndex(entity => new { entity.QuoteId, entity.LineNo }).IsUnique();
     }
 }
@@ -955,6 +1033,24 @@ public sealed class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrde
         builder.Property(entity => entity.SalesOrderNo).HasMaxLength(32).IsRequired();
         builder.Property(entity => entity.PriorityCode).HasMaxLength(16).IsRequired();
         builder.Property(entity => entity.Status).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.SalesOwnerName).HasMaxLength(128);
+        builder.Property(entity => entity.InternalRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.CustomerFacingRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.PrintRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.TaxTreatment).HasMaxLength(32);
+        builder.Property(entity => entity.ExchangeRateSnapshot).HasColumnType("decimal(18,8)");
+        builder.Property(entity => entity.FreightAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.PackingAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.InsuranceAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.OtherChargesAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.AddLessAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.RoundOffAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.SubtotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.DiscountTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxableAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.GrandTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.CommercialStatus).HasMaxLength(24).IsRequired();
         builder.HasIndex(entity => new { entity.CompanyId, entity.SalesOrderNo }).IsUnique();
     }
 }
@@ -970,6 +1066,18 @@ public sealed class SalesOrderLineConfiguration : IEntityTypeConfiguration<Sales
         builder.Property(entity => entity.PriorityCode).HasMaxLength(16).IsRequired();
         builder.Property(entity => entity.CustomerSpecRef).HasMaxLength(128);
         builder.Property(entity => entity.Status).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.UnitPrice).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.PriceSourceType).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.DiscountPercent).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.DiscountAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.TaxRateSnapshot).HasColumnType("decimal(9,4)");
+        builder.Property(entity => entity.TaxAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineSubtotal).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineTaxableAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineTotalAmount).HasColumnType("decimal(18,4)");
+        builder.Property(entity => entity.LineInternalRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.LineCustomerFacingRemarks).HasMaxLength(1000);
+        builder.Property(entity => entity.OverrideReason).HasMaxLength(512);
         builder.HasIndex(entity => new { entity.SalesOrderId, entity.LineNo }).IsUnique();
     }
 }

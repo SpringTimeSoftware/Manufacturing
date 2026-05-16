@@ -498,6 +498,17 @@ export interface PartnerProfileSetup {
   creditLimitAmount?: number | null;
   creditHoldRule?: string;
   paymentTermsCode: string;
+  defaultSalesOwnerUserId?: number | null;
+  defaultSalesOwnerName?: string | null;
+  defaultSalesTeamId?: number | null;
+  defaultTerritoryId?: number | null;
+  defaultPriceListId?: number | null;
+  defaultDiscountSchemeId?: number | null;
+  defaultPaymentTermsId?: number | null;
+  defaultTaxCategoryId?: number | null;
+  defaultTaxTreatment?: string | null;
+  defaultCurrencyId?: number | null;
+  defaultTradeTermsId?: number | null;
   commercialSegment?: string;
   orderReleaseControl?: string;
   dispatchPreference?: string;
@@ -2435,12 +2446,23 @@ function buildCustomerPartnerWorkspace(customer: CustomerSetupItem, addresses: C
   return {
     profile: {
       legalName: customer.name,
-      taxCategory: customer.taxRegistrationNo === "Pending" ? "Pending" : "Registered GST",
-      currencyCode: "INR",
+      taxCategory: customer.taxRegistrationNo === "Pending" ? "" : "Registered GST",
+      currencyCode: "",
       creditStatus: customer.status === "On Hold" ? "On hold" : "Clear",
       creditLimitAmount: null,
       creditHoldRule: customer.status === "On Hold" ? "Manager review" : "Standard release",
       paymentTermsCode: customer.paymentTermsCode,
+      defaultSalesOwnerUserId: null,
+      defaultSalesOwnerName: null,
+      defaultSalesTeamId: null,
+      defaultTerritoryId: null,
+      defaultPriceListId: null,
+      defaultDiscountSchemeId: null,
+      defaultPaymentTermsId: null,
+      defaultTaxCategoryId: null,
+      defaultTaxTreatment: null,
+      defaultCurrencyId: null,
+      defaultTradeTermsId: null,
       commercialSegment: customer.customerType === "Export" ? "Strategic" : "Standard",
       orderReleaseControl: "Standard",
       dispatchPreference: addresses.some((address) => address.defaultUsage.includes("Shipping")) ? "Standard dispatch" : "Appointment required",
@@ -2550,12 +2572,23 @@ function mapCustomerPartnerWorkspace(dto: CustomerPartnerWorkspaceDto, source: M
   return {
     profile: {
       legalName: dto.profile.legalName ?? "",
-      taxCategory: dto.profile.taxCategory ?? "Pending",
-      currencyCode: dto.profile.currencyCode ?? "INR",
+      taxCategory: dto.profile.taxCategory ?? "",
+      currencyCode: dto.profile.currencyCode ?? "",
       creditStatus: dto.profile.creditStatus ?? "Clear",
       creditLimitAmount: dto.profile.creditLimitAmount,
       creditHoldRule: dto.profile.creditHoldRule ?? "Standard release",
       paymentTermsCode: dto.profile.paymentTermsCode ?? "Pending",
+      defaultSalesOwnerUserId: dto.profile.defaultSalesOwnerUserId,
+      defaultSalesOwnerName: dto.profile.defaultSalesOwnerName,
+      defaultSalesTeamId: dto.profile.defaultSalesTeamId,
+      defaultTerritoryId: dto.profile.defaultTerritoryId,
+      defaultPriceListId: dto.profile.defaultPriceListId,
+      defaultDiscountSchemeId: dto.profile.defaultDiscountSchemeId,
+      defaultPaymentTermsId: dto.profile.defaultPaymentTermsId,
+      defaultTaxCategoryId: dto.profile.defaultTaxCategoryId,
+      defaultTaxTreatment: dto.profile.defaultTaxTreatment,
+      defaultCurrencyId: dto.profile.defaultCurrencyId,
+      defaultTradeTermsId: dto.profile.defaultTradeTermsId,
       commercialSegment: dto.profile.commercialSegment ?? "Standard",
       orderReleaseControl: dto.profile.orderReleaseControl ?? "Standard",
       dispatchPreference: dto.profile.dispatchPreference ?? "Standard dispatch",
@@ -2680,6 +2713,17 @@ function toCustomerProfileRequest(workspace: CustomerPartnerWorkspaceSetup): Cus
       creditLimitAmount: workspace.profile.creditLimitAmount ?? null,
       creditHoldRule: workspace.profile.creditHoldRule ?? "Standard release",
       paymentTermsCode: workspace.profile.paymentTermsCode,
+      defaultSalesOwnerUserId: workspace.profile.defaultSalesOwnerUserId ?? null,
+      defaultSalesOwnerName: workspace.profile.defaultSalesOwnerName ?? null,
+      defaultSalesTeamId: workspace.profile.defaultSalesTeamId ?? null,
+      defaultTerritoryId: workspace.profile.defaultTerritoryId ?? null,
+      defaultPriceListId: workspace.profile.defaultPriceListId ?? null,
+      defaultDiscountSchemeId: workspace.profile.defaultDiscountSchemeId ?? null,
+      defaultPaymentTermsId: workspace.profile.defaultPaymentTermsId ?? null,
+      defaultTaxCategoryId: workspace.profile.defaultTaxCategoryId ?? null,
+      defaultTaxTreatment: workspace.profile.defaultTaxTreatment ?? null,
+      defaultCurrencyId: workspace.profile.defaultCurrencyId ?? null,
+      defaultTradeTermsId: workspace.profile.defaultTradeTermsId ?? null,
       commercialSegment: workspace.profile.commercialSegment ?? "Standard",
       orderReleaseControl: workspace.profile.orderReleaseControl ?? "Standard",
       dispatchPreference: workspace.profile.dispatchPreference ?? "Standard dispatch",

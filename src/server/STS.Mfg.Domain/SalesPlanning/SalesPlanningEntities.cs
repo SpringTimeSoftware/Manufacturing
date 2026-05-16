@@ -18,17 +18,154 @@ public sealed class Quote : AuditableEntity, ICompanyScoped, IBranchScoped
     public string PriorityCode { get; private set; } = string.Empty;
     public string Status { get; private set; } = string.Empty;
     public string? CustomerSpecRef { get; private set; }
+    public long? SalesOwnerUserId { get; private set; }
+    public string? SalesOwnerName { get; private set; }
+    public string? InternalRemarks { get; private set; }
+    public string? CustomerFacingRemarks { get; private set; }
+    public string? PrintRemarks { get; private set; }
+    public long? PaymentTermsId { get; private set; }
+    public long? PriceListId { get; private set; }
+    public long? DiscountSchemeId { get; private set; }
+    public long? TaxCategoryId { get; private set; }
+    public string? TaxTreatment { get; private set; }
+    public long? CurrencyId { get; private set; }
+    public long? ExchangeRateId { get; private set; }
+    public decimal? ExchangeRateSnapshot { get; private set; }
+    public long? TradeTermsId { get; private set; }
+    public decimal FreightAmount { get; private set; }
+    public decimal PackingAmount { get; private set; }
+    public decimal InsuranceAmount { get; private set; }
+    public decimal OtherChargesAmount { get; private set; }
+    public decimal AddLessAmount { get; private set; }
+    public decimal RoundOffAmount { get; private set; }
+    public decimal SubtotalAmount { get; private set; }
+    public decimal DiscountTotalAmount { get; private set; }
+    public decimal TaxableAmount { get; private set; }
+    public decimal TaxTotalAmount { get; private set; }
+    public decimal GrandTotalAmount { get; private set; }
+    public string CommercialStatus { get; private set; } = "Draft";
+    public int RevisionNo { get; private set; } = 1;
+    public DateTimeOffset? ReleasedAt { get; private set; }
+    public long? ReleasedByUserId { get; private set; }
+    public DateTimeOffset? ConvertedAt { get; private set; }
+    public long? ConvertedByUserId { get; private set; }
+    public DateTimeOffset? ReopenedAt { get; private set; }
+    public long? ReopenedByUserId { get; private set; }
+    public bool LegacyCommercialIncomplete { get; private set; }
 
-    public static Quote Create(long companyId, long branchId, string quoteNo, long customerId, long? customerAddressId, DateOnly quoteDate, DateOnly? expiryDate, string priorityCode, string status, string? customerSpecRef, long? userId)
+    public static Quote Create(
+        long companyId,
+        long branchId,
+        string quoteNo,
+        long customerId,
+        long? customerAddressId,
+        DateOnly quoteDate,
+        DateOnly? expiryDate,
+        string priorityCode,
+        string status,
+        string? customerSpecRef,
+        long? salesOwnerUserId,
+        string? salesOwnerName,
+        string? internalRemarks,
+        string? customerFacingRemarks,
+        string? printRemarks,
+        long? paymentTermsId,
+        long? priceListId,
+        long? discountSchemeId,
+        long? taxCategoryId,
+        string? taxTreatment,
+        long? currencyId,
+        long? exchangeRateId,
+        decimal? exchangeRateSnapshot,
+        long? tradeTermsId,
+        decimal freightAmount,
+        decimal packingAmount,
+        decimal insuranceAmount,
+        decimal otherChargesAmount,
+        decimal addLessAmount,
+        decimal roundOffAmount,
+        decimal subtotalAmount,
+        decimal discountTotalAmount,
+        decimal taxableAmount,
+        decimal taxTotalAmount,
+        decimal grandTotalAmount,
+        string? commercialStatus,
+        long? userId)
     {
         var entity = new Quote { CompanyId = companyId, BranchId = branchId, CustomerId = customerId, CustomerAddressId = customerAddressId };
-        entity.Update(quoteNo, quoteDate, expiryDate, priorityCode, status, customerSpecRef, userId);
+        entity.Update(
+            quoteNo,
+            quoteDate,
+            expiryDate,
+            priorityCode,
+            status,
+            customerSpecRef,
+            salesOwnerUserId,
+            salesOwnerName,
+            internalRemarks,
+            customerFacingRemarks,
+            printRemarks,
+            paymentTermsId,
+            priceListId,
+            discountSchemeId,
+            taxCategoryId,
+            taxTreatment,
+            currencyId,
+            exchangeRateId,
+            exchangeRateSnapshot,
+            tradeTermsId,
+            freightAmount,
+            packingAmount,
+            insuranceAmount,
+            otherChargesAmount,
+            addLessAmount,
+            roundOffAmount,
+            subtotalAmount,
+            discountTotalAmount,
+            taxableAmount,
+            taxTotalAmount,
+            grandTotalAmount,
+            commercialStatus,
+            userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
     }
 
-    public void Update(string quoteNo, DateOnly quoteDate, DateOnly? expiryDate, string priorityCode, string status, string? customerSpecRef, long? userId)
+    public void Update(
+        string quoteNo,
+        DateOnly quoteDate,
+        DateOnly? expiryDate,
+        string priorityCode,
+        string status,
+        string? customerSpecRef,
+        long? salesOwnerUserId,
+        string? salesOwnerName,
+        string? internalRemarks,
+        string? customerFacingRemarks,
+        string? printRemarks,
+        long? paymentTermsId,
+        long? priceListId,
+        long? discountSchemeId,
+        long? taxCategoryId,
+        string? taxTreatment,
+        long? currencyId,
+        long? exchangeRateId,
+        decimal? exchangeRateSnapshot,
+        long? tradeTermsId,
+        decimal freightAmount,
+        decimal packingAmount,
+        decimal insuranceAmount,
+        decimal otherChargesAmount,
+        decimal addLessAmount,
+        decimal roundOffAmount,
+        decimal subtotalAmount,
+        decimal discountTotalAmount,
+        decimal taxableAmount,
+        decimal taxTotalAmount,
+        decimal grandTotalAmount,
+        string? commercialStatus,
+        long? userId)
     {
         QuoteNo = quoteNo.Trim();
         QuoteDate = quoteDate;
@@ -36,9 +173,76 @@ public sealed class Quote : AuditableEntity, ICompanyScoped, IBranchScoped
         PriorityCode = priorityCode.Trim();
         Status = status.Trim();
         CustomerSpecRef = string.IsNullOrWhiteSpace(customerSpecRef) ? null : customerSpecRef.Trim();
+        SalesOwnerUserId = salesOwnerUserId;
+        SalesOwnerName = string.IsNullOrWhiteSpace(salesOwnerName) ? null : salesOwnerName.Trim();
+        InternalRemarks = string.IsNullOrWhiteSpace(internalRemarks) ? null : internalRemarks.Trim();
+        CustomerFacingRemarks = string.IsNullOrWhiteSpace(customerFacingRemarks) ? null : customerFacingRemarks.Trim();
+        PrintRemarks = string.IsNullOrWhiteSpace(printRemarks) ? null : printRemarks.Trim();
+        PaymentTermsId = paymentTermsId;
+        PriceListId = priceListId;
+        DiscountSchemeId = discountSchemeId;
+        TaxCategoryId = taxCategoryId;
+        TaxTreatment = string.IsNullOrWhiteSpace(taxTreatment) ? null : taxTreatment.Trim();
+        CurrencyId = currencyId;
+        ExchangeRateId = exchangeRateId;
+        ExchangeRateSnapshot = exchangeRateSnapshot;
+        TradeTermsId = tradeTermsId;
+        FreightAmount = freightAmount;
+        PackingAmount = packingAmount;
+        InsuranceAmount = insuranceAmount;
+        OtherChargesAmount = otherChargesAmount;
+        AddLessAmount = addLessAmount;
+        RoundOffAmount = roundOffAmount;
+        SubtotalAmount = subtotalAmount;
+        DiscountTotalAmount = discountTotalAmount;
+        TaxableAmount = taxableAmount;
+        TaxTotalAmount = taxTotalAmount;
+        GrandTotalAmount = grandTotalAmount;
+        CommercialStatus = string.IsNullOrWhiteSpace(commercialStatus) ? NormalizeCommercialStatus(status) : commercialStatus.Trim();
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }
+
+    public void MarkReleased(long? userId)
+    {
+        Status = "Released";
+        CommercialStatus = "Released";
+        ReleasedAt = DateTimeOffset.UtcNow;
+        ReleasedByUserId = userId;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void MarkConverted(long? userId)
+    {
+        Status = "Converted";
+        CommercialStatus = "Converted";
+        ConvertedAt = DateTimeOffset.UtcNow;
+        ConvertedByUserId = userId;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void Reopen(long? userId)
+    {
+        Status = "Draft";
+        CommercialStatus = "Draft";
+        ReopenedAt = DateTimeOffset.UtcNow;
+        ReopenedByUserId = userId;
+        RevisionNo += 1;
+        ReleasedAt = null;
+        ReleasedByUserId = null;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    private static string NormalizeCommercialStatus(string status) =>
+        status.Equals("Released", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("Converted", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("Closed", StringComparison.OrdinalIgnoreCase)
+            ? status.Trim()
+            : "Draft";
 }
 
 public sealed class QuoteLine : AuditableEntity
@@ -64,32 +268,158 @@ public sealed class QuoteLine : AuditableEntity
     public string PriorityCode { get; private set; } = string.Empty;
     public string? CustomerSpecRef { get; private set; }
     public string Status { get; private set; } = string.Empty;
+    public long? ItemRevisionId { get; private set; }
+    public long? EngineeringDocumentRevisionId { get; private set; }
+    public long? BomRevisionId { get; private set; }
+    public long? RoutingId { get; private set; }
+    public string PriceSourceType { get; private set; } = "Manual";
+    public long? PriceListLineId { get; private set; }
+    public long? DiscountSchemeId { get; private set; }
+    public long? DiscountRuleId { get; private set; }
+    public long? TaxCodeId { get; private set; }
+    public decimal TaxRateSnapshot { get; private set; }
+    public decimal LineSubtotal { get; private set; }
+    public decimal LineTaxableAmount { get; private set; }
+    public decimal LineTotalAmount { get; private set; }
+    public string? LineInternalRemarks { get; private set; }
+    public string? LineCustomerFacingRemarks { get; private set; }
+    public string? OverrideReason { get; private set; }
+    public long? OverrideByUserId { get; private set; }
+    public DateTimeOffset? OverrideAt { get; private set; }
 
-    public static QuoteLine Create(long quoteId, int lineNo, long itemId, long? itemVariantId, long orderUomId, decimal quantity, decimal unitPrice, decimal discountPercent, decimal taxPercent, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, string status, long? userId)
+    public static QuoteLine Create(
+        long quoteId,
+        int lineNo,
+        long itemId,
+        long? itemVariantId,
+        long orderUomId,
+        decimal quantity,
+        decimal unitPrice,
+        decimal discountPercent,
+        decimal discountAmount,
+        decimal taxPercent,
+        decimal taxAmount,
+        decimal lineAmount,
+        string makeType,
+        DateOnly? promisedDate,
+        string priorityCode,
+        string? customerSpecRef,
+        string status,
+        long? itemRevisionId,
+        long? engineeringDocumentRevisionId,
+        long? bomRevisionId,
+        long? routingId,
+        string priceSourceType,
+        long? priceListLineId,
+        long? discountSchemeId,
+        long? discountRuleId,
+        long? taxCodeId,
+        decimal taxRateSnapshot,
+        decimal lineSubtotal,
+        decimal lineTaxableAmount,
+        decimal lineTotalAmount,
+        string? lineInternalRemarks,
+        string? lineCustomerFacingRemarks,
+        string? overrideReason,
+        long? userId)
     {
         var entity = new QuoteLine { QuoteId = quoteId, LineNo = lineNo, ItemId = itemId, ItemVariantId = itemVariantId, OrderUomId = orderUomId };
-        entity.Update(quantity, unitPrice, discountPercent, taxPercent, makeType, promisedDate, priorityCode, customerSpecRef, status, userId);
+        entity.Update(
+            quantity,
+            unitPrice,
+            discountPercent,
+            discountAmount,
+            taxPercent,
+            taxAmount,
+            lineAmount,
+            makeType,
+            promisedDate,
+            priorityCode,
+            customerSpecRef,
+            status,
+            itemRevisionId,
+            engineeringDocumentRevisionId,
+            bomRevisionId,
+            routingId,
+            priceSourceType,
+            priceListLineId,
+            discountSchemeId,
+            discountRuleId,
+            taxCodeId,
+            taxRateSnapshot,
+            lineSubtotal,
+            lineTaxableAmount,
+            lineTotalAmount,
+            lineInternalRemarks,
+            lineCustomerFacingRemarks,
+            overrideReason,
+            userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
     }
 
-    public void Update(decimal quantity, decimal unitPrice, decimal discountPercent, decimal taxPercent, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, string status, long? userId)
+    public void Update(
+        decimal quantity,
+        decimal unitPrice,
+        decimal discountPercent,
+        decimal discountAmount,
+        decimal taxPercent,
+        decimal taxAmount,
+        decimal lineAmount,
+        string makeType,
+        DateOnly? promisedDate,
+        string priorityCode,
+        string? customerSpecRef,
+        string status,
+        long? itemRevisionId,
+        long? engineeringDocumentRevisionId,
+        long? bomRevisionId,
+        long? routingId,
+        string priceSourceType,
+        long? priceListLineId,
+        long? discountSchemeId,
+        long? discountRuleId,
+        long? taxCodeId,
+        decimal taxRateSnapshot,
+        decimal lineSubtotal,
+        decimal lineTaxableAmount,
+        decimal lineTotalAmount,
+        string? lineInternalRemarks,
+        string? lineCustomerFacingRemarks,
+        string? overrideReason,
+        long? userId)
     {
         Quantity = quantity;
         UnitPrice = unitPrice;
         DiscountPercent = discountPercent;
         TaxPercent = taxPercent;
-        var grossAmount = decimal.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
-        DiscountAmount = decimal.Round(grossAmount * discountPercent / 100m, 2, MidpointRounding.AwayFromZero);
-        var taxableAmount = grossAmount - DiscountAmount;
-        TaxAmount = decimal.Round(taxableAmount * taxPercent / 100m, 2, MidpointRounding.AwayFromZero);
-        LineAmount = taxableAmount + TaxAmount;
+        DiscountAmount = discountAmount;
+        TaxAmount = taxAmount;
+        LineAmount = lineAmount;
         MakeType = makeType.Trim();
         PromisedDate = promisedDate;
         PriorityCode = priorityCode.Trim();
         CustomerSpecRef = string.IsNullOrWhiteSpace(customerSpecRef) ? null : customerSpecRef.Trim();
         Status = status.Trim();
+        ItemRevisionId = itemRevisionId;
+        EngineeringDocumentRevisionId = engineeringDocumentRevisionId;
+        BomRevisionId = bomRevisionId;
+        RoutingId = routingId;
+        PriceSourceType = string.IsNullOrWhiteSpace(priceSourceType) ? "Manual" : priceSourceType.Trim();
+        PriceListLineId = priceListLineId;
+        DiscountSchemeId = discountSchemeId;
+        DiscountRuleId = discountRuleId;
+        TaxCodeId = taxCodeId;
+        TaxRateSnapshot = taxRateSnapshot;
+        LineSubtotal = lineSubtotal;
+        LineTaxableAmount = lineTaxableAmount;
+        LineTotalAmount = lineTotalAmount;
+        LineInternalRemarks = string.IsNullOrWhiteSpace(lineInternalRemarks) ? null : lineInternalRemarks.Trim();
+        LineCustomerFacingRemarks = string.IsNullOrWhiteSpace(lineCustomerFacingRemarks) ? null : lineCustomerFacingRemarks.Trim();
+        OverrideReason = string.IsNullOrWhiteSpace(overrideReason) ? null : overrideReason.Trim();
+        OverrideByUserId = OverrideReason is null ? null : userId;
+        OverrideAt = OverrideReason is null ? null : DateTimeOffset.UtcNow;
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }
@@ -112,26 +442,208 @@ public sealed class SalesOrder : AuditableEntity, ICompanyScoped, IBranchScoped
     public string PriorityCode { get; private set; } = string.Empty;
     public string Status { get; private set; } = string.Empty;
     public long? SourceQuoteId { get; private set; }
+    public int? SourceQuoteRevisionNo { get; private set; }
+    public int? SourceQuoteVersionNo { get; private set; }
+    public long? SalesOwnerUserId { get; private set; }
+    public string? SalesOwnerName { get; private set; }
+    public string? InternalRemarks { get; private set; }
+    public string? CustomerFacingRemarks { get; private set; }
+    public string? PrintRemarks { get; private set; }
+    public long? PaymentTermsId { get; private set; }
+    public long? PriceListId { get; private set; }
+    public long? DiscountSchemeId { get; private set; }
+    public long? TaxCategoryId { get; private set; }
+    public string? TaxTreatment { get; private set; }
+    public long? CurrencyId { get; private set; }
+    public long? ExchangeRateId { get; private set; }
+    public decimal? ExchangeRateSnapshot { get; private set; }
+    public long? TradeTermsId { get; private set; }
+    public decimal FreightAmount { get; private set; }
+    public decimal PackingAmount { get; private set; }
+    public decimal InsuranceAmount { get; private set; }
+    public decimal OtherChargesAmount { get; private set; }
+    public decimal AddLessAmount { get; private set; }
+    public decimal RoundOffAmount { get; private set; }
+    public decimal SubtotalAmount { get; private set; }
+    public decimal DiscountTotalAmount { get; private set; }
+    public decimal TaxableAmount { get; private set; }
+    public decimal TaxTotalAmount { get; private set; }
+    public decimal GrandTotalAmount { get; private set; }
+    public string CommercialStatus { get; private set; } = "Draft";
+    public DateTimeOffset? ReleasedAt { get; private set; }
+    public long? ReleasedByUserId { get; private set; }
+    public bool LegacyCommercialIncomplete { get; private set; }
 
-    public static SalesOrder Create(long companyId, long branchId, string salesOrderNo, long customerId, long? billToAddressId, long? shipToAddressId, DateOnly orderDate, DateOnly? promisedDate, string priorityCode, string status, long? sourceQuoteId, long? userId)
+    public static SalesOrder Create(
+        long companyId,
+        long branchId,
+        string salesOrderNo,
+        long customerId,
+        long? billToAddressId,
+        long? shipToAddressId,
+        DateOnly orderDate,
+        DateOnly? promisedDate,
+        string priorityCode,
+        string status,
+        long? sourceQuoteId,
+        int? sourceQuoteRevisionNo,
+        int? sourceQuoteVersionNo,
+        long? salesOwnerUserId,
+        string? salesOwnerName,
+        string? internalRemarks,
+        string? customerFacingRemarks,
+        string? printRemarks,
+        long? paymentTermsId,
+        long? priceListId,
+        long? discountSchemeId,
+        long? taxCategoryId,
+        string? taxTreatment,
+        long? currencyId,
+        long? exchangeRateId,
+        decimal? exchangeRateSnapshot,
+        long? tradeTermsId,
+        decimal freightAmount,
+        decimal packingAmount,
+        decimal insuranceAmount,
+        decimal otherChargesAmount,
+        decimal addLessAmount,
+        decimal roundOffAmount,
+        decimal subtotalAmount,
+        decimal discountTotalAmount,
+        decimal taxableAmount,
+        decimal taxTotalAmount,
+        decimal grandTotalAmount,
+        string? commercialStatus,
+        DateTimeOffset? releasedAt,
+        long? releasedByUserId,
+        long? userId)
     {
-        var entity = new SalesOrder { CompanyId = companyId, BranchId = branchId, CustomerId = customerId, BillToAddressId = billToAddressId, ShipToAddressId = shipToAddressId, SourceQuoteId = sourceQuoteId };
-        entity.Update(salesOrderNo, orderDate, promisedDate, priorityCode, status, userId);
+        var entity = new SalesOrder
+        {
+            CompanyId = companyId,
+            BranchId = branchId,
+            CustomerId = customerId,
+            BillToAddressId = billToAddressId,
+            ShipToAddressId = shipToAddressId,
+            SourceQuoteId = sourceQuoteId,
+            SourceQuoteRevisionNo = sourceQuoteRevisionNo,
+            SourceQuoteVersionNo = sourceQuoteVersionNo
+        };
+        entity.Update(
+            salesOrderNo,
+            orderDate,
+            promisedDate,
+            priorityCode,
+            status,
+            salesOwnerUserId,
+            salesOwnerName,
+            internalRemarks,
+            customerFacingRemarks,
+            printRemarks,
+            paymentTermsId,
+            priceListId,
+            discountSchemeId,
+            taxCategoryId,
+            taxTreatment,
+            currencyId,
+            exchangeRateId,
+            exchangeRateSnapshot,
+            tradeTermsId,
+            freightAmount,
+            packingAmount,
+            insuranceAmount,
+            otherChargesAmount,
+            addLessAmount,
+            roundOffAmount,
+            subtotalAmount,
+            discountTotalAmount,
+            taxableAmount,
+            taxTotalAmount,
+            grandTotalAmount,
+            commercialStatus,
+            releasedAt,
+            releasedByUserId,
+            userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
     }
 
-    public void Update(string salesOrderNo, DateOnly orderDate, DateOnly? promisedDate, string priorityCode, string status, long? userId)
+    public void Update(
+        string salesOrderNo,
+        DateOnly orderDate,
+        DateOnly? promisedDate,
+        string priorityCode,
+        string status,
+        long? salesOwnerUserId,
+        string? salesOwnerName,
+        string? internalRemarks,
+        string? customerFacingRemarks,
+        string? printRemarks,
+        long? paymentTermsId,
+        long? priceListId,
+        long? discountSchemeId,
+        long? taxCategoryId,
+        string? taxTreatment,
+        long? currencyId,
+        long? exchangeRateId,
+        decimal? exchangeRateSnapshot,
+        long? tradeTermsId,
+        decimal freightAmount,
+        decimal packingAmount,
+        decimal insuranceAmount,
+        decimal otherChargesAmount,
+        decimal addLessAmount,
+        decimal roundOffAmount,
+        decimal subtotalAmount,
+        decimal discountTotalAmount,
+        decimal taxableAmount,
+        decimal taxTotalAmount,
+        decimal grandTotalAmount,
+        string? commercialStatus,
+        DateTimeOffset? releasedAt,
+        long? releasedByUserId,
+        long? userId)
     {
         SalesOrderNo = salesOrderNo.Trim();
         OrderDate = orderDate;
         PromisedDate = promisedDate;
         PriorityCode = priorityCode.Trim();
         Status = status.Trim();
+        SalesOwnerUserId = salesOwnerUserId;
+        SalesOwnerName = string.IsNullOrWhiteSpace(salesOwnerName) ? null : salesOwnerName.Trim();
+        InternalRemarks = string.IsNullOrWhiteSpace(internalRemarks) ? null : internalRemarks.Trim();
+        CustomerFacingRemarks = string.IsNullOrWhiteSpace(customerFacingRemarks) ? null : customerFacingRemarks.Trim();
+        PrintRemarks = string.IsNullOrWhiteSpace(printRemarks) ? null : printRemarks.Trim();
+        PaymentTermsId = paymentTermsId;
+        PriceListId = priceListId;
+        DiscountSchemeId = discountSchemeId;
+        TaxCategoryId = taxCategoryId;
+        TaxTreatment = string.IsNullOrWhiteSpace(taxTreatment) ? null : taxTreatment.Trim();
+        CurrencyId = currencyId;
+        ExchangeRateId = exchangeRateId;
+        ExchangeRateSnapshot = exchangeRateSnapshot;
+        TradeTermsId = tradeTermsId;
+        FreightAmount = freightAmount;
+        PackingAmount = packingAmount;
+        InsuranceAmount = insuranceAmount;
+        OtherChargesAmount = otherChargesAmount;
+        AddLessAmount = addLessAmount;
+        RoundOffAmount = roundOffAmount;
+        SubtotalAmount = subtotalAmount;
+        DiscountTotalAmount = discountTotalAmount;
+        TaxableAmount = taxableAmount;
+        TaxTotalAmount = taxTotalAmount;
+        GrandTotalAmount = grandTotalAmount;
+        CommercialStatus = string.IsNullOrWhiteSpace(commercialStatus) ? NormalizeCommercialStatus(status) : commercialStatus.Trim();
+        ReleasedAt = releasedAt;
+        ReleasedByUserId = releasedByUserId;
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }
+
+    private static string NormalizeCommercialStatus(string status) =>
+        status.Equals("Released", StringComparison.OrdinalIgnoreCase) ? "Released" : "Draft";
 }
 
 public sealed class SalesOrderLine : AuditableEntity
@@ -152,17 +664,128 @@ public sealed class SalesOrderLine : AuditableEntity
     public string? CustomerSpecRef { get; private set; }
     public DateOnly? RequestedShipDate { get; private set; }
     public string Status { get; private set; } = string.Empty;
+    public long? ItemRevisionId { get; private set; }
+    public long? EngineeringDocumentRevisionId { get; private set; }
+    public long? BomRevisionId { get; private set; }
+    public long? RoutingId { get; private set; }
+    public decimal UnitPrice { get; private set; }
+    public string PriceSourceType { get; private set; } = "Manual";
+    public long? PriceListLineId { get; private set; }
+    public long? DiscountSchemeId { get; private set; }
+    public long? DiscountRuleId { get; private set; }
+    public decimal DiscountPercent { get; private set; }
+    public decimal DiscountAmount { get; private set; }
+    public long? TaxCodeId { get; private set; }
+    public decimal TaxRateSnapshot { get; private set; }
+    public decimal TaxAmount { get; private set; }
+    public decimal LineSubtotal { get; private set; }
+    public decimal LineTaxableAmount { get; private set; }
+    public decimal LineTotalAmount { get; private set; }
+    public string? LineInternalRemarks { get; private set; }
+    public string? LineCustomerFacingRemarks { get; private set; }
+    public string? OverrideReason { get; private set; }
+    public long? OverrideByUserId { get; private set; }
+    public DateTimeOffset? OverrideAt { get; private set; }
 
-    public static SalesOrderLine Create(long salesOrderId, int lineNo, long itemId, long? itemVariantId, long orderUomId, decimal quantity, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, DateOnly? requestedShipDate, string status, long? userId)
+    public static SalesOrderLine Create(
+        long salesOrderId,
+        int lineNo,
+        long itemId,
+        long? itemVariantId,
+        long orderUomId,
+        decimal quantity,
+        string makeType,
+        DateOnly? promisedDate,
+        string priorityCode,
+        string? customerSpecRef,
+        DateOnly? requestedShipDate,
+        string status,
+        long? itemRevisionId,
+        long? engineeringDocumentRevisionId,
+        long? bomRevisionId,
+        long? routingId,
+        decimal unitPrice,
+        string priceSourceType,
+        long? priceListLineId,
+        long? discountSchemeId,
+        long? discountRuleId,
+        decimal discountPercent,
+        decimal discountAmount,
+        long? taxCodeId,
+        decimal taxRateSnapshot,
+        decimal taxAmount,
+        decimal lineSubtotal,
+        decimal lineTaxableAmount,
+        decimal lineTotalAmount,
+        string? lineInternalRemarks,
+        string? lineCustomerFacingRemarks,
+        string? overrideReason,
+        long? userId)
     {
         var entity = new SalesOrderLine { SalesOrderId = salesOrderId, LineNo = lineNo, ItemId = itemId, ItemVariantId = itemVariantId, OrderUomId = orderUomId };
-        entity.Update(quantity, makeType, promisedDate, priorityCode, customerSpecRef, requestedShipDate, status, userId);
+        entity.Update(
+            quantity,
+            makeType,
+            promisedDate,
+            priorityCode,
+            customerSpecRef,
+            requestedShipDate,
+            status,
+            itemRevisionId,
+            engineeringDocumentRevisionId,
+            bomRevisionId,
+            routingId,
+            unitPrice,
+            priceSourceType,
+            priceListLineId,
+            discountSchemeId,
+            discountRuleId,
+            discountPercent,
+            discountAmount,
+            taxCodeId,
+            taxRateSnapshot,
+            taxAmount,
+            lineSubtotal,
+            lineTaxableAmount,
+            lineTotalAmount,
+            lineInternalRemarks,
+            lineCustomerFacingRemarks,
+            overrideReason,
+            userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
     }
 
-    public void Update(decimal quantity, string makeType, DateOnly? promisedDate, string priorityCode, string? customerSpecRef, DateOnly? requestedShipDate, string status, long? userId)
+    public void Update(
+        decimal quantity,
+        string makeType,
+        DateOnly? promisedDate,
+        string priorityCode,
+        string? customerSpecRef,
+        DateOnly? requestedShipDate,
+        string status,
+        long? itemRevisionId,
+        long? engineeringDocumentRevisionId,
+        long? bomRevisionId,
+        long? routingId,
+        decimal unitPrice,
+        string priceSourceType,
+        long? priceListLineId,
+        long? discountSchemeId,
+        long? discountRuleId,
+        decimal discountPercent,
+        decimal discountAmount,
+        long? taxCodeId,
+        decimal taxRateSnapshot,
+        decimal taxAmount,
+        decimal lineSubtotal,
+        decimal lineTaxableAmount,
+        decimal lineTotalAmount,
+        string? lineInternalRemarks,
+        string? lineCustomerFacingRemarks,
+        string? overrideReason,
+        long? userId)
     {
         Quantity = quantity;
         MakeType = makeType.Trim();
@@ -171,6 +794,28 @@ public sealed class SalesOrderLine : AuditableEntity
         CustomerSpecRef = string.IsNullOrWhiteSpace(customerSpecRef) ? null : customerSpecRef.Trim();
         RequestedShipDate = requestedShipDate;
         Status = status.Trim();
+        ItemRevisionId = itemRevisionId;
+        EngineeringDocumentRevisionId = engineeringDocumentRevisionId;
+        BomRevisionId = bomRevisionId;
+        RoutingId = routingId;
+        UnitPrice = unitPrice;
+        PriceSourceType = string.IsNullOrWhiteSpace(priceSourceType) ? "Manual" : priceSourceType.Trim();
+        PriceListLineId = priceListLineId;
+        DiscountSchemeId = discountSchemeId;
+        DiscountRuleId = discountRuleId;
+        DiscountPercent = discountPercent;
+        DiscountAmount = discountAmount;
+        TaxCodeId = taxCodeId;
+        TaxRateSnapshot = taxRateSnapshot;
+        TaxAmount = taxAmount;
+        LineSubtotal = lineSubtotal;
+        LineTaxableAmount = lineTaxableAmount;
+        LineTotalAmount = lineTotalAmount;
+        LineInternalRemarks = string.IsNullOrWhiteSpace(lineInternalRemarks) ? null : lineInternalRemarks.Trim();
+        LineCustomerFacingRemarks = string.IsNullOrWhiteSpace(lineCustomerFacingRemarks) ? null : lineCustomerFacingRemarks.Trim();
+        OverrideReason = string.IsNullOrWhiteSpace(overrideReason) ? null : overrideReason.Trim();
+        OverrideByUserId = OverrideReason is null ? null : userId;
+        OverrideAt = OverrideReason is null ? null : DateTimeOffset.UtcNow;
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }
@@ -743,6 +1388,141 @@ public sealed class ShortageAction : AuditableEntity, ICompanyScoped, IBranchSco
         ReasonCode = reasonCode.Trim();
         Status = status.Trim();
         ResolutionNote = resolutionNote.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class SalesTerritory : AuditableEntity, ICompanyScoped
+{
+    private SalesTerritory()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public string TerritoryCode { get; private set; } = string.Empty;
+    public string TerritoryName { get; private set; } = string.Empty;
+    public long? ParentTerritoryId { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static SalesTerritory Create(long companyId, string territoryCode, string territoryName, long? parentTerritoryId, string status, long? userId)
+    {
+        var entity = new SalesTerritory { CompanyId = companyId };
+        entity.Update(territoryCode, territoryName, parentTerritoryId, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string territoryCode, string territoryName, long? parentTerritoryId, string status, long? userId)
+    {
+        TerritoryCode = territoryCode.Trim().ToUpperInvariant();
+        TerritoryName = territoryName.Trim();
+        ParentTerritoryId = parentTerritoryId;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class SalesTeam : AuditableEntity, ICompanyScoped
+{
+    private SalesTeam()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public string TeamCode { get; private set; } = string.Empty;
+    public string TeamName { get; private set; } = string.Empty;
+    public long? DefaultTerritoryId { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static SalesTeam Create(long companyId, string teamCode, string teamName, long? defaultTerritoryId, string status, long? userId)
+    {
+        var entity = new SalesTeam { CompanyId = companyId };
+        entity.Update(teamCode, teamName, defaultTerritoryId, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string teamCode, string teamName, long? defaultTerritoryId, string status, long? userId)
+    {
+        TeamCode = teamCode.Trim().ToUpperInvariant();
+        TeamName = teamName.Trim();
+        DefaultTerritoryId = defaultTerritoryId;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class SalesTeamMember : AuditableEntity, ICompanyScoped
+{
+    private SalesTeamMember()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long SalesTeamId { get; private set; }
+    public long UserId { get; private set; }
+    public string RoleCode { get; private set; } = string.Empty;
+    public DateOnly EffectiveFrom { get; private set; }
+    public DateOnly? EffectiveTo { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static SalesTeamMember Create(long companyId, long salesTeamId, long userId, string roleCode, DateOnly effectiveFrom, DateOnly? effectiveTo, string status, long? createdByUserId)
+    {
+        var entity = new SalesTeamMember { CompanyId = companyId, SalesTeamId = salesTeamId, UserId = userId };
+        entity.Update(roleCode, effectiveFrom, effectiveTo, status, createdByUserId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = createdByUserId;
+        return entity;
+    }
+
+    public void Update(string roleCode, DateOnly effectiveFrom, DateOnly? effectiveTo, string status, long? userId)
+    {
+        RoleCode = roleCode.Trim();
+        EffectiveFrom = effectiveFrom;
+        EffectiveTo = effectiveTo;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class CustomerSalesAssignment : AuditableEntity, ICompanyScoped
+{
+    private CustomerSalesAssignment()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long CustomerId { get; private set; }
+    public long? SalesOwnerUserId { get; private set; }
+    public long? SalesTeamId { get; private set; }
+    public long? TerritoryId { get; private set; }
+    public DateOnly EffectiveFrom { get; private set; }
+    public DateOnly? EffectiveTo { get; private set; }
+    public string Status { get; private set; } = string.Empty;
+
+    public static CustomerSalesAssignment Create(long companyId, long customerId, long? salesOwnerUserId, long? salesTeamId, long? territoryId, DateOnly effectiveFrom, DateOnly? effectiveTo, string status, long? userId)
+    {
+        var entity = new CustomerSalesAssignment { CompanyId = companyId, CustomerId = customerId };
+        entity.Update(salesOwnerUserId, salesTeamId, territoryId, effectiveFrom, effectiveTo, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(long? salesOwnerUserId, long? salesTeamId, long? territoryId, DateOnly effectiveFrom, DateOnly? effectiveTo, string status, long? userId)
+    {
+        SalesOwnerUserId = salesOwnerUserId;
+        SalesTeamId = salesTeamId;
+        TerritoryId = territoryId;
+        EffectiveFrom = effectiveFrom;
+        EffectiveTo = effectiveTo;
+        Status = status.Trim();
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }

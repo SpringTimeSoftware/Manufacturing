@@ -121,7 +121,9 @@ public static class DependencyInjection
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IEngineeringService, EngineeringService>();
         services.AddScoped<ISalesPlanningService, SalesPlanningService>();
+        services.AddScoped<ICustomerCommercialDefaultsService, CustomerCommercialDefaultsService>();
         services.AddScoped<ICommercialMasterService, CommercialMasterService>();
+        services.AddScoped<ICommercialCalculationService, CommercialCalculationService>();
 
         services.AddScoped<IAuditTrail, AuditTrail>();
         services.AddSingleton<IAttachmentStorage, LocalAttachmentStorage>();

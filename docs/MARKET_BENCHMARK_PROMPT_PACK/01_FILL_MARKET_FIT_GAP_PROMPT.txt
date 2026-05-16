@@ -1,0 +1,35 @@
+Work only on branch main.
+
+This is MARKET-FIT-GAP-01.
+
+Do not modify product code in this pass.
+
+Goal:
+Read docs/market-benchmark/MANUFACTURING_ERP_MARKET_FIT_GAP.xlsx and scan the current repo to fill current product status.
+
+For every row in the workbook, determine:
+- COMPLETE
+- PARTIAL
+- MISSING
+- BLOCKED
+- DEMO-ONLY
+- OUT-OF-SCOPE
+
+Rules:
+- Do not mark COMPLETE if UI exists but action is disabled.
+- Do not mark COMPLETE if field is free text but should be lookup.
+- Do not mark COMPLETE if transaction has lines[] but UI only edits first line.
+- Do not mark COMPLETE if upload/send/export/print is only placeholder or disabled.
+- Do not mark COMPLETE if save/reopen proof does not exist.
+- Do not mark COMPLETE if live data is demo/seed fallback.
+
+Create:
+- docs/market-benchmark/MANUFACTURING_ERP_MARKET_FIT_GAP_FILLED.xlsx
+- docs/market-benchmark/MANUFACTURING_ERP_MARKET_FIT_GAP_SUMMARY.md
+- docs/codex-progress/MARKET-FIT-GAP-01-output.md
+
+Return only:
+- workbook path
+- summary path
+- top 50 P0/P1 gaps
+- recommended first implementation wave

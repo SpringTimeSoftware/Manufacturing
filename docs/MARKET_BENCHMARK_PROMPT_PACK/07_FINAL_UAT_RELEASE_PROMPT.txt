@@ -1,0 +1,27 @@
+Work only on branch main.
+
+This is FINAL-UAT-RELEASE-01.
+
+Goal:
+Prepare final demo/UAT/pilot decision pack.
+
+Tasks:
+- deploy latest main locally
+- run smoke test
+- run role-wise UAT
+- run quality gates
+- run security/readiness checks
+- build final review pack
+
+Outputs:
+- docs/uat/LOCALHOST_SMOKE_TEST_REPORT.md
+- docs/uat/LOCALHOST_ROLE_WISE_UAT_RESULTS.md
+- docs/release/FINAL_RELEASE_READINESS_REPORT.md
+- artifacts/review-packs/FINAL-UAT-RELEASE-01-review-pack.zip
+
+Return final judgment:
+- controlled demo-ready
+- UAT-ready
+- pilot-ready
+- not ready
+with exact blockers.

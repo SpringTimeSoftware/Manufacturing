@@ -1,0 +1,26 @@
+Work only on branch main.
+
+This is INTEGRATIONS-AI-REPORTING-MOBILE-01.
+
+Goal:
+Complete truthful foundations for integrations, AI, reports, dashboard builder and mobile.
+
+Scope:
+- Email / SMS / WhatsApp provider setup
+- CRM sync for lead/customer/quote/status updates
+- AI help assistant grounded in internal help/registry
+- AI operational Q&A read-only only
+- Report catalog / parameters / saved views / export truth
+- Dashboard builder or governed widget catalog
+- Mobile job card/material scan/QC/dispatch proof/sync truth
+
+Hard gates:
+- provider actions working in configured/sandbox mode or disabled with reason
+- no fake send/sync/export/chat action
+- AI must not write data unless explicitly approved and implemented
+- report/download/export actions truthful
+- mobile camera/barcode/proof actions working or clearly out of scope/disabled
+
+Create:
+- docs/codex-progress/INTEGRATIONS-AI-REPORTING-MOBILE-01-output.md
+- docs/codex-review-screens/INTEGRATIONS-AI-REPORTING-MOBILE-01/

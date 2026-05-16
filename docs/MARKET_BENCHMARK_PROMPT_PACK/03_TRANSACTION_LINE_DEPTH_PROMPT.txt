@@ -1,0 +1,68 @@
+Work only on branch main.
+
+This is TRANSACTION-LINE-DEPTH-01.
+
+Goal:
+Complete line-item transaction depth for commercial, procurement, inventory, production, and dispatch documents.
+
+Scope:
+- Sales Quote
+- Sales Order
+- Blanket Order
+- Demand Forecast
+- Purchase Requisition
+- RFQ
+- Supplier Quotation
+- Purchase Order
+- Subcontract Order
+- Material Issue
+- Material Return
+- Stock Transfer
+- Production Receipt
+- Scrap/Rework
+- Pack List / Shipment
+
+For every in-scope transaction:
+- header workspace
+- multiline grid
+- Add Line
+- Remove Line
+- item lookup
+- UOM lookup
+- quantity numeric
+- rate/price numeric where commercial
+- discount/tax where commercial
+- required date/spec/reference
+- totals
+- charges/add-less where applicable
+- round-off where applicable
+- Save Draft
+- Save/Reopen proof
+- no lines[0]-only UI
+
+Hard gate:
+- no touched transaction can have a dead New Draft/Create/Save/Add Line/Remove Line action.
+- if a transaction cannot be completed because backend is missing, disable the action with reason and list it as BLOCKED. Do not fake.
+
+Validation:
+- npm run typecheck
+- npm test
+- npm run audit:transaction-lines
+- npm run audit:action-truth
+- npm run build
+- npm run build:host
+- dotnet build src/server/STS.Mfg.sln
+- dotnet test src/server/STS.Mfg.sln --no-build
+- dotnet publish src/server/STS.Mfg.Host/STS.Mfg.Host.csproj -c Release
+
+Screenshots:
+- quote new draft with two lines
+- sales order workspace
+- PO workspace
+- material issue/return
+- production receipt
+- pack/shipment
+
+Create:
+- docs/codex-progress/TRANSACTION-LINE-DEPTH-01-output.md
+- docs/codex-review-screens/TRANSACTION-LINE-DEPTH-01/

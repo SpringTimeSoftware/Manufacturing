@@ -186,16 +186,41 @@ function numberValue(value: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+function directoryUserNumericId(value: string) {
+  const match = value.match(/\d+$/);
+  return match ? Number(match[0]) : 0;
+}
+
 function optionList<T>(items: T[] | undefined, getValue: (item: T) => number, getLabel: (item: T) => string) {
   return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
 }
+
+type CommercialSnapshotMeta = {
+  subtotalAmount?: number;
+  discountTotalAmount?: number;
+  taxableAmount?: number;
+  taxTotalAmount?: number;
+  grandTotalAmount?: number;
+  commercialStatus?: string;
+  revisionNo?: number;
+  releasedAt?: string | null;
+  releasedByUserId?: number | null;
+  convertedAt?: string | null;
+  convertedByUserId?: number | null;
+  sourceQuoteRevisionNo?: number | null;
+  sourceQuoteVersionNo?: number | null;
+  legacyCommercialIncomplete?: boolean;
+};
+
+type QuoteDraftState = QuoteUpsertRequest & CommercialSnapshotMeta;
+type SalesOrderDraftState = SalesOrderUpsertRequest & CommercialSnapshotMeta;
 
 function buildDraftQuoteNo() {
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 12);
   return `QT-DRAFT-${stamp}`;
 }
 
-function buildQuoteDraft(companyId: number, branchId: number): QuoteUpsertRequest {
+function buildQuoteDraft(companyId: number, branchId: number): QuoteDraftState {
   const initialLine = buildQuoteDraftLine(10);
 
   return {
@@ -209,6 +234,28 @@ function buildQuoteDraft(companyId: number, branchId: number): QuoteUpsertReques
     priorityCode: "Medium",
     status: "Draft",
     customerSpecRef: "",
+    salesOwnerUserId: null,
+    salesOwnerName: null,
+    internalRemarks: "",
+    customerFacingRemarks: "",
+    printRemarks: "",
+    paymentTermsId: null,
+    priceListId: null,
+    discountSchemeId: null,
+    taxCategoryId: null,
+    taxTreatment: null,
+    currencyId: null,
+    exchangeRateId: null,
+    exchangeRateSnapshot: null,
+    tradeTermsId: null,
+    freightAmount: 0,
+    packingAmount: 0,
+    insuranceAmount: 0,
+    otherChargesAmount: 0,
+    addLessAmount: 0,
+    roundOffAmount: 0,
+    commercialStatus: "Draft",
+    revisionNo: 1,
     lines: [initialLine]
   };
 }
@@ -223,6 +270,16 @@ function buildQuoteDraftLine(lineNo: number): QuoteUpsertRequest["lines"][number
     unitPrice: 0,
     discountPercent: 0,
     taxPercent: 0,
+    priceSourceType: "Manual",
+    priceListLineId: null,
+    discountSchemeId: null,
+    discountRuleId: null,
+    discountAmount: 0,
+    taxCodeId: null,
+    taxRateSnapshot: null,
+    lineInternalRemarks: "",
+    lineCustomerFacingRemarks: "",
+    overrideReason: "",
     makeType: "Make",
     promisedDate: addDaysIso(14),
     priorityCode: "Medium",
@@ -231,7 +288,7 @@ function buildQuoteDraftLine(lineNo: number): QuoteUpsertRequest["lines"][number
   };
 }
 
-function toQuoteDraft(dto: QuoteDto): QuoteUpsertRequest {
+function toQuoteDraft(dto: QuoteDto): QuoteDraftState {
   return {
     companyId: dto.companyId,
     branchId: dto.branchId,
@@ -243,15 +300,61 @@ function toQuoteDraft(dto: QuoteDto): QuoteUpsertRequest {
     priorityCode: dto.priorityCode,
     status: dto.status,
     customerSpecRef: dto.customerSpecRef ?? "",
+    salesOwnerUserId: dto.salesOwnerUserId ?? null,
+    salesOwnerName: dto.salesOwnerName ?? null,
+    internalRemarks: dto.internalRemarks ?? "",
+    customerFacingRemarks: dto.customerFacingRemarks ?? "",
+    printRemarks: dto.printRemarks ?? "",
+    paymentTermsId: dto.paymentTermsId ?? null,
+    priceListId: dto.priceListId ?? null,
+    discountSchemeId: dto.discountSchemeId ?? null,
+    taxCategoryId: dto.taxCategoryId ?? null,
+    taxTreatment: dto.taxTreatment ?? "Taxable",
+    currencyId: dto.currencyId ?? null,
+    exchangeRateId: dto.exchangeRateId ?? null,
+    exchangeRateSnapshot: dto.exchangeRateSnapshot ?? null,
+    tradeTermsId: dto.tradeTermsId ?? null,
+    freightAmount: dto.freightAmount ?? 0,
+    packingAmount: dto.packingAmount ?? 0,
+    insuranceAmount: dto.insuranceAmount ?? 0,
+    otherChargesAmount: dto.otherChargesAmount ?? 0,
+    addLessAmount: dto.addLessAmount ?? 0,
+    roundOffAmount: dto.roundOffAmount ?? 0,
+    commercialStatus: dto.commercialStatus ?? dto.status,
+    revisionNo: dto.revisionNo ?? 1,
+    releasedAt: dto.releasedAt ?? null,
+    releasedByUserId: dto.releasedByUserId ?? null,
+    convertedAt: dto.convertedAt ?? null,
+    convertedByUserId: dto.convertedByUserId ?? null,
+    legacyCommercialIncomplete: dto.legacyCommercialIncomplete ?? false,
+    subtotalAmount: dto.subtotalAmount ?? 0,
+    discountTotalAmount: dto.discountTotalAmount ?? 0,
+    taxableAmount: dto.taxableAmount ?? 0,
+    taxTotalAmount: dto.taxTotalAmount ?? 0,
+    grandTotalAmount: dto.grandTotalAmount ?? 0,
     lines: dto.lines.map((line) => ({
       lineNo: line.lineNo,
       itemId: line.itemId,
       itemVariantId: line.itemVariantId,
+      itemRevisionId: line.itemRevisionId ?? null,
+      engineeringDocumentRevisionId: line.engineeringDocumentRevisionId ?? null,
+      bomRevisionId: line.bomRevisionId ?? null,
+      routingId: line.routingId ?? null,
       orderUomId: line.orderUomId,
       quantity: line.quantity,
       unitPrice: line.unitPrice,
       discountPercent: line.discountPercent,
+      discountAmount: line.discountAmount,
       taxPercent: line.taxPercent,
+      taxCodeId: line.taxCodeId ?? null,
+      taxRateSnapshot: line.taxRateSnapshot ?? null,
+      priceSourceType: line.priceSourceType ?? "Manual",
+      priceListLineId: line.priceListLineId ?? null,
+      discountSchemeId: line.discountSchemeId ?? null,
+      discountRuleId: line.discountRuleId ?? null,
+      lineInternalRemarks: line.lineInternalRemarks ?? "",
+      lineCustomerFacingRemarks: line.lineCustomerFacingRemarks ?? "",
+      overrideReason: line.overrideReason ?? "",
       makeType: line.makeType,
       promisedDate: line.promisedDate,
       priorityCode: line.priorityCode,
@@ -261,7 +364,7 @@ function toQuoteDraft(dto: QuoteDto): QuoteUpsertRequest {
   };
 }
 
-function quoteSetupToDraft(record: QuoteSetupItem): QuoteUpsertRequest {
+function quoteSetupToDraft(record: QuoteSetupItem): QuoteDraftState {
   return {
     companyId: record.companyId,
     branchId: record.branchId,
@@ -273,15 +376,58 @@ function quoteSetupToDraft(record: QuoteSetupItem): QuoteUpsertRequest {
     priorityCode: record.priorityCode,
     status: record.status,
     customerSpecRef: record.specRef === "No spec reference" ? "" : record.specRef,
+    salesOwnerUserId: record.salesOwnerUserId ?? null,
+    salesOwnerName: record.salesOwnerName ?? null,
+    internalRemarks: record.internalRemarks ?? "",
+    customerFacingRemarks: record.customerFacingRemarks ?? "",
+    printRemarks: record.printRemarks ?? "",
+    paymentTermsId: record.paymentTermsId ?? null,
+    priceListId: record.priceListId ?? null,
+    discountSchemeId: record.discountSchemeId ?? null,
+    taxCategoryId: record.taxCategoryId ?? null,
+    taxTreatment: record.taxTreatment ?? "Taxable",
+    currencyId: record.currencyId ?? null,
+    exchangeRateId: record.exchangeRateId ?? null,
+    exchangeRateSnapshot: record.exchangeRateSnapshot ?? null,
+    tradeTermsId: record.tradeTermsId ?? null,
+    freightAmount: record.freightAmount ?? 0,
+    packingAmount: record.packingAmount ?? 0,
+    insuranceAmount: record.insuranceAmount ?? 0,
+    otherChargesAmount: record.otherChargesAmount ?? 0,
+    addLessAmount: record.addLessAmount ?? 0,
+    roundOffAmount: record.roundOffAmount ?? 0,
+    commercialStatus: record.commercialStatus ?? record.status,
+    revisionNo: record.revisionNo ?? 1,
+    releasedAt: record.releasedAt ?? null,
+    convertedAt: record.convertedAt ?? null,
+    subtotalAmount: record.subtotalAmount ?? 0,
+    discountTotalAmount: record.discountTotalAmount ?? 0,
+    taxableAmount: record.taxableAmount ?? 0,
+    taxTotalAmount: record.taxTotalAmount ?? 0,
+    grandTotalAmount: record.grandTotalAmount ?? 0,
     lines: record.lines.map((line) => ({
       lineNo: line.lineNo,
       itemId: line.itemId,
       itemVariantId: line.itemVariantId,
+      itemRevisionId: line.itemRevisionId ?? null,
+      engineeringDocumentRevisionId: line.engineeringDocumentRevisionId ?? null,
+      bomRevisionId: line.bomRevisionId ?? null,
+      routingId: line.routingId ?? null,
       orderUomId: line.orderUomId,
       quantity: line.quantity,
       unitPrice: line.unitPrice,
       discountPercent: line.discountPercent,
+      discountAmount: line.discountAmount,
       taxPercent: line.taxPercent,
+      taxCodeId: line.taxCodeId ?? null,
+      taxRateSnapshot: line.taxRateSnapshot ?? null,
+      priceSourceType: line.priceSourceType ?? "Manual",
+      priceListLineId: line.priceListLineId ?? null,
+      discountSchemeId: line.discountSchemeId ?? null,
+      discountRuleId: line.discountRuleId ?? null,
+      lineInternalRemarks: line.lineInternalRemarks ?? "",
+      lineCustomerFacingRemarks: line.lineCustomerFacingRemarks ?? "",
+      overrideReason: line.overrideReason ?? "",
       makeType: line.makeType,
       promisedDate: line.promisedDate,
       priorityCode: line.priorityCode,
@@ -291,11 +437,19 @@ function quoteSetupToDraft(record: QuoteSetupItem): QuoteUpsertRequest {
   };
 }
 
-function calculateCommercialTotals(lines: Array<{ quantity: number; unitPrice?: number; discountPercent?: number; taxPercent?: number }>) {
-  return lines.reduce(
+function calculateCommercialTotals(document: {
+  lines: Array<{ quantity: number; unitPrice?: number; discountPercent?: number; taxPercent?: number; discountAmount?: number }>;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+}) {
+  const lineTotals = document.lines.reduce(
     (totals, line) => {
       const gross = line.quantity * (line.unitPrice ?? 0);
-      const discount = gross * ((line.discountPercent ?? 0) / 100);
+      const discount = line.discountAmount && line.discountAmount > 0 ? line.discountAmount : gross * ((line.discountPercent ?? 0) / 100);
       const taxable = Math.max(gross - discount, 0);
       const tax = taxable * ((line.taxPercent ?? 0) / 100);
       return {
@@ -308,6 +462,9 @@ function calculateCommercialTotals(lines: Array<{ quantity: number; unitPrice?: 
     },
     { gross: 0, discount: 0, taxable: 0, tax: 0, total: 0 }
   );
+  const charges = (document.freightAmount ?? 0) + (document.packingAmount ?? 0) + (document.insuranceAmount ?? 0) + (document.otherChargesAmount ?? 0);
+  const total = lineTotals.total + charges + (document.addLessAmount ?? 0) + (document.roundOffAmount ?? 0);
+  return { ...lineTotals, charges, total };
 }
 
 function moneyLabel(value: number) {
@@ -319,7 +476,7 @@ function buildDraftSalesOrderNo() {
   return `SO-DRAFT-${stamp}`;
 }
 
-function buildSalesOrderDraft(companyId: number, branchId: number): SalesOrderUpsertRequest {
+function buildSalesOrderDraft(companyId: number, branchId: number): SalesOrderDraftState {
   return {
     companyId,
     branchId,
@@ -332,6 +489,29 @@ function buildSalesOrderDraft(companyId: number, branchId: number): SalesOrderUp
     priorityCode: "Medium",
     status: "Draft",
     sourceQuoteId: null,
+    sourceQuoteRevisionNo: null,
+    sourceQuoteVersionNo: null,
+    salesOwnerUserId: null,
+    salesOwnerName: null,
+    internalRemarks: "",
+    customerFacingRemarks: "",
+    printRemarks: "",
+    paymentTermsId: null,
+    priceListId: null,
+    discountSchemeId: null,
+    taxCategoryId: null,
+    taxTreatment: null,
+    currencyId: null,
+    exchangeRateId: null,
+    exchangeRateSnapshot: null,
+    tradeTermsId: null,
+    freightAmount: 0,
+    packingAmount: 0,
+    insuranceAmount: 0,
+    otherChargesAmount: 0,
+    addLessAmount: 0,
+    roundOffAmount: 0,
+    commercialStatus: "Draft",
     lines: [buildSalesOrderLine(10)]
   };
 }
@@ -343,6 +523,18 @@ function buildSalesOrderLine(lineNo: number): SalesOrderUpsertRequest["lines"][n
     itemVariantId: null,
     orderUomId: 0,
     quantity: 1,
+    unitPrice: 0,
+    discountPercent: 0,
+    discountAmount: 0,
+    taxCodeId: null,
+    taxRateSnapshot: null,
+    priceSourceType: "Manual",
+    priceListLineId: null,
+    discountSchemeId: null,
+    discountRuleId: null,
+    lineInternalRemarks: "",
+    lineCustomerFacingRemarks: "",
+    overrideReason: "",
     makeType: "Make",
     promisedDate: addDaysIso(14),
     priorityCode: "Medium",
@@ -352,7 +544,7 @@ function buildSalesOrderLine(lineNo: number): SalesOrderUpsertRequest["lines"][n
   };
 }
 
-function toSalesOrderDraft(record: SalesOrderSetupItem): SalesOrderUpsertRequest {
+function toSalesOrderDraft(record: SalesOrderSetupItem): SalesOrderDraftState {
   return {
     companyId: record.companyId,
     branchId: record.branchId,
@@ -365,13 +557,58 @@ function toSalesOrderDraft(record: SalesOrderSetupItem): SalesOrderUpsertRequest
     priorityCode: record.priorityCode,
     status: record.status,
     sourceQuoteId: record.sourceQuoteId,
+    sourceQuoteRevisionNo: record.sourceQuoteRevisionNo ?? null,
+    sourceQuoteVersionNo: record.sourceQuoteVersionNo ?? null,
+    salesOwnerUserId: record.salesOwnerUserId ?? null,
+    salesOwnerName: record.salesOwnerName ?? null,
+    internalRemarks: record.internalRemarks ?? "",
+    customerFacingRemarks: record.customerFacingRemarks ?? "",
+    printRemarks: record.printRemarks ?? "",
+    paymentTermsId: record.paymentTermsId ?? null,
+    priceListId: record.priceListId ?? null,
+    discountSchemeId: record.discountSchemeId ?? null,
+    taxCategoryId: record.taxCategoryId ?? null,
+    taxTreatment: record.taxTreatment ?? "Taxable",
+    currencyId: record.currencyId ?? null,
+    exchangeRateId: record.exchangeRateId ?? null,
+    exchangeRateSnapshot: record.exchangeRateSnapshot ?? null,
+    tradeTermsId: record.tradeTermsId ?? null,
+    freightAmount: record.freightAmount ?? 0,
+    packingAmount: record.packingAmount ?? 0,
+    insuranceAmount: record.insuranceAmount ?? 0,
+    otherChargesAmount: record.otherChargesAmount ?? 0,
+    addLessAmount: record.addLessAmount ?? 0,
+    roundOffAmount: record.roundOffAmount ?? 0,
+    commercialStatus: record.commercialStatus ?? record.status,
+    releasedAt: record.releasedAt ?? null,
+    subtotalAmount: record.subtotalAmount ?? 0,
+    discountTotalAmount: record.discountTotalAmount ?? 0,
+    taxableAmount: record.taxableAmount ?? 0,
+    taxTotalAmount: record.taxTotalAmount ?? 0,
+    grandTotalAmount: record.grandTotalAmount ?? 0,
     lines: record.lines.length
       ? record.lines.map((line) => ({
           lineNo: line.lineNo,
           itemId: line.itemId,
           itemVariantId: line.itemVariantId,
+          itemRevisionId: line.itemRevisionId ?? null,
+          engineeringDocumentRevisionId: line.engineeringDocumentRevisionId ?? null,
+          bomRevisionId: line.bomRevisionId ?? null,
+          routingId: line.routingId ?? null,
           orderUomId: line.orderUomId,
           quantity: line.quantity,
+          unitPrice: line.unitPrice ?? 0,
+          discountPercent: line.discountPercent ?? 0,
+          discountAmount: line.discountAmount ?? 0,
+          taxCodeId: line.taxCodeId ?? null,
+          taxRateSnapshot: line.taxRateSnapshot ?? null,
+          priceSourceType: line.priceSourceType ?? "Manual",
+          priceListLineId: line.priceListLineId ?? null,
+          discountSchemeId: line.discountSchemeId ?? null,
+          discountRuleId: line.discountRuleId ?? null,
+          lineInternalRemarks: line.lineInternalRemarks ?? "",
+          lineCustomerFacingRemarks: line.lineCustomerFacingRemarks ?? "",
+          overrideReason: line.overrideReason ?? "",
           makeType: line.makeType,
           promisedDate: line.promisedDate,
           priorityCode: line.priorityCode,
@@ -383,7 +620,7 @@ function toSalesOrderDraft(record: SalesOrderSetupItem): SalesOrderUpsertRequest
   };
 }
 
-function salesOrderDtoToDraft(dto: SalesOrderDto): SalesOrderUpsertRequest {
+function salesOrderDtoToDraft(dto: SalesOrderDto): SalesOrderDraftState {
   return {
     companyId: dto.companyId,
     branchId: dto.branchId,
@@ -396,12 +633,59 @@ function salesOrderDtoToDraft(dto: SalesOrderDto): SalesOrderUpsertRequest {
     priorityCode: dto.priorityCode,
     status: dto.status,
     sourceQuoteId: dto.sourceQuoteId,
+    sourceQuoteRevisionNo: dto.sourceQuoteRevisionNo ?? null,
+    sourceQuoteVersionNo: dto.sourceQuoteVersionNo ?? null,
+    salesOwnerUserId: dto.salesOwnerUserId ?? null,
+    salesOwnerName: dto.salesOwnerName ?? null,
+    internalRemarks: dto.internalRemarks ?? "",
+    customerFacingRemarks: dto.customerFacingRemarks ?? "",
+    printRemarks: dto.printRemarks ?? "",
+    paymentTermsId: dto.paymentTermsId ?? null,
+    priceListId: dto.priceListId ?? null,
+    discountSchemeId: dto.discountSchemeId ?? null,
+    taxCategoryId: dto.taxCategoryId ?? null,
+    taxTreatment: dto.taxTreatment ?? "Taxable",
+    currencyId: dto.currencyId ?? null,
+    exchangeRateId: dto.exchangeRateId ?? null,
+    exchangeRateSnapshot: dto.exchangeRateSnapshot ?? null,
+    tradeTermsId: dto.tradeTermsId ?? null,
+    freightAmount: dto.freightAmount ?? 0,
+    packingAmount: dto.packingAmount ?? 0,
+    insuranceAmount: dto.insuranceAmount ?? 0,
+    otherChargesAmount: dto.otherChargesAmount ?? 0,
+    addLessAmount: dto.addLessAmount ?? 0,
+    roundOffAmount: dto.roundOffAmount ?? 0,
+    commercialStatus: dto.commercialStatus ?? dto.status,
+    releasedAt: dto.releasedAt ?? null,
+    releasedByUserId: dto.releasedByUserId ?? null,
+    legacyCommercialIncomplete: dto.legacyCommercialIncomplete ?? false,
+    subtotalAmount: dto.subtotalAmount ?? 0,
+    discountTotalAmount: dto.discountTotalAmount ?? 0,
+    taxableAmount: dto.taxableAmount ?? 0,
+    taxTotalAmount: dto.taxTotalAmount ?? 0,
+    grandTotalAmount: dto.grandTotalAmount ?? 0,
     lines: dto.lines.map((line) => ({
       lineNo: line.lineNo,
       itemId: line.itemId,
       itemVariantId: line.itemVariantId,
+      itemRevisionId: line.itemRevisionId ?? null,
+      engineeringDocumentRevisionId: line.engineeringDocumentRevisionId ?? null,
+      bomRevisionId: line.bomRevisionId ?? null,
+      routingId: line.routingId ?? null,
       orderUomId: line.orderUomId,
       quantity: line.quantity,
+      unitPrice: line.unitPrice ?? 0,
+      discountPercent: line.discountPercent ?? 0,
+      discountAmount: line.discountAmount ?? 0,
+      taxCodeId: line.taxCodeId ?? null,
+      taxRateSnapshot: line.taxRateSnapshot ?? null,
+      priceSourceType: line.priceSourceType ?? "Manual",
+      priceListLineId: line.priceListLineId ?? null,
+      discountSchemeId: line.discountSchemeId ?? null,
+      discountRuleId: line.discountRuleId ?? null,
+      lineInternalRemarks: line.lineInternalRemarks ?? "",
+      lineCustomerFacingRemarks: line.lineCustomerFacingRemarks ?? "",
+      overrideReason: line.overrideReason ?? "",
       makeType: line.makeType,
       promisedDate: line.promisedDate,
       priorityCode: line.priorityCode,
@@ -956,7 +1240,8 @@ export function QuoteEstimateListPage() {
   const [status, setStatus] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draftQuoteId, setDraftQuoteId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<QuoteUpsertRequest | null>(null);
+  const [draft, setDraft] = useState<QuoteDraftState | null>(null);
+  const [reopenReason, setReopenReason] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const companyId = user?.activeContext.companyId ?? null;
@@ -982,12 +1267,34 @@ export function QuoteEstimateListPage() {
     () => isLive ? apiClient.measurements.uoms({ pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]),
     { staleTime: 60_000 }
   );
+  const usersQuery = useApiQuery(["platform", "sales-owner-users"], () => isLive ? apiClient.platform.users() : Promise.resolve([]), { staleTime: 60_000 });
+  const priceListsQuery = useApiQuery(queryKeys.commercial.priceLists(companyId, "", "Active"), () => isLive ? apiClient.commercial.priceLists({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
+  const discountSchemesQuery = useApiQuery(queryKeys.commercial.discountSchemes(companyId, "", "Active"), () => isLive ? apiClient.commercial.discountSchemes({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
+  const taxCategoriesQuery = useApiQuery(queryKeys.commercial.taxCategories(companyId, "", "Active"), () => isLive ? apiClient.commercial.taxCategories({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
+  const currenciesQuery = useApiQuery(queryKeys.commercial.currencies(companyId, "", "Active"), () => isLive ? apiClient.commercial.currencies({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
+  const exchangeRatesQuery = useApiQuery(queryKeys.commercial.exchangeRates(companyId, "", "Active"), () => isLive ? apiClient.commercial.exchangeRates({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
+  const paymentTermsQuery = useApiQuery(queryKeys.commercial.paymentTerms(companyId, "", "Active"), () => isLive ? apiClient.commercial.paymentTerms({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
+  const tradeTermsQuery = useApiQuery(queryKeys.commercial.tradeTerms(companyId, "", "Active"), () => isLive ? apiClient.commercial.tradeTerms({ companyId: companyId ?? undefined, pageSize: 100, status: "Active" }).then((response) => response.items) : Promise.resolve([]), { staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? "Seeded";
   const customerOptions = (customersQuery.data ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
   const itemOptions = (itemsQuery.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
   const uomOptions = (uomsQuery.data ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));
+  const salesOwnerOptions = (usersQuery.data ?? [])
+    .filter((userRecord) => userRecord.status === "Active" && directoryUserNumericId(userRecord.id) > 0)
+    .map((userRecord) => ({ label: userRecord.displayName || userRecord.userName, value: String(directoryUserNumericId(userRecord.id)) }));
+  const priceListOptions = (priceListsQuery.data ?? []).map((list) => ({ label: `${list.priceListCode} / ${list.priceListName}`, value: String(list.id) }));
+  const discountSchemeOptions = (discountSchemesQuery.data ?? []).map((scheme) => ({ label: `${scheme.schemeCode} / ${scheme.schemeName}`, value: String(scheme.id) }));
+  const taxCategoryOptions = (taxCategoriesQuery.data ?? []).map((tax) => ({ label: `${tax.taxCategoryCode} / ${tax.taxCategoryName}`, value: String(tax.id) }));
+  const taxCodeOptions = (taxCategoriesQuery.data ?? []).flatMap((tax) => tax.taxCodes.map((code) => ({ label: `${code.taxCode} / ${code.ratePercent}%`, value: String(code.id) })));
+  const currencyOptions = (currenciesQuery.data ?? []).map((currency) => ({ label: `${currency.currencyCode} / ${currency.currencyName}`, value: String(currency.id) }));
+  const exchangeRateOptions = (exchangeRatesQuery.data ?? []).map((rate) => ({ label: `${rate.currencyCode} / ${rate.rateType} / ${rate.effectiveFrom}`, value: String(rate.id) }));
+  const paymentTermOptions = (paymentTermsQuery.data ?? []).map((term) => ({ label: `${term.paymentTermsCode} / ${term.paymentTermsName}`, value: String(term.id) }));
+  const tradeTermOptions = (tradeTermsQuery.data ?? []).map((term) => ({ label: `${term.tradeTermsCode} / ${term.tradeTermsName}`, value: String(term.id) }));
+  const taxTreatmentOptions = ["Taxable", "Exempt", "ZeroRated", "OutOfScope"].map(toOption);
+  const quoteCommercialStatus = draft?.commercialStatus ?? draft?.status ?? "Draft";
+  const quoteLocked = ["Released", "Converted", "Closed", "Cancelled"].includes(quoteCommercialStatus);
   const validation = draft
     ? [
         !draft.quoteNo.trim() ? "Quote number is required." : "",
@@ -1003,6 +1310,8 @@ export function QuoteEstimateListPage() {
     : [];
   const saveReason = !draft
     ? "Open a quote draft before saving."
+    : quoteLocked
+      ? "Released or converted quote snapshots are locked. Reopen a released quote before editing."
     : !isLive
       ? "Live workspace sign-in is required before saving quote drafts."
       : validation[0];
@@ -1020,7 +1329,57 @@ export function QuoteEstimateListPage() {
       }
     }
   );
-  const quoteTotals = draft ? calculateCommercialTotals(draft.lines) : null;
+  const releaseMutation = useApiMutation((quoteId: number) => apiClient.salesPlanning.releaseQuote(quoteId), {
+    onError: (error) => setSaveMessage(error.message),
+    onSuccess: async (released) => {
+      setDraftQuoteId(released.id);
+      setDraft(toQuoteDraft(released));
+      setSaveMessage(`Released ${released.quoteNo}.`);
+      await query.refetch();
+    }
+  });
+  const reopenMutation = useApiMutation((payload: { quoteId: number; reason: string }) => apiClient.salesPlanning.reopenQuote(payload.quoteId, { reason: payload.reason }), {
+    onError: (error) => setSaveMessage(error.message),
+    onSuccess: async (reopened) => {
+      setDraftQuoteId(reopened.id);
+      setDraft(toQuoteDraft(reopened));
+      setReopenReason("");
+      setSaveMessage(`Reopened ${reopened.quoteNo}.`);
+      await query.refetch();
+    }
+  });
+  const convertMutation = useApiMutation((quoteId: number) => apiClient.salesPlanning.convertQuoteToSalesOrder(quoteId, {}), {
+    onError: (error) => setSaveMessage(error.message),
+    onSuccess: async (order) => {
+      setSaveMessage(`Converted to sales order ${order.salesOrderNo}.`);
+      setDraft((current) => current ? { ...current, commercialStatus: "Converted", status: "Converted", convertedAt: new Date().toISOString() } : current);
+      await query.refetch();
+    }
+  });
+  const quoteTotals = draft ? calculateCommercialTotals(draft) : null;
+  const releaseReason = !draftQuoteId
+    ? "Save the quote draft before release."
+    : !isLive
+      ? "Live sales session is required before releasing a quote."
+      : validation[0]
+        ? validation[0]
+        : quoteCommercialStatus === "Released"
+          ? "Quote is already released."
+          : quoteCommercialStatus === "Converted"
+            ? "Converted quotes cannot be released again."
+            : undefined;
+  const convertReason = !draftQuoteId
+    ? "Save and release the quote before conversion."
+    : !isLive
+      ? "Live sales session is required before converting a quote."
+      : quoteCommercialStatus !== "Released"
+        ? "Only a released quote can be converted to a sales order."
+        : undefined;
+  const reopenReasonText = quoteCommercialStatus !== "Released"
+    ? "Only released quotes can be reopened."
+    : !reopenReason.trim()
+      ? "Enter a reopen reason to keep the commercial audit trail."
+      : undefined;
 
   const openNewDraft = () => {
     if (!companyId || !branchId) {
@@ -1030,6 +1389,7 @@ export function QuoteEstimateListPage() {
     setSelectedId(null);
     setDraftQuoteId(null);
     setDraft(buildQuoteDraft(companyId, branchId));
+    setReopenReason("");
     setSaveMessage(null);
   };
 
@@ -1058,11 +1418,41 @@ export function QuoteEstimateListPage() {
         : current
     );
   };
+  const refreshQuoteCustomerDefaults = async () => {
+    if (!draft || !companyId || !branchId || !isLive || quoteLocked) {
+      return;
+    }
+
+    try {
+      const defaults = await apiClient.partners.customerCommercialDefaults(draft.customerId, {
+        companyId,
+        branchId,
+        customerAddressId: draft.customerAddressId,
+        documentDate: draft.quoteDate
+      });
+      setDraft({
+        ...draft,
+        salesOwnerUserId: draft.salesOwnerUserId ?? defaults.salesOwner.value,
+        salesOwnerName: draft.salesOwnerUserId ? draft.salesOwnerName : defaults.salesOwner.display,
+        priceListId: draft.priceListId ?? defaults.priceList.value,
+        discountSchemeId: draft.discountSchemeId ?? defaults.discountScheme.value,
+        paymentTermsId: draft.paymentTermsId ?? defaults.paymentTerms.value,
+        taxCategoryId: draft.taxCategoryId ?? defaults.taxCategory.value,
+        taxTreatment: draft.taxTreatment ?? defaults.taxTreatment.value,
+        currencyId: draft.currencyId ?? defaults.currency.value,
+        tradeTermsId: draft.tradeTermsId ?? defaults.tradeTerms.value
+      });
+      setSaveMessage(defaults.validationMessages[0] ?? "Customer defaults applied to blank quote fields.");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Customer defaults could not be loaded.");
+    }
+  };
   const openQuoteRecord = (record: QuoteSetupItem) => {
     if (record.source === "Live") {
       setSelectedId(null);
       setDraftQuoteId(record.quoteId);
       setDraft(quoteSetupToDraft(record));
+      setReopenReason("");
       setSaveMessage(null);
       return;
     }
@@ -1113,12 +1503,16 @@ export function QuoteEstimateListPage() {
         footer={
           <ErpActionBar
             primary={[{ disabled: Boolean(saveReason) || saveMutation.isPending, label: saveMutation.isPending ? "Saving quote draft" : "Save quote draft", onClick: saveReason ? undefined : () => draft && saveMutation.mutate(draft), reason: saveReason }]}
-            secondary={[{ disabled: true, label: "Convert to order", reason: "Quote conversion requires an approved quote release workflow." }]}
-            utility={[{ label: "Close", onClick: () => { setDraft(null); setDraftQuoteId(null); setSaveMessage(null); }, variant: "quiet" }]}
+            secondary={[
+              { disabled: Boolean(releaseReason) || releaseMutation.isPending, label: releaseMutation.isPending ? "Releasing quote" : "Release quote", onClick: !releaseReason && draftQuoteId ? () => releaseMutation.mutate(draftQuoteId) : undefined, reason: releaseReason },
+              { disabled: Boolean(convertReason) || convertMutation.isPending, label: convertMutation.isPending ? "Converting to order" : "Convert to order", onClick: !convertReason && draftQuoteId ? () => convertMutation.mutate(draftQuoteId) : undefined, reason: convertReason },
+              { disabled: Boolean(reopenReasonText) || reopenMutation.isPending, label: reopenMutation.isPending ? "Reopening quote" : "Reopen quote", onClick: !reopenReasonText && draftQuoteId ? () => reopenMutation.mutate({ quoteId: draftQuoteId, reason: reopenReason }) : undefined, reason: reopenReasonText }
+            ]}
+            utility={[{ label: "Close", onClick: () => { setDraft(null); setDraftQuoteId(null); setReopenReason(""); setSaveMessage(null); }, variant: "quiet" }]}
           />
         }
         isOpen={Boolean(draft)}
-        onClose={() => { setDraft(null); setDraftQuoteId(null); setSaveMessage(null); }}
+        onClose={() => { setDraft(null); setDraftQuoteId(null); setReopenReason(""); setSaveMessage(null); }}
         panelClassName="ui-modal__panel--item-master"
         statusMeta={<>{draft ? <StatusBadge status={draft.status} /> : null}{saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}</>}
         title={draftQuoteId ? `Quote ${draft?.quoteNo}` : "New quote draft"}
@@ -1127,14 +1521,42 @@ export function QuoteEstimateListPage() {
         {draft ? (
           <div className="modal-form-grid" data-testid="quote-draft-modal">
             <Card title="Quote header" description="Customer, validity, and commercial priority are controlled before quote save.">
+              <ErpActionBar
+                secondary={[{
+                  disabled: quoteLocked || !isLive || !draft.customerId,
+                  label: "Refresh customer defaults",
+                  onClick: !quoteLocked && isLive && draft.customerId ? refreshQuoteCustomerDefaults : undefined,
+                  reason: quoteLocked ? "Released or converted quote snapshots are locked." : !isLive ? "Live customer profile data is required to refresh defaults." : !draft.customerId ? "Select a customer before refreshing defaults." : undefined
+                }]}
+              />
+              <div className="context-chip-row">
+                <ErpStatusChip tone={draft.salesOwnerUserId ? "info" : "neutral"}>{draft.salesOwnerUserId ? "Sales owner set" : "Sales owner not defaulted"}</ErpStatusChip>
+                <ErpStatusChip tone={draft.priceListId ? "info" : "neutral"}>{draft.priceListId ? "Price list set" : "Price list not defaulted"}</ErpStatusChip>
+                <ErpStatusChip tone={draft.discountSchemeId ? "info" : "neutral"}>{draft.discountSchemeId ? "Discount scheme set" : "Discount scheme not defaulted"}</ErpStatusChip>
+              </div>
               <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${draft.quoteNo}`} title="Header">
-                <label><span>Quote number</span><input onChange={(event) => setDraft({ ...draft, quoteNo: event.target.value })} value={draft.quoteNo} /></label>
-                <ErpLookupField label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
-                <label><span>Quote date</span><input onChange={(event) => setDraft({ ...draft, quoteDate: event.target.value })} type="date" value={draft.quoteDate} /></label>
-                <label><span>Expiry date</span><input onChange={(event) => setDraft({ ...draft, expiryDate: event.target.value || null })} type="date" value={draft.expiryDate ?? ""} /></label>
-                <ErpLookupField label="Priority" onChange={(value) => setDraft({ ...draft, priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draft.priorityCode} />
-                <ErpLookupField label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={draft.status} />
-                <label><span>Customer spec reference</span><input onChange={(event) => setDraft({ ...draft, customerSpecRef: event.target.value })} value={draft.customerSpecRef ?? ""} /></label>
+                <label><span>Quote number</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, quoteNo: event.target.value })} value={draft.quoteNo} /></label>
+                <ErpLookupField disabled={quoteLocked} disabledReason={quoteLocked ? "Released or converted quote snapshots are locked." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
+                <ErpLookupField disabled={quoteLocked} disabledReason={quoteLocked ? "Released or converted quote snapshots are locked." : undefined} label="Sales owner" onChange={(value) => {
+                  const selectedOwner = salesOwnerOptions.find((option) => option.value === value);
+                  setDraft({ ...draft, salesOwnerUserId: value ? Number(value) : null, salesOwnerName: selectedOwner?.label ?? null });
+                }} options={salesOwnerOptions} value={draft.salesOwnerUserId ? String(draft.salesOwnerUserId) : ""} />
+                <label><span>Quote date</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, quoteDate: event.target.value })} type="date" value={draft.quoteDate} /></label>
+                <label><span>Expiry date</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, expiryDate: event.target.value || null })} type="date" value={draft.expiryDate ?? ""} /></label>
+                <ErpLookupField disabled={quoteLocked} label="Priority" onChange={(value) => setDraft({ ...draft, priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draft.priorityCode} />
+                <ErpLookupField disabled={quoteLocked} label="Status" onChange={(value) => setDraft({ ...draft, status: value, commercialStatus: value === "Draft" ? "Draft" : draft.commercialStatus })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={draft.status} />
+                <ErpLookupField disabled={quoteLocked} label="Price list" onChange={(value) => setDraft({ ...draft, priceListId: value ? Number(value) : null })} options={priceListOptions} value={draft.priceListId ? String(draft.priceListId) : ""} />
+                <ErpLookupField disabled={quoteLocked} label="Discount scheme" onChange={(value) => setDraft({ ...draft, discountSchemeId: value ? Number(value) : null })} options={discountSchemeOptions} value={draft.discountSchemeId ? String(draft.discountSchemeId) : ""} />
+                <ErpLookupField disabled={quoteLocked} label="Payment terms" onChange={(value) => setDraft({ ...draft, paymentTermsId: value ? Number(value) : null })} options={paymentTermOptions} value={draft.paymentTermsId ? String(draft.paymentTermsId) : ""} />
+                <ErpLookupField disabled={quoteLocked} label="Tax treatment" onChange={(value) => setDraft({ ...draft, taxTreatment: value || null })} options={taxTreatmentOptions} value={draft.taxTreatment ?? ""} />
+                <ErpLookupField disabled={quoteLocked} label="Tax category" onChange={(value) => setDraft({ ...draft, taxCategoryId: value ? Number(value) : null })} options={taxCategoryOptions} value={draft.taxCategoryId ? String(draft.taxCategoryId) : ""} />
+                <ErpLookupField disabled={quoteLocked} label="Currency" onChange={(value) => setDraft({ ...draft, currencyId: value ? Number(value) : null })} options={currencyOptions} value={draft.currencyId ? String(draft.currencyId) : ""} />
+                <ErpLookupField disabled={quoteLocked} label="Exchange rate" onChange={(value) => setDraft({ ...draft, exchangeRateId: value ? Number(value) : null })} options={exchangeRateOptions} value={draft.exchangeRateId ? String(draft.exchangeRateId) : ""} />
+                <ErpLookupField disabled={quoteLocked} label="Trade terms" onChange={(value) => setDraft({ ...draft, tradeTermsId: value ? Number(value) : null })} options={tradeTermOptions} value={draft.tradeTermsId ? String(draft.tradeTermsId) : ""} />
+                <label><span>Customer spec reference</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, customerSpecRef: event.target.value })} value={draft.customerSpecRef ?? ""} /></label>
+                <label className="form-span-2"><span>Internal remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, internalRemarks: event.target.value })} value={draft.internalRemarks ?? ""} /></label>
+                <label className="form-span-2"><span>Customer-facing remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, customerFacingRemarks: event.target.value })} value={draft.customerFacingRemarks ?? ""} /></label>
+                <label className="form-span-2"><span>Print remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
               </FormShell>
             </Card>
             <Card title="Quote lines" description="Add every customer demand line before saving the quote draft.">
@@ -1143,17 +1565,24 @@ export function QuoteEstimateListPage() {
                 ariaLabel="Quote line grid"
                 columns={[
                   { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
-                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
-                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
-                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
-                  { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0 })} value={line.unitPrice} /> },
-                  { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} /> },
-                  { key: "tax", header: "Tax %", width: "110px", render: (line, index) => <ErpDecimalField label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} /> },
-                  { key: "make", header: "Make", width: "140px", render: (line, index) => <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} /> },
-                  { key: "date", header: "Promised", width: "140px", render: (line, index) => <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label> },
-                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={line.status} /> },
-                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: draft.lines.length <= 1, label: "Remove Line", onClick: draft.lines.length > 1 ? () => removeQuoteLine(index) : undefined, reason: draft.lines.length <= 1 ? "At least one quote line is required." : undefined }]} /> }
+                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
+                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={quoteLocked} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
+                  { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField disabled={quoteLocked} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0, priceSourceType: "ManualOverride" })} value={line.unitPrice} /> },
+                  { key: "price-source", header: "Price source", width: "160px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Price source" onChange={(value) => updateLine(index, { priceSourceType: value })} options={["Manual", "ManualOverride", "PriceList"].map(toOption)} value={line.priceSourceType ?? "Manual"} /> },
+                  { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField disabled={quoteLocked} label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} /> },
+                  { key: "tax-code", header: "Tax code", width: "150px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Tax code" onChange={(value) => updateLine(index, { taxCodeId: value ? Number(value) : null })} options={taxCodeOptions} value={line.taxCodeId ? String(line.taxCodeId) : ""} /> },
+                  { key: "tax", header: "Tax %", width: "110px", render: (line, index) => <ErpDecimalField disabled={quoteLocked} label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxPercent: value ?? 0, taxRateSnapshot: value ?? 0 })} scale={2} unit="%" value={line.taxPercent} /> },
+                  { key: "remarks", header: "Line remarks", width: "210px", render: (line, index) => <label><span>Customer-facing line remarks</span><input disabled={quoteLocked} onChange={(event) => updateLine(index, { lineCustomerFacingRemarks: event.target.value })} value={line.lineCustomerFacingRemarks ?? ""} /></label> },
+                  { key: "internal-remarks", header: "Internal", width: "180px", render: (line, index) => <label><span>Internal line remarks</span><input disabled={quoteLocked} onChange={(event) => updateLine(index, { lineInternalRemarks: event.target.value })} value={line.lineInternalRemarks ?? ""} /></label> },
+                  { key: "override", header: "Override reason", width: "180px", render: (line, index) => <label><span>Override reason</span><input disabled={quoteLocked} onChange={(event) => updateLine(index, { overrideReason: event.target.value })} value={line.overrideReason ?? ""} /></label> },
+                  { key: "make", header: "Make", width: "140px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} /> },
+                  { key: "date", header: "Promised", width: "140px", render: (line, index) => <label><span>Promised date</span><input disabled={quoteLocked} onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label> },
+                  { key: "status", header: "Status", width: "140px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Line status" onChange={(value) => updateLine(index, { status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Submitted", value: "Submitted" }]} value={line.status} /> },
+                  { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: quoteLocked || draft.lines.length <= 1, label: "Remove Line", onClick: !quoteLocked && draft.lines.length > 1 ? () => removeQuoteLine(index) : undefined, reason: quoteLocked ? "Released or converted quote snapshots are locked." : draft.lines.length <= 1 ? "At least one quote line is required." : undefined }]} /> }
                 ]}
+                addDisabled={quoteLocked}
+                addDisabledReason={quoteLocked ? "Released or converted quote snapshots are locked." : undefined}
                 getRowId={(line, index) => `${line.lineNo}-${index}`}
                 lines={draft.lines}
                 onAddLine={addQuoteLine}
@@ -1167,12 +1596,21 @@ export function QuoteEstimateListPage() {
                   { eyebrow: "Discount", label: "Line discount", meta: "All lines", value: moneyLabel(quoteTotals?.discount ?? 0) },
                   { eyebrow: "Taxable", label: "After discount", meta: "All lines", value: moneyLabel(quoteTotals?.taxable ?? 0) },
                   { eyebrow: "Tax", label: "Line tax", meta: "All lines", value: moneyLabel(quoteTotals?.tax ?? 0) },
-                  { eyebrow: "Total", label: "Quote value", meta: "Before charges", tone: "strong", value: moneyLabel(quoteTotals?.total ?? 0) }
+                  { eyebrow: "Charges", label: "Freight / packing / other", meta: "Header charges", value: moneyLabel(quoteTotals?.charges ?? 0) },
+                  { eyebrow: "Total", label: "Quote value", meta: draft.releasedAt ? "Released snapshot shown after save" : "Before server validation", tone: "strong", value: moneyLabel(draft.grandTotalAmount && quoteLocked ? draft.grandTotalAmount : quoteTotals?.total ?? 0) }
                 ]}
               />
               <div className="item-master__editor-grid">
-                <ErpMoneyField disabled disabledReason="Freight and add-less charges require the approved charges workflow." label="Freight / charges" onChange={() => undefined} value={0} />
-                <ErpMoneyField disabled disabledReason="Round-off is applied by the approved invoice/posting workflow." label="Round-off" onChange={() => undefined} value={0} />
+                <ErpMoneyField disabled={quoteLocked} label="Freight amount" min={0} onChange={(value) => setDraft({ ...draft, freightAmount: value ?? 0 })} value={draft.freightAmount ?? 0} />
+                <ErpMoneyField disabled={quoteLocked} label="Packing amount" min={0} onChange={(value) => setDraft({ ...draft, packingAmount: value ?? 0 })} value={draft.packingAmount ?? 0} />
+                <ErpMoneyField disabled={quoteLocked} label="Insurance amount" min={0} onChange={(value) => setDraft({ ...draft, insuranceAmount: value ?? 0 })} value={draft.insuranceAmount ?? 0} />
+                <ErpMoneyField disabled={quoteLocked} label="Other charges" min={0} onChange={(value) => setDraft({ ...draft, otherChargesAmount: value ?? 0 })} value={draft.otherChargesAmount ?? 0} />
+                <ErpMoneyField disabled={quoteLocked} label="Add / less amount" onChange={(value) => setDraft({ ...draft, addLessAmount: value ?? 0 })} value={draft.addLessAmount ?? 0} />
+                <ErpMoneyField disabled={quoteLocked} label="Round-off amount" onChange={(value) => setDraft({ ...draft, roundOffAmount: value ?? 0 })} value={draft.roundOffAmount ?? 0} />
+                {quoteCommercialStatus === "Released" ? <label className="form-span-2"><span>Reopen reason</span><input onChange={(event) => setReopenReason(event.target.value)} value={reopenReason} /></label> : null}
+                <Tile eyebrow="Commercial status" label={quoteCommercialStatus} meta={`Revision ${draft.revisionNo ?? 1}`}>
+                  {draft.releasedAt ? `Released ${draft.releasedAt}` : "Draft snapshot not released"}
+                </Tile>
               </div>
             </Card>
           </div>
@@ -1190,7 +1628,7 @@ export function SalesOrderListPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [draftOrderId, setDraftOrderId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<SalesOrderUpsertRequest | null>(null);
+  const [draft, setDraft] = useState<SalesOrderDraftState | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const filter = useMemo(() => buildMasterFilter(user?.activeContext.companyId, user?.activeContext.branchId, deferredSearch, status), [deferredSearch, status, user?.activeContext.branchId, user?.activeContext.companyId]);
@@ -1198,11 +1636,41 @@ export function SalesOrderListPage() {
   const customers = useApiQuery(queryKeys.partners.customers(companyId, branchId, "", "Active"), () => apiClient.partners.customers({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const usersQuery = useApiQuery(["platform", "sales-order-owner-users"], () => live ? apiClient.platform.users() : Promise.resolve([]), { enabled: live, staleTime: 60_000 });
+  const priceListsQuery = useApiQuery(queryKeys.commercial.priceLists(companyId, "", "Active"), () => apiClient.commercial.priceLists({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const discountSchemesQuery = useApiQuery(queryKeys.commercial.discountSchemes(companyId, "", "Active"), () => apiClient.commercial.discountSchemes({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const taxCategoriesQuery = useApiQuery(queryKeys.commercial.taxCategories(companyId, "", "Active"), () => apiClient.commercial.taxCategories({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const currenciesQuery = useApiQuery(queryKeys.commercial.currencies(companyId, "", "Active"), () => apiClient.commercial.currencies({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const exchangeRatesQuery = useApiQuery(queryKeys.commercial.exchangeRates(companyId, "", "Active"), () => apiClient.commercial.exchangeRates({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const paymentTermsQuery = useApiQuery(queryKeys.commercial.paymentTerms(companyId, "", "Active"), () => apiClient.commercial.paymentTerms({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const tradeTermsQuery = useApiQuery(queryKeys.commercial.tradeTerms(companyId, "", "Active"), () => apiClient.commercial.tradeTerms({ companyId, pageSize: 100, status: "Active" }).then((response) => response.items), { enabled: live && companyId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
   const customerOptions = (customers.data?.items ?? []).map((customer) => ({ label: `${customer.customerCode} / ${customer.customerName}`, value: String(customer.id) }));
   const itemOptions = (itemLookup.data ?? []).map((item) => ({ label: `${item.itemCode} / ${item.itemName}`, value: String(item.id) }));
   const uomOptions = (uoms.data?.items ?? []).map((uom) => ({ label: `${uom.uomCode} / ${uom.uomName}`, value: String(uom.id) }));
+  const salesOwnerOptions = (usersQuery.data ?? [])
+    .filter((userRecord) => userRecord.status === "Active" && directoryUserNumericId(userRecord.id) > 0)
+    .map((userRecord) => ({ label: userRecord.displayName || userRecord.userName, value: String(directoryUserNumericId(userRecord.id)) }));
+  const priceListOptions = (priceListsQuery.data ?? []).map((list) => ({ label: `${list.priceListCode} / ${list.priceListName}`, value: String(list.id) }));
+  const discountSchemeOptions = (discountSchemesQuery.data ?? []).map((scheme) => ({ label: `${scheme.schemeCode} / ${scheme.schemeName}`, value: String(scheme.id) }));
+  const taxCategoryOptions = (taxCategoriesQuery.data ?? []).map((tax) => ({ label: `${tax.taxCategoryCode} / ${tax.taxCategoryName}`, value: String(tax.id) }));
+  const taxCodeOptions = (taxCategoriesQuery.data ?? []).flatMap((tax) => tax.taxCodes.map((code) => ({ label: `${code.taxCode} / ${code.ratePercent}%`, value: String(code.id) })));
+  const currencyOptions = (currenciesQuery.data ?? []).map((currency) => ({ label: `${currency.currencyCode} / ${currency.currencyName}`, value: String(currency.id) }));
+  const exchangeRateOptions = (exchangeRatesQuery.data ?? []).map((rate) => ({ label: `${rate.currencyCode} / ${rate.rateType} / ${rate.effectiveFrom}`, value: String(rate.id) }));
+  const paymentTermOptions = (paymentTermsQuery.data ?? []).map((term) => ({ label: `${term.paymentTermsCode} / ${term.paymentTermsName}`, value: String(term.id) }));
+  const tradeTermOptions = (tradeTermsQuery.data ?? []).map((term) => ({ label: `${term.tradeTermsCode} / ${term.tradeTermsName}`, value: String(term.id) }));
+  const taxTreatmentOptions = ["Taxable", "Exempt", "ZeroRated", "OutOfScope"].map(toOption);
+  const salesOrderTotals = draft ? calculateCommercialTotals(draft) : null;
+  const salesOrderDefaultRefreshReason = draft?.sourceQuoteId
+    ? "Sales orders converted from quote keep the released quote snapshot."
+    : draft && draft.status !== "Draft"
+      ? "Customer defaults can only be refreshed while the sales order is Draft."
+      : !live
+        ? "Live customer profile data is required to refresh defaults."
+        : !draft?.customerId
+          ? "Select a customer before refreshing defaults."
+          : undefined;
   const validation = [
     draft && !draft.salesOrderNo.trim() ? "Sales order number is required." : "",
     draft && !draft.customerId ? "Customer is required." : "",
@@ -1258,6 +1726,35 @@ export function SalesOrderListPage() {
       return { ...current, lines: current.lines.filter((_, index) => index !== lineIndex).map((line, index) => ({ ...line, lineNo: (index + 1) * 10 })) };
     });
   };
+  const refreshSalesOrderCustomerDefaults = async () => {
+    if (!draft || !live || !companyId || !branchId || draft.sourceQuoteId || draft.status !== "Draft") {
+      return;
+    }
+
+    try {
+      const defaults = await apiClient.partners.customerCommercialDefaults(draft.customerId, {
+        companyId,
+        branchId,
+        customerAddressId: draft.billToAddressId,
+        documentDate: draft.orderDate
+      });
+      setDraft({
+        ...draft,
+        salesOwnerUserId: draft.salesOwnerUserId ?? defaults.salesOwner.value,
+        salesOwnerName: draft.salesOwnerUserId ? draft.salesOwnerName : defaults.salesOwner.display,
+        priceListId: draft.priceListId ?? defaults.priceList.value,
+        discountSchemeId: draft.discountSchemeId ?? defaults.discountScheme.value,
+        paymentTermsId: draft.paymentTermsId ?? defaults.paymentTerms.value,
+        taxCategoryId: draft.taxCategoryId ?? defaults.taxCategory.value,
+        taxTreatment: draft.taxTreatment ?? defaults.taxTreatment.value,
+        currencyId: draft.currencyId ?? defaults.currency.value,
+        tradeTermsId: draft.tradeTermsId ?? defaults.tradeTerms.value
+      });
+      setSaveMessage(defaults.validationMessages[0] ?? "Customer defaults applied to blank sales order fields.");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Customer defaults could not be loaded.");
+    }
+  };
 
   return (
     <>
@@ -1293,13 +1790,41 @@ export function SalesOrderListPage() {
       >
         {draft ? <div className="modal-form-grid" data-testid="sales-order-draft-modal">
           <Card title="Sales order header" description="Customer, promise, and demand status drive downstream planning consumption.">
+            <ErpActionBar
+              secondary={[{
+                disabled: Boolean(salesOrderDefaultRefreshReason),
+                label: "Refresh customer defaults",
+                onClick: !salesOrderDefaultRefreshReason ? refreshSalesOrderCustomerDefaults : undefined,
+                reason: salesOrderDefaultRefreshReason
+              }]}
+            />
+            <div className="context-chip-row">
+              <ErpStatusChip tone={draft.sourceQuoteId ? "success" : draft.priceListId ? "info" : "neutral"}>{draft.sourceQuoteId ? "Quote snapshot copied" : draft.priceListId ? "Price list set" : "Price list not defaulted"}</ErpStatusChip>
+              <ErpStatusChip tone={draft.salesOwnerUserId ? "info" : "neutral"}>{draft.salesOwnerUserId ? "Sales owner set" : "Sales owner not defaulted"}</ErpStatusChip>
+            </div>
             <FormShell initialFingerprint={`${draftOrderId ?? "new"}-${draft.salesOrderNo}`} title="Header">
               <label><span>Sales order number</span><input onChange={(event) => setDraft({ ...draft, salesOrderNo: event.target.value })} value={draft.salesOrderNo} /></label>
               <ErpLookupField disabled={Boolean(draftOrderId)} disabledReason={draftOrderId ? "Customer cannot be changed after the sales order is saved." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
+              <ErpLookupField label="Sales owner" onChange={(value) => {
+                const selectedOwner = salesOwnerOptions.find((option) => option.value === value);
+                setDraft({ ...draft, salesOwnerUserId: value ? Number(value) : null, salesOwnerName: selectedOwner?.label ?? null });
+              }} options={salesOwnerOptions} value={draft.salesOwnerUserId ? String(draft.salesOwnerUserId) : ""} />
               <label><span>Order date</span><input onChange={(event) => setDraft({ ...draft, orderDate: event.target.value })} type="date" value={draft.orderDate} /></label>
               <label><span>Promised date</span><input onChange={(event) => setDraft({ ...draft, promisedDate: event.target.value || null })} type="date" value={draft.promisedDate ?? ""} /></label>
               <ErpLookupField label="Priority" onChange={(value) => setDraft({ ...draft, priorityCode: value })} options={[{ label: "Low", value: "Low" }, { label: "Medium", value: "Medium" }, { label: "High", value: "High" }]} value={draft.priorityCode} />
               <ErpLookupField label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={[{ label: "Draft", value: "Draft" }, { label: "Released", value: "Released" }, { label: "At Risk", value: "At Risk" }]} value={draft.status} />
+              <ErpLookupField label="Price list" onChange={(value) => setDraft({ ...draft, priceListId: value ? Number(value) : null })} options={priceListOptions} value={draft.priceListId ? String(draft.priceListId) : ""} />
+              <ErpLookupField label="Discount scheme" onChange={(value) => setDraft({ ...draft, discountSchemeId: value ? Number(value) : null })} options={discountSchemeOptions} value={draft.discountSchemeId ? String(draft.discountSchemeId) : ""} />
+              <ErpLookupField label="Payment terms" onChange={(value) => setDraft({ ...draft, paymentTermsId: value ? Number(value) : null })} options={paymentTermOptions} value={draft.paymentTermsId ? String(draft.paymentTermsId) : ""} />
+              <ErpLookupField label="Tax treatment" onChange={(value) => setDraft({ ...draft, taxTreatment: value || null })} options={taxTreatmentOptions} value={draft.taxTreatment ?? ""} />
+              <ErpLookupField label="Tax category" onChange={(value) => setDraft({ ...draft, taxCategoryId: value ? Number(value) : null })} options={taxCategoryOptions} value={draft.taxCategoryId ? String(draft.taxCategoryId) : ""} />
+              <ErpLookupField label="Currency" onChange={(value) => setDraft({ ...draft, currencyId: value ? Number(value) : null })} options={currencyOptions} value={draft.currencyId ? String(draft.currencyId) : ""} />
+              <ErpLookupField label="Exchange rate" onChange={(value) => setDraft({ ...draft, exchangeRateId: value ? Number(value) : null })} options={exchangeRateOptions} value={draft.exchangeRateId ? String(draft.exchangeRateId) : ""} />
+              <ErpLookupField label="Trade terms" onChange={(value) => setDraft({ ...draft, tradeTermsId: value ? Number(value) : null })} options={tradeTermOptions} value={draft.tradeTermsId ? String(draft.tradeTermsId) : ""} />
+              <label><span>Source quote</span><input disabled value={draft.sourceQuoteId ? `Quote ${draft.sourceQuoteId} / revision ${draft.sourceQuoteRevisionNo ?? "not set"}` : "Direct order"} /></label>
+              <label className="form-span-2"><span>Internal remarks</span><textarea onChange={(event) => setDraft({ ...draft, internalRemarks: event.target.value })} value={draft.internalRemarks ?? ""} /></label>
+              <label className="form-span-2"><span>Customer-facing remarks</span><textarea onChange={(event) => setDraft({ ...draft, customerFacingRemarks: event.target.value })} value={draft.customerFacingRemarks ?? ""} /></label>
+              <label className="form-span-2"><span>Print remarks</span><textarea onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
             </FormShell>
           </Card>
           <Card title="Sales order lines" description="Add every customer demand line before releasing the order to planning.">
@@ -1311,6 +1836,12 @@ export function SalesOrderListPage() {
                 { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
                 { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
                 { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
+                { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0, priceSourceType: "ManualOverride" })} value={line.unitPrice ?? 0} /> },
+                { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent ?? 0} /> },
+                { key: "tax-code", header: "Tax code", width: "150px", render: (line, index) => <ErpLookupField label="Tax code" onChange={(value) => updateLine(index, { taxCodeId: value ? Number(value) : null })} options={taxCodeOptions} value={line.taxCodeId ? String(line.taxCodeId) : ""} /> },
+                { key: "tax", header: "Tax %", width: "110px", render: (line, index) => <ErpDecimalField label="Tax %" max={100} min={0} onChange={(value) => updateLine(index, { taxRateSnapshot: value ?? 0 })} scale={2} unit="%" value={line.taxRateSnapshot ?? 0} /> },
+                { key: "remarks", header: "Remarks", width: "210px", render: (line, index) => <label><span>Customer-facing line remarks</span><input onChange={(event) => updateLine(index, { lineCustomerFacingRemarks: event.target.value })} value={line.lineCustomerFacingRemarks ?? ""} /></label> },
+                { key: "override", header: "Override", width: "170px", render: (line, index) => <label><span>Override reason</span><input onChange={(event) => updateLine(index, { overrideReason: event.target.value })} value={line.overrideReason ?? ""} /></label> },
                 { key: "make", header: "Make", width: "140px", render: (line, index) => <ErpLookupField label="Make type" onChange={(value) => updateLine(index, { makeType: value })} options={[{ label: "Make", value: "Make" }, { label: "Buy", value: "Buy" }, { label: "Subcontract", value: "Subcontract" }]} value={line.makeType} /> },
                 { key: "promise", header: "Promised", width: "140px", render: (line, index) => <label><span>Promised date</span><input onChange={(event) => updateLine(index, { promisedDate: event.target.value || null })} type="date" value={line.promisedDate ?? ""} /></label> },
                 { key: "ship", header: "Ship date", width: "140px", render: (line, index) => <label><span>Requested ship date</span><input onChange={(event) => updateLine(index, { requestedShipDate: event.target.value || null })} type="date" value={line.requestedShipDate ?? ""} /></label> },
@@ -1324,12 +1855,25 @@ export function SalesOrderListPage() {
               testId="sales-order-line-grid"
             />
           </Card>
-          <Card title="Pricing, tax, and release contract" description="Direct sales-order demand is editable here; commercial pricing stays controlled by accepted quote or approved price-list workflow.">
+          <Card title="Pricing, tax, and release contract" description="Commercial values are persisted on the sales order and copied exactly from a released quote when converted.">
+            <ErpTransactionTotalsPanel
+              items={[
+                { eyebrow: "Gross", label: "Line value", meta: "Qty x price", value: moneyLabel(salesOrderTotals?.gross ?? 0) },
+                { eyebrow: "Discount", label: "Line discount", meta: "All lines", value: moneyLabel(salesOrderTotals?.discount ?? 0) },
+                { eyebrow: "Taxable", label: "After discount", meta: "All lines", value: moneyLabel(salesOrderTotals?.taxable ?? 0) },
+                { eyebrow: "Tax", label: "Line tax", meta: "All lines", value: moneyLabel(salesOrderTotals?.tax ?? 0) },
+                { eyebrow: "Charges", label: "Freight / packing / other", meta: "Header charges", value: moneyLabel(salesOrderTotals?.charges ?? 0) },
+                { eyebrow: "Total", label: "Sales order value", meta: draft.sourceQuoteId ? "Quote snapshot copy" : "Before server validation", tone: "strong", value: moneyLabel(draft.grandTotalAmount && draft.sourceQuoteId ? draft.grandTotalAmount : salesOrderTotals?.total ?? 0) }
+              ]}
+            />
             <div className="item-master__editor-grid">
-              <ErpMoneyField disabled disabledReason="Sales-order unit price is controlled by accepted quote or approved price list." label="Unit price" onChange={() => undefined} value={0} />
-              <ErpDecimalField disabled disabledReason="Sales-order discounts are controlled by accepted quote or approved discount scheme." label="Discount %" onChange={() => undefined} unit="%" value={0} />
-              <ErpDecimalField disabled disabledReason="Sales-order tax is controlled by accepted quote or tax determination workflow." label="Tax %" onChange={() => undefined} unit="%" value={0} />
-              <ErpMoneyField disabled disabledReason="Freight, add-less, and round-off require the approved commercial charges workflow." label="Freight / add-less / round-off" onChange={() => undefined} value={0} />
+              <ErpMoneyField label="Freight amount" min={0} onChange={(value) => setDraft({ ...draft, freightAmount: value ?? 0 })} value={draft.freightAmount ?? 0} />
+              <ErpMoneyField label="Packing amount" min={0} onChange={(value) => setDraft({ ...draft, packingAmount: value ?? 0 })} value={draft.packingAmount ?? 0} />
+              <ErpMoneyField label="Insurance amount" min={0} onChange={(value) => setDraft({ ...draft, insuranceAmount: value ?? 0 })} value={draft.insuranceAmount ?? 0} />
+              <ErpMoneyField label="Other charges" min={0} onChange={(value) => setDraft({ ...draft, otherChargesAmount: value ?? 0 })} value={draft.otherChargesAmount ?? 0} />
+              <ErpMoneyField label="Add / less amount" onChange={(value) => setDraft({ ...draft, addLessAmount: value ?? 0 })} value={draft.addLessAmount ?? 0} />
+              <ErpMoneyField label="Round-off amount" onChange={(value) => setDraft({ ...draft, roundOffAmount: value ?? 0 })} value={draft.roundOffAmount ?? 0} />
+              <Tile eyebrow="Commercial source" label={draft.sourceQuoteId ? `Quote ${draft.sourceQuoteId}` : "Direct sales order"} meta={draft.sourceQuoteRevisionNo ? `Revision ${draft.sourceQuoteRevisionNo}` : "No released quote source"} />
             </div>
           </Card>
         </div> : null}

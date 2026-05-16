@@ -28,6 +28,7 @@ import type {
   CurrencyUpsertRequest,
   CustomerAddressDto,
   CustomerAddressUpsertRequest,
+  CustomerCommercialDefaultsDto,
   CustomerDto,
   CustomerPartnerProfileUpsertRequest,
   CustomerPartnerWorkspaceDto,
@@ -136,7 +137,9 @@ import type {
   PurchaseRequisitionUpsertRequest,
   QueryFilter,
   QuoteComparisonDto,
+  QuoteConvertRequest,
   QuoteDto,
+  QuoteReopenRequest,
   QuoteUpsertRequest,
   RefreshTokenRequest,
   ApprovalDetailDto,
@@ -154,6 +157,8 @@ import type {
   StageWiseDashboardItem,
   SalesOrderDto,
   SalesOrderUpsertRequest,
+  SalesTeamDto,
+  SalesTerritoryDto,
   SwitchOperatingContextRequest,
   SystemContextResponse,
   SystemInfoResponse,
@@ -639,6 +644,19 @@ export const apiClient = {
         method: "PUT",
         body: JSON.stringify(body)
       }),
+    customerCommercialDefaults: (customerId: number, params: { companyId: number; branchId: number; customerAddressId?: number | null; documentDate: string }) => {
+      const query = serializeFilters({
+        companyId: params.companyId,
+        branchId: params.branchId,
+        customerAddressId: params.customerAddressId ?? undefined,
+        documentDate: params.documentDate
+      });
+      return request<CustomerCommercialDefaultsDto>(`/api/customers/${customerId}/commercial-defaults?${query}`);
+    },
+    salesTerritories: (companyId: number) =>
+      request<SalesTerritoryDto[]>(`/api/customers/sales-territories?${serializeFilters({ companyId })}`),
+    salesTeams: (companyId: number) =>
+      request<SalesTeamDto[]>(`/api/customers/sales-teams?${serializeFilters({ companyId })}`),
     customerAddresses: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<CustomerAddressDto>>(`/api/customer-addresses?${query}`);
@@ -876,6 +894,20 @@ export const apiClient = {
     updateQuote: (quoteId: number, body: QuoteUpsertRequest) =>
       request<QuoteDto>(`/api/quotes/${quoteId}`, {
         method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    releaseQuote: (quoteId: number) =>
+      request<QuoteDto>(`/api/quotes/${quoteId}/release`, {
+        method: "POST"
+      }),
+    reopenQuote: (quoteId: number, body: QuoteReopenRequest) =>
+      request<QuoteDto>(`/api/quotes/${quoteId}/reopen`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    convertQuoteToSalesOrder: (quoteId: number, body: QuoteConvertRequest) =>
+      request<SalesOrderDto>(`/api/quotes/${quoteId}/convert-to-sales-order`, {
+        method: "POST",
         body: JSON.stringify(body)
       }),
     salesOrders: (filter: QueryFilter = {}) => {

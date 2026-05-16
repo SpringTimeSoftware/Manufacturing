@@ -44,6 +44,35 @@ export interface QuoteSetupItem {
   expiryDate: string;
   priorityCode: string;
   status: string;
+  salesOwnerUserId?: number | null;
+  salesOwnerName?: string | null;
+  internalRemarks?: string | null;
+  customerFacingRemarks?: string | null;
+  printRemarks?: string | null;
+  paymentTermsId?: number | null;
+  priceListId?: number | null;
+  discountSchemeId?: number | null;
+  taxCategoryId?: number | null;
+  taxTreatment?: string | null;
+  currencyId?: number | null;
+  exchangeRateId?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tradeTermsId?: number | null;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+  subtotalAmount?: number;
+  discountTotalAmount?: number;
+  taxableAmount?: number;
+  taxTotalAmount?: number;
+  grandTotalAmount?: number;
+  commercialStatus?: string;
+  revisionNo?: number;
+  releasedAt?: string | null;
+  convertedAt?: string | null;
   lineCount: number;
   totalQuantity: number;
   specRef: string;
@@ -66,6 +95,35 @@ export interface SalesOrderSetupItem {
   priorityCode: string;
   status: string;
   sourceQuoteId: number | null;
+  sourceQuoteRevisionNo?: number | null;
+  sourceQuoteVersionNo?: number | null;
+  salesOwnerUserId?: number | null;
+  salesOwnerName?: string | null;
+  internalRemarks?: string | null;
+  customerFacingRemarks?: string | null;
+  printRemarks?: string | null;
+  paymentTermsId?: number | null;
+  priceListId?: number | null;
+  discountSchemeId?: number | null;
+  taxCategoryId?: number | null;
+  taxTreatment?: string | null;
+  currencyId?: number | null;
+  exchangeRateId?: number | null;
+  exchangeRateSnapshot?: number | null;
+  tradeTermsId?: number | null;
+  freightAmount?: number;
+  packingAmount?: number;
+  insuranceAmount?: number;
+  otherChargesAmount?: number;
+  addLessAmount?: number;
+  roundOffAmount?: number;
+  subtotalAmount?: number;
+  discountTotalAmount?: number;
+  taxableAmount?: number;
+  taxTotalAmount?: number;
+  grandTotalAmount?: number;
+  commercialStatus?: string;
+  releasedAt?: string | null;
   lineCount: number;
   totalQuantity: number;
   sourceQuoteLabel: string;
@@ -508,6 +566,35 @@ function mapQuote(dto: QuoteDto, source: MasterDataSource): QuoteSetupItem {
     expiryDate: dto.expiryDate ?? "Open",
     priorityCode: dto.priorityCode,
     status: dto.status,
+    salesOwnerUserId: dto.salesOwnerUserId ?? null,
+    salesOwnerName: dto.salesOwnerName ?? null,
+    internalRemarks: dto.internalRemarks ?? null,
+    customerFacingRemarks: dto.customerFacingRemarks ?? null,
+    printRemarks: dto.printRemarks ?? null,
+    paymentTermsId: dto.paymentTermsId ?? null,
+    priceListId: dto.priceListId ?? null,
+    discountSchemeId: dto.discountSchemeId ?? null,
+    taxCategoryId: dto.taxCategoryId ?? null,
+    taxTreatment: dto.taxTreatment ?? null,
+    currencyId: dto.currencyId ?? null,
+    exchangeRateId: dto.exchangeRateId ?? null,
+    exchangeRateSnapshot: dto.exchangeRateSnapshot ?? null,
+    tradeTermsId: dto.tradeTermsId ?? null,
+    freightAmount: dto.freightAmount ?? 0,
+    packingAmount: dto.packingAmount ?? 0,
+    insuranceAmount: dto.insuranceAmount ?? 0,
+    otherChargesAmount: dto.otherChargesAmount ?? 0,
+    addLessAmount: dto.addLessAmount ?? 0,
+    roundOffAmount: dto.roundOffAmount ?? 0,
+    subtotalAmount: dto.subtotalAmount ?? 0,
+    discountTotalAmount: dto.discountTotalAmount ?? 0,
+    taxableAmount: dto.taxableAmount ?? 0,
+    taxTotalAmount: dto.taxTotalAmount ?? 0,
+    grandTotalAmount: dto.grandTotalAmount ?? 0,
+    commercialStatus: dto.commercialStatus ?? dto.status,
+    revisionNo: dto.revisionNo ?? 1,
+    releasedAt: dto.releasedAt ?? null,
+    convertedAt: dto.convertedAt ?? null,
     lineCount: dto.lines.length,
     totalQuantity: sumQuantities(dto.lines),
     specRef: dto.customerSpecRef ?? "No spec reference",
@@ -532,6 +619,35 @@ function mapSalesOrder(dto: SalesOrderDto, source: MasterDataSource): SalesOrder
     priorityCode: dto.priorityCode,
     status: dto.status,
     sourceQuoteId: dto.sourceQuoteId,
+    sourceQuoteRevisionNo: dto.sourceQuoteRevisionNo ?? null,
+    sourceQuoteVersionNo: dto.sourceQuoteVersionNo ?? null,
+    salesOwnerUserId: dto.salesOwnerUserId ?? null,
+    salesOwnerName: dto.salesOwnerName ?? null,
+    internalRemarks: dto.internalRemarks ?? null,
+    customerFacingRemarks: dto.customerFacingRemarks ?? null,
+    printRemarks: dto.printRemarks ?? null,
+    paymentTermsId: dto.paymentTermsId ?? null,
+    priceListId: dto.priceListId ?? null,
+    discountSchemeId: dto.discountSchemeId ?? null,
+    taxCategoryId: dto.taxCategoryId ?? null,
+    taxTreatment: dto.taxTreatment ?? null,
+    currencyId: dto.currencyId ?? null,
+    exchangeRateId: dto.exchangeRateId ?? null,
+    exchangeRateSnapshot: dto.exchangeRateSnapshot ?? null,
+    tradeTermsId: dto.tradeTermsId ?? null,
+    freightAmount: dto.freightAmount ?? 0,
+    packingAmount: dto.packingAmount ?? 0,
+    insuranceAmount: dto.insuranceAmount ?? 0,
+    otherChargesAmount: dto.otherChargesAmount ?? 0,
+    addLessAmount: dto.addLessAmount ?? 0,
+    roundOffAmount: dto.roundOffAmount ?? 0,
+    subtotalAmount: dto.subtotalAmount ?? 0,
+    discountTotalAmount: dto.discountTotalAmount ?? 0,
+    taxableAmount: dto.taxableAmount ?? 0,
+    taxTotalAmount: dto.taxTotalAmount ?? 0,
+    grandTotalAmount: dto.grandTotalAmount ?? 0,
+    commercialStatus: dto.commercialStatus ?? dto.status,
+    releasedAt: dto.releasedAt ?? null,
     lineCount: dto.lines.length,
     totalQuantity: sumQuantities(dto.lines),
     sourceQuoteLabel: dto.sourceQuoteId ? `Quote ${dto.sourceQuoteId}` : "Direct order",

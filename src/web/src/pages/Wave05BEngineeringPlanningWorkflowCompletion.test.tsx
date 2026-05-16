@@ -375,6 +375,7 @@ describe("Wave 5B engineering authoring and planning workflow completion", () =>
 
     fireEvent.change(screen.getByLabelText("Run code"), { target: { value: "MRP-APR-01" } });
     fireEvent.change(screen.getByLabelText("Triggered from MPS"), { target: { value: "600" } });
+    fireEvent.change(screen.getByLabelText("Planning horizon start"), { target: { value: "2026-04-24" } });
     fireEvent.change(screen.getByLabelText("Planning horizon end"), { target: { value: "2026-05-15" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Start MRP run" }));

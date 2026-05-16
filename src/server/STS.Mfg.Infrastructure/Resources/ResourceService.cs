@@ -1,10 +1,13 @@
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 using STS.Mfg.Application.Abstractions.Audit;
+using STS.Mfg.Application.Abstractions.Persistence;
 using STS.Mfg.Application.Abstractions.Resources;
 using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
 using STS.Mfg.Application.Contracts.Masters;
 using STS.Mfg.Application.Contracts.Resources;
+using STS.Mfg.Domain.Abstractions;
 using STS.Mfg.Domain.Masters;
 using STS.Mfg.Domain.Resources;
 using STS.Mfg.Infrastructure.Application;
@@ -16,7 +19,8 @@ internal sealed class ResourceService(
     MfgDbContext dbContext,
     IDataScopeService dataScopeService,
     ICurrentUserContextAccessor currentUserContextAccessor,
-    IAuditTrail auditTrail)
+    IAuditTrail auditTrail,
+    ISqlConnectionFactory connectionFactory)
     : ApplicationServiceBase(dbContext, dataScopeService, currentUserContextAccessor, auditTrail), IResourceService
 {
     public async Task<PagedResult<CustomerDto>> ListCustomersAsync(CompanyScopedFilter filter, CancellationToken cancellationToken = default)
@@ -115,6 +119,7 @@ internal sealed class ResourceService(
         var before = await BuildCustomerPartnerWorkspaceAsync(customer, cancellationToken);
         var userId = GetUserId();
         var companyId = customer.CompanyId ?? 0;
+        await ValidateCustomerCommercialDefaultsAsync(companyId, request.Profile, cancellationToken);
 
         var profile = await DbContext.CustomerPartnerProfiles
             .FirstOrDefaultAsync(entity => entity.CustomerId == customerId, cancellationToken);
@@ -139,6 +144,19 @@ internal sealed class ResourceService(
                 request.Profile.CatalogSegment,
                 request.Profile.Status,
                 userId);
+            profile.UpdateCommercialDefaults(
+                request.Profile.DefaultSalesOwnerUserId,
+                await ResolveSalesOwnerDisplayNameAsync(request.Profile.DefaultSalesOwnerUserId, request.Profile.DefaultSalesOwnerName, cancellationToken),
+                request.Profile.DefaultSalesTeamId,
+                request.Profile.DefaultTerritoryId,
+                request.Profile.DefaultPriceListId,
+                request.Profile.DefaultDiscountSchemeId,
+                request.Profile.DefaultPaymentTermsId,
+                request.Profile.DefaultTaxCategoryId,
+                request.Profile.DefaultTaxTreatment,
+                request.Profile.DefaultCurrencyId,
+                request.Profile.DefaultTradeTermsId,
+                userId);
             DbContext.CustomerPartnerProfiles.Add(profile);
         }
         else
@@ -158,6 +176,19 @@ internal sealed class ResourceService(
                 request.Profile.CatalogVisible,
                 request.Profile.CatalogSegment,
                 request.Profile.Status,
+                userId);
+            profile.UpdateCommercialDefaults(
+                request.Profile.DefaultSalesOwnerUserId,
+                await ResolveSalesOwnerDisplayNameAsync(request.Profile.DefaultSalesOwnerUserId, request.Profile.DefaultSalesOwnerName, cancellationToken),
+                request.Profile.DefaultSalesTeamId,
+                request.Profile.DefaultTerritoryId,
+                request.Profile.DefaultPriceListId,
+                request.Profile.DefaultDiscountSchemeId,
+                request.Profile.DefaultPaymentTermsId,
+                request.Profile.DefaultTaxCategoryId,
+                request.Profile.DefaultTaxTreatment,
+                request.Profile.DefaultCurrencyId,
+                request.Profile.DefaultTradeTermsId,
                 userId);
         }
 
@@ -1416,6 +1447,66 @@ internal sealed class ResourceService(
         ThrowIfInvalid(errors);
     }
 
+    private async Task ValidateCustomerCommercialDefaultsAsync(long companyId, CustomerPartnerProfileSectionRequest profile, CancellationToken cancellationToken)
+    {
+        var errors = new List<ApiError?>();
+
+        if (profile.DefaultSalesOwnerUserId.HasValue)
+        {
+            var displayName = await ResolveSalesOwnerDisplayNameAsync(profile.DefaultSalesOwnerUserId, profile.DefaultSalesOwnerName, cancellationToken);
+            errors.Add(string.IsNullOrWhiteSpace(displayName)
+                ? new ApiError("validation.lookup", nameof(profile.DefaultSalesOwnerUserId), "Selected sales owner was not found in active platform users.")
+                : null);
+        }
+
+        errors.Add(await ExistsInCompanyAsync(DbContext.SalesTeams.AsNoTracking(), companyId, profile.DefaultSalesTeamId, nameof(profile.DefaultSalesTeamId), "Selected sales team was not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.SalesTerritories.AsNoTracking(), companyId, profile.DefaultTerritoryId, nameof(profile.DefaultTerritoryId), "Selected sales territory was not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.PriceLists.AsNoTracking(), companyId, profile.DefaultPriceListId, nameof(profile.DefaultPriceListId), "Selected price list was not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.DiscountSchemes.AsNoTracking(), companyId, profile.DefaultDiscountSchemeId, nameof(profile.DefaultDiscountSchemeId), "Selected discount scheme was not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.PaymentTerms.AsNoTracking(), companyId, profile.DefaultPaymentTermsId, nameof(profile.DefaultPaymentTermsId), "Selected payment terms were not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.TaxCategories.AsNoTracking(), companyId, profile.DefaultTaxCategoryId, nameof(profile.DefaultTaxCategoryId), "Selected tax category was not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.Currencies.AsNoTracking(), companyId, profile.DefaultCurrencyId, nameof(profile.DefaultCurrencyId), "Selected currency was not found.", cancellationToken));
+        errors.Add(await ExistsInCompanyAsync(DbContext.TradeTerms.AsNoTracking(), companyId, profile.DefaultTradeTermsId, nameof(profile.DefaultTradeTermsId), "Selected trade terms were not found.", cancellationToken));
+
+        ThrowIfInvalid(errors);
+    }
+
+    private async Task<string?> ResolveSalesOwnerDisplayNameAsync(long? userId, string? fallbackName, CancellationToken cancellationToken)
+    {
+        if (!userId.HasValue || userId.Value <= 0)
+        {
+            return Normalize(fallbackName);
+        }
+
+        const string sql = """
+            SELECT TOP (1) DisplayName
+            FROM platform.AppUsers
+            WHERE Id = @UserId AND Status IN (N'Active', N'Enabled')
+            ORDER BY DisplayName;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        return await connection.QueryFirstOrDefaultAsync<string?>(new CommandDefinition(sql, new { UserId = userId.Value }, cancellationToken: cancellationToken));
+    }
+
+    private static async Task<ApiError?> ExistsInCompanyAsync<TEntity>(
+        IQueryable<TEntity> query,
+        long companyId,
+        long? id,
+        string fieldName,
+        string message,
+        CancellationToken cancellationToken)
+        where TEntity : AuditableEntity, ICompanyScoped
+    {
+        if (!id.HasValue || id.Value <= 0)
+        {
+            return null;
+        }
+
+        var exists = await query.AnyAsync(entity => entity.Id == id.Value && entity.CompanyId == companyId, cancellationToken);
+        return exists ? null : new ApiError("validation.lookup", fieldName, message);
+    }
+
     private static void ValidateSupplierPartnerWorkspace(SupplierPartnerProfileUpsertRequest request)
     {
         if (request.Profile is null)
@@ -1523,12 +1614,23 @@ internal sealed class ResourceService(
                 customer.CompanyId ?? 0,
                 customer.Id,
                 customer.CustomerName,
-                string.IsNullOrWhiteSpace(customer.TaxRegistrationNo) ? "Pending" : "Registered GST",
-                "INR",
+                string.IsNullOrWhiteSpace(customer.TaxRegistrationNo) ? null : "Registered GST",
+                null,
                 customer.Status == "On Hold" ? "On hold" : "Clear",
                 null,
                 customer.Status == "On Hold" ? "Manager review" : "Standard release",
                 customer.PaymentTermsCode,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 customer.CustomerType == "Export" ? "Strategic" : "Standard",
                 "Standard",
                 "Standard dispatch",
@@ -1536,7 +1638,35 @@ internal sealed class ResourceService(
                 customer.CustomerType == "Export",
                 customer.CustomerType == "Export" ? "Export catalog" : "Standard catalog",
                 customer.Status)
-            : new CustomerPartnerProfileDto(profile.Id, profile.CompanyId ?? 0, profile.CustomerId, profile.LegalName, profile.TaxCategory, profile.CurrencyCode, profile.CreditStatus, profile.CreditLimitAmount, profile.CreditHoldRule, profile.PaymentTermsCode, profile.CommercialSegment, profile.OrderReleaseControl, profile.DispatchPreference, profile.DispatchInstruction, profile.CatalogVisible, profile.CatalogSegment, profile.Status);
+            : new CustomerPartnerProfileDto(
+                profile.Id,
+                profile.CompanyId ?? 0,
+                profile.CustomerId,
+                profile.LegalName,
+                profile.TaxCategory,
+                profile.CurrencyCode,
+                profile.CreditStatus,
+                profile.CreditLimitAmount,
+                profile.CreditHoldRule,
+                profile.PaymentTermsCode,
+                profile.DefaultSalesOwnerUserId,
+                profile.DefaultSalesOwnerName,
+                profile.DefaultSalesTeamId,
+                profile.DefaultTerritoryId,
+                profile.DefaultPriceListId,
+                profile.DefaultDiscountSchemeId,
+                profile.DefaultPaymentTermsId,
+                profile.DefaultTaxCategoryId,
+                profile.DefaultTaxTreatment,
+                profile.DefaultCurrencyId,
+                profile.DefaultTradeTermsId,
+                profile.CommercialSegment,
+                profile.OrderReleaseControl,
+                profile.DispatchPreference,
+                profile.DispatchInstruction,
+                profile.CatalogVisible,
+                profile.CatalogSegment,
+                profile.Status);
 
     private static CustomerContactPointDto MapCustomerContactPoint(CustomerContactPoint entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.CustomerId, entity.CustomerAddressId, entity.ContactName, entity.ContactRole, entity.Channel, entity.ContactValue, entity.IsPrimary, entity.ConsentStatus, entity.EscalationLevel, entity.Status);
