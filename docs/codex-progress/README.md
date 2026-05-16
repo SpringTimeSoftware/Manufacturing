@@ -82,6 +82,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - `PRODUCTION-SHOP-FLOOR-COMPLETION-01` completed on 2026-05-15 to execute the Production / Shop Floor / Work Order / Job Card completion pack, retrofit production source handoffs, disable traveler print truthfully, update workbook evidence, and pass validation.
 - `COMMERCIAL-DOCUMENT-CONTRACT-HARDENING-01` completed on 2026-05-16 to harden Quote/Sales Order commercial contracts, add server-side price/discount/tax calculation, persist release snapshots, and implement exact Quote-to-Sales-Order conversion.
 - `CUSTOMER-COMMERCIAL-ASSIGNMENT-SALES-TERRITORY-OWNER-02` completed on 2026-05-16 to add governed customer commercial defaults, sales owner/team/territory assignment foundation, server-side Quote/Sales Order default resolution, and regression coverage preserving exact Quote-to-Sales-Order conversion.
+- `INVENTORY-BIN-LOT-SERIAL-PCID-SHARED-VALIDATION-SOURCE-SNAPSHOT-HARDENING-03` completed on 2026-05-16 to add shared inventory policy validation, PCID/license-plate foundation, tracking-grain stock posting, source/revision snapshots, and regression coverage for Phase 01/02 commercial behavior.
 
 ## Prompt Log
 
@@ -309,6 +310,8 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01 completed on 2026-05-14 to retrofit engineering BOM/routing/ECO line editors to compact grids, add ECO affected-object drafting, extend line-grid audits, and preserve released-object locks. Output: `/docs/codex-progress/BOM-ROUTING-ECO-ENGINEERING-DOCUMENTS-COMPLETION-01-output.md`
 - PLANNING-MRP-BOQ-CAPACITY-COMPLETION completed on 2026-05-14 to add planning plan/snapshot/planned-order/shortage APIs, `/planning/workspace`, governed planning controls, compact evidence grids, workbook evidence, screenshots, validation evidence, and review artifacts. Output: `/docs/codex-progress/PLANNING-MRP-BOQ-CAPACITY-COMPLETION-output.md`
 - INVENTORY-WAREHOUSE-TRACEABILITY-COMPLETION-01 completed on 2026-05-15 to close P0 inventory movement, traceability deep-link, cycle-count grid, action truth, screenshot, workbook, validation, and review-pack gates. Output: `/docs/codex-progress/INVENTORY-WAREHOUSE-TRACEABILITY-COMPLETION-01-output.md`
+- LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01 completed on 2026-05-16 to harden large modal workspaces, dense transaction header grids, desktop line-grid labeling, and screenshot/audit evidence before Dispatch / Logistics / POD. Output: `/docs/codex-progress/LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01-output.md`
+- QUALITY-NCR-COA-COMPLETION-PACK-04 completed on 2026-05-16 to close QC plan characteristics, inspection result evidence, NCR affected lines/CAPA/disposition release, COA certificate generation/issue/reissue, quality route/action truth, screenshots, audits, and validation. Output: `/docs/codex-progress/QUALITY-NCR-COA-COMPLETION-PACK-04-output.md`
 
 ## Remediation Log
 

@@ -3464,6 +3464,7 @@ export interface StockBalanceDto {
   binId: number | null;
   lotId: number | null;
   serialId: number | null;
+  pcidId?: number | null;
   onHandQty: number;
   reservedQty: number;
   qcHoldQty: number;
@@ -3487,12 +3488,30 @@ export interface StockTransactionDto {
   toBinId: number | null;
   lotId: number | null;
   serialId: number | null;
+  pcidId?: number | null;
   quantity: number;
   catchWeightQty: number | null;
   inventoryState: string;
   sourceDocumentType: string | null;
   sourceDocumentId: number | null;
   remarks: string | null;
+  sourceDocumentNo?: string | null;
+  sourceDocumentLineId?: number | null;
+  sourceDocumentRevisionNo?: number | null;
+  sourceDocumentVersionNo?: number | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  routingRevisionId?: number | null;
+  workOrderId?: number | null;
+  productionOrderId?: number | null;
+  salesOrderId?: number | null;
+  salesOrderLineId?: number | null;
+  purchaseOrderId?: number | null;
+  purchaseOrderLineId?: number | null;
+  qualityDocumentId?: number | null;
+  legacyTrackingIncomplete?: boolean;
 }
 
 export interface StockReservationDto {
@@ -3531,6 +3550,78 @@ export interface StockReservationReleaseRequest {
   remarks?: string | null;
 }
 
+export interface InventoryTrackingPolicyRequest {
+  companyId: number;
+  branchId: number;
+  itemId: number;
+  warehouseId?: number | null;
+  movementType?: string;
+}
+
+export interface InventoryTrackingPolicyDto {
+  companyId: number;
+  branchId: number;
+  itemId: number;
+  warehouseId: number | null;
+  isStockControlled: boolean;
+  requiresBin: boolean;
+  requiresLot: boolean;
+  requiresSerial: boolean;
+  requiresPcid: boolean;
+  allowsNegativeStock: boolean;
+  policySource: string;
+  requiredDimensions: string[];
+}
+
+export interface InventoryAvailableStockRequest {
+  companyId: number;
+  branchId: number;
+  itemId: number;
+  itemVariantId?: number | null;
+  warehouseId: number;
+  binId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  pcidId?: number | null;
+  inventoryState?: string;
+}
+
+export interface InventoryAvailableStockDto {
+  companyId: number;
+  branchId: number;
+  itemId: number;
+  itemVariantId: number | null;
+  warehouseId: number;
+  binId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  pcidId: number | null;
+  inventoryState: string;
+  availableQuantity: number;
+  blockedReason: string | null;
+}
+
+export interface InventoryDimensionQuery {
+  companyId: number;
+  branchId: number;
+  itemId?: number | null;
+  warehouseId?: number | null;
+  binId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  pcidId?: number | null;
+  inventoryState?: string | null;
+}
+
+export interface InventoryDimensionOptionDto {
+  id: number;
+  code: string;
+  label: string;
+  status: string;
+  availableQuantity: number | null;
+  disabledReason: string | null;
+}
+
 export interface StockIssueLineRequest {
   lineNo: number;
   itemId: number;
@@ -3546,6 +3637,24 @@ export interface StockIssueLineRequest {
   itemVariantCode?: string | null;
   lotNo?: string | null;
   serialNo?: string | null;
+  pcidId?: number | null;
+  pcidNo?: string | null;
+  sourceDocumentNo?: string | null;
+  sourceDocumentLineId?: number | null;
+  sourceDocumentRevisionNo?: number | null;
+  sourceDocumentVersionNo?: number | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  routingRevisionId?: number | null;
+  workOrderId?: number | null;
+  productionOrderId?: number | null;
+  salesOrderId?: number | null;
+  salesOrderLineId?: number | null;
+  purchaseOrderId?: number | null;
+  purchaseOrderLineId?: number | null;
+  qualityDocumentId?: number | null;
 }
 
 export interface StockIssueRequest {
@@ -3574,6 +3683,24 @@ export interface StockReturnLineRequest {
   itemVariantCode?: string | null;
   lotNo?: string | null;
   serialNo?: string | null;
+  pcidId?: number | null;
+  pcidNo?: string | null;
+  sourceDocumentNo?: string | null;
+  sourceDocumentLineId?: number | null;
+  sourceDocumentRevisionNo?: number | null;
+  sourceDocumentVersionNo?: number | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  routingRevisionId?: number | null;
+  workOrderId?: number | null;
+  productionOrderId?: number | null;
+  salesOrderId?: number | null;
+  salesOrderLineId?: number | null;
+  purchaseOrderId?: number | null;
+  purchaseOrderLineId?: number | null;
+  qualityDocumentId?: number | null;
 }
 
 export interface StockReturnRequest {
@@ -3604,6 +3731,24 @@ export interface StockTransferLineRequest {
   itemVariantCode?: string | null;
   lotNo?: string | null;
   serialNo?: string | null;
+  pcidId?: number | null;
+  pcidNo?: string | null;
+  sourceDocumentNo?: string | null;
+  sourceDocumentLineId?: number | null;
+  sourceDocumentRevisionNo?: number | null;
+  sourceDocumentVersionNo?: number | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  routingRevisionId?: number | null;
+  workOrderId?: number | null;
+  productionOrderId?: number | null;
+  salesOrderId?: number | null;
+  salesOrderLineId?: number | null;
+  purchaseOrderId?: number | null;
+  purchaseOrderLineId?: number | null;
+  qualityDocumentId?: number | null;
 }
 
 export interface StockTransferRequest {
@@ -4134,6 +4279,53 @@ export interface InspectionPlanDto {
   autoHoldOnFail: boolean;
   autoCreateNcrOnFail: boolean;
   status: string;
+  characteristics: InspectionPlanCharacteristicDto[];
+}
+
+export interface InspectionPlanCharacteristicDto {
+  id: number;
+  lineNo: number;
+  parameterCode: string;
+  parameterName: string;
+  characteristicType: string;
+  expectedValue: string | null;
+  lowerLimit: number | null;
+  upperLimit: number | null;
+  uomId: number | null;
+  sampleSize: number;
+  isMandatory: boolean;
+  status: string;
+  remarks: string | null;
+}
+
+export interface InspectionPlanCharacteristicRequest {
+  id?: number | null;
+  lineNo: number;
+  parameterCode: string;
+  parameterName: string;
+  characteristicType: string;
+  expectedValue?: string | null;
+  lowerLimit?: number | null;
+  upperLimit?: number | null;
+  uomId?: number | null;
+  sampleSize: number;
+  isMandatory: boolean;
+  status: string;
+  remarks?: string | null;
+}
+
+export interface InspectionPlanUpsertRequest {
+  companyId: number;
+  planCode: string;
+  planName: string;
+  inspectionType: string;
+  itemId?: number | null;
+  operationId?: number | null;
+  autoHoldOnFail: boolean;
+  autoCreateNcrOnFail: boolean;
+  status: string;
+  itemCode?: string | null;
+  characteristics: InspectionPlanCharacteristicRequest[];
 }
 
 export interface InspectionResultDto {
@@ -4210,12 +4402,60 @@ export interface NonConformanceDto {
   serialId: number | null;
   disposition: string;
   status: string;
+  defectCategory: string | null;
+  containmentAction: string | null;
   rootCause: string | null;
+  correctiveAction: string | null;
+  preventiveAction: string | null;
+  dispositionReleasedOn: string | null;
+  dispositionReleasedByUserId: number | null;
+  closedOn: string | null;
+  closedByUserId: number | null;
   reworkOrderId: number | null;
+  remarks: string | null;
+  lines: NonConformanceLineDto[];
+}
+
+export interface NonConformanceLineDto {
+  id: number;
+  lineNo: number;
+  itemId: number | null;
+  itemRevisionId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  affectedQuantity: number | null;
+  uomId: number | null;
+  defectCode: string;
+  defectDescription: string;
+  disposition: string;
   remarks: string | null;
 }
 
 export interface NonConformanceActionRequest {
+  remarks?: string | null;
+}
+
+export interface NonConformanceDispositionRequest {
+  disposition: string;
+  containmentAction?: string | null;
+  rootCause?: string | null;
+  correctiveAction?: string | null;
+  preventiveAction?: string | null;
+  remarks?: string | null;
+}
+
+export interface NonConformanceLineRequest {
+  id?: number | null;
+  lineNo: number;
+  itemId?: number | null;
+  itemRevisionId?: number | null;
+  lotId?: number | null;
+  serialId?: number | null;
+  affectedQuantity?: number | null;
+  uomId?: number | null;
+  defectCode: string;
+  defectDescription: string;
+  disposition: string;
   remarks?: string | null;
 }
 
@@ -4229,9 +4469,62 @@ export interface NonConformanceUpsertRequest {
   serialId?: number | null;
   disposition: string;
   status: string;
+  defectCategory?: string | null;
+  containmentAction?: string | null;
   rootCause?: string | null;
+  correctiveAction?: string | null;
+  preventiveAction?: string | null;
   reworkOrderId?: number | null;
   remarks?: string | null;
+  lines: NonConformanceLineRequest[];
+}
+
+export interface CoaCertificateLineDto {
+  id: number;
+  lineNo: number;
+  parameterCode: string;
+  expectedValue: string | null;
+  actualValue: string | null;
+  resultStatus: string;
+  remarks: string | null;
+}
+
+export interface CoaCertificateDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  coaNo: string;
+  inspectionRecordId: number;
+  sourceDocumentType: string;
+  sourceDocumentId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  templateCode: string;
+  versionNo: number;
+  storagePath: string;
+  status: string;
+  generatedOn: string;
+  generatedByUserId: number | null;
+  issuedOn: string | null;
+  issuedByUserId: number | null;
+  reissueReason: string | null;
+  lines: CoaCertificateLineDto[];
+}
+
+export interface CoaGenerateRequest {
+  companyId: number;
+  branchId: number;
+  inspectionRecordId: number;
+  coaNo: string;
+  templateCode: string;
+  issueImmediately: boolean;
+  reissueReason?: string | null;
+}
+
+export interface CoaReissueRequest {
+  reissueReason: string;
+  templateCode?: string | null;
+  issueImmediately?: boolean;
 }
 
 export interface PackListLineDto {

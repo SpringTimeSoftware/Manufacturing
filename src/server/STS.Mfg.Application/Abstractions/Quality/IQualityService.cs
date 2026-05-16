@@ -20,5 +20,12 @@ public interface IQualityService
     Task<NonConformanceDto> GetNonConformanceAsync(long id, CancellationToken cancellationToken = default);
     Task<NonConformanceDto> CreateNonConformanceAsync(NonConformanceUpsertRequest request, CancellationToken cancellationToken = default);
     Task<NonConformanceDto> UpdateNonConformanceAsync(long id, NonConformanceUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<ActionResponse> ReleaseNonConformanceDispositionAsync(long id, NonConformanceDispositionRequest request, CancellationToken cancellationToken = default);
     Task<ActionResponse> CloseNonConformanceAsync(long id, NonConformanceActionRequest? request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<CoaCertificateDto>> ListCoaCertificatesAsync(CoaCertificateFilter filter, CancellationToken cancellationToken = default);
+    Task<CoaCertificateDto> GetCoaCertificateAsync(long id, CancellationToken cancellationToken = default);
+    Task<CoaCertificateDto> GenerateCoaCertificateAsync(CoaGenerateRequest request, CancellationToken cancellationToken = default);
+    Task<CoaCertificateDto> ReissueCoaCertificateAsync(long id, CoaReissueRequest request, CancellationToken cancellationToken = default);
+    Task<ActionResponse> IssueCoaCertificateAsync(long id, CancellationToken cancellationToken = default);
 }

@@ -418,6 +418,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["QCInspector", "ProductionSupervisor", "PlantHead"]
   },
   {
+    label: "COA Certificates",
+    path: "/quality/coas",
+    section: "Quality",
+    roles: ["QCInspector", "DispatchManager", "PlantHead"]
+  },
+  {
     label: "Pack Lists",
     path: "/dispatch/pack-lists",
     section: "Dispatch",

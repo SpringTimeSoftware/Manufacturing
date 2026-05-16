@@ -1,0 +1,48 @@
+{
+  "wave_id": "LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01",
+  "screenshot_mode": "top_only",
+  "captures": [
+    {
+      "route": "/masters/items",
+      "files": [
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\item-master-list-top.png"
+      ]
+    },
+    {
+      "route": "/sales/quotes",
+      "files": [
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\quote-list-top.png"
+      ]
+    },
+    {
+      "route": "/sales/orders",
+      "files": [
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\sales-order-list-top.png"
+      ]
+    },
+    {
+      "route": "/masters/items",
+      "modal": "New item draft",
+      "files": [
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\item-master-work-modal-overview.png",
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\item-master-work-modal-lower.png"
+      ]
+    },
+    {
+      "route": "/sales/quotes",
+      "modal": "New quote draft",
+      "files": [
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\quote-draft-work-modal-overview.png",
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\quote-draft-work-modal-lower.png"
+      ]
+    },
+    {
+      "route": "/sales/orders",
+      "modal": "New order draft",
+      "files": [
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\sales-order-work-modal-overview.png",
+        "c:\\StsPackages\\Manufacturing_ERP\\docs\\codex-review-screens\\LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01\\sales-order-work-modal-lower.png"
+      ]
+    }
+  ]
+}

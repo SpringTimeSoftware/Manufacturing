@@ -19,6 +19,7 @@ export interface StockBalanceItem {
   binId: number | null;
   lotId: number | null;
   serialId: number | null;
+  pcidId: number | null;
   itemLabel: string;
   warehouseLabel: string;
   binLabel: string;
@@ -164,6 +165,7 @@ function mapStockBalance(dto: StockBalanceDto, source: MasterDataSource): StockB
     binId: dto.binId,
     lotId: dto.lotId,
     serialId: dto.serialId,
+    pcidId: dto.pcidId ?? null,
     itemLabel: `Item ${dto.itemId}`,
     warehouseLabel: `Warehouse ${dto.warehouseId}`,
     binLabel: dto.binId ? `Bin ${dto.binId}` : "No bin",
@@ -287,6 +289,7 @@ const seededBalances: StockBalanceItem[] = [
     binId: 2001,
     lotId: 70001,
     serialId: null,
+    pcidId: null,
     itemLabel: "RM-SS-SHEET / Stainless Steel Sheet",
     warehouseLabel: "RM-MAIN",
     binLabel: "RM-A-01",
@@ -310,6 +313,7 @@ const seededBalances: StockBalanceItem[] = [
     binId: 3002,
     lotId: null,
     serialId: 80001,
+    pcidId: 91001,
     itemLabel: "FG-OZ-50 / Ozone Generator 50 LPH",
     warehouseLabel: "FG-DISPATCH",
     binLabel: "FG-STAGE-02",
@@ -333,6 +337,7 @@ const seededBalances: StockBalanceItem[] = [
     binId: 4001,
     lotId: 70002,
     serialId: null,
+    pcidId: null,
     itemLabel: "RM-VALVE-SET / Valve Set",
     warehouseLabel: "QC-HOLD",
     binLabel: "QC-CAGE-01",

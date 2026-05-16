@@ -71,6 +71,12 @@ import type {
   ItemVariantUpsertRequest,
   ImportJobCreateRequest,
   ImportJobDto,
+  InventoryAvailableStockDto,
+  InventoryAvailableStockRequest,
+  InventoryDimensionOptionDto,
+  InventoryDimensionQuery,
+  InventoryTrackingPolicyDto,
+  InventoryTrackingPolicyRequest,
   IntegrationConnectionDto,
   IntegrationConnectionUpsertRequest,
   IntegrationJobStatusUpdateRequest,
@@ -81,6 +87,7 @@ import type {
   CreateJobCardsRequest,
   DowntimeEventDto,
   InspectionDto,
+  InspectionPlanUpsertRequest,
   InspectionHoldReleaseRequest,
   InspectionPlanDto,
   InspectionSaveRequest,
@@ -110,7 +117,11 @@ import type {
   PlanningSnapshotDto,
   NonConformanceDto,
   NonConformanceActionRequest,
+  NonConformanceDispositionRequest,
   NonConformanceUpsertRequest,
+  CoaCertificateDto,
+  CoaGenerateRequest,
+  CoaReissueRequest,
   NotificationItem,
   OperationDto,
   OperationUpsertRequest,
@@ -1275,6 +1286,30 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<StockTransactionDto>>(`/api/inventory/transactions?${query}`);
     },
+    trackingPolicy: (body: InventoryTrackingPolicyRequest) => {
+      const query = serializeFilters(body as unknown as QueryFilter);
+      return request<InventoryTrackingPolicyDto>(`/api/inventory/policy/tracking?${query}`);
+    },
+    availableStock: (body: InventoryAvailableStockRequest) => {
+      const query = serializeFilters(body as unknown as QueryFilter);
+      return request<InventoryAvailableStockDto>(`/api/inventory/policy/available?${query}`);
+    },
+    validBins: (body: InventoryDimensionQuery) => {
+      const query = serializeFilters(body as unknown as QueryFilter);
+      return request<InventoryDimensionOptionDto[]>(`/api/inventory/policy/valid-bins?${query}`);
+    },
+    validLots: (body: InventoryDimensionQuery) => {
+      const query = serializeFilters(body as unknown as QueryFilter);
+      return request<InventoryDimensionOptionDto[]>(`/api/inventory/policy/valid-lots?${query}`);
+    },
+    validSerials: (body: InventoryDimensionQuery) => {
+      const query = serializeFilters(body as unknown as QueryFilter);
+      return request<InventoryDimensionOptionDto[]>(`/api/inventory/policy/valid-serials?${query}`);
+    },
+    validPcids: (body: InventoryDimensionQuery) => {
+      const query = serializeFilters(body as unknown as QueryFilter);
+      return request<InventoryDimensionOptionDto[]>(`/api/inventory/policy/valid-pcids?${query}`);
+    },
     stockReservations: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<StockReservationDto>>(`/api/stock-reservations?${query}`);
@@ -1457,6 +1492,16 @@ export const apiClient = {
       const query = serializeFilters(filter);
       return request<PagedResult<InspectionPlanDto>>(`/api/quality/plans?${query}`);
     },
+    createInspectionPlan: (body: InspectionPlanUpsertRequest) =>
+      request<InspectionPlanDto>("/api/quality/plans", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateInspectionPlan: (id: number, body: InspectionPlanUpsertRequest) =>
+      request<InspectionPlanDto>(`/api/quality/plans/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     inspections: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<InspectionDto>>(`/api/quality/inspections?${query}`);
@@ -1492,10 +1537,34 @@ export const apiClient = {
         method: "PUT",
         body: JSON.stringify(body)
       }),
+    releaseNonConformanceDisposition: (id: number, body: NonConformanceDispositionRequest) =>
+      request<ActionResponse>(`/api/quality/ncrs/${id}/release-disposition`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     closeNonConformance: (id: number, body: NonConformanceActionRequest = {}) =>
       request<ActionResponse>(`/api/quality/ncrs/${id}/close`, {
         method: "POST",
         body: JSON.stringify(body)
+      }),
+    coas: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<CoaCertificateDto>>(`/api/quality/coas?${query}`);
+    },
+    coa: (id: number) => request<CoaCertificateDto>(`/api/quality/coas/${id}`),
+    generateCoa: (body: CoaGenerateRequest) =>
+      request<CoaCertificateDto>("/api/quality/coas", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    reissueCoa: (id: number, body: CoaReissueRequest) =>
+      request<CoaCertificateDto>(`/api/quality/coas/${id}/reissue`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    issueCoa: (id: number) =>
+      request<ActionResponse>(`/api/quality/coas/${id}/issue`, {
+        method: "POST"
       })
   },
   dispatch: {

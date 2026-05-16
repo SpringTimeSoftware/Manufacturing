@@ -792,12 +792,30 @@ internal sealed class ProductionOutputService(
             entity.ToBinId,
             entity.LotId,
             entity.SerialId,
+            entity.PcidId,
             entity.Quantity,
             entity.CatchWeightQty,
             entity.InventoryState,
             entity.SourceDocumentType,
             entity.SourceDocumentId,
-            entity.Remarks);
+            entity.Remarks,
+            entity.SourceDocumentNo,
+            entity.SourceDocumentLineId,
+            entity.SourceDocumentRevisionNo,
+            entity.SourceDocumentVersionNo,
+            entity.ItemRevisionId,
+            entity.EngineeringDocumentRevisionId,
+            entity.BomRevisionId,
+            entity.RoutingId,
+            entity.RoutingRevisionId,
+            entity.WorkOrderId,
+            entity.ProductionOrderId,
+            entity.SalesOrderId,
+            entity.SalesOrderLineId,
+            entity.PurchaseOrderId,
+            entity.PurchaseOrderLineId,
+            entity.QualityDocumentId,
+            entity.LegacyTrackingIncomplete);
 
     private static int ResolveLineNo(string transactionNo)
     {

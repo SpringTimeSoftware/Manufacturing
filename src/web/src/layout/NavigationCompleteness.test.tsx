@@ -78,6 +78,7 @@ const implementedProtectedRoutes = [
   "/quality/in-process-inspections",
   "/quality/final-inspections",
   "/quality/ncr",
+  "/quality/coas",
   "/dispatch/pack-lists",
   "/dispatch/planning",
   "/dispatch/shipments",

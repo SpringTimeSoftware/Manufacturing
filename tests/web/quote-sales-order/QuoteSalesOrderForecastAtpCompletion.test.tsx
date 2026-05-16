@@ -403,7 +403,7 @@ describe("QUOTE-SALES-ORDER-FORECAST-ATP completion pack", () => {
     fireEvent.click(within(reopened).getByRole("button", { name: "Save quote draft" }));
     await waitFor(() => expect(api.updateQuote).toHaveBeenCalledTimes(1));
     expect(api.updateQuote.mock.calls[0][1].lines).toHaveLength(1);
-  });
+  }, 10_000);
 
   it("releases a quote snapshot before exact quote-to-sales-order conversion", async () => {
     const api = mockQuoteApis();

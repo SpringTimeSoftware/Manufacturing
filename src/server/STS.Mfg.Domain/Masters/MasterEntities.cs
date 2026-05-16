@@ -819,6 +819,9 @@ public sealed class ItemInventoryPolicy : AuditableEntity, ICompanyScoped, IWare
     public long ItemId { get; private set; }
     public long? DefaultWarehouseId { get; private set; }
     public long? DefaultBinId { get; private set; }
+    public bool IsStockControlled { get; private set; } = true;
+    public bool RequiresBin { get; private set; }
+    public bool IsPcidTracked { get; private set; }
     public string SerialTrackingMode { get; private set; } = string.Empty;
     public string LotTrackingMode { get; private set; } = string.Empty;
     public bool IsCatchWeightItem { get; private set; }
@@ -827,19 +830,22 @@ public sealed class ItemInventoryPolicy : AuditableEntity, ICompanyScoped, IWare
     public int? ShelfLifeDays { get; private set; }
     public string Status { get; private set; } = string.Empty;
 
-    public static ItemInventoryPolicy Create(long companyId, long itemId, long? defaultWarehouseId, long? defaultBinId, string serialTrackingMode, string lotTrackingMode, bool isCatchWeightItem, string negativeStockPolicy, string? expiryPolicy, int? shelfLifeDays, string status, long? userId)
+    public static ItemInventoryPolicy Create(long companyId, long itemId, long? defaultWarehouseId, long? defaultBinId, string serialTrackingMode, string lotTrackingMode, bool isCatchWeightItem, string negativeStockPolicy, string? expiryPolicy, int? shelfLifeDays, string status, long? userId, bool isStockControlled = true, bool requiresBin = false, bool isPcidTracked = false)
     {
         var entity = new ItemInventoryPolicy { CompanyId = companyId, ItemId = itemId };
-        entity.Update(defaultWarehouseId, defaultBinId, serialTrackingMode, lotTrackingMode, isCatchWeightItem, negativeStockPolicy, expiryPolicy, shelfLifeDays, status, userId);
+        entity.Update(defaultWarehouseId, defaultBinId, serialTrackingMode, lotTrackingMode, isCatchWeightItem, negativeStockPolicy, expiryPolicy, shelfLifeDays, status, userId, isStockControlled, requiresBin, isPcidTracked);
         entity.CreatedOn = DateTimeOffset.UtcNow;
         entity.CreatedByUserId = userId;
         return entity;
     }
 
-    public void Update(long? defaultWarehouseId, long? defaultBinId, string serialTrackingMode, string lotTrackingMode, bool isCatchWeightItem, string negativeStockPolicy, string? expiryPolicy, int? shelfLifeDays, string status, long? userId)
+    public void Update(long? defaultWarehouseId, long? defaultBinId, string serialTrackingMode, string lotTrackingMode, bool isCatchWeightItem, string negativeStockPolicy, string? expiryPolicy, int? shelfLifeDays, string status, long? userId, bool isStockControlled = true, bool requiresBin = false, bool isPcidTracked = false)
     {
         DefaultWarehouseId = defaultWarehouseId;
         DefaultBinId = defaultBinId;
+        IsStockControlled = isStockControlled;
+        RequiresBin = requiresBin;
+        IsPcidTracked = isPcidTracked;
         SerialTrackingMode = serialTrackingMode.Trim();
         LotTrackingMode = lotTrackingMode.Trim();
         IsCatchWeightItem = isCatchWeightItem;

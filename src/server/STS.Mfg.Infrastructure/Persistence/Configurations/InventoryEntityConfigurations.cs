@@ -25,7 +25,8 @@ public sealed class StockBalanceConfiguration : IEntityTypeConfiguration<StockBa
             entity.WarehouseId,
             entity.BinId,
             entity.LotId,
-            entity.SerialId
+            entity.SerialId,
+            entity.PcidId
         }).IsUnique();
     }
 }
@@ -42,8 +43,10 @@ public sealed class StockTransactionConfiguration : IEntityTypeConfiguration<Sto
         builder.Property(entity => entity.CatchWeightQty).HasColumnType("decimal(18,6)");
         builder.Property(entity => entity.InventoryState).HasMaxLength(24).IsRequired();
         builder.Property(entity => entity.SourceDocumentType).HasMaxLength(32);
+        builder.Property(entity => entity.SourceDocumentNo).HasMaxLength(80);
         builder.Property(entity => entity.Remarks).HasMaxLength(512);
         builder.HasIndex(entity => new { entity.CompanyId, entity.TransactionNo }).IsUnique();
+        builder.HasIndex(entity => new { entity.SourceDocumentType, entity.SourceDocumentId, entity.SourceDocumentLineId });
     }
 }
 
@@ -82,6 +85,32 @@ public sealed class SerialConfiguration : IEntityTypeConfiguration<Serial>
         builder.Property(entity => entity.SerialNo).HasMaxLength(64).IsRequired();
         builder.Property(entity => entity.SerialStatus).HasMaxLength(24).IsRequired();
         builder.HasIndex(entity => new { entity.CompanyId, entity.SerialNo }).IsUnique();
+    }
+}
+
+public sealed class InventoryLicensePlateConfiguration : IEntityTypeConfiguration<InventoryLicensePlate>
+{
+    public void Configure(EntityTypeBuilder<InventoryLicensePlate> builder)
+    {
+        builder.ToTable("LicensePlates", "inventory");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.PcidNo).HasMaxLength(80).IsRequired();
+        builder.Property(entity => entity.LicensePlateType).HasMaxLength(40).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.PcidNo }).IsUnique();
+    }
+}
+
+public sealed class InventoryLicensePlateContentConfiguration : IEntityTypeConfiguration<InventoryLicensePlateContent>
+{
+    public void Configure(EntityTypeBuilder<InventoryLicensePlateContent> builder)
+    {
+        builder.ToTable("LicensePlateContents", "inventory");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.Quantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.InventoryState).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.HasIndex(entity => new { entity.CompanyId, entity.LicensePlateId, entity.ItemId, entity.LotId, entity.SerialId });
     }
 }
 

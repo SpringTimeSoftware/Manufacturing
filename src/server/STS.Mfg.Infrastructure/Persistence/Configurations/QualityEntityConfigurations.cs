@@ -18,6 +18,24 @@ public sealed class InspectionPlanConfiguration : IEntityTypeConfiguration<Inspe
     }
 }
 
+public sealed class InspectionPlanCharacteristicConfiguration : IEntityTypeConfiguration<InspectionPlanCharacteristic>
+{
+    public void Configure(EntityTypeBuilder<InspectionPlanCharacteristic> builder)
+    {
+        builder.ToTable("InspectionPlanCharacteristics", "quality");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.ParameterCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.ParameterName).HasMaxLength(160).IsRequired();
+        builder.Property(entity => entity.CharacteristicType).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.ExpectedValue).HasMaxLength(256);
+        builder.Property(entity => entity.LowerLimit).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.UpperLimit).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.Remarks).HasMaxLength(512);
+        builder.HasIndex(entity => new { entity.InspectionPlanId, entity.LineNo }).IsUnique();
+    }
+}
+
 public sealed class InspectionRecordConfiguration : IEntityTypeConfiguration<InspectionRecord>
 {
     public void Configure(EntityTypeBuilder<InspectionRecord> builder)
@@ -61,8 +79,59 @@ public sealed class NonConformanceConfiguration : IEntityTypeConfiguration<NonCo
         builder.Property(entity => entity.SourceDocumentType).HasMaxLength(32).IsRequired();
         builder.Property(entity => entity.Disposition).HasMaxLength(32).IsRequired();
         builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.DefectCategory).HasMaxLength(80);
+        builder.Property(entity => entity.ContainmentAction).HasMaxLength(512);
         builder.Property(entity => entity.RootCause).HasMaxLength(512);
+        builder.Property(entity => entity.CorrectiveAction).HasMaxLength(512);
+        builder.Property(entity => entity.PreventiveAction).HasMaxLength(512);
         builder.Property(entity => entity.Remarks).HasMaxLength(512);
         builder.HasIndex(entity => new { entity.CompanyId, entity.NcrNo }).IsUnique();
+    }
+}
+
+public sealed class NonConformanceLineConfiguration : IEntityTypeConfiguration<NonConformanceLine>
+{
+    public void Configure(EntityTypeBuilder<NonConformanceLine> builder)
+    {
+        builder.ToTable("NonConformanceLines", "quality");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.AffectedQuantity).HasColumnType("decimal(18,6)");
+        builder.Property(entity => entity.DefectCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.DefectDescription).HasMaxLength(256).IsRequired();
+        builder.Property(entity => entity.Disposition).HasMaxLength(32).IsRequired();
+        builder.Property(entity => entity.Remarks).HasMaxLength(512);
+        builder.HasIndex(entity => new { entity.NonConformanceId, entity.LineNo }).IsUnique();
+    }
+}
+
+public sealed class CoaCertificateConfiguration : IEntityTypeConfiguration<CoaCertificate>
+{
+    public void Configure(EntityTypeBuilder<CoaCertificate> builder)
+    {
+        builder.ToTable("CoaCertificates", "quality");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.CoaNo).HasMaxLength(40).IsRequired();
+        builder.Property(entity => entity.SourceDocumentType).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.TemplateCode).HasMaxLength(80).IsRequired();
+        builder.Property(entity => entity.StoragePath).HasMaxLength(512).IsRequired();
+        builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.ReissueReason).HasMaxLength(512);
+        builder.HasIndex(entity => new { entity.CompanyId, entity.CoaNo, entity.VersionNo }).IsUnique();
+        builder.HasIndex(entity => entity.InspectionRecordId);
+    }
+}
+
+public sealed class CoaCertificateLineConfiguration : IEntityTypeConfiguration<CoaCertificateLine>
+{
+    public void Configure(EntityTypeBuilder<CoaCertificateLine> builder)
+    {
+        builder.ToTable("CoaCertificateLines", "quality");
+        builder.HasKey(entity => entity.Id);
+        builder.Property(entity => entity.ParameterCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.ExpectedValue).HasMaxLength(256);
+        builder.Property(entity => entity.ActualValue).HasMaxLength(256);
+        builder.Property(entity => entity.ResultStatus).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.Remarks).HasMaxLength(512);
+        builder.HasIndex(entity => new { entity.CoaCertificateId, entity.LineNo }).IsUnique();
     }
 }

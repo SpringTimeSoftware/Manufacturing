@@ -120,6 +120,7 @@ import {
   ScrapByProductPage
 } from "../pages/ProductionOutputPages";
 import {
+  CoaCertificatePage,
   FinalInspectionPage,
   IncomingInspectionPage,
   InProcessInspectionPage,
@@ -243,6 +244,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("quality/in-process-inspections", <InProcessInspectionPage />),
       guardedRoute("quality/final-inspections", <FinalInspectionPage />),
       guardedRoute("quality/ncr", <NcrDeviationPage />),
+      guardedRoute("quality/coas", <CoaCertificatePage />),
       guardedRoute("dispatch/pack-lists", <PackListPage />),
       guardedRoute("dispatch/planning", <DispatchPlanningPage />),
       guardedRoute("dispatch/shipments", <ShipmentDeliveryPage />),

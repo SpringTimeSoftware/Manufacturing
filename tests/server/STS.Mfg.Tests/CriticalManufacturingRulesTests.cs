@@ -132,6 +132,88 @@ public sealed class CriticalManufacturingRulesTests
     }
 
     [Fact]
+    public void NonConformanceDispositionRelease_ShouldPersistRcaCapaAndAuditState()
+    {
+        var ncr = NonConformance.Create(
+            1,
+            10,
+            "NCR-2026-0018",
+            "Inspection",
+            7202,
+            null,
+            null,
+            "Hold",
+            "Open",
+            "Functional",
+            "Hold affected serial",
+            "Pending RCA",
+            null,
+            null,
+            null,
+            "Initial leak-test failure.",
+            1003);
+
+        ncr.ReleaseDisposition(
+            "Rework",
+            "Keep serial on quality hold until retest.",
+            "Gasket seating issue.",
+            "Re-seat gasket and rerun leak test.",
+            "Update gasket fixture checklist.",
+            "Disposition approved by quality.",
+            1004);
+
+        Assert.Equal("DispositionReleased", ncr.Status);
+        Assert.Equal("Rework", ncr.Disposition);
+        Assert.Equal("Gasket seating issue.", ncr.RootCause);
+        Assert.Equal("Re-seat gasket and rerun leak test.", ncr.CorrectiveAction);
+        Assert.Equal("Update gasket fixture checklist.", ncr.PreventiveAction);
+        Assert.NotNull(ncr.DispositionReleasedOn);
+        Assert.Equal(1004, ncr.DispositionReleasedByUserId);
+    }
+
+    [Fact]
+    public void CoaCertificate_ShouldSnapshotInspectionEvidenceAndIssueState()
+    {
+        var certificate = CoaCertificate.Create(
+            1,
+            10,
+            "COA-2026-0001",
+            7202,
+            "ProductionReceipt",
+            3301,
+            4401,
+            null,
+            "COA-FINAL-STD",
+            1,
+            "quality/coa/company-1/branch-10/COA-2026-0001-v1.json",
+            "Generated",
+            null,
+            1003);
+        var line = CoaCertificateLine.Create(
+            0,
+            10,
+            "LEAK_TEST",
+            "No pressure drop",
+            "Pass",
+            "Pass",
+            "Accepted final test.",
+            1003);
+
+        certificate.MarkIssued(1004);
+
+        Assert.Equal("COA-2026-0001", certificate.CoaNo);
+        Assert.Equal(7202, certificate.InspectionRecordId);
+        Assert.Equal("ProductionReceipt", certificate.SourceDocumentType);
+        Assert.Equal(1, certificate.VersionNo);
+        Assert.Equal("Issued", certificate.Status);
+        Assert.NotNull(certificate.IssuedOn);
+        Assert.Equal(1004, certificate.IssuedByUserId);
+        Assert.Equal("LEAK_TEST", line.ParameterCode);
+        Assert.Equal("No pressure drop", line.ExpectedValue);
+        Assert.Equal("Pass", line.ActualValue);
+    }
+
+    [Fact]
     public void AiAssistantCatalog_ShouldBlockUnsupportedParametersAndArbitrarySql()
     {
         var definition = AiAssistantIntentCatalog.Find("order-risk-snapshot");

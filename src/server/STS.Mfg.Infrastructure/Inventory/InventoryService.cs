@@ -16,7 +16,9 @@ internal sealed class InventoryService(
     MfgDbContext dbContext,
     IDataScopeService dataScopeService,
     ICurrentUserContextAccessor currentUserContextAccessor,
-    IAuditTrail auditTrail)
+    IAuditTrail auditTrail,
+    InventoryPostingService inventoryPostingService,
+    IInventoryPolicyService inventoryPolicyService)
     : ApplicationServiceBase(dbContext, dataScopeService, currentUserContextAccessor, auditTrail), IInventoryService
 {
     public async Task<PagedResult<StockBalanceDto>> ListStockBalancesAsync(InventoryFilter filter, CancellationToken cancellationToken = default)
@@ -200,6 +202,35 @@ internal sealed class InventoryService(
         var lotId = await ResolveLotIdAsync(request.CompanyId, itemId, request.LotId, request.LotNo, cancellationToken);
         EnsureWarehouseAccess(request.WarehouseId);
         await EnsureWarehouseAndBinAreUsableAsync(request.CompanyId, request.BranchId, request.WarehouseId, request.BinId, cancellationToken);
+        var reservationValidation = await inventoryPolicyService.ValidateMovementAsync(
+            new StockMovementValidationRequest(
+                request.CompanyId,
+                request.BranchId,
+                DateOnly.FromDateTime(DateTime.UtcNow),
+                request.SourceDocumentType,
+                request.SourceDocumentId,
+                new[]
+                {
+                    new StockMovementValidationLineRequest(
+                        10,
+                        "Reserve",
+                        itemId,
+                        itemVariantId,
+                        request.WarehouseId,
+                        request.BinId,
+                        null,
+                        null,
+                        lotId,
+                        null,
+                        null,
+                        request.ReservedQuantity,
+                        "Available",
+                        request.SourceDocumentType,
+                        request.SourceDocumentId)
+                }),
+            cancellationToken);
+
+        ThrowIfInvalid(reservationValidation.Errors);
 
         var balance = await FindStockBalanceAsync(
             request.CompanyId,
@@ -285,72 +316,54 @@ internal sealed class InventoryService(
         ValidateStockIssue(request);
         EnsureContextAccess(request.CompanyId, request.BranchId);
 
-        var transactions = new List<StockTransaction>();
-        var userId = GetUserId();
-        var lineCount = request.Lines.Count;
-
-        foreach (var line in request.Lines.OrderBy(record => record.LineNo))
-        {
-            var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-            var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
-            var lotId = await ResolveLotIdAsync(request.CompanyId, itemId, line.LotId, line.LotNo, cancellationToken);
-            var serialId = await ResolveSerialIdAsync(request.CompanyId, itemId, lotId, line.SerialId, line.SerialNo, cancellationToken);
-            EnsureWarehouseAccess(line.FromWarehouseId);
-            await EnsureWarehouseAndBinAreUsableAsync(request.CompanyId, request.BranchId, line.FromWarehouseId, line.FromBinId, cancellationToken);
-
-            var (lot, serial) = await LoadTraceabilityAsync(request.CompanyId, lotId, serialId, cancellationToken);
-            var balance = await FindStockBalanceAsync(
+        return await inventoryPostingService.IssueAsync(
+            new InventoryIssueCommand(
                 request.CompanyId,
                 request.BranchId,
-                itemId,
-                itemVariantId,
-                line.FromWarehouseId,
-                line.FromBinId,
-                lotId,
-                serialId,
-                cancellationToken);
-
-            balance = EnsureFound(balance, "Stock balance was not found for the issue line.", "inventory.balance_not_found");
-
-            var availableQty = GetAvailableQuantity(balance);
-            ThrowIfInvalid(
-                availableQty < line.Quantity
-                    ? new ApiError("inventory.insufficient_qty", nameof(line.Quantity), "Insufficient available quantity for the requested issue.")
-                    : null);
-
-            UpdateBalance(balance, -line.Quantity, Negate(line.CatchWeightQty), userId);
-            UpdateLotAfterAvailableMovement(lot, Negate(line.CatchWeightQty), balance.OnHandQty > 0, userId);
-            UpdateSerialAfterIssue(serial, balance, userId);
-
-            transactions.Add(StockTransaction.Create(
-                request.CompanyId,
-                request.BranchId,
-                BuildTransactionNo(request.TransactionNo, line.LineNo, lineCount),
-                "Issue",
+                request.TransactionNo,
                 request.PostingDate,
-                itemId,
-                itemVariantId,
-                line.FromWarehouseId,
-                line.FromBinId,
-                null,
-                null,
-                lotId,
-                serialId,
-                -line.Quantity,
-                Negate(line.CatchWeightQty),
-                line.InventoryState,
                 request.SourceDocumentType,
                 request.SourceDocumentId,
                 request.Remarks,
-                userId));
-        }
-
-        DbContext.StockTransactions.AddRange(transactions);
-        await DbContext.SaveChangesAsync(cancellationToken);
-
-        var dto = transactions.Select(MapStockTransaction).ToArray();
-        await WriteMovementAuditAsync("stock.issue", transactions, dto, cancellationToken);
-        return dto;
+                "stock.issue",
+                request.Lines
+                    .OrderBy(line => line.LineNo)
+                    .Select(line => new InventoryIssueLine(
+                        line.LineNo,
+                        "Issue",
+                        line.ItemId,
+                        line.ItemVariantId,
+                        line.FromWarehouseId,
+                        line.FromBinId,
+                        line.Quantity,
+                        line.CatchWeightQty,
+                        line.InventoryState,
+                        line.LotId,
+                        line.LotNo,
+                        line.SerialId,
+                        line.SerialNo,
+                        line.ItemCode,
+                        line.ItemVariantCode,
+                        line.PcidId,
+                        line.PcidNo,
+                        line.SourceDocumentNo,
+                        line.SourceDocumentLineId,
+                        line.SourceDocumentRevisionNo,
+                        line.SourceDocumentVersionNo,
+                        line.ItemRevisionId,
+                        line.EngineeringDocumentRevisionId,
+                        line.BomRevisionId,
+                        line.RoutingId,
+                        line.RoutingRevisionId,
+                        line.WorkOrderId,
+                        line.ProductionOrderId,
+                        line.SalesOrderId,
+                        line.SalesOrderLineId,
+                        line.PurchaseOrderId,
+                        line.PurchaseOrderLineId,
+                        line.QualityDocumentId))
+                    .ToArray()),
+            cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<StockTransactionDto>> ReturnStockAsync(StockReturnRequest request, CancellationToken cancellationToken = default)
@@ -358,64 +371,56 @@ internal sealed class InventoryService(
         ValidateStockReturn(request);
         EnsureContextAccess(request.CompanyId, request.BranchId);
 
-        var transactions = new List<StockTransaction>();
-        var userId = GetUserId();
-        var lineCount = request.Lines.Count;
-
-        foreach (var line in request.Lines.OrderBy(record => record.LineNo))
-        {
-            var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-            var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
-            var lotId = await ResolveLotIdAsync(request.CompanyId, itemId, line.LotId, line.LotNo, cancellationToken);
-            var serialId = await ResolveSerialIdAsync(request.CompanyId, itemId, lotId, line.SerialId, line.SerialNo, cancellationToken);
-            EnsureWarehouseAccess(line.ToWarehouseId);
-            await EnsureWarehouseAndBinAreUsableAsync(request.CompanyId, request.BranchId, line.ToWarehouseId, line.ToBinId, cancellationToken);
-
-            var (lot, serial) = await LoadTraceabilityAsync(request.CompanyId, lotId, serialId, cancellationToken);
-            var balance = await GetOrCreateStockBalanceAsync(
+        return await inventoryPostingService.ReceiveAsync(
+            new InventoryReceiptCommand(
                 request.CompanyId,
                 request.BranchId,
-                itemId,
-                itemVariantId,
-                line.ToWarehouseId,
-                line.ToBinId,
-                lotId,
-                serialId,
-                cancellationToken);
-
-            UpdateBalance(balance, line.Quantity, line.CatchWeightQty, userId);
-            UpdateLotAfterAvailableMovement(lot, line.CatchWeightQty, true, userId);
-            UpdateSerialAfterReceiptOrTransfer(serial, line.ToWarehouseId, line.ToBinId, userId);
-
-            transactions.Add(StockTransaction.Create(
-                request.CompanyId,
-                request.BranchId,
-                BuildTransactionNo(request.TransactionNo, line.LineNo, lineCount),
-                "Return",
+                request.TransactionNo,
                 request.PostingDate,
-                itemId,
-                itemVariantId,
-                null,
-                null,
-                line.ToWarehouseId,
-                line.ToBinId,
-                lotId,
-                serialId,
-                line.Quantity,
-                line.CatchWeightQty,
-                line.InventoryState,
                 request.SourceDocumentType,
                 request.SourceDocumentId,
                 request.Remarks,
-                userId));
-        }
-
-        DbContext.StockTransactions.AddRange(transactions);
-        await DbContext.SaveChangesAsync(cancellationToken);
-
-        var dto = transactions.Select(MapStockTransaction).ToArray();
-        await WriteMovementAuditAsync("stock.return", transactions, dto, cancellationToken);
-        return dto;
+                "stock.return",
+                request.Lines
+                    .OrderBy(line => line.LineNo)
+                    .Select(line => new InventoryReceiptLine(
+                        line.LineNo,
+                        "Return",
+                        line.ItemId,
+                        line.ItemVariantId,
+                        line.ToWarehouseId,
+                        line.ToBinId,
+                        line.Quantity,
+                        line.CatchWeightQty,
+                        line.InventoryState,
+                        line.LotId,
+                        line.LotNo,
+                        null,
+                        null,
+                        line.SerialId,
+                        line.SerialNo,
+                        line.ItemCode,
+                        line.ItemVariantCode,
+                        line.PcidId,
+                        line.PcidNo,
+                        line.SourceDocumentNo,
+                        line.SourceDocumentLineId,
+                        line.SourceDocumentRevisionNo,
+                        line.SourceDocumentVersionNo,
+                        line.ItemRevisionId,
+                        line.EngineeringDocumentRevisionId,
+                        line.BomRevisionId,
+                        line.RoutingId,
+                        line.RoutingRevisionId,
+                        line.WorkOrderId,
+                        line.ProductionOrderId,
+                        line.SalesOrderId,
+                        line.SalesOrderLineId,
+                        line.PurchaseOrderId,
+                        line.PurchaseOrderLineId,
+                        line.QualityDocumentId))
+                    .ToArray()),
+            cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<StockTransactionDto>> TransferStockAsync(StockTransferRequest request, CancellationToken cancellationToken = default)
@@ -423,86 +428,57 @@ internal sealed class InventoryService(
         ValidateStockTransfer(request);
         EnsureContextAccess(request.CompanyId, request.BranchId);
 
-        var transactions = new List<StockTransaction>();
-        var userId = GetUserId();
-        var lineCount = request.Lines.Count;
-
-        foreach (var line in request.Lines.OrderBy(record => record.LineNo))
-        {
-            var itemId = await ResolveItemIdAsync(request.CompanyId, line.ItemId, line.ItemCode, cancellationToken);
-            var itemVariantId = await ResolveItemVariantIdAsync(request.CompanyId, itemId, line.ItemVariantId, line.ItemVariantCode, cancellationToken);
-            var lotId = await ResolveLotIdAsync(request.CompanyId, itemId, line.LotId, line.LotNo, cancellationToken);
-            var serialId = await ResolveSerialIdAsync(request.CompanyId, itemId, lotId, line.SerialId, line.SerialNo, cancellationToken);
-            EnsureWarehouseAccess(line.FromWarehouseId);
-            EnsureWarehouseAccess(line.ToWarehouseId);
-            await EnsureWarehouseAndBinAreUsableAsync(request.CompanyId, request.BranchId, line.FromWarehouseId, line.FromBinId, cancellationToken);
-            await EnsureWarehouseAndBinAreUsableAsync(request.CompanyId, request.BranchId, line.ToWarehouseId, line.ToBinId, cancellationToken);
-
-            var (lot, serial) = await LoadTraceabilityAsync(request.CompanyId, lotId, serialId, cancellationToken);
-            var sourceBalance = await FindStockBalanceAsync(
+        return await inventoryPostingService.TransferAsync(
+            new InventoryTransferCommand(
                 request.CompanyId,
                 request.BranchId,
-                itemId,
-                itemVariantId,
-                line.FromWarehouseId,
-                line.FromBinId,
-                lotId,
-                serialId,
-                cancellationToken);
-
-            sourceBalance = EnsureFound(sourceBalance, "Stock balance was not found for the transfer source.", "inventory.balance_not_found");
-
-            var availableQty = GetAvailableQuantity(sourceBalance);
-            ThrowIfInvalid(
-                availableQty < line.Quantity
-                    ? new ApiError("inventory.insufficient_qty", nameof(line.Quantity), "Insufficient available quantity for the requested transfer.")
-                    : null);
-
-            var targetBalance = await GetOrCreateStockBalanceAsync(
-                request.CompanyId,
-                request.BranchId,
-                itemId,
-                itemVariantId,
-                line.ToWarehouseId,
-                line.ToBinId,
-                lotId,
-                serialId,
-                cancellationToken);
-
-            UpdateBalance(sourceBalance, -line.Quantity, Negate(line.CatchWeightQty), userId);
-            UpdateBalance(targetBalance, line.Quantity, line.CatchWeightQty, userId);
-            UpdateLotAfterAvailableMovement(lot, null, true, userId);
-            UpdateSerialAfterReceiptOrTransfer(serial, line.ToWarehouseId, line.ToBinId, userId);
-
-            transactions.Add(StockTransaction.Create(
-                request.CompanyId,
-                request.BranchId,
-                BuildTransactionNo(request.TransactionNo, line.LineNo, lineCount),
-                "Transfer",
+                request.TransactionNo,
                 request.PostingDate,
-                itemId,
-                itemVariantId,
-                line.FromWarehouseId,
-                line.FromBinId,
-                line.ToWarehouseId,
-                line.ToBinId,
-                lotId,
-                serialId,
-                line.Quantity,
-                line.CatchWeightQty,
-                line.InventoryState,
                 request.SourceDocumentType,
                 request.SourceDocumentId,
                 request.Remarks,
-                userId));
-        }
-
-        DbContext.StockTransactions.AddRange(transactions);
-        await DbContext.SaveChangesAsync(cancellationToken);
-
-        var dto = transactions.Select(MapStockTransaction).ToArray();
-        await WriteMovementAuditAsync("stock.transfer", transactions, dto, cancellationToken);
-        return dto;
+                "stock.transfer",
+                request.Lines
+                    .OrderBy(line => line.LineNo)
+                    .Select(line => new InventoryTransferLine(
+                        line.LineNo,
+                        "Transfer",
+                        line.ItemId,
+                        line.ItemVariantId,
+                        line.FromWarehouseId,
+                        line.FromBinId,
+                        line.ToWarehouseId,
+                        line.ToBinId,
+                        line.Quantity,
+                        line.CatchWeightQty,
+                        line.InventoryState,
+                        line.InventoryState,
+                        line.LotId,
+                        line.LotNo,
+                        line.SerialId,
+                        line.SerialNo,
+                        line.ItemCode,
+                        line.ItemVariantCode,
+                        line.PcidId,
+                        line.PcidNo,
+                        line.SourceDocumentNo,
+                        line.SourceDocumentLineId,
+                        line.SourceDocumentRevisionNo,
+                        line.SourceDocumentVersionNo,
+                        line.ItemRevisionId,
+                        line.EngineeringDocumentRevisionId,
+                        line.BomRevisionId,
+                        line.RoutingId,
+                        line.RoutingRevisionId,
+                        line.WorkOrderId,
+                        line.ProductionOrderId,
+                        line.SalesOrderId,
+                        line.SalesOrderLineId,
+                        line.PurchaseOrderId,
+                        line.PurchaseOrderLineId,
+                        line.QualityDocumentId))
+                    .ToArray()),
+            cancellationToken);
     }
 
     public async Task<PagedResult<CycleCountDto>> ListCycleCountsAsync(CycleCountFilter filter, CancellationToken cancellationToken = default)
@@ -889,7 +865,8 @@ internal sealed class InventoryService(
             record.ItemVariantId == itemVariantId &&
             record.BinId == binId &&
             record.LotId == lotId &&
-            record.SerialId == serialId);
+            record.SerialId == serialId &&
+            record.PcidId == null);
 
         return await query.Select(record => (decimal?)record.OnHandQty).FirstOrDefaultAsync(cancellationToken) ?? 0m;
     }
@@ -912,7 +889,8 @@ internal sealed class InventoryService(
             record.WarehouseId == warehouseId &&
             record.BinId == binId &&
             record.LotId == lotId &&
-            record.SerialId == serialId,
+            record.SerialId == serialId &&
+            record.PcidId == null,
             cancellationToken);
 
     private async Task<StockBalance> GetOrCreateStockBalanceAsync(
@@ -1564,6 +1542,7 @@ internal sealed class InventoryService(
             entity.BinId,
             entity.LotId,
             entity.SerialId,
+            entity.PcidId,
             entity.OnHandQty,
             entity.ReservedQty,
             entity.QcHoldQty,
@@ -1602,12 +1581,30 @@ internal sealed class InventoryService(
             entity.ToBinId,
             entity.LotId,
             entity.SerialId,
+            entity.PcidId,
             entity.Quantity,
             entity.CatchWeightQty,
             entity.InventoryState,
             entity.SourceDocumentType,
             entity.SourceDocumentId,
-            entity.Remarks);
+            entity.Remarks,
+            entity.SourceDocumentNo,
+            entity.SourceDocumentLineId,
+            entity.SourceDocumentRevisionNo,
+            entity.SourceDocumentVersionNo,
+            entity.ItemRevisionId,
+            entity.EngineeringDocumentRevisionId,
+            entity.BomRevisionId,
+            entity.RoutingId,
+            entity.RoutingRevisionId,
+            entity.WorkOrderId,
+            entity.ProductionOrderId,
+            entity.SalesOrderId,
+            entity.SalesOrderLineId,
+            entity.PurchaseOrderId,
+            entity.PurchaseOrderLineId,
+            entity.QualityDocumentId,
+            entity.LegacyTrackingIncomplete);
 
     private static CycleCountLineDto MapCycleCountLine(CycleCountLine entity) =>
         new(

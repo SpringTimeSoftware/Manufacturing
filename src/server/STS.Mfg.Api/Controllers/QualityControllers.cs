@@ -109,4 +109,46 @@ public sealed class QualityController(IQualityService qualityService) : ApiContr
         var response = await qualityService.CloseNonConformanceAsync(id, request, cancellationToken);
         return OkEnvelope(response, "NCR closed.");
     }
+
+    [HttpPost("ncrs/{id:long}/release-disposition")]
+    public async Task<ActionResult<ApiEnvelope<ActionResponse>>> ReleaseNcrDisposition(long id, [FromBody] NonConformanceDispositionRequest request, CancellationToken cancellationToken)
+    {
+        var response = await qualityService.ReleaseNonConformanceDispositionAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "NCR disposition released.");
+    }
+
+    [HttpGet("coas")]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<CoaCertificateDto>>>> ListCoas([FromQuery] CoaCertificateFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await qualityService.ListCoaCertificatesAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("coas/{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<CoaCertificateDto>>> GetCoa(long id, CancellationToken cancellationToken)
+    {
+        var response = await qualityService.GetCoaCertificateAsync(id, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("coas")]
+    public async Task<ActionResult<ApiEnvelope<CoaCertificateDto>>> GenerateCoa([FromBody] CoaGenerateRequest request, CancellationToken cancellationToken)
+    {
+        var response = await qualityService.GenerateCoaCertificateAsync(request, cancellationToken);
+        return CreatedEnvelope(nameof(GetCoa), new { id = response.Id }, response, "COA generated.");
+    }
+
+    [HttpPost("coas/{id:long}/reissue")]
+    public async Task<ActionResult<ApiEnvelope<CoaCertificateDto>>> ReissueCoa(long id, [FromBody] CoaReissueRequest request, CancellationToken cancellationToken)
+    {
+        var response = await qualityService.ReissueCoaCertificateAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "COA reissued.");
+    }
+
+    [HttpPost("coas/{id:long}/issue")]
+    public async Task<ActionResult<ApiEnvelope<ActionResponse>>> IssueCoa(long id, CancellationToken cancellationToken)
+    {
+        var response = await qualityService.IssueCoaCertificateAsync(id, cancellationToken);
+        return OkEnvelope(response, "COA issued.");
+    }
 }

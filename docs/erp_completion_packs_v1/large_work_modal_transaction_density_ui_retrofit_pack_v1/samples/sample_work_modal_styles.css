@@ -1,0 +1,208 @@
+/* Reference sample only. Adapt to existing project CSS architecture. */
+
+.work-modal-shell {
+  width: min(96vw, 1720px);
+  height: min(94vh, 980px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.work-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.work-modal-title-block {
+  min-width: 0;
+}
+
+.work-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.work-modal-title-row h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.work-modal-subtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.work-modal-status-badges,
+.work-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.work-modal-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 20px 88px;
+}
+
+.work-modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(248, 250, 252, 0.98);
+}
+
+.compact-validation-strip {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(255, 251, 235, 0.72);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.compact-validation-strip__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compact-validation-strip__list {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+
+.compact-link-button {
+  border: 0;
+  background: transparent;
+  color: #0369a1;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.erp-card--compact {
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.erp-card--compact h3 {
+  margin: 0 0 10px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-grid__item.span-2 { grid-column: span 2; }
+.form-grid__item.span-3 { grid-column: span 3; }
+.form-grid__item.span-4 { grid-column: span 4; }
+.form-grid__item.span-5 { grid-column: span 5; }
+.form-grid__item.span-6 { grid-column: span 6; }
+.form-grid__item.span-8 { grid-column: span 8; }
+.form-grid__item.span-12 { grid-column: span 12; }
+
+.transaction-grid-scroll {
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 14px;
+}
+
+.transaction-line-grid {
+  min-width: 1100px;
+}
+
+.transaction-line-grid__header,
+.transaction-line-grid__row {
+  display: grid;
+  grid-template-columns: 90px minmax(260px, 2fr) 140px 120px 140px 150px 120px 80px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+}
+
+.transaction-line-grid__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.transaction-line-grid__row {
+  min-height: 52px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.transaction-line-grid__row input,
+.transaction-line-grid__row select {
+  width: 100%;
+  min-height: 36px;
+}
+
+@media (max-width: 1199px) {
+  .work-modal-shell {
+    width: 96vw;
+    height: 92vh;
+  }
+
+  .form-grid__item.span-2,
+  .form-grid__item.span-3,
+  .form-grid__item.span-4,
+  .form-grid__item.span-5,
+  .form-grid__item.span-6,
+  .form-grid__item.span-8 {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 767px) {
+  .work-modal-shell {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .work-modal-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid__item.span-2,
+  .form-grid__item.span-3,
+  .form-grid__item.span-4,
+  .form-grid__item.span-5,
+  .form-grid__item.span-6,
+  .form-grid__item.span-8,
+  .form-grid__item.span-12 {
+    grid-column: span 12;
+  }
+}

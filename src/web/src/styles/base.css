@@ -683,12 +683,18 @@ textarea:focus {
 }
 
 .ui-form-shell {
+  align-content: start;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 251, 255, 0.98));
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-card);
   display: grid;
   gap: 14px;
   padding: 14px;
+}
+
+.ui-form-shell--dense {
+  gap: 10px;
+  padding: 12px;
 }
 
 .ui-form-shell__header {
@@ -711,6 +717,35 @@ textarea:focus {
 .ui-form-shell__body {
   display: grid;
   gap: 12px;
+}
+
+.ui-form-shell__body--transaction-header {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.ui-form-shell__body--transaction-header > * {
+  grid-column: span 3;
+  min-width: 0;
+}
+
+.ui-form-shell__body--transaction-header > .field-span-4 {
+  grid-column: span 4;
+}
+
+.ui-form-shell__body--transaction-header > .field-span-5 {
+  grid-column: span 5;
+}
+
+.ui-form-shell__body--transaction-header > .field-span-6 {
+  grid-column: span 6;
+}
+
+.ui-form-shell__body--transaction-header > .field-span-12,
+.ui-form-shell__body--transaction-header > .form-span-2 {
+  grid-column: span 12;
 }
 
 .ui-form-shell__body label {
@@ -910,10 +945,26 @@ textarea:focus {
   width: min(1280px, calc(100vw - 64px));
 }
 
+.erp-modal-workspace--work {
+  height: min(94vh, 980px);
+  max-height: min(94vh, calc(100vh - 24px));
+  width: min(96vw, 1720px);
+}
+
 .erp-modal-workspace .ui-modal__header,
 .erp-modal-workspace .ui-modal__footer {
   position: sticky;
   z-index: 2;
+}
+
+.erp-modal-workspace .ui-modal__header,
+.erp-modal-workspace .ui-modal__footer {
+  padding: 10px 14px;
+}
+
+.erp-modal-workspace .ui-modal__body {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .erp-modal-workspace .ui-modal__header {
@@ -927,8 +978,11 @@ textarea:focus {
 .erp-modal-workspace__body {
   display: grid;
   gap: 12px;
+  height: 100%;
   min-height: 0;
+  overflow: auto;
   padding: 14px;
+  scrollbar-gutter: stable;
 }
 
 .erp-modal-workspace__meta {
@@ -941,6 +995,24 @@ textarea:focus {
   gap: 10px;
   justify-content: space-between;
   padding: 10px 12px;
+}
+
+.erp-modal-workspace__header-actions,
+.erp-modal-workspace__quick-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.erp-modal-workspace__quick-actions .erp-action-bar {
+  align-items: center;
+  gap: 6px;
+}
+
+.erp-modal-workspace__quick-actions .erp-action-bar__reason {
+  display: none;
 }
 
 .erp-modal-workspace__layout {
@@ -1150,6 +1222,12 @@ textarea:focus {
 .ui-modal__body {
   min-height: 0;
   overflow: auto;
+}
+
+.ui-modal__panel.erp-modal-workspace--work {
+  height: min(94vh, 980px);
+  max-height: min(94vh, calc(100vh - 24px));
+  width: min(96vw, 1720px);
 }
 
 .ui-modal__title {
@@ -1689,7 +1767,7 @@ textarea:focus {
 }
 
 .ui-modal__panel--item-master {
-  width: min(1280px, calc(100vw - 64px));
+  width: min(96vw, 1720px);
 }
 
 .item-master__modal-shell {
@@ -2282,7 +2360,11 @@ textarea:focus {
   }
 
   .ui-modal__panel--item-master {
-    width: min(100vw - 24px, 980px);
+    width: min(calc(100vw - 24px), 980px);
+  }
+
+  .ui-form-shell__body--transaction-header > * {
+    grid-column: span 6;
   }
 
   .item-master__detail {
@@ -2305,6 +2387,28 @@ textarea:focus {
   .item-master__modal-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 720px) {
+  .ui-form-shell__body--transaction-header > * {
+    grid-column: span 12;
+  }
+}
+
+@media (min-width: 768px) {
+  .erp-transaction-line-grid td .erp-governed-field > span,
+  .erp-transaction-line-grid td > label > span,
+  .erp-transaction-line-grid td .erp-number-field > span {
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 }
 
@@ -2526,9 +2630,9 @@ textarea:focus {
   border: 1px solid rgba(203, 213, 225, 0.86);
   border-radius: 8px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 10px;
+  padding: 8px;
 }
 
 .erp-transaction-line-grid__header {
@@ -2557,7 +2661,7 @@ textarea:focus {
 
 .erp-transaction-line-grid table {
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 1120px;
   width: 100%;
 }
 
@@ -2575,10 +2679,15 @@ textarea:focus {
   z-index: 1;
 }
 
+.erp-transaction-line-grid th b {
+  color: var(--danger-deep);
+  margin-left: 3px;
+}
+
 .erp-transaction-line-grid td {
   border-bottom: 1px solid rgba(226, 232, 240, 0.88);
-  padding: 6px 8px;
-  vertical-align: top;
+  padding: 5px 7px;
+  vertical-align: middle;
 }
 
 .erp-transaction-line-grid tr:last-child td {
@@ -2590,14 +2699,16 @@ textarea:focus {
   min-width: 112px;
 }
 
-.erp-transaction-line-grid .erp-governed-field span {
-  font-size: 0.72rem;
-}
-
 .erp-transaction-line-grid .erp-governed-field input,
 .erp-transaction-line-grid .erp-governed-field select {
   min-height: 32px;
   padding: 6px 8px;
+}
+
+.erp-transaction-line-grid td > label {
+  display: grid;
+  gap: 4px;
+  min-width: 118px;
 }
 
 .erp-transaction-line-grid .erp-action-bar {
@@ -2611,9 +2722,16 @@ textarea:focus {
 }
 
 .erp-transaction-totals-panel {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.erp-transaction-quick-actions .erp-action-bar {
+  justify-content: flex-start;
 }
 
 .erp-transaction-total {

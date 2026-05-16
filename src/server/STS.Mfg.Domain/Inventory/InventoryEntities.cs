@@ -16,6 +16,7 @@ public sealed class StockBalance : AuditableEntity, ICompanyScoped, IBranchScope
     public long? BinId { get; private set; }
     public long? LotId { get; private set; }
     public long? SerialId { get; private set; }
+    public long? PcidId { get; private set; }
     public decimal OnHandQty { get; private set; }
     public decimal ReservedQty { get; private set; }
     public decimal QcHoldQty { get; private set; }
@@ -38,7 +39,8 @@ public sealed class StockBalance : AuditableEntity, ICompanyScoped, IBranchScope
         decimal blockedQty,
         decimal inTransitQty,
         decimal? catchWeightQty,
-        long? userId)
+        long? userId,
+        long? pcidId = null)
     {
         var entity = new StockBalance
         {
@@ -49,7 +51,8 @@ public sealed class StockBalance : AuditableEntity, ICompanyScoped, IBranchScope
             ItemVariantId = itemVariantId,
             BinId = binId,
             LotId = lotId,
-            SerialId = serialId
+            SerialId = serialId,
+            PcidId = pcidId
         };
         entity.UpdateQuantities(onHandQty, reservedQty, qcHoldQty, blockedQty, inTransitQty, catchWeightQty, userId);
         entity.CreatedOn = DateTimeOffset.UtcNow;
@@ -96,11 +99,29 @@ public sealed class StockTransaction : AuditableEntity, ICompanyScoped, IBranchS
     public long? ToBinId { get; private set; }
     public long? LotId { get; private set; }
     public long? SerialId { get; private set; }
+    public long? PcidId { get; private set; }
     public decimal Quantity { get; private set; }
     public decimal? CatchWeightQty { get; private set; }
     public string InventoryState { get; private set; } = string.Empty;
     public string? SourceDocumentType { get; private set; }
     public long? SourceDocumentId { get; private set; }
+    public string? SourceDocumentNo { get; private set; }
+    public long? SourceDocumentLineId { get; private set; }
+    public int? SourceDocumentRevisionNo { get; private set; }
+    public int? SourceDocumentVersionNo { get; private set; }
+    public long? ItemRevisionId { get; private set; }
+    public long? EngineeringDocumentRevisionId { get; private set; }
+    public long? BomRevisionId { get; private set; }
+    public long? RoutingId { get; private set; }
+    public long? RoutingRevisionId { get; private set; }
+    public long? WorkOrderId { get; private set; }
+    public long? ProductionOrderId { get; private set; }
+    public long? SalesOrderId { get; private set; }
+    public long? SalesOrderLineId { get; private set; }
+    public long? PurchaseOrderId { get; private set; }
+    public long? PurchaseOrderLineId { get; private set; }
+    public long? QualityDocumentId { get; private set; }
+    public bool LegacyTrackingIncomplete { get; private set; }
     public string? Remarks { get; private set; }
 
     public static StockTransaction Create(
@@ -164,6 +185,145 @@ public sealed class StockTransaction : AuditableEntity, ICompanyScoped, IBranchS
         InventoryState = inventoryState.Trim();
         SourceDocumentType = string.IsNullOrWhiteSpace(sourceDocumentType) ? null : sourceDocumentType.Trim();
         Remarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void ApplyTrackingSnapshot(
+        long? pcidId,
+        string? sourceDocumentNo,
+        long? sourceDocumentLineId,
+        int? sourceDocumentRevisionNo,
+        int? sourceDocumentVersionNo,
+        long? itemRevisionId,
+        long? engineeringDocumentRevisionId,
+        long? bomRevisionId,
+        long? routingId,
+        long? routingRevisionId,
+        long? workOrderId,
+        long? productionOrderId,
+        long? salesOrderId,
+        long? salesOrderLineId,
+        long? purchaseOrderId,
+        long? purchaseOrderLineId,
+        long? qualityDocumentId,
+        bool legacyTrackingIncomplete,
+        long? userId)
+    {
+        PcidId = pcidId;
+        SourceDocumentNo = string.IsNullOrWhiteSpace(sourceDocumentNo) ? null : sourceDocumentNo.Trim();
+        SourceDocumentLineId = sourceDocumentLineId;
+        SourceDocumentRevisionNo = sourceDocumentRevisionNo;
+        SourceDocumentVersionNo = sourceDocumentVersionNo;
+        ItemRevisionId = itemRevisionId;
+        EngineeringDocumentRevisionId = engineeringDocumentRevisionId;
+        BomRevisionId = bomRevisionId;
+        RoutingId = routingId;
+        RoutingRevisionId = routingRevisionId;
+        WorkOrderId = workOrderId;
+        ProductionOrderId = productionOrderId;
+        SalesOrderId = salesOrderId;
+        SalesOrderLineId = salesOrderLineId;
+        PurchaseOrderId = purchaseOrderId;
+        PurchaseOrderLineId = purchaseOrderLineId;
+        QualityDocumentId = qualityDocumentId;
+        LegacyTrackingIncomplete = legacyTrackingIncomplete;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class InventoryLicensePlate : AuditableEntity, ICompanyScoped, IBranchScoped, IWarehouseScoped
+{
+    private InventoryLicensePlate()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long? BranchId { get; private set; }
+    public long? WarehouseId { get; private set; }
+    public long? BinId { get; private set; }
+    public string PcidNo { get; private set; } = string.Empty;
+    public string LicensePlateType { get; private set; } = string.Empty;
+    public string Status { get; private set; } = string.Empty;
+
+    public static InventoryLicensePlate Create(
+        long companyId,
+        long branchId,
+        string pcidNo,
+        string licensePlateType,
+        long? warehouseId,
+        long? binId,
+        string status,
+        long? userId)
+    {
+        var entity = new InventoryLicensePlate { CompanyId = companyId, BranchId = branchId };
+        entity.Update(pcidNo, licensePlateType, warehouseId, binId, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(string pcidNo, string licensePlateType, long? warehouseId, long? binId, string status, long? userId)
+    {
+        PcidNo = pcidNo.Trim();
+        LicensePlateType = licensePlateType.Trim();
+        WarehouseId = warehouseId;
+        BinId = binId;
+        Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+}
+
+public sealed class InventoryLicensePlateContent : AuditableEntity, ICompanyScoped
+{
+    private InventoryLicensePlateContent()
+    {
+    }
+
+    public long? CompanyId { get; private set; }
+    public long LicensePlateId { get; private set; }
+    public long ItemId { get; private set; }
+    public long? ItemVariantId { get; private set; }
+    public long? LotId { get; private set; }
+    public long? SerialId { get; private set; }
+    public decimal Quantity { get; private set; }
+    public string InventoryState { get; private set; } = string.Empty;
+    public string Status { get; private set; } = string.Empty;
+
+    public static InventoryLicensePlateContent Create(
+        long companyId,
+        long licensePlateId,
+        long itemId,
+        long? itemVariantId,
+        long? lotId,
+        long? serialId,
+        decimal quantity,
+        string inventoryState,
+        string status,
+        long? userId)
+    {
+        var entity = new InventoryLicensePlateContent
+        {
+            CompanyId = companyId,
+            LicensePlateId = licensePlateId,
+            ItemId = itemId,
+            ItemVariantId = itemVariantId,
+            LotId = lotId,
+            SerialId = serialId
+        };
+        entity.Update(quantity, inventoryState, status, userId);
+        entity.CreatedOn = DateTimeOffset.UtcNow;
+        entity.CreatedByUserId = userId;
+        return entity;
+    }
+
+    public void Update(decimal quantity, string inventoryState, string status, long? userId)
+    {
+        Quantity = quantity;
+        InventoryState = inventoryState.Trim();
+        Status = status.Trim();
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }

@@ -33,6 +33,75 @@ public sealed class InventoryController(IInventoryService inventoryService) : Ap
 
 [ApiController]
 [Authorize(Policy = AppPolicies.BranchOperations)]
+[Route("api/inventory/policy")]
+public sealed class InventoryPolicyController(IInventoryPolicyService inventoryPolicyService) : ApiControllerBase
+{
+    [HttpGet("tracking")]
+    public async Task<ActionResult<ApiEnvelope<InventoryTrackingPolicyDto>>> GetTrackingPolicy(
+        [FromQuery] InventoryTrackingPolicyRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.ResolveRequiredTrackingAsync(request, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("available")]
+    public async Task<ActionResult<ApiEnvelope<InventoryAvailableStockDto>>> GetAvailableStock(
+        [FromQuery] InventoryAvailableStockRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.GetAvailableQuantityAsync(request, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("valid-bins")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<InventoryDimensionOptionDto>>>> ListValidBins(
+        [FromQuery] InventoryDimensionQuery query,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.ListValidBinsAsync(query, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("valid-lots")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<InventoryDimensionOptionDto>>>> ListValidLots(
+        [FromQuery] InventoryDimensionQuery query,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.ListValidLotsAsync(query, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("valid-serials")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<InventoryDimensionOptionDto>>>> ListValidSerials(
+        [FromQuery] InventoryDimensionQuery query,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.ListValidSerialsAsync(query, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpGet("valid-pcids")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<InventoryDimensionOptionDto>>>> ListValidPcids(
+        [FromQuery] InventoryDimensionQuery query,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.ListValidPcidsAsync(query, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("validate-movement")]
+    public async Task<ActionResult<ApiEnvelope<StockMovementValidationResultDto>>> ValidateMovement(
+        [FromBody] StockMovementValidationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await inventoryPolicyService.ValidateMovementAsync(request, cancellationToken);
+        return OkEnvelope(response);
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.BranchOperations)]
 [Route("api/stock-reservations")]
 public sealed class StockReservationsController(IInventoryService inventoryService) : ApiControllerBase
 {

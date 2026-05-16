@@ -1,0 +1,57 @@
+{
+  "wave_id": "LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01",
+  "wave_name": "Large Work Modal Transaction Density UI Retrofit",
+  "screenshot_mode": "top_only",
+  "expected_outputs": [
+    "docs/codex-progress/LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01-output.md"
+  ],
+  "requires_backend_validation": false,
+  "requires_db_validation": false,
+  "stop_after_completion": false,
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173"
+  },
+  "routes_to_capture": [
+    {
+      "route": "/masters/items",
+      "ready_text": "Item List",
+      "output_prefix": "item-master-list"
+    },
+    {
+      "route": "/sales/quotes",
+      "ready_text": "Estimate / Quote List",
+      "output_prefix": "quote-list"
+    },
+    {
+      "route": "/sales/orders",
+      "ready_text": "Sales Order List",
+      "output_prefix": "sales-order-list"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/masters/items",
+      "ready_text": "Item List",
+      "open_action_label": "New item draft",
+      "modal_ready_text": "Draft Item",
+      "output_prefix": "item-master-work-modal",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/sales/quotes",
+      "ready_text": "Estimate / Quote List",
+      "open_action_label": "New quote draft",
+      "modal_ready_text": "Quote line grid",
+      "output_prefix": "quote-draft-work-modal",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/sales/orders",
+      "ready_text": "Sales Order List",
+      "open_action_label": "New order draft",
+      "modal_ready_text": "Sales order line grid",
+      "output_prefix": "sales-order-work-modal",
+      "screenshot_mode": "top_mid_bottom"
+    }
+  ]
+}

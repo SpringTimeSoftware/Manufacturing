@@ -223,7 +223,9 @@ export const queryKeys = {
     inspections: (companyId?: number | null, branchId?: number | null, search = "", status = "all", inspectionType = "all") =>
       ["quality", "inspections", companyId ?? 0, branchId ?? 0, search, status, inspectionType] as const,
     nonConformances: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
-      ["quality", "non-conformances", companyId ?? 0, branchId ?? 0, search, status] as const
+      ["quality", "non-conformances", companyId ?? 0, branchId ?? 0, search, status] as const,
+    coas: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>
+      ["quality", "coas", companyId ?? 0, branchId ?? 0, search, status] as const
   },
   dispatch: {
     packLists: (companyId?: number | null, branchId?: number | null, search = "", status = "all") =>

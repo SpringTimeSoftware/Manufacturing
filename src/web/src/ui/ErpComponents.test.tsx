@@ -11,6 +11,8 @@ import {
   ErpModalWorkspace,
   ErpNumberField,
   ErpStatusChip,
+  ErpTransactionLineGrid,
+  ErpTransactionQuickActions,
   ErpValidationSummary,
   parseGovernedNumberInput
 } from "./ErpComponents";
@@ -165,6 +167,7 @@ describe("ERP governance UI components", () => {
         footer={<button type="button">Save draft</button>}
         isOpen
         onClose={vi.fn()}
+        quickActions={<ErpTransactionQuickActions actions={[{ disabled: true, label: "Print", reason: "Template is not approved." }]} />}
         statusMeta={<span>Draft</span>}
         title="Draft Item"
       >
@@ -173,8 +176,27 @@ describe("ERP governance UI components", () => {
     );
 
     expect(screen.getByRole("dialog", { name: "Draft Item" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Draft Item" })).toHaveClass("erp-modal-workspace--work");
+    expect(screen.getByRole("button", { name: "Print" })).toBeDisabled();
     expect(screen.getByTestId("erp-modal-workspace")).toHaveClass("erp-modal-workspace__body");
     expect(document.querySelector(".erp-modal-workspace__footer")).toBeInTheDocument();
+  });
+
+  it("marks required transaction columns in the shared compact grid", () => {
+    render(
+      <ErpTransactionLineGrid
+        ariaLabel="Quote line grid"
+        columns={[
+          { header: "Item", key: "item", required: true, render: () => <ErpLookupField label="Item" onChange={vi.fn()} options={[{ label: "RM", value: "1" }]} required value="1" /> },
+          { header: "Qty", key: "qty", required: true, render: () => <ErpDecimalField label="Quantity" onChange={vi.fn()} required value={1} /> }
+        ]}
+        getRowId={(_, index) => String(index)}
+        lines={[{ id: 1 }]}
+      />
+    );
+
+    expect(screen.getByRole("grid", { name: "Quote line grid" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".erp-transaction-line-grid th b")).toHaveLength(2);
   });
 
   it("keeps validation compact and expands only on request", () => {

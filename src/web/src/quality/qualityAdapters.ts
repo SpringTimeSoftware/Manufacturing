@@ -1,5 +1,6 @@
 import type {
   AuthSessionResponse,
+  CoaCertificateDto,
   InspectionDto,
   InspectionPlanDto,
   InspectionResultDto,
@@ -16,13 +17,32 @@ export interface QualityPlanItem {
   planCode: string;
   planName: string;
   inspectionType: string;
+  itemId: number | null;
+  operationId: number | null;
   itemLabel: string;
   operationLabel: string;
   autoHoldSignal: string;
   autoNcrSignal: string;
   parameterSummary: string;
+  characteristics: InspectionPlanCharacteristicItem[];
   status: string;
   source: MasterDataSource;
+}
+
+export interface InspectionPlanCharacteristicItem {
+  id: string;
+  lineNo: number;
+  parameterCode: string;
+  parameterName: string;
+  characteristicType: string;
+  expectedValue: string;
+  lowerLimit: number | null;
+  upperLimit: number | null;
+  uomId: number | null;
+  sampleSize: number;
+  isMandatory: boolean;
+  status: string;
+  remarks: string;
 }
 
 export interface InspectionResultItem {
@@ -58,10 +78,49 @@ export interface NonConformanceItem {
   traceLabel: string;
   disposition: string;
   status: string;
+  defectCategory: string;
+  containmentAction: string;
   rootCause: string;
+  correctiveAction: string;
+  preventiveAction: string;
+  dispositionReleasedOn: string;
   reworkLink: string;
   remarks: string;
   source: MasterDataSource;
+  lines: NonConformanceLineItem[];
+}
+
+export interface NonConformanceLineItem {
+  id: string;
+  lineNo: number;
+  itemId: number | null;
+  itemRevisionId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  affectedQuantity: number | null;
+  uomId: number | null;
+  defectCode: string;
+  defectDescription: string;
+  disposition: string;
+  remarks: string;
+}
+
+export interface CoaCertificateItem {
+  id: string;
+  coaId: number;
+  coaNo: string;
+  inspectionRecordId: number;
+  sourceDocument: string;
+  traceLabel: string;
+  templateCode: string;
+  versionNo: number;
+  storagePath: string;
+  status: string;
+  generatedOn: string;
+  issuedOn: string;
+  reissueReason: string;
+  source: MasterDataSource;
+  lines: InspectionResultItem[];
 }
 
 function matchesFilter(value: string, filter: QueryFilter) {
@@ -111,11 +170,28 @@ function mapPlan(dto: InspectionPlanDto, source: MasterDataSource): QualityPlanI
     planCode: dto.planCode,
     planName: dto.planName,
     inspectionType: dto.inspectionType,
+    itemId: dto.itemId,
+    operationId: dto.operationId,
     itemLabel: itemLabel(dto.itemId),
     operationLabel: operationLabel(dto.operationId),
     autoHoldSignal: dto.autoHoldOnFail ? "Auto hold on fail" : "Manual hold",
     autoNcrSignal: dto.autoCreateNcrOnFail ? "Auto NCR on fail" : "Manual NCR",
-    parameterSummary: "Parameter library detail follows the plan editor",
+    parameterSummary: dto.characteristics.length > 0 ? `${dto.characteristics.length} parameter${dto.characteristics.length === 1 ? "" : "s"}` : "No parameters configured",
+    characteristics: dto.characteristics.map((characteristic) => ({
+      id: `quality-plan-characteristic-${characteristic.id}`,
+      lineNo: characteristic.lineNo,
+      parameterCode: characteristic.parameterCode,
+      parameterName: characteristic.parameterName,
+      characteristicType: characteristic.characteristicType,
+      expectedValue: characteristic.expectedValue ?? "",
+      lowerLimit: characteristic.lowerLimit,
+      upperLimit: characteristic.upperLimit,
+      uomId: characteristic.uomId,
+      sampleSize: characteristic.sampleSize,
+      isMandatory: characteristic.isMandatory,
+      status: characteristic.status,
+      remarks: characteristic.remarks ?? ""
+    })),
     status: dto.status,
     source
   };
@@ -165,10 +241,57 @@ function mapNcr(dto: NonConformanceDto, source: MasterDataSource): NonConformanc
     traceLabel: traceLabel(dto.lotId, dto.serialId),
     disposition: dto.disposition,
     status: dto.status,
+    defectCategory: dto.defectCategory ?? "Unclassified",
+    containmentAction: dto.containmentAction ?? "Pending containment",
     rootCause: dto.rootCause ?? "Pending RCA",
+    correctiveAction: dto.correctiveAction ?? "Pending corrective action",
+    preventiveAction: dto.preventiveAction ?? "Pending preventive action",
+    dispositionReleasedOn: dto.dispositionReleasedOn ? dto.dispositionReleasedOn.slice(0, 10) : "Not released",
     reworkLink: dto.reworkOrderId ? `Rework ${dto.reworkOrderId}` : "No rework link",
     remarks: dto.remarks ?? "No remarks",
-    source
+    source,
+    lines: dto.lines.map((line) => ({
+      id: `ncr-line-${line.id}`,
+      lineNo: line.lineNo,
+      itemId: line.itemId,
+      itemRevisionId: line.itemRevisionId,
+      lotId: line.lotId,
+      serialId: line.serialId,
+      affectedQuantity: line.affectedQuantity,
+      uomId: line.uomId,
+      defectCode: line.defectCode,
+      defectDescription: line.defectDescription,
+      disposition: line.disposition,
+      remarks: line.remarks ?? ""
+    }))
+  };
+}
+
+function mapCoa(dto: CoaCertificateDto, source: MasterDataSource): CoaCertificateItem {
+  return {
+    id: `coa-${dto.id}`,
+    coaId: dto.id,
+    coaNo: dto.coaNo,
+    inspectionRecordId: dto.inspectionRecordId,
+    sourceDocument: documentLabel(dto.sourceDocumentType, dto.sourceDocumentId),
+    traceLabel: traceLabel(dto.lotId, dto.serialId),
+    templateCode: dto.templateCode,
+    versionNo: dto.versionNo,
+    storagePath: dto.storagePath,
+    status: dto.status,
+    generatedOn: dto.generatedOn.slice(0, 10),
+    issuedOn: dto.issuedOn ? dto.issuedOn.slice(0, 10) : "Not issued",
+    reissueReason: dto.reissueReason ?? "Original issue",
+    source,
+    lines: dto.lines.map((line) => ({
+      id: `coa-line-${line.id}`,
+      lineNo: line.lineNo,
+      parameterCode: line.parameterCode,
+      expectedValue: line.expectedValue ?? "Not specified",
+      actualValue: line.actualValue ?? "Pending",
+      resultStatus: line.resultStatus,
+      remarks: line.remarks ?? "No remarks"
+    }))
   };
 }
 
@@ -179,11 +302,17 @@ const seededPlans: QualityPlanItem[] = [
     planCode: "QC-IN-SS-SHEET",
     planName: "Incoming stainless sheet inspection",
     inspectionType: "Incoming",
+    itemId: null,
+    operationId: null,
     itemLabel: "RM-SS-SHEET / Stainless Steel Sheet",
     operationLabel: "Receiving",
     autoHoldSignal: "Auto hold on fail",
     autoNcrSignal: "Auto NCR on fail",
     parameterSummary: "Thickness, flatness, finish, heat number",
+    characteristics: [
+      { id: "seed-plan-line-1", lineNo: 10, parameterCode: "THICKNESS", parameterName: "Thickness", characteristicType: "Numeric", expectedValue: "2.0 mm +/- 0.1", lowerLimit: 1.9, upperLimit: 2.1, uomId: null, sampleSize: 3, isMandatory: true, status: "Active", remarks: "Measure representative sheets" },
+      { id: "seed-plan-line-2", lineNo: 20, parameterCode: "FINISH", parameterName: "Surface finish", characteristicType: "Attribute", expectedValue: "No visible scratches", lowerLimit: null, upperLimit: null, uomId: null, sampleSize: 3, isMandatory: true, status: "Active", remarks: "Visual inspection" }
+    ],
     status: "Active",
     source: "Seeded"
   },
@@ -193,11 +322,16 @@ const seededPlans: QualityPlanItem[] = [
     planCode: "QC-FINAL-OZ50",
     planName: "Ozone generator final test",
     inspectionType: "Final",
+    itemId: null,
+    operationId: null,
     itemLabel: "FG-OZ-50 / Ozone Generator 50 LPH",
     operationLabel: "Final test",
     autoHoldSignal: "Auto hold on fail",
     autoNcrSignal: "Manual NCR",
     parameterSummary: "Leak test, output flow, safety checklist",
+    characteristics: [
+      { id: "seed-plan-final-line-1", lineNo: 10, parameterCode: "LEAK_TEST", parameterName: "Leak test", characteristicType: "Attribute", expectedValue: "No pressure drop", lowerLimit: null, upperLimit: null, uomId: null, sampleSize: 1, isMandatory: true, status: "Active", remarks: "Final release evidence" }
+    ],
     status: "Active",
     source: "Seeded"
   }
@@ -296,10 +430,40 @@ const seededNcrs: NonConformanceItem[] = [
     traceLabel: "SN-OZ50-0189-01",
     disposition: "Rework",
     status: "Open",
+    defectCategory: "Functional",
+    containmentAction: "Hold affected serial until retest",
     rootCause: "Gasket seating",
+    correctiveAction: "Re-seat gasket and retest",
+    preventiveAction: "Update gasket fixture checklist",
+    dispositionReleasedOn: "Not released",
     reworkLink: "RW-2026-0009",
     remarks: "Rework loop released for leak-test retake.",
-    source: "Seeded"
+    source: "Seeded",
+    lines: [
+      { id: "ncr-0018-line-1", lineNo: 10, itemId: 10002, itemRevisionId: null, lotId: null, serialId: null, affectedQuantity: 1, uomId: 1, defectCode: "LEAK_TEST", defectDescription: "Leak test failed", disposition: "Rework", remarks: "Retest required" }
+    ]
+  }
+];
+
+const seededCoas: CoaCertificateItem[] = [
+  {
+    id: "coa-0001",
+    coaId: 7401,
+    coaNo: "COA-2026-0001",
+    inspectionRecordId: 7203,
+    sourceDocument: "ProductionReceipt 7203",
+    traceLabel: "WO-2026-044 / Operation 10",
+    templateCode: "COA-FINAL-STD",
+    versionNo: 1,
+    storagePath: "quality/coa/company-1/branch-12/COA-2026-0001-v1.json",
+    status: "Generated",
+    generatedOn: "2026-03-06",
+    issuedOn: "Not issued",
+    reissueReason: "Original issue",
+    source: "Seeded",
+    lines: [
+      { id: "coa-0001-line-1", lineNo: 10, parameterCode: "DIMENSION", expectedValue: "As drawing", actualValue: "Within tolerance", resultStatus: "Pass", remarks: "First piece accepted" }
+    ]
   }
 ];
 
@@ -339,5 +503,18 @@ export async function listNonConformances(session: AuthSessionResponse | null | 
     return response.items.map((item) => mapNcr(item, "Live"));
   } catch {
     throw liveDataUnavailable("NCR");
+  }
+}
+
+export async function listCoaCertificates(session: AuthSessionResponse | null | undefined, filter: QueryFilter) {
+  if (!hasLiveSession(session)) {
+    return filterSeeded(seededCoas, filter, (item) => `${item.coaNo} ${item.sourceDocument} ${item.status}`);
+  }
+
+  try {
+    const response = await apiClient.quality.coas(filter);
+    return response.items.map((item) => mapCoa(item, "Live"));
+  } catch {
+    throw liveDataUnavailable("COA");
   }
 }

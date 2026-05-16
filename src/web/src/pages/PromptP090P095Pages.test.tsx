@@ -125,7 +125,7 @@ describe("Prompt P090-P095 commercial and engineering pages", () => {
     expect(await screen.findByText("SO-2026-0189")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("row", { name: "SO-2026-0189 sales order" }));
     expect(await screen.findByTestId("sales-order-draft-modal")).toBeInTheDocument();
-    expect(await screen.findByText("Sales order header")).toBeInTheDocument();
+    expect(await screen.findByText("Sales order controls")).toBeInTheDocument();
   });
 
   it("renders P093 blanket order and demand forecast screens", async () => {

@@ -7,7 +7,7 @@ import { renderWithApp } from "../test/render";
 import { PackListPage, ShipmentDeliveryPage } from "./DispatchPages";
 import { InventoryBalancePage } from "./InventoryPages";
 import { CycleCountPage } from "./OperationsPages";
-import { InProcessInspectionPage, NcrDeviationPage } from "./QualityPages";
+import { CoaCertificatePage, InProcessInspectionPage, NcrDeviationPage, QcPlanSetupPage } from "./QualityPages";
 
 function buildLiveSession() {
   const session = buildDemoSession();
@@ -265,9 +265,33 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
         serialId: null,
         disposition: "Rework",
         status: "Open",
+        defectCategory: "Functional",
+        containmentAction: "Hold affected serial",
         rootCause: "Seal leak",
+        correctiveAction: "Re-seat gasket",
+        preventiveAction: "Update fixture checklist",
+        dispositionReleasedOn: null,
+        dispositionReleasedByUserId: null,
+        closedOn: null,
+        closedByUserId: null,
         reworkOrderId: null,
-        remarks: "Disposition approved"
+        remarks: "Disposition approved",
+        lines: [
+          {
+            id: 902,
+            lineNo: 10,
+            itemId: 10002,
+            itemRevisionId: null,
+            lotId: 70001,
+            serialId: null,
+            affectedQuantity: 1,
+            uomId: 1,
+            defectCode: "LEAK",
+            defectDescription: "Leak test failed",
+            disposition: "Rework",
+            remarks: "Retest required"
+          }
+        ]
       }
     ]) as never);
     const closeNonConformance = vi.spyOn(apiClient.quality, "closeNonConformance").mockResolvedValue({ status: "Closed" } as never);
@@ -297,7 +321,24 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
         operationId: 401,
         autoHoldOnFail: true,
         autoCreateNcrOnFail: true,
-        status: "Active"
+        status: "Active",
+        characteristics: [
+          {
+            id: 71011,
+            lineNo: 10,
+            parameterCode: "VISUAL",
+            parameterName: "Visual check",
+            characteristicType: "Attribute",
+            expectedValue: "No defects",
+            lowerLimit: null,
+            upperLimit: null,
+            uomId: null,
+            sampleSize: 1,
+            isMandatory: true,
+            status: "Active",
+            remarks: null
+          }
+        ]
       }
     ]) as never);
     const saveInspection = vi.spyOn(apiClient.quality, "saveInspection").mockResolvedValue({
@@ -345,6 +386,141 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
       autoCreateNcr: true
     })));
     expect(saveInspection.mock.calls[0][0].results[0]).toMatchObject({ parameterCode: "VISUAL", actualValue: "Out of tolerance", resultStatus: "Fail" });
+  });
+
+  it("saves QC plan characteristic rows through the live plan API", async () => {
+    vi.spyOn(apiClient.quality, "inspectionPlans").mockResolvedValue(paged([]) as never);
+    const createInspectionPlan = vi.spyOn(apiClient.quality, "createInspectionPlan").mockResolvedValue({
+      id: 7102,
+      companyId: 1,
+      planCode: "QC-IN-SAVED",
+      planName: "Incoming saved plan",
+      inspectionType: "Incoming",
+      itemId: null,
+      operationId: null,
+      autoHoldOnFail: true,
+      autoCreateNcrOnFail: true,
+      status: "Active",
+      characteristics: []
+    } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/quality/plans" element={<QcPlanSetupPage />} />
+      </Routes>,
+      { route: "/quality/plans", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "New QC plan" }));
+    expect(await screen.findByText("Characteristic grid")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save QC plan" }));
+
+    await waitFor(() => expect(createInspectionPlan).toHaveBeenCalledWith(expect.objectContaining({
+      inspectionType: "Incoming",
+      characteristics: [expect.objectContaining({ parameterCode: "VISUAL", parameterName: "Visual check" })]
+    })));
+  });
+
+  it("releases NCR disposition through the live NCR API with affected line evidence", async () => {
+    vi.spyOn(apiClient.quality, "nonConformances").mockResolvedValue(paged([
+      {
+        id: 901,
+        companyId: 1,
+        branchId: 12,
+        ncrNo: "NCR-LIVE-0002",
+        sourceDocumentType: "Inspection",
+        sourceDocumentId: 801,
+        lotId: 70001,
+        serialId: null,
+        disposition: "Rework",
+        status: "Open",
+        defectCategory: "Functional",
+        containmentAction: "Hold affected serial",
+        rootCause: "Seal leak",
+        correctiveAction: "Re-seat gasket",
+        preventiveAction: "Update fixture checklist",
+        dispositionReleasedOn: null,
+        dispositionReleasedByUserId: null,
+        closedOn: null,
+        closedByUserId: null,
+        reworkOrderId: null,
+        remarks: "Disposition approved",
+        lines: [
+          {
+            id: 902,
+            lineNo: 10,
+            itemId: 10002,
+            itemRevisionId: null,
+            lotId: 70001,
+            serialId: null,
+            affectedQuantity: 1,
+            uomId: 1,
+            defectCode: "LEAK",
+            defectDescription: "Leak test failed",
+            disposition: "Rework",
+            remarks: "Retest required"
+          }
+        ]
+      }
+    ]) as never);
+    const releaseDisposition = vi.spyOn(apiClient.quality, "releaseNonConformanceDisposition").mockResolvedValue({ status: "DispositionReleased" } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/quality/ncr" element={<NcrDeviationPage />} />
+      </Routes>,
+      { route: "/quality/ncr", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByText("NCR-LIVE-0002"));
+    fireEvent.click(await screen.findByRole("button", { name: "Release disposition" }));
+
+    await waitFor(() => expect(releaseDisposition).toHaveBeenCalledWith(901, expect.objectContaining({
+      disposition: "Rework",
+      rootCause: "Seal leak"
+    })));
+  });
+
+  it("generates COA certificates from final inspection evidence through the live API", async () => {
+    vi.spyOn(apiClient.quality, "coas").mockResolvedValue(paged([]) as never);
+    const generateCoa = vi.spyOn(apiClient.quality, "generateCoa").mockResolvedValue({
+      id: 7401,
+      companyId: 1,
+      branchId: 12,
+      coaNo: "COA-SAVED",
+      inspectionRecordId: 802,
+      sourceDocumentType: "ProductionReceipt",
+      sourceDocumentId: 501,
+      lotId: null,
+      serialId: null,
+      templateCode: "COA-FINAL-STD",
+      versionNo: 1,
+      storagePath: "quality/coa/company-1/branch-12/COA-SAVED-v1.json",
+      status: "Generated",
+      generatedOn: "2026-05-13T09:30:00Z",
+      generatedByUserId: 1,
+      issuedOn: null,
+      issuedByUserId: null,
+      reissueReason: null,
+      lines: []
+    } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/quality/coas" element={<CoaCertificatePage />} />
+      </Routes>,
+      { route: "/quality/coas", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Generate COA" }));
+    expect(await screen.findByText("COA generation")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Final inspection record id"), { target: { value: "802" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Generate COA" }).at(-1)!);
+
+    await waitFor(() => expect(generateCoa).toHaveBeenCalledWith(expect.objectContaining({
+      inspectionRecordId: 802,
+      templateCode: "COA-FINAL-STD"
+    })));
   });
 
   it("creates a live pack list with governed item, warehouse, UOM, and quantity controls", async () => {

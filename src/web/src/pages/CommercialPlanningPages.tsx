@@ -45,6 +45,7 @@ import {
   ErpNumberField,
   ErpStatusChip,
   ErpTransactionLineGrid,
+  ErpTransactionQuickActions,
   ErpTransactionTotalsPanel,
   ErpValidationSummary
 } from "../ui/ErpComponents";
@@ -1514,29 +1515,51 @@ export function QuoteEstimateListPage() {
         isOpen={Boolean(draft)}
         onClose={() => { setDraft(null); setDraftQuoteId(null); setReopenReason(""); setSaveMessage(null); }}
         panelClassName="ui-modal__panel--item-master"
-        statusMeta={<>{draft ? <StatusBadge status={draft.status} /> : null}{saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}</>}
+        quickActions={
+          <ErpTransactionQuickActions
+            actions={[
+              { disabled: true, label: "Email", reason: "Email delivery is not connected to this quote workspace yet." },
+              { disabled: true, label: "WhatsApp", reason: "WhatsApp delivery is not connected to this quote workspace yet." },
+              { disabled: true, label: "Attachments", reason: "Quote attachment storage is not enabled for this workspace." },
+              { disabled: true, label: "Notes", reason: "Quote note capture is pending the approved collaboration workflow." },
+              { disabled: true, label: "Audit", reason: "Quote audit timeline opens after a saved quote record exists." },
+              { disabled: true, label: "Print", reason: "Quote print output requires the approved document template." }
+            ]}
+          />
+        }
+        statusMeta={draft ? (
+          <>
+            <StatusBadge status={draft.status} />
+            <ErpStatusChip tone={draft.salesOwnerUserId ? "info" : "neutral"}>{draft.salesOwnerUserId ? "Sales owner set" : "Sales owner not defaulted"}</ErpStatusChip>
+            <ErpStatusChip tone={draft.priceListId ? "info" : "neutral"}>{draft.priceListId ? "Price list set" : "Price list not defaulted"}</ErpStatusChip>
+            <ErpStatusChip tone={draft.discountSchemeId ? "info" : "neutral"}>{draft.discountSchemeId ? "Discount scheme set" : "Discount scheme not defaulted"}</ErpStatusChip>
+            {saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}
+          </>
+        ) : null}
         title={draftQuoteId ? `Quote ${draft?.quoteNo}` : "New quote draft"}
         validation={<ErpValidationSummary errors={validation} title="Quote draft checks" />}
       >
         {draft ? (
           <div className="modal-form-grid" data-testid="quote-draft-modal">
-            <Card title="Quote header" description="Customer, validity, and commercial priority are controlled before quote save.">
-              <ErpActionBar
-                secondary={[{
-                  disabled: quoteLocked || !isLive || !draft.customerId,
-                  label: "Refresh customer defaults",
-                  onClick: !quoteLocked && isLive && draft.customerId ? refreshQuoteCustomerDefaults : undefined,
-                  reason: quoteLocked ? "Released or converted quote snapshots are locked." : !isLive ? "Live customer profile data is required to refresh defaults." : !draft.customerId ? "Select a customer before refreshing defaults." : undefined
-                }]}
-              />
-              <div className="context-chip-row">
-                <ErpStatusChip tone={draft.salesOwnerUserId ? "info" : "neutral"}>{draft.salesOwnerUserId ? "Sales owner set" : "Sales owner not defaulted"}</ErpStatusChip>
-                <ErpStatusChip tone={draft.priceListId ? "info" : "neutral"}>{draft.priceListId ? "Price list set" : "Price list not defaulted"}</ErpStatusChip>
-                <ErpStatusChip tone={draft.discountSchemeId ? "info" : "neutral"}>{draft.discountSchemeId ? "Discount scheme set" : "Discount scheme not defaulted"}</ErpStatusChip>
-              </div>
-              <FormShell initialFingerprint={`${draftQuoteId ?? "new"}-${draft.quoteNo}`} title="Header">
+            <Card title="Quote controls" description="Customer, validity, and commercial priority are controlled before quote save.">
+              <FormShell
+                actions={
+                  <ErpActionBar
+                    secondary={[{
+                      disabled: quoteLocked || !isLive || !draft.customerId,
+                      label: "Refresh customer defaults",
+                      onClick: !quoteLocked && isLive && draft.customerId ? refreshQuoteCustomerDefaults : undefined,
+                      reason: quoteLocked ? "Released or converted quote snapshots are locked." : !isLive ? "Live customer profile data is required to refresh defaults." : !draft.customerId ? "Select a customer before refreshing defaults." : undefined
+                    }]}
+                  />
+                }
+                bodyClassName="ui-form-shell__body--transaction-header"
+                className="ui-form-shell--dense"
+                initialFingerprint={`${draftQuoteId ?? "new"}-${draft.quoteNo}`}
+                title="Header"
+              >
                 <label><span>Quote number</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, quoteNo: event.target.value })} value={draft.quoteNo} /></label>
-                <ErpLookupField disabled={quoteLocked} disabledReason={quoteLocked ? "Released or converted quote snapshots are locked." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
+                <ErpLookupField className="field-span-6" disabled={quoteLocked} disabledReason={quoteLocked ? "Released or converted quote snapshots are locked." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
                 <ErpLookupField disabled={quoteLocked} disabledReason={quoteLocked ? "Released or converted quote snapshots are locked." : undefined} label="Sales owner" onChange={(value) => {
                   const selectedOwner = salesOwnerOptions.find((option) => option.value === value);
                   setDraft({ ...draft, salesOwnerUserId: value ? Number(value) : null, salesOwnerName: selectedOwner?.label ?? null });
@@ -1553,10 +1576,10 @@ export function QuoteEstimateListPage() {
                 <ErpLookupField disabled={quoteLocked} label="Currency" onChange={(value) => setDraft({ ...draft, currencyId: value ? Number(value) : null })} options={currencyOptions} value={draft.currencyId ? String(draft.currencyId) : ""} />
                 <ErpLookupField disabled={quoteLocked} label="Exchange rate" onChange={(value) => setDraft({ ...draft, exchangeRateId: value ? Number(value) : null })} options={exchangeRateOptions} value={draft.exchangeRateId ? String(draft.exchangeRateId) : ""} />
                 <ErpLookupField disabled={quoteLocked} label="Trade terms" onChange={(value) => setDraft({ ...draft, tradeTermsId: value ? Number(value) : null })} options={tradeTermOptions} value={draft.tradeTermsId ? String(draft.tradeTermsId) : ""} />
-                <label><span>Customer spec reference</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, customerSpecRef: event.target.value })} value={draft.customerSpecRef ?? ""} /></label>
-                <label className="form-span-2"><span>Internal remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, internalRemarks: event.target.value })} value={draft.internalRemarks ?? ""} /></label>
-                <label className="form-span-2"><span>Customer-facing remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, customerFacingRemarks: event.target.value })} value={draft.customerFacingRemarks ?? ""} /></label>
-                <label className="form-span-2"><span>Print remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
+                <label className="field-span-6"><span>Customer spec reference</span><input disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, customerSpecRef: event.target.value })} value={draft.customerSpecRef ?? ""} /></label>
+                <label className="field-span-4"><span>Internal remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, internalRemarks: event.target.value })} value={draft.internalRemarks ?? ""} /></label>
+                <label className="field-span-4"><span>Customer-facing remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, customerFacingRemarks: event.target.value })} value={draft.customerFacingRemarks ?? ""} /></label>
+                <label className="field-span-4"><span>Print remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
               </FormShell>
             </Card>
             <Card title="Quote lines" description="Add every customer demand line before saving the quote draft.">
@@ -1565,9 +1588,9 @@ export function QuoteEstimateListPage() {
                 ariaLabel="Quote line grid"
                 columns={[
                   { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
-                  { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
-                  { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
-                  { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField disabled={quoteLocked} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
+                  { key: "item", header: "Item", required: true, width: "190px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                  { key: "uom", header: "UOM", required: true, width: "150px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
+                  { key: "qty", header: "Qty", required: true, width: "120px", render: (line, index) => <ErpDecimalField disabled={quoteLocked} label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
                   { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField disabled={quoteLocked} label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0, priceSourceType: "ManualOverride" })} value={line.unitPrice} /> },
                   { key: "price-source", header: "Price source", width: "160px", render: (line, index) => <ErpLookupField disabled={quoteLocked} label="Price source" onChange={(value) => updateLine(index, { priceSourceType: value })} options={["Manual", "ManualOverride", "PriceList"].map(toOption)} value={line.priceSourceType ?? "Manual"} /> },
                   { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField disabled={quoteLocked} label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent} /> },
@@ -1784,27 +1807,49 @@ export function SalesOrderListPage() {
         footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: saveMutation.isPending ? "Saving order draft" : "Save order draft", onClick: saveReason ? undefined : () => draft && saveMutation.mutate({ ...draft, lines: draft.lines.map((line, index) => ({ ...line, lineNo: (index + 1) * 10 })) }), reason: saveReason }]} utility={[{ label: "Close", onClick: () => { setDraft(null); setDraftOrderId(null); }, variant: "quiet" }]} />}
         isOpen={Boolean(draft)}
         onClose={() => { setDraft(null); setDraftOrderId(null); }}
-        statusMeta={<>{draft ? <StatusBadge status={draft.status} /> : null}{saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}</>}
+        quickActions={
+          <ErpTransactionQuickActions
+            actions={[
+              { disabled: true, label: "Email", reason: "Email delivery is not connected to this sales order workspace yet." },
+              { disabled: true, label: "WhatsApp", reason: "WhatsApp delivery is not connected to this sales order workspace yet." },
+              { disabled: true, label: "Attachments", reason: "Sales order attachment storage is not enabled for this workspace." },
+              { disabled: true, label: "Notes", reason: "Sales order note capture is pending the approved collaboration workflow." },
+              { disabled: true, label: "Audit", reason: "Sales order audit timeline opens after a saved order record exists." },
+              { disabled: true, label: "Print", reason: "Sales order print output requires the approved document template." }
+            ]}
+          />
+        }
+        statusMeta={draft ? (
+          <>
+            <StatusBadge status={draft.status} />
+            <ErpStatusChip tone={draft.sourceQuoteId ? "success" : draft.priceListId ? "info" : "neutral"}>{draft.sourceQuoteId ? "Quote snapshot copied" : draft.priceListId ? "Price list set" : "Price list not defaulted"}</ErpStatusChip>
+            <ErpStatusChip tone={draft.salesOwnerUserId ? "info" : "neutral"}>{draft.salesOwnerUserId ? "Sales owner set" : "Sales owner not defaulted"}</ErpStatusChip>
+            {saveMessage ? <ErpStatusChip tone={saveMessage.startsWith("Saved") ? "success" : "danger"}>{saveMessage}</ErpStatusChip> : null}
+          </>
+        ) : null}
         title={draftOrderId ? `Sales order ${draft?.salesOrderNo}` : "New order draft"}
         validation={<ErpValidationSummary errors={validation} title="Sales order checks" />}
       >
         {draft ? <div className="modal-form-grid" data-testid="sales-order-draft-modal">
-          <Card title="Sales order header" description="Customer, promise, and demand status drive downstream planning consumption.">
-            <ErpActionBar
-              secondary={[{
-                disabled: Boolean(salesOrderDefaultRefreshReason),
-                label: "Refresh customer defaults",
-                onClick: !salesOrderDefaultRefreshReason ? refreshSalesOrderCustomerDefaults : undefined,
-                reason: salesOrderDefaultRefreshReason
-              }]}
-            />
-            <div className="context-chip-row">
-              <ErpStatusChip tone={draft.sourceQuoteId ? "success" : draft.priceListId ? "info" : "neutral"}>{draft.sourceQuoteId ? "Quote snapshot copied" : draft.priceListId ? "Price list set" : "Price list not defaulted"}</ErpStatusChip>
-              <ErpStatusChip tone={draft.salesOwnerUserId ? "info" : "neutral"}>{draft.salesOwnerUserId ? "Sales owner set" : "Sales owner not defaulted"}</ErpStatusChip>
-            </div>
-            <FormShell initialFingerprint={`${draftOrderId ?? "new"}-${draft.salesOrderNo}`} title="Header">
+          <Card title="Sales order controls" description="Customer, promise, and demand status drive downstream planning consumption.">
+            <FormShell
+              actions={
+                <ErpActionBar
+                  secondary={[{
+                    disabled: Boolean(salesOrderDefaultRefreshReason),
+                    label: "Refresh customer defaults",
+                    onClick: !salesOrderDefaultRefreshReason ? refreshSalesOrderCustomerDefaults : undefined,
+                    reason: salesOrderDefaultRefreshReason
+                  }]}
+                />
+              }
+              bodyClassName="ui-form-shell__body--transaction-header"
+              className="ui-form-shell--dense"
+              initialFingerprint={`${draftOrderId ?? "new"}-${draft.salesOrderNo}`}
+              title="Header"
+            >
               <label><span>Sales order number</span><input onChange={(event) => setDraft({ ...draft, salesOrderNo: event.target.value })} value={draft.salesOrderNo} /></label>
-              <ErpLookupField disabled={Boolean(draftOrderId)} disabledReason={draftOrderId ? "Customer cannot be changed after the sales order is saved." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
+              <ErpLookupField className="field-span-6" disabled={Boolean(draftOrderId)} disabledReason={draftOrderId ? "Customer cannot be changed after the sales order is saved." : undefined} label="Customer" onChange={(value) => setDraft({ ...draft, customerId: value ? Number(value) : 0 })} options={customerOptions} required value={String(draft.customerId || "")} />
               <ErpLookupField label="Sales owner" onChange={(value) => {
                 const selectedOwner = salesOwnerOptions.find((option) => option.value === value);
                 setDraft({ ...draft, salesOwnerUserId: value ? Number(value) : null, salesOwnerName: selectedOwner?.label ?? null });
@@ -1821,10 +1866,10 @@ export function SalesOrderListPage() {
               <ErpLookupField label="Currency" onChange={(value) => setDraft({ ...draft, currencyId: value ? Number(value) : null })} options={currencyOptions} value={draft.currencyId ? String(draft.currencyId) : ""} />
               <ErpLookupField label="Exchange rate" onChange={(value) => setDraft({ ...draft, exchangeRateId: value ? Number(value) : null })} options={exchangeRateOptions} value={draft.exchangeRateId ? String(draft.exchangeRateId) : ""} />
               <ErpLookupField label="Trade terms" onChange={(value) => setDraft({ ...draft, tradeTermsId: value ? Number(value) : null })} options={tradeTermOptions} value={draft.tradeTermsId ? String(draft.tradeTermsId) : ""} />
-              <label><span>Source quote</span><input disabled value={draft.sourceQuoteId ? `Quote ${draft.sourceQuoteId} / revision ${draft.sourceQuoteRevisionNo ?? "not set"}` : "Direct order"} /></label>
-              <label className="form-span-2"><span>Internal remarks</span><textarea onChange={(event) => setDraft({ ...draft, internalRemarks: event.target.value })} value={draft.internalRemarks ?? ""} /></label>
-              <label className="form-span-2"><span>Customer-facing remarks</span><textarea onChange={(event) => setDraft({ ...draft, customerFacingRemarks: event.target.value })} value={draft.customerFacingRemarks ?? ""} /></label>
-              <label className="form-span-2"><span>Print remarks</span><textarea onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
+              <label className="field-span-6"><span>Source quote</span><input disabled value={draft.sourceQuoteId ? `Quote ${draft.sourceQuoteId} / revision ${draft.sourceQuoteRevisionNo ?? "not set"}` : "Direct order"} /></label>
+              <label className="field-span-4"><span>Internal remarks</span><textarea onChange={(event) => setDraft({ ...draft, internalRemarks: event.target.value })} value={draft.internalRemarks ?? ""} /></label>
+              <label className="field-span-4"><span>Customer-facing remarks</span><textarea onChange={(event) => setDraft({ ...draft, customerFacingRemarks: event.target.value })} value={draft.customerFacingRemarks ?? ""} /></label>
+              <label className="field-span-4"><span>Print remarks</span><textarea onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
             </FormShell>
           </Card>
           <Card title="Sales order lines" description="Add every customer demand line before releasing the order to planning.">
@@ -1833,9 +1878,9 @@ export function SalesOrderListPage() {
               ariaLabel="Sales order line grid"
               columns={[
                 { key: "line", header: "Line", width: "72px", render: (line) => <ErpNumberField disabled label="Line no" onChange={() => undefined} value={line.lineNo} /> },
-                { key: "item", header: "Item", width: "190px", render: (line, index) => <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
-                { key: "uom", header: "UOM", width: "150px", render: (line, index) => <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
-                { key: "qty", header: "Qty", width: "120px", render: (line, index) => <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
+                { key: "item", header: "Item", required: true, width: "190px", render: (line, index) => <ErpLookupField label="Item" onChange={(value) => updateLine(index, { itemId: value ? Number(value) : 0 })} options={itemOptions} required value={String(line.itemId || "")} /> },
+                { key: "uom", header: "UOM", required: true, width: "150px", render: (line, index) => <ErpLookupField label="Order UOM" onChange={(value) => updateLine(index, { orderUomId: value ? Number(value) : 0 })} options={uomOptions} required value={String(line.orderUomId || "")} /> },
+                { key: "qty", header: "Qty", required: true, width: "120px", render: (line, index) => <ErpDecimalField label="Quantity" min={0.001} onChange={(value) => updateLine(index, { quantity: value ?? 0 })} required scale={3} value={line.quantity} /> },
                 { key: "price", header: "Price", width: "120px", render: (line, index) => <ErpMoneyField label="Unit price" min={0} onChange={(value) => updateLine(index, { unitPrice: value ?? 0, priceSourceType: "ManualOverride" })} value={line.unitPrice ?? 0} /> },
                 { key: "discount", header: "Disc %", width: "110px", render: (line, index) => <ErpDecimalField label="Discount %" max={100} min={0} onChange={(value) => updateLine(index, { discountPercent: value ?? 0 })} scale={2} unit="%" value={line.discountPercent ?? 0} /> },
                 { key: "tax-code", header: "Tax code", width: "150px", render: (line, index) => <ErpLookupField label="Tax code" onChange={(value) => updateLine(index, { taxCodeId: value ? Number(value) : null })} options={taxCodeOptions} value={line.taxCodeId ? String(line.taxCodeId) : ""} /> },

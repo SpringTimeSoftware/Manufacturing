@@ -1,0 +1,67 @@
+{
+  "wave_id": "QUALITY-NCR-COA-COMPLETION-PACK-04",
+  "screenshot_mode": "top_only",
+  "captures": [
+    {
+      "route": "/quality/plans",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\qc-plan-list-top.png"
+      ]
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\in-process-inspection-list-top.png"
+      ]
+    },
+    {
+      "route": "/quality/final-inspections",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\final-inspection-list-top.png"
+      ]
+    },
+    {
+      "route": "/quality/ncr",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\ncr-register-top.png"
+      ]
+    },
+    {
+      "route": "/quality/coas",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\coa-register-top.png"
+      ]
+    },
+    {
+      "route": "/quality/plans",
+      "modal": "New QC plan",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\qc-plan-characteristic-workspace-overview.png",
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\qc-plan-characteristic-workspace-lower.png"
+      ]
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "modal": "New inspection",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\inspection-result-workspace-overview.png",
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\inspection-result-workspace-lower.png"
+      ]
+    },
+    {
+      "route": "/quality/ncr",
+      "modal": "New NCR",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\ncr-affected-line-workspace-overview.png",
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\ncr-affected-line-workspace-lower.png"
+      ]
+    },
+    {
+      "route": "/quality/coas",
+      "modal": "Generate COA",
+      "files": [
+        "docs\\codex-review-screens\\QUALITY-NCR-COA-COMPLETION-PACK-04\\coa-generation-workspace-overview.png"
+      ]
+    }
+  ]
+}

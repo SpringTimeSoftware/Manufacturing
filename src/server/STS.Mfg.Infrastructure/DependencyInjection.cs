@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddScoped<IOrganizationService, OrganizationService>();
         services.AddScoped<IMeasurementService, MeasurementService>();
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IInventoryPolicyService, InventoryPolicyService>();
         services.AddScoped<InventoryPostingService>();
         services.AddScoped<IDispatchService, DispatchService>();
         services.AddScoped<IIntegrationService, IntegrationService>();

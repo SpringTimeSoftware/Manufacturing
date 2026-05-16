@@ -1,0 +1,69 @@
+{
+  "wave_id": "QUALITY-NCR-COA-COMPLETION-PACK-04",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173",
+    "session_mode": "stored-review-session"
+  },
+  "screenshot_mode": "top_only",
+  "routes_to_capture": [
+    {
+      "route": "/quality/plans",
+      "ready_text": "QC Plan Setup",
+      "output_prefix": "qc-plan-list"
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "ready_text": "In-Process Inspection",
+      "output_prefix": "in-process-inspection-list"
+    },
+    {
+      "route": "/quality/final-inspections",
+      "ready_text": "Final Inspection",
+      "output_prefix": "final-inspection-list"
+    },
+    {
+      "route": "/quality/ncr",
+      "ready_text": "NCR / Deviation",
+      "output_prefix": "ncr-register"
+    },
+    {
+      "route": "/quality/coas",
+      "ready_text": "COA Certificates",
+      "output_prefix": "coa-register"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/quality/plans",
+      "ready_text": "QC Plan Setup",
+      "open_action_label": "New QC plan",
+      "modal_ready_text": "Characteristic grid",
+      "output_prefix": "qc-plan-characteristic-workspace",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/quality/in-process-inspections",
+      "ready_text": "In-Process Inspection",
+      "open_action_label": "New inspection",
+      "modal_ready_text": "Parameter results",
+      "output_prefix": "inspection-result-workspace",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/quality/ncr",
+      "ready_text": "NCR / Deviation",
+      "open_action_label": "New NCR",
+      "modal_ready_text": "Affected line grid",
+      "output_prefix": "ncr-affected-line-workspace",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/quality/coas",
+      "ready_text": "COA Certificates",
+      "open_action_label": "Generate COA",
+      "modal_ready_text": "COA generation",
+      "output_prefix": "coa-generation-workspace",
+      "screenshot_mode": "top_mid_bottom"
+    }
+  ]
+}

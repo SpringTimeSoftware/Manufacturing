@@ -1,0 +1,65 @@
+📄 00_EXECUTION_STRATEGY_README.md
+📄 01_SHARED_NON_NEGOTIABLES.md
+📄 02_CROSS_PACK_RESIDUAL_GAP_CLOSURE_AUDIT.md
+📄 03_WAVE_1_PROMPT_PACKS_04_TO_07.md
+📄 04_WAVE_2_PROMPT_PACKS_08_TO_11.md
+📁 04_quality_ncr_coa_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📄 05_SINGLE_PACK_RUN_TEMPLATE.md
+📁 05_dispatch_logistics_pod_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📄 06_CODEX_OUTPUT_REPORT_TEMPLATE.md
+📁 06_finance_gl_ap_ar_costing_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📁 07_reports_dashboard_builder_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📁 08_integrations_email_whatsapp_crm_ai_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📁 09_mobile_barcode_camera_offline_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📁 10_udf_customization_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📁 11_service_warranty_amc_completion_pack_v1
+  📄 README.md
+  📄 acceptance_gates_and_tests.md
+  📄 business_decisions_needed.md
+  📄 codex_output_report_template.md
+  📄 codex_prompt.md
+  📄 completion_pack.md
+📄 MANIFEST.json
+📄 README.md

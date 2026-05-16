@@ -3134,17 +3134,12 @@ export function ItemListPage() {
         panelClassName="ui-modal__panel--item-master"
         statusMeta={
           editorItem ? (
-            <div className="item-master__modal-titlebar">
-              <div>
-                <strong>{editorMode === "create" ? "Draft Item" : editorItem.name || "Item detail"}</strong>
-                <p>{editorItem.code || "New item code pending"}</p>
-              </div>
-              <div className="context-chip-row">
-                <ErpStatusChip tone={editorItem.status === "Active" ? "success" : "warn"}>{editorItem.lifecycleStatus || "Draft"}</ErpStatusChip>
-                <ErpStatusChip tone={editorItem.defaultMakeType ? "info" : "neutral"}>{editorItem.defaultMakeType || "Make/buy pending"}</ErpStatusChip>
-                <ErpStatusChip tone={editorItem.isQcRequired ? "warn" : "neutral"}>{editorItem.isQcRequired ? "QC required" : "QC optional"}</ErpStatusChip>
-              </div>
-            </div>
+            <>
+              <ErpStatusChip tone={editorItem.status === "Active" ? "success" : "warn"}>{editorItem.lifecycleStatus || "Draft"}</ErpStatusChip>
+              <ErpStatusChip tone={editorItem.defaultMakeType ? "info" : "neutral"}>{editorItem.defaultMakeType || "Make/buy pending"}</ErpStatusChip>
+              <ErpStatusChip tone={editorItem.isQcRequired ? "warn" : "neutral"}>{editorItem.isQcRequired ? "QC required" : "QC optional"}</ErpStatusChip>
+              <ErpStatusChip tone={editorItem.code ? "info" : "neutral"}>{editorItem.code || "Code pending"}</ErpStatusChip>
+            </>
           ) : null
         }
         title={editorMode === "create" ? "Draft Item" : editorItem?.name || "Item detail"}

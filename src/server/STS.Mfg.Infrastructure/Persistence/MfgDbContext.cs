@@ -116,6 +116,8 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
     public DbSet<Lot> Lots => Set<Lot>();
     public DbSet<Serial> Serials => Set<Serial>();
+    public DbSet<InventoryLicensePlate> InventoryLicensePlates => Set<InventoryLicensePlate>();
+    public DbSet<InventoryLicensePlateContent> InventoryLicensePlateContents => Set<InventoryLicensePlateContent>();
     public DbSet<CycleCount> CycleCounts => Set<CycleCount>();
     public DbSet<CycleCountLine> CycleCountLines => Set<CycleCountLine>();
 
@@ -129,9 +131,13 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<ScrapEntry> ScrapEntries => Set<ScrapEntry>();
     public DbSet<ReworkOrder> ReworkOrders => Set<ReworkOrder>();
     public DbSet<InspectionPlan> InspectionPlans => Set<InspectionPlan>();
+    public DbSet<InspectionPlanCharacteristic> InspectionPlanCharacteristics => Set<InspectionPlanCharacteristic>();
     public DbSet<InspectionRecord> InspectionRecords => Set<InspectionRecord>();
     public DbSet<InspectionResult> InspectionResults => Set<InspectionResult>();
     public DbSet<NonConformance> NonConformances => Set<NonConformance>();
+    public DbSet<NonConformanceLine> NonConformanceLines => Set<NonConformanceLine>();
+    public DbSet<CoaCertificate> CoaCertificates => Set<CoaCertificate>();
+    public DbSet<CoaCertificateLine> CoaCertificateLines => Set<CoaCertificateLine>();
     public DbSet<PackList> PackLists => Set<PackList>();
     public DbSet<PackListLine> PackListLines => Set<PackListLine>();
     public DbSet<Shipment> Shipments => Set<Shipment>();

@@ -114,6 +114,7 @@ export interface ErpLookupOption {
 
 interface ErpLookupFieldProps {
   allowFreeText?: boolean;
+  className?: string;
   disabled?: boolean;
   disabledReason?: string;
   error?: string;
@@ -129,6 +130,7 @@ interface ErpLookupFieldProps {
 
 export function ErpLookupField({
   allowFreeText = false,
+  className,
   disabled = false,
   disabledReason,
   error,
@@ -153,7 +155,7 @@ export function ErpLookupField({
   const reason = disabledReason ?? (sourceUnavailable ? "Lookup source is not available for this context." : undefined);
 
   return (
-    <label className={`erp-lookup-field erp-governed-field ${error ? "erp-lookup-field--error" : ""}`} data-control-type={allowFreeText ? "free-text" : "lookup"}>
+    <label className={["erp-lookup-field erp-governed-field", error ? "erp-lookup-field--error" : "", className].filter(Boolean).join(" ")} data-control-type={allowFreeText ? "free-text" : "lookup"}>
       <span>
         {label}
         {required ? <b aria-hidden="true">*</b> : null}
@@ -187,6 +189,7 @@ export function ErpLookupField({
 type NumberValue = number | null;
 
 interface ErpNumberFieldProps {
+  className?: string;
   disabled?: boolean;
   disabledReason?: string;
   error?: string;
@@ -224,6 +227,7 @@ export function parseGovernedNumberInput(value: string, scale?: number): NumberV
 }
 
 export function ErpNumberField({
+  className,
   disabled,
   disabledReason,
   error,
@@ -238,7 +242,7 @@ export function ErpNumberField({
   value
 }: ErpNumberFieldProps) {
   return (
-    <label className={`erp-number-field erp-governed-field ${error ? "erp-lookup-field--error" : ""}`} data-control-type="number">
+    <label className={["erp-number-field erp-governed-field", error ? "erp-lookup-field--error" : "", className].filter(Boolean).join(" ")} data-control-type="number">
       <span>
         {label}
         {required ? <b aria-hidden="true">*</b> : null}
@@ -275,7 +279,7 @@ export function ErpDecimalField({ precision, scale = 3, step, ...props }: ErpDec
   const max = props.max ?? (precision ? 10 ** Math.max(precision - scale, 1) - decimalStep : undefined);
 
   return (
-    <label className={`erp-number-field erp-decimal-field erp-governed-field ${props.error ? "erp-lookup-field--error" : ""}`} data-control-type="decimal">
+    <label className={["erp-number-field erp-decimal-field erp-governed-field", props.error ? "erp-lookup-field--error" : "", props.className].filter(Boolean).join(" ")} data-control-type="decimal">
       <span>
         {props.label}
         {props.required ? <b aria-hidden="true">*</b> : null}
@@ -307,7 +311,7 @@ interface ErpMoneyFieldProps extends Omit<ErpDecimalFieldProps, "unit"> {
 
 export function ErpMoneyField({ currencyCode = "INR", scale = 2, step = 0.01, ...props }: ErpMoneyFieldProps) {
   return (
-    <div className="erp-money-field">
+    <div className={["erp-money-field", props.className].filter(Boolean).join(" ")}>
       <ErpDecimalField {...props} scale={scale} step={step} unit={currencyCode} />
     </div>
   );
@@ -405,6 +409,7 @@ export interface ErpTransactionLineColumn<TLine> {
   header: string;
   key: string;
   render: (line: TLine, index: number) => ReactNode;
+  required?: boolean;
   width?: string;
 }
 
@@ -460,6 +465,7 @@ export function ErpTransactionLineGrid<TLine>({
               {columns.map((column) => (
                 <th key={column.key} style={column.width ? { width: column.width } : undefined} scope="col">
                   {column.header}
+                  {column.required ? <b aria-hidden="true">*</b> : null}
                 </th>
               ))}
             </tr>
@@ -510,12 +516,21 @@ export function ErpTransactionTotalsPanel({ items }: { items: ErpTransactionTota
   );
 }
 
+export function ErpTransactionQuickActions({ actions }: { actions: ErpAction[] }) {
+  return (
+    <div aria-label="Transaction quick actions" className="erp-transaction-quick-actions">
+      <ErpActionBar secondary={actions} />
+    </div>
+  );
+}
+
 interface ErpModalWorkspaceProps {
   description?: string;
   footer?: ReactNode;
   isOpen: boolean;
   onClose: () => void;
   panelClassName?: string;
+  quickActions?: ReactNode;
   sectionNavigation?: ReactNode;
   statusMeta?: ReactNode;
   title: string;
@@ -529,6 +544,7 @@ export function ErpModalWorkspace({
   isOpen,
   onClose,
   panelClassName,
+  quickActions,
   sectionNavigation,
   statusMeta,
   title,
@@ -538,10 +554,15 @@ export function ErpModalWorkspace({
     <ModalDialog
       description={description}
       footer={footer ? <div className="erp-modal-workspace__footer">{footer}</div> : undefined}
-      headerActions={<ScreenHelpButton compact />}
+      headerActions={
+        <div className="erp-modal-workspace__header-actions">
+          {quickActions ? <div className="erp-modal-workspace__quick-actions">{quickActions}</div> : null}
+          <ScreenHelpButton compact />
+        </div>
+      }
       isOpen={isOpen}
       onClose={onClose}
-      panelClassName={["erp-modal-workspace", panelClassName].filter(Boolean).join(" ")}
+      panelClassName={["erp-modal-workspace", "erp-modal-workspace--work", panelClassName].filter(Boolean).join(" ")}
       title={title}
     >
       <div className="erp-modal-workspace__body" data-testid="erp-modal-workspace">
@@ -588,7 +609,7 @@ export function ErpValidationSummary({
         ))}
       </ul>
       {hiddenCount > 0 || expanded ? (
-        <Button onClick={() => setExpanded((current) => !current)} variant="quiet">
+        <Button aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} variant="quiet">
           {expanded ? "Show fewer" : `Show ${hiddenCount} more`}
         </Button>
       ) : null}

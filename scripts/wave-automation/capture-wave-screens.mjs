@@ -182,6 +182,56 @@ async function captureModalScreens(page, outputPrefix, mode) {
 }
 
 async function login(page) {
+  if (config.runtime?.session_mode === "stored-review-session") {
+    const session = {
+      accessToken: "review-access-token",
+      refreshToken: "review-refresh-token",
+      accessTokenExpiresOnUtc: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(),
+      user: {
+        userId: 1,
+        userName: "review.user",
+        displayName: "Review User",
+        email: "review.user@sts.local",
+        languageCode: "en-IN",
+        activeContext: {
+          companyId: 1,
+          branchId: 10,
+          companyCode: "STS",
+          companyName: "STS Precision Fabricators",
+          branchCode: "PLANT-1",
+          branchName: "Main Fabrication Plant"
+        },
+        availableContexts: [
+          {
+            companyId: 1,
+            companyCode: "STS",
+            companyName: "STS Precision Fabricators",
+            branchId: 10,
+            branchCode: "PLANT-1",
+            branchName: "Main Fabrication Plant"
+          }
+        ],
+        roles: ["SuperAdmin", "PlantHead", "QCInspector", "DispatchManager"],
+        scope: {
+          hasDeploymentAccess: false,
+          visibilityMode: "Company",
+          allowedWarehouseIds: [],
+          allowedDepartmentIds: [],
+          teamUserIds: [1]
+        }
+      }
+    };
+
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.evaluate((value) => {
+      window.localStorage.setItem("sts-mfg.web.session", JSON.stringify(value));
+    }, session);
+    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await waitForBodyText(page, "Home Dashboard");
+    await sleep(1500);
+    return;
+  }
+
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
   await waitForBodyText(page, "Sign in to STS Manufacturing ERP");
 

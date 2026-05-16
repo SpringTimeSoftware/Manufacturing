@@ -3,6 +3,8 @@ import { ErpValidationSummary } from "./ErpComponents";
 
 interface FormShellProps {
   title: string;
+  bodyClassName?: string;
+  className?: string;
   description?: string;
   initialFingerprint: string;
   validationErrors?: string[];
@@ -11,7 +13,9 @@ interface FormShellProps {
 
 export function FormShell({
   actions,
+  bodyClassName,
   children,
+  className,
   description,
   initialFingerprint,
   title,
@@ -43,7 +47,7 @@ export function FormShell({
   }, [handleBeforeUnload]);
 
   return (
-    <section className="ui-form-shell">
+    <section className={["ui-form-shell", className].filter(Boolean).join(" ")}>
       <header className="ui-form-shell__header">
         <div>
           <h3>{title}</h3>
@@ -53,7 +57,7 @@ export function FormShell({
       </header>
       <ErpValidationSummary errors={validationErrors} />
       <div
-        className="ui-form-shell__body"
+        className={["ui-form-shell__body", bodyClassName].filter(Boolean).join(" ")}
         onInput={() => {
           setCurrentFingerprint(`dirty:${Date.now()}`);
         }}

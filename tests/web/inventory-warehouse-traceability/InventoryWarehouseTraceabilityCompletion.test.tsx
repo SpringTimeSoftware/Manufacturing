@@ -49,6 +49,7 @@ const stockBalances = [
     binId: 401,
     lotId: 9001,
     serialId: null,
+    pcidId: 9201,
     onHandQty: 20,
     reservedQty: 0,
     qcHoldQty: 0,
@@ -66,6 +67,7 @@ const stockBalances = [
     binId: 402,
     lotId: null,
     serialId: 9102,
+    pcidId: 9202,
     onHandQty: 6,
     reservedQty: 0,
     qcHoldQty: 0,
@@ -146,7 +148,7 @@ describe("Inventory / Warehouse / Traceability completion pack", () => {
     const grid = await screen.findByTestId("stock-posting-line-grid");
     expect(within(grid).getByLabelText("Lot")).toBeInTheDocument();
     expect(within(grid).getByLabelText("Serial")).toBeInTheDocument();
-    expect(within(grid).getByLabelText("License plate / PCID")).toBeDisabled();
+    expect(within(grid).getByLabelText("License plate / PCID")).not.toBeDisabled();
 
     fireEvent.click(within(grid).getByRole("button", { name: "Add Line" }));
     fireEvent.click(within(grid).getByRole("button", { name: "Add Line" }));
@@ -165,14 +167,16 @@ describe("Inventory / Warehouse / Traceability completion pack", () => {
     fireEvent.change(within(grid).getAllByLabelText("Quantity")[1], { target: { value: "3" } });
     fireEvent.change(within(grid).getAllByLabelText("Lot")[0], { target: { value: "9001" } });
     fireEvent.change(within(grid).getAllByLabelText("Serial")[1], { target: { value: "9102" } });
+    fireEvent.change(within(grid).getAllByLabelText("License plate / PCID")[0], { target: { value: "9201" } });
+    fireEvent.change(within(grid).getAllByLabelText("License plate / PCID")[1], { target: { value: "9202" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Post issue" }));
 
     await waitFor(() => expect(issueStock).toHaveBeenCalled());
     const [firstIssueLine, secondIssueLine] = issueStock.mock.calls[0][0].lines;
     expect(issueStock.mock.calls[0][0].lines).toHaveLength(2);
-    expect(firstIssueLine).toMatchObject({ itemId: 101, fromWarehouseId: 301, fromBinId: 401, lotId: 9001, quantity: 2 });
-    expect(secondIssueLine).toMatchObject({ itemId: 102, fromWarehouseId: 301, fromBinId: 402, serialId: 9102, quantity: 3 });
+    expect(firstIssueLine).toMatchObject({ itemId: 101, fromWarehouseId: 301, fromBinId: 401, lotId: 9001, pcidId: 9201, quantity: 2 });
+    expect(secondIssueLine).toMatchObject({ itemId: 102, fromWarehouseId: 301, fromBinId: 402, serialId: 9102, pcidId: 9202, quantity: 3 });
   });
 
   it("loads traceability from route context instead of ignoring the linked lot or serial", async () => {

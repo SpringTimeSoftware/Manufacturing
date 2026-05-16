@@ -1,0 +1,55 @@
+{
+  "created_for": "Remaining 8 ERP completion packs",
+  "date": "2026-05-15",
+  "recommended_execution": "Single pack at a time, with two wave prompts only for sequencing/orientation",
+  "packs": [
+    {
+      "no": "04",
+      "slug": "quality_ncr_coa_completion_pack_v1",
+      "title": "Quality / NCR / COA Completion Pack v1",
+      "wave": "Wave 1"
+    },
+    {
+      "no": "05",
+      "slug": "dispatch_logistics_pod_completion_pack_v1",
+      "title": "Dispatch / Logistics / POD Completion Pack v1",
+      "wave": "Wave 1"
+    },
+    {
+      "no": "06",
+      "slug": "finance_gl_ap_ar_costing_completion_pack_v1",
+      "title": "Finance / GL / AP / AR / Costing Completion Pack v1",
+      "wave": "Wave 1"
+    },
+    {
+      "no": "07",
+      "slug": "reports_dashboard_builder_completion_pack_v1",
+      "title": "Reports / Dashboard Builder Completion Pack v1",
+      "wave": "Wave 1"
+    },
+    {
+      "no": "08",
+      "slug": "integrations_email_whatsapp_crm_ai_completion_pack_v1",
+      "title": "Integrations / Email / WhatsApp / CRM / AI Completion Pack v1",
+      "wave": "Wave 2"
+    },
+    {
+      "no": "09",
+      "slug": "mobile_barcode_camera_offline_completion_pack_v1",
+      "title": "Mobile / Barcode / Camera / Offline Completion Pack v1",
+      "wave": "Wave 2"
+    },
+    {
+      "no": "10",
+      "slug": "udf_customization_completion_pack_v1",
+      "title": "UDF / Customization Completion Pack v1",
+      "wave": "Wave 2"
+    },
+    {
+      "no": "11",
+      "slug": "service_warranty_amc_completion_pack_v1",
+      "title": "Service / Warranty / AMC Completion Pack v1",
+      "wave": "Wave 2 / Later-scope ready"
+    }
+  ]
+}
