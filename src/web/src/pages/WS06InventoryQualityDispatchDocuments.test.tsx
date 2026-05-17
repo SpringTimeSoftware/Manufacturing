@@ -126,6 +126,23 @@ const savedPackList = {
   lines: []
 };
 
+const dispatchDimensionOptions = {
+  bins: [{ id: 2001, code: "FG-A", label: "FG-A - FG A", status: "Active", availableQuantity: 5, disabledReason: null }],
+  lots: [{ id: 70001, code: "LOT-DISP", label: "LOT-DISP", status: "Available", availableQuantity: 5, disabledReason: null }],
+  serials: [{ id: 71001, code: "SN-DISP-001", label: "SN-DISP-001", status: "Available", availableQuantity: 1, disabledReason: null }],
+  pcids: [
+    { id: 91001, code: "PCID-DISP", label: "PCID-DISP (Pallet)", status: "Available", availableQuantity: 5, disabledReason: null },
+    { id: 91002, code: "PCID-BLOCKED", label: "PCID-BLOCKED (Pallet)", status: "Blocked", availableQuantity: 0, disabledReason: "PCID status is Blocked." }
+  ]
+};
+
+function mockDispatchDimensionLookups() {
+  vi.spyOn(apiClient.inventory, "validBins").mockResolvedValue(dispatchDimensionOptions.bins as never);
+  vi.spyOn(apiClient.inventory, "validLots").mockResolvedValue(dispatchDimensionOptions.lots as never);
+  vi.spyOn(apiClient.inventory, "validSerials").mockResolvedValue(dispatchDimensionOptions.serials as never);
+  vi.spyOn(apiClient.inventory, "validPcids").mockResolvedValue(dispatchDimensionOptions.pcids as never);
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -529,6 +546,7 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
     vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue([dispatchItem] as never);
     vi.spyOn(apiClient.organization, "warehouses").mockResolvedValue(paged([dispatchWarehouse]) as never);
     vi.spyOn(apiClient.measurements, "uoms").mockResolvedValue(paged([dispatchUom]) as never);
+    mockDispatchDimensionLookups();
     const createPackList = vi.spyOn(apiClient.dispatch, "createPackList").mockResolvedValue(savedPackList as never);
 
     renderWithApp(
@@ -546,10 +564,12 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
     fireEvent.change(screen.getByLabelText("Warehouse 1"), { target: { value: "201" } });
     fireEvent.change(screen.getByLabelText("Pack UOM 1"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("Packed quantity 1"), { target: { value: "3" } });
+    await screen.findByRole("option", { name: /PCID-BLOCKED.*Blocked/ });
+    fireEvent.change(screen.getByLabelText("PCID 1"), { target: { value: "91001" } });
     fireEvent.click(screen.getByRole("button", { name: "Save pack list" }));
 
     await waitFor(() => expect(createPackList).toHaveBeenCalledWith(expect.objectContaining({ salesOrderId: 8001 })));
-    expect(createPackList.mock.calls[0][0].lines[0]).toMatchObject({ itemId: 10002, warehouseId: 201, packUomId: 1, packedQuantity: 3 });
+    expect(createPackList.mock.calls[0][0].lines[0]).toMatchObject({ itemId: 10002, warehouseId: 201, packUomId: 1, packedQuantity: 3, pcidId: 91001 });
   });
 
   it("prepares a live shipment that posts dispatch line issue context", async () => {
@@ -559,6 +579,7 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
     vi.spyOn(apiClient.masters, "itemLookup").mockResolvedValue([dispatchItem] as never);
     vi.spyOn(apiClient.organization, "warehouses").mockResolvedValue(paged([dispatchWarehouse]) as never);
     vi.spyOn(apiClient.measurements, "uoms").mockResolvedValue(paged([dispatchUom]) as never);
+    mockDispatchDimensionLookups();
     const createShipment = vi.spyOn(apiClient.dispatch, "createShipment").mockResolvedValue({
       id: 1001,
       companyId: 1,
@@ -571,6 +592,15 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
       trackingRef: "LR-77391",
       sealNo: "SEAL-5531",
       proofNotes: "Loaded",
+      transporterName: "STS Transport",
+      driverName: "Ravi Driver",
+      driverContact: "9000000000",
+      deliveryAddressSnapshot: "Customer DC",
+      podReceivedBy: null,
+      podReceiverContact: null,
+      podReceivedOn: null,
+      podEvidenceAttachmentId: null,
+      podRemarks: null,
       status: "Loading",
       loadedOn: null,
       deliveredOn: null,
@@ -594,10 +624,16 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
     fireEvent.change(screen.getByLabelText("Warehouse 1"), { target: { value: "201" } });
     fireEvent.change(screen.getByLabelText("Ship UOM 1"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("Shipped quantity 1"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Transporter carrier"), { target: { value: "STS Transport" } });
+    fireEvent.change(screen.getByLabelText("Driver name"), { target: { value: "Ravi Driver" } });
+    fireEvent.change(screen.getByLabelText("Driver contact"), { target: { value: "9000000000" } });
+    await screen.findByRole("option", { name: /PCID-DISP/ });
+    fireEvent.change(screen.getByLabelText("PCID 1"), { target: { value: "91001" } });
     fireEvent.click(screen.getByRole("button", { name: "Save shipment" }));
 
     await waitFor(() => expect(createShipment).toHaveBeenCalledWith(expect.objectContaining({ customerId: 3001, packListId: 95001 })));
-    expect(createShipment.mock.calls[0][0].lines[0]).toMatchObject({ itemId: 10002, warehouseId: 201, shipUomId: 1, shippedQuantity: 2 });
+    expect(createShipment.mock.calls[0][0]).toMatchObject({ transporterName: "STS Transport", driverName: "Ravi Driver", driverContact: "9000000000" });
+    expect(createShipment.mock.calls[0][0].lines[0]).toMatchObject({ itemId: 10002, warehouseId: 201, shipUomId: 1, shippedQuantity: 2, pcidId: 91001 });
   });
 
   it("saves live shipment proof status and keeps proof upload tied to shipment documents", async () => {
@@ -614,6 +650,15 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
         trackingRef: "LR-77391",
         sealNo: "SEAL-5531",
         proofNotes: "Loading proof pending",
+        transporterName: "STS Transport",
+        driverName: "Ravi Driver",
+        driverContact: "9000000000",
+        deliveryAddressSnapshot: "Customer DC",
+        podReceivedBy: null,
+        podReceiverContact: null,
+        podReceivedOn: null,
+        podEvidenceAttachmentId: null,
+        podRemarks: null,
         status: "Loading",
         loadedOn: null,
         deliveredOn: null,
@@ -629,9 +674,37 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
             binId: 2001,
             lotId: 70001,
             serialId: null,
+            pcidId: 91001,
             shippedQuantity: 20,
+            deliveredQuantity: 0,
+            shortQuantity: 0,
+            damagedQuantity: 0,
             shipUomId: 1,
-            status: "Loaded"
+            status: "Loaded",
+            salesOrderId: 8001,
+            sourceDocumentNo: "SO-LIVE-0001",
+            sourceDocumentLineId: 80002,
+            sourceDocumentRevisionNo: 1,
+            sourceDocumentVersionNo: 1,
+            itemRevisionId: 501,
+            engineeringDocumentRevisionId: null,
+            bomRevisionId: null,
+            routingId: null,
+            unitPrice: 125,
+            priceSourceType: "PriceList",
+            priceListLineId: 7001,
+            discountSchemeId: 8001,
+            discountRuleId: 8101,
+            discountPercent: 0,
+            discountAmount: 0,
+            taxCodeId: 9001,
+            taxRateSnapshot: 20,
+            taxAmount: 25,
+            lineSubtotal: 250,
+            lineTaxableAmount: 250,
+            lineTotalAmount: 275,
+            lineInternalRemarks: "Internal",
+            lineCustomerFacingRemarks: "Customer"
           }
         ],
         stockTransactions: []
@@ -650,9 +723,16 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
     fireEvent.change(screen.getByLabelText("Tracking / LR"), { target: { value: "LR-UPDATED-1" } });
     fireEvent.click(screen.getByRole("button", { name: "Save proof status" }));
 
-    await waitFor(() => expect(updateShipmentProof).toHaveBeenCalledWith(1001, expect.objectContaining({ trackingRef: "LR-UPDATED-1", status: "Loading" })));
+    await waitFor(() => expect(updateShipmentProof).toHaveBeenCalledWith(1001, expect.objectContaining({
+      trackingRef: "LR-UPDATED-1",
+      status: "Loading",
+      lines: [expect.objectContaining({ shipmentLineId: 1002, deliveredQuantity: 20 })]
+    })));
+    fireEvent.change(screen.getByLabelText("POD received by"), { target: { value: "Ajay Receiver" } });
+    fireEvent.change(screen.getByLabelText("POD receiver contact"), { target: { value: "9111111111" } });
+    fireEvent.change(screen.getByLabelText("POD remarks"), { target: { value: "No damage" } });
     fireEvent.click(screen.getByRole("button", { name: "Close shipment" }));
-    await waitFor(() => expect(updateShipmentProof).toHaveBeenCalledWith(1001, expect.objectContaining({ trackingRef: "LR-UPDATED-1", status: "Closed" })));
+    await waitFor(() => expect(updateShipmentProof).toHaveBeenCalledWith(1001, expect.objectContaining({ trackingRef: "LR-UPDATED-1", status: "Closed", podReceivedBy: "Ajay Receiver", podRemarks: "No damage" })));
     expect(screen.getByLabelText("Load proof")).toBeInTheDocument();
   });
 });

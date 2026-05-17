@@ -34,13 +34,14 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 16. `ddl/00-foundation/009_production_execution_tables.sql`
 17. `ddl/00-foundation/010_production_quality_dispatch_tables.sql`
 18. `ddl/20-commercial/090_quality_ncr_coa_completion.sql`
-19. `ddl/00-foundation/020_integration_ai_tables.sql`
-20. `procedures/production/001_machine_board.sql`
-21. `seed/001_minimum_platform_seed.sql`
-22. `seed/002_minimum_org_seed.sql`
-23. `seed/003_minimum_masters_seed.sql`
-24. `seed/005_uat_runtime_seed.sql`
-25. future backfill, seed, and procedure packs in numeric order
+19. `ddl/20-commercial/100_dispatch_logistics_pod_completion.sql`
+20. `ddl/00-foundation/020_integration_ai_tables.sql`
+21. `procedures/production/001_machine_board.sql`
+22. `seed/001_minimum_platform_seed.sql`
+23. `seed/002_minimum_org_seed.sql`
+24. `seed/003_minimum_masters_seed.sql`
+25. `seed/005_uat_runtime_seed.sql`
+26. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 

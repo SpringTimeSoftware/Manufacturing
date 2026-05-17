@@ -254,6 +254,10 @@ internal sealed class DispatchService(
             request.TrackingRef,
             request.SealNo,
             request.ProofNotes,
+            request.TransporterName,
+            request.DriverName,
+            request.DriverContact,
+            request.DeliveryAddressSnapshot,
             request.Status,
             null,
             null,
@@ -295,8 +299,18 @@ internal sealed class DispatchService(
                             null,
                             "Available",
                             line.LotId,
-                            null,
-                            line.SerialId))
+                            SerialId: line.SerialId,
+                            PcidId: line.PcidId,
+                            SourceDocumentNo: request.ShipmentNo,
+                            SourceDocumentLineId: line.Id,
+                            SourceDocumentRevisionNo: line.SourceDocumentRevisionNo,
+                            SourceDocumentVersionNo: line.SourceDocumentVersionNo,
+                            ItemRevisionId: line.ItemRevisionId,
+                            EngineeringDocumentRevisionId: line.EngineeringDocumentRevisionId,
+                            BomRevisionId: line.BomRevisionId,
+                            RoutingId: line.RoutingId,
+                            SalesOrderId: line.SalesOrderId,
+                            SalesOrderLineId: line.SalesOrderLineId))
                         .ToArray()),
                 cancellationToken);
         }
@@ -321,10 +335,15 @@ internal sealed class DispatchService(
         var entity = await DbContext.Shipments.ApplyActiveOrganizationScope(scope).FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
 
         entity = EnsureFound(entity, "Shipment was not found in the active scope.", "dispatch.shipment_not_found");
+        ValidateProofTransition(entity, request);
         var before = await GetShipmentAsync(id, cancellationToken);
-        entity.Update(
-            entity.ShipmentNo,
-            entity.DispatchDate,
+        var proofLines = request.Lines ?? Array.Empty<ShipmentProofLineRequest>();
+        if (proofLines.Count > 0)
+        {
+            await UpdateProofLinesAsync(id, proofLines, cancellationToken);
+        }
+
+        entity.UpdateProof(
             request.VehicleRef ?? entity.VehicleRef,
             request.TrackingRef ?? entity.TrackingRef,
             request.SealNo ?? entity.SealNo,
@@ -332,6 +351,11 @@ internal sealed class DispatchService(
             request.Status,
             request.LoadedOn ?? entity.LoadedOn,
             request.DeliveredOn ?? entity.DeliveredOn,
+            request.PodReceivedBy,
+            request.PodReceiverContact,
+            request.PodReceivedOn ?? request.DeliveredOn,
+            request.PodEvidenceAttachmentId,
+            request.PodRemarks,
             GetUserId());
 
         await DbContext.SaveChangesAsync(cancellationToken);
@@ -472,6 +496,12 @@ internal sealed class DispatchService(
                 line.SerialNo,
                 cancellationToken);
 
+            var snapshot = await ResolveSalesOrderLineSnapshotAsync(request.CompanyId, request.BranchId, request.SalesOrderId, line.SalesOrderLineId, cancellationToken);
+            if (snapshot is not null)
+            {
+                await EnsurePackQuantityWithinOrderBalanceAsync(packListId, snapshot, line.PackedQuantity, cancellationToken);
+            }
+
             lines.Add(PackListLine.Create(
                 packListId,
                 line.LineNo,
@@ -482,6 +512,7 @@ internal sealed class DispatchService(
                 line.BinId,
                 reference.LotId,
                 reference.SerialId,
+                line.PcidId,
                 line.PackedQuantity,
                 line.PackUomId,
                 line.PackageRef,
@@ -499,6 +530,8 @@ internal sealed class DispatchService(
         CancellationToken cancellationToken)
     {
         var lines = new List<ShipmentLine>();
+        var packSalesOrderId = await ResolvePackListSalesOrderIdAsync(packListId, cancellationToken);
+        var checkedSalesOrderLines = new HashSet<long>();
         foreach (var line in request.Lines.OrderBy(record => record.LineNo))
         {
             var reference = await inventoryPostingService.ResolveReferenceAsync(
@@ -513,29 +546,78 @@ internal sealed class DispatchService(
                 line.SerialNo,
                 cancellationToken);
 
+            PackListLine? linkedPackListLine = null;
             if (line.PackListLineId.HasValue)
             {
-                await EnsurePackListLineAsync(packListId, line.PackListLineId.Value, reference.ItemId, cancellationToken);
+                linkedPackListLine = await EnsurePackListLineAsync(packListId, line.PackListLineId.Value, reference.ItemId, line.ShippedQuantity, cancellationToken);
+            }
+
+            var salesOrderLineId = line.SalesOrderLineId ?? linkedPackListLine?.SalesOrderLineId;
+            var snapshot = await ResolveSalesOrderLineSnapshotAsync(request.CompanyId, request.BranchId, packSalesOrderId, salesOrderLineId, cancellationToken);
+            if (snapshot is not null && checkedSalesOrderLines.Add(snapshot.SalesOrderLineId))
+            {
+                var requestQuantity = request.Lines
+                    .Where(record => record.SalesOrderLineId == snapshot.SalesOrderLineId)
+                    .Sum(record => record.ShippedQuantity);
+                await EnsureShipmentQuantityWithinOrderBalanceAsync(snapshot, requestQuantity, cancellationToken);
             }
 
             lines.Add(ShipmentLine.Create(
                 shipmentId,
                 line.LineNo,
                 line.PackListLineId,
-                line.SalesOrderLineId,
+                salesOrderLineId,
                 reference.ItemId,
                 reference.ItemVariantId,
                 line.WarehouseId,
                 line.BinId,
                 reference.LotId,
                 reference.SerialId,
+                line.PcidId,
                 line.ShippedQuantity,
                 line.ShipUomId,
                 line.Status,
+                snapshot?.SalesOrderId,
+                snapshot?.SalesOrderNo,
+                snapshot?.SalesOrderLineId,
+                snapshot?.SourceRevisionNo,
+                snapshot?.SourceVersionNo,
+                snapshot?.ItemRevisionId,
+                snapshot?.EngineeringDocumentRevisionId,
+                snapshot?.BomRevisionId,
+                snapshot?.RoutingId,
+                snapshot?.UnitPrice ?? 0m,
+                snapshot?.PriceSourceType,
+                snapshot?.PriceListLineId,
+                snapshot?.DiscountSchemeId,
+                snapshot?.DiscountRuleId,
+                snapshot?.DiscountPercent ?? 0m,
+                snapshot?.DiscountAmount ?? 0m,
+                snapshot?.TaxCodeId,
+                snapshot?.TaxRateSnapshot ?? 0m,
+                snapshot?.TaxAmount ?? 0m,
+                snapshot?.LineSubtotal ?? 0m,
+                snapshot?.LineTaxableAmount ?? 0m,
+                snapshot?.LineTotalAmount ?? 0m,
+                snapshot?.LineInternalRemarks,
+                snapshot?.LineCustomerFacingRemarks,
                 GetUserId()));
         }
 
         return lines;
+    }
+
+    private async Task<long?> ResolvePackListSalesOrderIdAsync(long? packListId, CancellationToken cancellationToken)
+    {
+        if (!packListId.HasValue)
+        {
+            return null;
+        }
+
+        return await DbContext.PackLists.AsNoTracking()
+            .Where(record => record.Id == packListId.Value)
+            .Select(record => record.SalesOrderId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private async Task<PackList?> ResolvePackListAsync(long companyId, long branchId, long packListId, CancellationToken cancellationToken)
@@ -581,7 +663,8 @@ internal sealed class DispatchService(
         salesOrder = EnsureFound(salesOrder, "Sales order was not found in the active scope.", "sales.salesorder_not_found");
         ThrowIfInvalid(
             salesOrder.CompanyId != companyId ? new ApiError("validation.mismatch", nameof(companyId), "Sales order does not belong to the requested company.") : null,
-            salesOrder.BranchId != branchId ? new ApiError("validation.mismatch", nameof(branchId), "Sales order does not belong to the requested branch.") : null);
+            salesOrder.BranchId != branchId ? new ApiError("validation.mismatch", nameof(branchId), "Sales order does not belong to the requested branch.") : null,
+            IsOrderClosed(salesOrder.Status) ? new ApiError("dispatch.sales_order_closed", nameof(salesOrderId), "Dispatch cannot be created from a cancelled or closed sales order.") : null);
     }
 
     private async Task<ApiError?> ValidateShipmentCustomerAsync(long salesOrderId, long customerId, CancellationToken cancellationToken)
@@ -594,7 +677,7 @@ internal sealed class DispatchService(
             : null;
     }
 
-    private async Task EnsurePackListLineAsync(long? packListId, long packListLineId, long itemId, CancellationToken cancellationToken)
+    private async Task<PackListLine> EnsurePackListLineAsync(long? packListId, long packListLineId, long itemId, decimal shippedQuantity, CancellationToken cancellationToken)
     {
         var packListLine = await DbContext.PackListLines.FirstOrDefaultAsync(record => record.Id == packListLineId, cancellationToken);
         packListLine = EnsureFound(packListLine, "Pack-list line was not found.", "dispatch.packlist_line_not_found");
@@ -605,6 +688,153 @@ internal sealed class DispatchService(
                 : null,
             packListLine.ItemId != itemId
                 ? new ApiError("validation.mismatch", nameof(itemId), "Shipment line item does not match the linked pack-list line.")
+                : null,
+            await GetAlreadyShippedForPackLineAsync(packListLineId, cancellationToken) + shippedQuantity > packListLine.PackedQuantity
+                ? new ApiError("dispatch.pack_quantity_exceeded", nameof(shippedQuantity), "Shipment quantity cannot exceed the packed quantity for the linked pack-list line.")
+                : null);
+
+        return packListLine;
+    }
+
+    private async Task<decimal> GetAlreadyShippedForPackLineAsync(long packListLineId, CancellationToken cancellationToken) =>
+        await DbContext.ShipmentLines.AsNoTracking()
+            .Where(record => record.PackListLineId == packListLineId)
+            .SumAsync(record => record.ShippedQuantity, cancellationToken);
+
+    private async Task<SalesOrderLineDispatchSnapshot?> ResolveSalesOrderLineSnapshotAsync(
+        long companyId,
+        long branchId,
+        long? expectedSalesOrderId,
+        long? salesOrderLineId,
+        CancellationToken cancellationToken)
+    {
+        if (!salesOrderLineId.HasValue)
+        {
+            return null;
+        }
+
+        var scope = GetScope();
+        var row = await (
+            from order in DbContext.SalesOrders.AsNoTracking().ApplyActiveOrganizationScope(scope)
+            join line in DbContext.SalesOrderLines.AsNoTracking() on order.Id equals line.SalesOrderId
+            where line.Id == salesOrderLineId.Value
+            select new { order, line }).FirstOrDefaultAsync(cancellationToken);
+
+        row = EnsureFound(row, "Sales order line was not found in the active scope.", "sales.salesorder_line_not_found");
+
+        ThrowIfInvalid(
+            row.order.CompanyId != companyId ? new ApiError("validation.mismatch", nameof(companyId), "Sales order line does not belong to the requested company.") : null,
+            row.order.BranchId != branchId ? new ApiError("validation.mismatch", nameof(branchId), "Sales order line does not belong to the requested branch.") : null,
+            expectedSalesOrderId.HasValue && row.order.Id != expectedSalesOrderId.Value ? new ApiError("validation.mismatch", nameof(salesOrderLineId), "Dispatch line does not belong to the selected sales order.") : null,
+            IsOrderClosed(row.order.Status) ? new ApiError("dispatch.sales_order_closed", nameof(salesOrderLineId), "Dispatch cannot be created from a cancelled or closed sales order.") : null,
+            IsOrderClosed(row.line.Status) ? new ApiError("dispatch.sales_order_line_closed", nameof(salesOrderLineId), "Dispatch cannot be created from a cancelled or closed sales order line.") : null);
+
+        return new SalesOrderLineDispatchSnapshot(
+            row.order.Id,
+            row.order.SalesOrderNo,
+            row.order.SourceQuoteRevisionNo,
+            row.order.SourceQuoteVersionNo,
+            row.line.Id,
+            row.line.Quantity,
+            row.line.ItemRevisionId,
+            row.line.EngineeringDocumentRevisionId,
+            row.line.BomRevisionId,
+            row.line.RoutingId,
+            row.line.UnitPrice,
+            row.line.PriceSourceType,
+            row.line.PriceListLineId,
+            row.line.DiscountSchemeId,
+            row.line.DiscountRuleId,
+            row.line.DiscountPercent,
+            row.line.DiscountAmount,
+            row.line.TaxCodeId,
+            row.line.TaxRateSnapshot,
+            row.line.TaxAmount,
+            row.line.LineSubtotal,
+            row.line.LineTaxableAmount,
+            row.line.LineTotalAmount,
+            row.line.LineInternalRemarks,
+            row.line.LineCustomerFacingRemarks);
+    }
+
+    private async Task EnsurePackQuantityWithinOrderBalanceAsync(
+        long currentPackListId,
+        SalesOrderLineDispatchSnapshot snapshot,
+        decimal requestedQuantity,
+        CancellationToken cancellationToken)
+    {
+        var alreadyPacked = await DbContext.PackListLines.AsNoTracking()
+            .Where(record => record.SalesOrderLineId == snapshot.SalesOrderLineId && record.PackListId != currentPackListId)
+            .SumAsync(record => record.PackedQuantity, cancellationToken);
+
+        ThrowIfInvalid(alreadyPacked + requestedQuantity > snapshot.OrderQuantity
+            ? new ApiError("dispatch.sales_order_quantity_exceeded", nameof(requestedQuantity), "Packed quantity cannot exceed the open sales order line quantity.")
+            : null);
+    }
+
+    private async Task EnsureShipmentQuantityWithinOrderBalanceAsync(
+        SalesOrderLineDispatchSnapshot snapshot,
+        decimal requestedQuantity,
+        CancellationToken cancellationToken)
+    {
+        var alreadyShipped = await DbContext.ShipmentLines.AsNoTracking()
+            .Where(record => record.SalesOrderLineId == snapshot.SalesOrderLineId)
+            .SumAsync(record => record.ShippedQuantity, cancellationToken);
+
+        ThrowIfInvalid(alreadyShipped + requestedQuantity > snapshot.OrderQuantity
+            ? new ApiError("dispatch.sales_order_quantity_exceeded", nameof(requestedQuantity), "Shipped quantity cannot exceed the open sales order line quantity.")
+            : null);
+    }
+
+    private async Task UpdateProofLinesAsync(long shipmentId, IReadOnlyCollection<ShipmentProofLineRequest> requestLines, CancellationToken cancellationToken)
+    {
+        var lineIds = requestLines.Select(record => record.ShipmentLineId).ToHashSet();
+        var lines = await DbContext.ShipmentLines
+            .Where(record => record.ShipmentId == shipmentId && lineIds.Contains(record.Id))
+            .ToListAsync(cancellationToken);
+
+        ThrowIfInvalid(lines.Count != lineIds.Count
+            ? new ApiError("dispatch.pod_line_not_found", nameof(requestLines), "One or more POD lines do not belong to the selected shipment.")
+            : null);
+
+        foreach (var requestLine in requestLines)
+        {
+            var line = lines.Single(record => record.Id == requestLine.ShipmentLineId);
+            ThrowIfInvalid(
+                requestLine.DeliveredQuantity < 0 ? new ApiError("validation.out_of_range", nameof(requestLine.DeliveredQuantity), "Delivered quantity cannot be negative.") : null,
+                requestLine.ShortQuantity < 0 ? new ApiError("validation.out_of_range", nameof(requestLine.ShortQuantity), "Short quantity cannot be negative.") : null,
+                requestLine.DamagedQuantity < 0 ? new ApiError("validation.out_of_range", nameof(requestLine.DamagedQuantity), "Damaged quantity cannot be negative.") : null,
+                requestLine.DeliveredQuantity + requestLine.ShortQuantity + requestLine.DamagedQuantity > line.ShippedQuantity
+                    ? new ApiError("dispatch.pod_quantity_exceeded", nameof(requestLine.DeliveredQuantity), "Delivered, short, and damaged quantities cannot exceed shipped quantity.")
+                    : null);
+
+            var nextStatus = requestLine.DeliveredQuantity + requestLine.ShortQuantity + requestLine.DamagedQuantity >= line.ShippedQuantity
+                ? "PodRecorded"
+                : line.Status;
+            line.UpdatePod(requestLine.DeliveredQuantity, requestLine.ShortQuantity, requestLine.DamagedQuantity, nextStatus, GetUserId());
+        }
+    }
+
+    private static void ValidateProofTransition(Shipment entity, ShipmentProofRequest request)
+    {
+        var nextStatus = request.Status.Trim();
+        var isPodStatus =
+            nextStatus.Equals("Delivered", StringComparison.OrdinalIgnoreCase) ||
+            nextStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase);
+        var isShippedStatus =
+            entity.Status.Equals("Dispatched", StringComparison.OrdinalIgnoreCase) ||
+            entity.Status.Equals("Delivered", StringComparison.OrdinalIgnoreCase) ||
+            entity.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase);
+
+        ThrowIfInvalid(
+            isPodStatus && !isShippedStatus
+                ? new ApiError("dispatch.pod_before_shipment", nameof(request.Status), "POD cannot be recorded before shipment is dispatched.")
+                : null,
+            isPodStatus && string.IsNullOrWhiteSpace(request.PodReceivedBy)
+                ? new ApiError("validation.required", nameof(request.PodReceivedBy), "Received-by is required before recording POD.")
+                : null,
+            isPodStatus && !request.DeliveredOn.HasValue && !request.PodReceivedOn.HasValue
+                ? new ApiError("validation.required", nameof(request.DeliveredOn), "Delivered date/time is required before recording POD.")
                 : null);
     }
 
@@ -672,15 +902,15 @@ internal sealed class DispatchService(
             return new Dictionary<long, IReadOnlyCollection<StockTransactionDto>>();
         }
 
-        return await DbContext.StockTransactions.AsNoTracking()
+        var rows = await DbContext.StockTransactions.AsNoTracking()
             .Where(record => record.SourceDocumentType == documentType && record.SourceDocumentId.HasValue && ids.Contains(record.SourceDocumentId.Value))
             .OrderBy(record => record.PostingDate)
             .ThenBy(record => record.Id)
+            .ToListAsync(cancellationToken);
+
+        return rows
             .GroupBy(record => record.SourceDocumentId!.Value)
-            .ToDictionaryAsync(
-                group => group.Key,
-                group => (IReadOnlyCollection<StockTransactionDto>)group.Select(MapStockTransaction).ToArray(),
-                cancellationToken);
+            .ToDictionary(group => group.Key, group => (IReadOnlyCollection<StockTransactionDto>)group.Select(MapStockTransaction).ToArray());
     }
 
     private async Task<IReadOnlyCollection<StockTransactionDto>> LoadStockTransactionsForDocumentAsync(string documentType, long id, CancellationToken cancellationToken)
@@ -1210,19 +1440,63 @@ internal sealed class DispatchService(
     }
 
     private static void ValidateShipmentProof(ShipmentProofRequest request) =>
-        ThrowIfInvalid(Required(request.Status, nameof(request.Status), "Shipment status is required."));
+        ThrowIfInvalid(
+            Required(request.Status, nameof(request.Status), "Shipment status is required."),
+            MaxLength(request.PodReceivedBy, 128, nameof(request.PodReceivedBy), "Received-by cannot exceed 128 characters."),
+            MaxLength(request.PodReceiverContact, 64, nameof(request.PodReceiverContact), "Receiver contact cannot exceed 64 characters."));
 
     private static PackListLineDto MapPackListLine(PackListLine entity) =>
-        new(entity.Id, entity.LineNo, entity.SalesOrderLineId, entity.ItemId, entity.ItemVariantId, entity.WarehouseId, entity.BinId, entity.LotId, entity.SerialId, entity.PackedQuantity, entity.PackUomId, entity.PackageRef, entity.Status);
+        new(entity.Id, entity.LineNo, entity.SalesOrderLineId, entity.ItemId, entity.ItemVariantId, entity.WarehouseId, entity.BinId, entity.LotId, entity.SerialId, entity.PcidId, entity.PackedQuantity, entity.PackUomId, entity.PackageRef, entity.Status);
 
     private static PackListDto MapPackList(PackList entity, IReadOnlyCollection<PackListLineDto> lines) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.PackListNo, entity.SalesOrderId, entity.PlannedShipDate, entity.Status, entity.Remarks, lines);
 
     private static ShipmentLineDto MapShipmentLine(ShipmentLine entity) =>
-        new(entity.Id, entity.LineNo, entity.PackListLineId, entity.SalesOrderLineId, entity.ItemId, entity.ItemVariantId, entity.WarehouseId, entity.BinId, entity.LotId, entity.SerialId, entity.ShippedQuantity, entity.ShipUomId, entity.Status);
+        new(
+            entity.Id,
+            entity.LineNo,
+            entity.PackListLineId,
+            entity.SalesOrderLineId,
+            entity.ItemId,
+            entity.ItemVariantId,
+            entity.WarehouseId,
+            entity.BinId,
+            entity.LotId,
+            entity.SerialId,
+            entity.PcidId,
+            entity.ShippedQuantity,
+            entity.DeliveredQuantity,
+            entity.ShortQuantity,
+            entity.DamagedQuantity,
+            entity.ShipUomId,
+            entity.Status,
+            entity.SalesOrderId,
+            entity.SourceDocumentNo,
+            entity.SourceDocumentLineId,
+            entity.SourceDocumentRevisionNo,
+            entity.SourceDocumentVersionNo,
+            entity.ItemRevisionId,
+            entity.EngineeringDocumentRevisionId,
+            entity.BomRevisionId,
+            entity.RoutingId,
+            entity.UnitPrice,
+            entity.PriceSourceType,
+            entity.PriceListLineId,
+            entity.DiscountSchemeId,
+            entity.DiscountRuleId,
+            entity.DiscountPercent,
+            entity.DiscountAmount,
+            entity.TaxCodeId,
+            entity.TaxRateSnapshot,
+            entity.TaxAmount,
+            entity.LineSubtotal,
+            entity.LineTaxableAmount,
+            entity.LineTotalAmount,
+            entity.LineInternalRemarks,
+            entity.LineCustomerFacingRemarks);
 
     private static ShipmentDto MapShipment(Shipment entity, IReadOnlyCollection<ShipmentLineDto> lines, IReadOnlyCollection<StockTransactionDto> stockTransactions) =>
-        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.ShipmentNo, entity.PackListId, entity.CustomerId, entity.DispatchDate, entity.VehicleRef, entity.TrackingRef, entity.SealNo, entity.ProofNotes, entity.Status, entity.LoadedOn, entity.DeliveredOn, lines, stockTransactions);
+        new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.ShipmentNo, entity.PackListId, entity.CustomerId, entity.DispatchDate, entity.VehicleRef, entity.TrackingRef, entity.SealNo, entity.ProofNotes, entity.TransporterName, entity.DriverName, entity.DriverContact, entity.DeliveryAddressSnapshot, entity.PodReceivedBy, entity.PodReceiverContact, entity.PodReceivedOn, entity.PodEvidenceAttachmentId, entity.PodRemarks, entity.Status, entity.LoadedOn, entity.DeliveredOn, lines, stockTransactions);
 
     private static StockTransactionDto MapStockTransaction(StockTransaction entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.TransactionNo, entity.TransactionType, entity.PostingDate, entity.ItemId, entity.ItemVariantId, entity.FromWarehouseId, entity.FromBinId, entity.ToWarehouseId, entity.ToBinId, entity.LotId, entity.SerialId, entity.PcidId, entity.Quantity, entity.CatchWeightQty, entity.InventoryState, entity.SourceDocumentType, entity.SourceDocumentId, entity.Remarks, entity.SourceDocumentNo, entity.SourceDocumentLineId, entity.SourceDocumentRevisionNo, entity.SourceDocumentVersionNo, entity.ItemRevisionId, entity.EngineeringDocumentRevisionId, entity.BomRevisionId, entity.RoutingId, entity.RoutingRevisionId, entity.WorkOrderId, entity.ProductionOrderId, entity.SalesOrderId, entity.SalesOrderLineId, entity.PurchaseOrderId, entity.PurchaseOrderLineId, entity.QualityDocumentId, entity.LegacyTrackingIncomplete);
@@ -1244,6 +1518,33 @@ internal sealed class DispatchService(
     private sealed record DowntimeLink(long WorkOrderId, decimal DurationMinutes, DateTimeOffset StartOn);
 
     private sealed record StageSnapshot(string StageCode, string StageStatus, string OwnerRole);
+
+    private sealed record SalesOrderLineDispatchSnapshot(
+        long SalesOrderId,
+        string SalesOrderNo,
+        int? SourceRevisionNo,
+        int? SourceVersionNo,
+        long SalesOrderLineId,
+        decimal OrderQuantity,
+        long? ItemRevisionId,
+        long? EngineeringDocumentRevisionId,
+        long? BomRevisionId,
+        long? RoutingId,
+        decimal UnitPrice,
+        string PriceSourceType,
+        long? PriceListLineId,
+        long? DiscountSchemeId,
+        long? DiscountRuleId,
+        decimal DiscountPercent,
+        decimal DiscountAmount,
+        long? TaxCodeId,
+        decimal TaxRateSnapshot,
+        decimal TaxAmount,
+        decimal LineSubtotal,
+        decimal LineTaxableAmount,
+        decimal LineTotalAmount,
+        string? LineInternalRemarks,
+        string? LineCustomerFacingRemarks);
 
     private sealed record OrderSnapshot(
         long SalesOrderId,

@@ -4537,6 +4537,7 @@ export interface PackListLineDto {
   binId: number | null;
   lotId: number | null;
   serialId: number | null;
+  pcidId?: number | null;
   packedQuantity: number;
   packUomId: number;
   packageRef: string | null;
@@ -4564,6 +4565,7 @@ export interface PackListLineRequest {
   binId?: number | null;
   lotId?: number | null;
   serialId?: number | null;
+  pcidId?: number | null;
   packedQuantity: number;
   packUomId: number;
   packageRef?: string | null;
@@ -4572,6 +4574,7 @@ export interface PackListLineRequest {
   itemVariantCode?: string | null;
   lotNo?: string | null;
   serialNo?: string | null;
+  pcidNo?: string | null;
 }
 
 export interface PackListUpsertRequest {
@@ -4596,9 +4599,37 @@ export interface ShipmentLineDto {
   binId: number | null;
   lotId: number | null;
   serialId: number | null;
+  pcidId?: number | null;
   shippedQuantity: number;
+  deliveredQuantity?: number;
+  shortQuantity?: number;
+  damagedQuantity?: number;
   shipUomId: number;
   status: string;
+  salesOrderId?: number | null;
+  sourceDocumentNo?: string | null;
+  sourceDocumentLineId?: number | null;
+  sourceDocumentRevisionNo?: number | null;
+  sourceDocumentVersionNo?: number | null;
+  itemRevisionId?: number | null;
+  engineeringDocumentRevisionId?: number | null;
+  bomRevisionId?: number | null;
+  routingId?: number | null;
+  unitPrice?: number;
+  priceSourceType?: string | null;
+  priceListLineId?: number | null;
+  discountSchemeId?: number | null;
+  discountRuleId?: number | null;
+  discountPercent?: number;
+  discountAmount?: number;
+  taxCodeId?: number | null;
+  taxRateSnapshot?: number;
+  taxAmount?: number;
+  lineSubtotal?: number;
+  lineTaxableAmount?: number;
+  lineTotalAmount?: number;
+  lineInternalRemarks?: string | null;
+  lineCustomerFacingRemarks?: string | null;
 }
 
 export interface ShipmentDto {
@@ -4613,6 +4644,15 @@ export interface ShipmentDto {
   trackingRef: string | null;
   sealNo: string | null;
   proofNotes: string | null;
+  transporterName?: string | null;
+  driverName?: string | null;
+  driverContact?: string | null;
+  deliveryAddressSnapshot?: string | null;
+  podReceivedBy?: string | null;
+  podReceiverContact?: string | null;
+  podReceivedOn?: string | null;
+  podEvidenceAttachmentId?: number | null;
+  podRemarks?: string | null;
   status: string;
   loadedOn: string | null;
   deliveredOn: string | null;
@@ -4630,6 +4670,7 @@ export interface ShipmentLineRequest {
   binId?: number | null;
   lotId?: number | null;
   serialId?: number | null;
+  pcidId?: number | null;
   shippedQuantity: number;
   shipUomId: number;
   status: string;
@@ -4637,6 +4678,7 @@ export interface ShipmentLineRequest {
   itemVariantCode?: string | null;
   lotNo?: string | null;
   serialNo?: string | null;
+  pcidNo?: string | null;
 }
 
 export interface ShipmentUpsertRequest {
@@ -4650,8 +4692,19 @@ export interface ShipmentUpsertRequest {
   trackingRef?: string | null;
   sealNo?: string | null;
   proofNotes?: string | null;
+  transporterName?: string | null;
+  driverName?: string | null;
+  driverContact?: string | null;
+  deliveryAddressSnapshot?: string | null;
   status: string;
   lines: ShipmentLineRequest[];
+}
+
+export interface ShipmentProofLineRequest {
+  shipmentLineId: number;
+  deliveredQuantity: number;
+  shortQuantity: number;
+  damagedQuantity: number;
 }
 
 export interface ShipmentProofRequest {
@@ -4660,6 +4713,12 @@ export interface ShipmentProofRequest {
   sealNo: string | null;
   proofNotes: string | null;
   status: string;
+  podReceivedBy?: string | null;
+  podReceiverContact?: string | null;
+  podReceivedOn?: string | null;
+  podEvidenceAttachmentId?: number | null;
+  podRemarks?: string | null;
+  lines?: ShipmentProofLineRequest[] | null;
   loadedOn?: string | null;
   deliveredOn?: string | null;
 }

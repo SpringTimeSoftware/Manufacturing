@@ -2,6 +2,10 @@
 
 This folder stores prompt-by-prompt execution notes for the STS Manufacturing ERP repository.
 
+## Latest Pack Outputs
+
+- `DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05` completed on 2026-05-17. Output: `docs/codex-progress/DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05-output.md`.
+
 ## Execution Rules
 
 1. Read each prompt's required artifacts before making changes.

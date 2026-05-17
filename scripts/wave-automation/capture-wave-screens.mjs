@@ -182,10 +182,11 @@ async function captureModalScreens(page, outputPrefix, mode) {
 }
 
 async function login(page) {
-  if (config.runtime?.session_mode === "stored-review-session") {
+  if (config.runtime?.session_mode === "stored-review-session" || config.runtime?.session_mode === "stored-demo-session") {
+    const isDemo = config.runtime?.session_mode === "stored-demo-session";
     const session = {
-      accessToken: "review-access-token",
-      refreshToken: "review-refresh-token",
+      accessToken: isDemo ? "demo-review-access-token" : "review-access-token",
+      refreshToken: isDemo ? "demo-review-refresh-token" : "review-refresh-token",
       accessTokenExpiresOnUtc: new Date(Date.now() + 1000 * 60 * 60 * 4).toISOString(),
       user: {
         userId: 1,

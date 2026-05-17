@@ -1,0 +1,46 @@
+{
+  "wave_id": "DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05",
+  "screenshot_mode": "top_only",
+  "captures": [
+    {
+      "route": "/dispatch/planning",
+      "files": [
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\dispatch-planning-top.png"
+      ]
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "files": [
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\pack-list-register-top.png"
+      ]
+    },
+    {
+      "route": "/dispatch/shipments",
+      "files": [
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\shipment-register-top.png"
+      ]
+    },
+    {
+      "route": "/dispatch/shipments?shipment=SHIP-2026-0029",
+      "files": [
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\shipment-pod-detail-top.png"
+      ]
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "modal": "Create pack list",
+      "files": [
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\pack-list-workspace-overview.png",
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\pack-list-workspace-lower.png"
+      ]
+    },
+    {
+      "route": "/dispatch/shipments",
+      "modal": "Prepare shipment",
+      "files": [
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\shipment-workspace-overview.png",
+        "docs\\codex-review-screens\\DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05\\shipment-workspace-lower.png"
+      ]
+    }
+  ]
+}

@@ -26,6 +26,7 @@ public sealed record PackListLineDto(
     long? BinId,
     long? LotId,
     long? SerialId,
+    long? PcidId,
     decimal PackedQuantity,
     long PackUomId,
     string? PackageRef,
@@ -51,6 +52,7 @@ public sealed record PackListLineRequest(
     long? BinId,
     long? LotId,
     long? SerialId,
+    long? PcidId,
     decimal PackedQuantity,
     long PackUomId,
     string? PackageRef,
@@ -58,7 +60,8 @@ public sealed record PackListLineRequest(
     string? ItemCode = null,
     string? ItemVariantCode = null,
     string? LotNo = null,
-    string? SerialNo = null);
+    string? SerialNo = null,
+    string? PcidNo = null);
 
 public sealed record PackListUpsertRequest(
     long CompanyId,
@@ -81,9 +84,37 @@ public sealed record ShipmentLineDto(
     long? BinId,
     long? LotId,
     long? SerialId,
+    long? PcidId,
     decimal ShippedQuantity,
+    decimal DeliveredQuantity,
+    decimal ShortQuantity,
+    decimal DamagedQuantity,
     long ShipUomId,
-    string Status);
+    string Status,
+    long? SalesOrderId,
+    string? SourceDocumentNo,
+    long? SourceDocumentLineId,
+    int? SourceDocumentRevisionNo,
+    int? SourceDocumentVersionNo,
+    long? ItemRevisionId,
+    long? EngineeringDocumentRevisionId,
+    long? BomRevisionId,
+    long? RoutingId,
+    decimal UnitPrice,
+    string? PriceSourceType,
+    long? PriceListLineId,
+    long? DiscountSchemeId,
+    long? DiscountRuleId,
+    decimal DiscountPercent,
+    decimal DiscountAmount,
+    long? TaxCodeId,
+    decimal TaxRateSnapshot,
+    decimal TaxAmount,
+    decimal LineSubtotal,
+    decimal LineTaxableAmount,
+    decimal LineTotalAmount,
+    string? LineInternalRemarks,
+    string? LineCustomerFacingRemarks);
 
 public sealed record ShipmentDto(
     long Id,
@@ -97,6 +128,15 @@ public sealed record ShipmentDto(
     string? TrackingRef,
     string? SealNo,
     string? ProofNotes,
+    string? TransporterName,
+    string? DriverName,
+    string? DriverContact,
+    string? DeliveryAddressSnapshot,
+    string? PodReceivedBy,
+    string? PodReceiverContact,
+    DateTimeOffset? PodReceivedOn,
+    long? PodEvidenceAttachmentId,
+    string? PodRemarks,
     string Status,
     DateTimeOffset? LoadedOn,
     DateTimeOffset? DeliveredOn,
@@ -113,13 +153,15 @@ public sealed record ShipmentLineRequest(
     long? BinId,
     long? LotId,
     long? SerialId,
+    long? PcidId,
     decimal ShippedQuantity,
     long ShipUomId,
     string Status,
     string? ItemCode = null,
     string? ItemVariantCode = null,
     string? LotNo = null,
-    string? SerialNo = null);
+    string? SerialNo = null,
+    string? PcidNo = null);
 
 public sealed record ShipmentUpsertRequest(
     long CompanyId,
@@ -132,6 +174,10 @@ public sealed record ShipmentUpsertRequest(
     string? TrackingRef,
     string? SealNo,
     string? ProofNotes,
+    string? TransporterName,
+    string? DriverName,
+    string? DriverContact,
+    string? DeliveryAddressSnapshot,
     string Status,
     IReadOnlyCollection<ShipmentLineRequest> Lines);
 
@@ -141,8 +187,20 @@ public sealed record ShipmentProofRequest(
     string? SealNo,
     string? ProofNotes,
     string Status,
+    string? PodReceivedBy = null,
+    string? PodReceiverContact = null,
+    DateTimeOffset? PodReceivedOn = null,
+    long? PodEvidenceAttachmentId = null,
+    string? PodRemarks = null,
+    IReadOnlyCollection<ShipmentProofLineRequest>? Lines = null,
     DateTimeOffset? LoadedOn = null,
     DateTimeOffset? DeliveredOn = null);
+
+public sealed record ShipmentProofLineRequest(
+    long ShipmentLineId,
+    decimal DeliveredQuantity,
+    decimal ShortQuantity,
+    decimal DamagedQuantity);
 
 public sealed record DispatchPlanningItemDto(
     long SalesOrderId,

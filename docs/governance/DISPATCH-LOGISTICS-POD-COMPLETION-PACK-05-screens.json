@@ -1,0 +1,49 @@
+{
+  "wave_id": "DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05",
+  "runtime": {
+    "web_url": "http://127.0.0.1:5173",
+    "session_mode": "stored-demo-session"
+  },
+  "screenshot_mode": "top_only",
+  "routes_to_capture": [
+    {
+      "route": "/dispatch/planning",
+      "ready_text": "Dispatch Planning",
+      "output_prefix": "dispatch-planning"
+    },
+    {
+      "route": "/dispatch/pack-lists",
+      "ready_text": "Pack List",
+      "output_prefix": "pack-list-register"
+    },
+    {
+      "route": "/dispatch/shipments",
+      "ready_text": "Shipment / Delivery",
+      "output_prefix": "shipment-register"
+    },
+    {
+      "route": "/dispatch/shipments?shipment=SHIP-2026-0029",
+      "ready_text": "Shipment controls",
+      "output_prefix": "shipment-pod-detail",
+      "screenshot_mode": "top_mid_bottom"
+    }
+  ],
+  "modal_routes_to_capture": [
+    {
+      "route": "/dispatch/pack-lists",
+      "ready_text": "Pack List",
+      "open_action_label": "Create pack list",
+      "modal_ready_text": "Pack lines",
+      "output_prefix": "pack-list-workspace",
+      "screenshot_mode": "top_mid_bottom"
+    },
+    {
+      "route": "/dispatch/shipments",
+      "ready_text": "Shipment / Delivery",
+      "open_action_label": "Prepare shipment",
+      "modal_ready_text": "Shipment lines",
+      "output_prefix": "shipment-workspace",
+      "screenshot_mode": "top_mid_bottom"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import type { MasterDataSource } from "../masters/masterDataAdapters";
 
 export interface PackListLineItem {
   id: string;
+  packListLineId: number;
   lineNo: number;
   itemLabel: string;
   locationLabel: string;
@@ -53,11 +54,20 @@ export interface DispatchPlanningItem {
 
 export interface ShipmentLineItem {
   id: string;
+  shipmentLineId: number;
   lineNo: number;
   itemLabel: string;
   locationLabel: string;
   traceLabel: string;
   shippedQuantity: number;
+  deliveredQuantity: number;
+  shortQuantity: number;
+  damagedQuantity: number;
+  salesOrderLabel: string;
+  sourceReferenceLabel: string;
+  revisionLabel: string;
+  commercialSnapshotLabel: string;
+  lineRemarks: string;
   status: string;
 }
 
@@ -72,6 +82,15 @@ export interface ShipmentItem {
   trackingRef: string;
   sealNo: string;
   proofNotes: string;
+  transporterName: string;
+  driverName: string;
+  driverContact: string;
+  deliveryAddressSnapshot: string;
+  podReceivedBy: string;
+  podReceiverContact: string;
+  podReceivedLabel: string;
+  podEvidenceAttachmentId: number | null;
+  podRemarks: string;
   status: string;
   loadedLabel: string;
   deliveredLabel: string;
@@ -109,29 +128,29 @@ function locationLabel(warehouseId: number | null | undefined, binId: number | n
   return `${warehouseId ? `WH ${warehouseId}` : "No warehouse"} / ${binId ? `BIN ${binId}` : "No bin"}`;
 }
 
-function traceLabel(lotId: number | null | undefined, serialId: number | null | undefined) {
-  if (lotId && serialId) {
-    return `Lot ${lotId} / Serial ${serialId}`;
-  }
-
+function traceLabel(lotId: number | null | undefined, serialId: number | null | undefined, pcidId?: number | null) {
+  const parts: string[] = [];
   if (lotId) {
-    return `Lot ${lotId}`;
+    parts.push(`Lot ${lotId}`);
   }
-
   if (serialId) {
-    return `Serial ${serialId}`;
+    parts.push(`Serial ${serialId}`);
+  }
+  if (pcidId) {
+    parts.push(`PCID ${pcidId}`);
   }
 
-  return "No trace";
+  return parts.length > 0 ? parts.join(" / ") : "No trace";
 }
 
 function mapPackLine(line: PackListLineDto): PackListLineItem {
   return {
     id: `pack-line-${line.id}`,
+    packListLineId: line.id,
     lineNo: line.lineNo,
     itemLabel: itemLabel(line.itemId),
     locationLabel: locationLabel(line.warehouseId, line.binId),
-    traceLabel: traceLabel(line.lotId, line.serialId),
+    traceLabel: traceLabel(line.lotId, line.serialId, line.pcidId),
     packageRef: line.packageRef ?? "Unpacked",
     packedQuantity: line.packedQuantity,
     status: line.status
@@ -177,11 +196,27 @@ function mapPlanning(dto: DispatchPlanningItemDto, source: MasterDataSource): Di
 function mapShipmentLine(line: ShipmentLineDto): ShipmentLineItem {
   return {
     id: `shipment-line-${line.id}`,
+    shipmentLineId: line.id,
     lineNo: line.lineNo,
     itemLabel: itemLabel(line.itemId),
     locationLabel: locationLabel(line.warehouseId, line.binId),
-    traceLabel: traceLabel(line.lotId, line.serialId),
+    traceLabel: traceLabel(line.lotId, line.serialId, line.pcidId),
     shippedQuantity: line.shippedQuantity,
+    deliveredQuantity: line.deliveredQuantity ?? 0,
+    shortQuantity: line.shortQuantity ?? 0,
+    damagedQuantity: line.damagedQuantity ?? 0,
+    salesOrderLabel: line.salesOrderId ? `SO ${line.salesOrderId}` : "No SO link",
+    sourceReferenceLabel: line.sourceDocumentNo
+      ? `${line.sourceDocumentNo}${line.sourceDocumentLineId ? ` / line ${line.sourceDocumentLineId}` : ""}`
+      : "No source snapshot",
+    revisionLabel: [
+      line.sourceDocumentRevisionNo ? `Doc rev ${line.sourceDocumentRevisionNo}` : null,
+      line.itemRevisionId ? `Item rev ${line.itemRevisionId}` : null,
+      line.bomRevisionId ? `BOM ${line.bomRevisionId}` : null,
+      line.routingId ? `Routing ${line.routingId}` : null
+    ].filter(Boolean).join(" / ") || "No revision snapshot",
+    commercialSnapshotLabel: `Unit ${line.unitPrice ?? 0} / Tax ${line.taxAmount ?? 0} / Total ${line.lineTotalAmount ?? 0}`,
+    lineRemarks: line.lineCustomerFacingRemarks ?? line.lineInternalRemarks ?? "No line remarks",
     status: line.status
   };
 }
@@ -200,6 +235,15 @@ function mapShipment(dto: ShipmentDto, source: MasterDataSource): ShipmentItem {
     trackingRef: dto.trackingRef ?? "Tracking pending",
     sealNo: dto.sealNo ?? "Seal pending",
     proofNotes: dto.proofNotes ?? "Proof pending",
+    transporterName: dto.transporterName ?? "Carrier pending",
+    driverName: dto.driverName ?? "Driver pending",
+    driverContact: dto.driverContact ?? "Contact pending",
+    deliveryAddressSnapshot: dto.deliveryAddressSnapshot ?? "Delivery address pending",
+    podReceivedBy: dto.podReceivedBy ?? "",
+    podReceiverContact: dto.podReceiverContact ?? "",
+    podReceivedLabel: dateTimeLabel(dto.podReceivedOn),
+    podEvidenceAttachmentId: dto.podEvidenceAttachmentId ?? null,
+    podRemarks: dto.podRemarks ?? "",
     status: dto.status,
     loadedLabel: dateTimeLabel(dto.loadedOn),
     deliveredLabel: dateTimeLabel(dto.deliveredOn),
@@ -226,16 +270,18 @@ const seededPackLists: PackListItem[] = [
     lines: [
       {
         id: "pack-pl-0042-line-1",
+        packListLineId: 81011,
         lineNo: 10,
         itemLabel: "FG-OZ-50 / Ozone Generator 50 LPH",
         locationLabel: "FG-DISPATCH / FG-STAGE-02",
-        traceLabel: "SN-OZ50-0189-01",
+        traceLabel: "SN-OZ50-0189-01 / PCID PALLET-0042",
         packageRef: "Carton 1",
         packedQuantity: 1,
         status: "Packed"
       },
       {
         id: "pack-pl-0042-line-2",
+        packListLineId: 81012,
         lineNo: 20,
         itemLabel: "ACC-INSTALL-KIT / Install Kit",
         locationLabel: "FG-DISPATCH / FG-STAGE-02",
@@ -289,6 +335,15 @@ const seededShipments: ShipmentItem[] = [
     trackingRef: "LR-77391",
     sealNo: "SEAL-5531",
     proofNotes: "Loading photos pending from mobile.",
+    transporterName: "STS Transport",
+    driverName: "Ravi Driver",
+    driverContact: "9000000000",
+    deliveryAddressSnapshot: "Customer receiving dock",
+    podReceivedBy: "",
+    podReceiverContact: "",
+    podReceivedLabel: "Open",
+    podEvidenceAttachmentId: null,
+    podRemarks: "",
     status: "Loading",
     loadedLabel: "Open",
     deliveredLabel: "Open",
@@ -298,11 +353,20 @@ const seededShipments: ShipmentItem[] = [
     lines: [
       {
         id: "shipment-dc-0029-line-1",
+        shipmentLineId: 82011,
         lineNo: 10,
         itemLabel: "FG-OZ-50 / Ozone Generator 50 LPH",
         locationLabel: "FG-DISPATCH / FG-STAGE-02",
-        traceLabel: "SN-OZ50-0189-01",
+        traceLabel: "SN-OZ50-0189-01 / PCID PALLET-0042",
         shippedQuantity: 1,
+        deliveredQuantity: 0,
+        shortQuantity: 0,
+        damagedQuantity: 0,
+        salesOrderLabel: "SO-2026-0189",
+        sourceReferenceLabel: "SO-2026-0189 / line 10",
+        revisionLabel: "Doc rev 1 / Item rev 1",
+        commercialSnapshotLabel: "Unit 0 / Tax 0 / Total 0",
+        lineRemarks: "No line remarks",
         status: "Loaded"
       }
     ]

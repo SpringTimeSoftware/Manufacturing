@@ -1,6 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import type { PackListUpsertRequest, ShipmentUpsertRequest } from "../api/contracts";
+import type { InventoryDimensionOptionDto, PackListUpsertRequest, ShipmentProofRequest, ShipmentUpsertRequest } from "../api/contracts";
 import { queryKeys, useApiMutation, useApiQuery } from "../api/hooks";
 import { apiClient } from "../api/http";
 import { hasLiveSession } from "../api/liveData";
@@ -63,6 +63,7 @@ interface DispatchLineDraft {
   binId: number | null;
   lotId: number | null;
   serialId: number | null;
+  pcidId: number | null;
   quantity: number;
   uomId: number | null;
   packageRef: string;
@@ -89,6 +90,10 @@ interface ShipmentDraft {
   trackingRef: string;
   sealNo: string;
   proofNotes: string;
+  transporterName: string;
+  driverName: string;
+  driverContact: string;
+  deliveryAddressSnapshot: string;
   status: string;
   lines: DispatchLineDraft[];
 }
@@ -122,6 +127,14 @@ function entityOptions<T>(items: T[] | undefined, getValue: (item: T) => number,
   return (items ?? []).map((item) => ({ label: getLabel(item), value: String(getValue(item)) }));
 }
 
+function dimensionOptions(items: InventoryDimensionOptionDto[] | undefined) {
+  return (items ?? []).map((item) => ({
+    disabled: Boolean(item.disabledReason),
+    label: `${item.label}${item.availableQuantity !== null ? ` (${item.availableQuantity} available)` : ""}${item.disabledReason ? ` - ${item.disabledReason}` : ""}`,
+    value: String(item.id)
+  }));
+}
+
 function buildDispatchLine(lineNo: number, status = "Draft"): DispatchLineDraft {
   return {
     lineNo,
@@ -130,6 +143,7 @@ function buildDispatchLine(lineNo: number, status = "Draft"): DispatchLineDraft 
     binId: null,
     lotId: null,
     serialId: null,
+    pcidId: null,
     quantity: 1,
     uomId: null,
     packageRef: "",
@@ -160,6 +174,10 @@ function buildShipmentDraft(): ShipmentDraft {
     trackingRef: "",
     sealNo: "",
     proofNotes: "",
+    transporterName: "",
+    driverName: "",
+    driverContact: "",
+    deliveryAddressSnapshot: "",
     status: "Loading",
     lines: [buildDispatchLine(10, "Loaded")]
   };
@@ -258,6 +276,7 @@ function buildPackRequest(draft: PackDraft, companyId: number, branchId: number)
       binId: line.binId,
       lotId: line.lotId,
       serialId: line.serialId,
+      pcidId: line.pcidId,
       packedQuantity: line.quantity,
       packUomId: line.uomId ?? 0,
       packageRef: line.packageRef || null,
@@ -278,6 +297,10 @@ function buildShipmentRequest(draft: ShipmentDraft, companyId: number, branchId:
     trackingRef: draft.trackingRef || null,
     sealNo: draft.sealNo || null,
     proofNotes: draft.proofNotes || null,
+    transporterName: draft.transporterName || null,
+    driverName: draft.driverName || null,
+    driverContact: draft.driverContact || null,
+    deliveryAddressSnapshot: draft.deliveryAddressSnapshot || null,
     status: draft.status,
     lines: renumberDispatchLines(draft.lines).map((line) => ({
       lineNo: line.lineNo,
@@ -289,6 +312,7 @@ function buildShipmentRequest(draft: ShipmentDraft, companyId: number, branchId:
       binId: line.binId,
       lotId: line.lotId,
       serialId: line.serialId,
+      pcidId: line.pcidId,
       shippedQuantity: line.quantity,
       shipUomId: line.uomId ?? 0,
       status: line.status
@@ -346,6 +370,10 @@ export function PackListPage() {
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const warehouses = useApiQuery(queryKeys.organization.warehouses(companyId, branchId, "", "Active"), () => apiClient.organization.warehouses({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const bins = useApiQuery(["inventory", "dispatch", "valid-bins", companyId, branchId], () => apiClient.inventory.validBins({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const lots = useApiQuery(["inventory", "dispatch", "valid-lots", companyId, branchId], () => apiClient.inventory.validLots({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const serials = useApiQuery(["inventory", "dispatch", "valid-serials", companyId, branchId], () => apiClient.inventory.validSerials({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const pcids = useApiQuery(["inventory", "dispatch", "valid-pcids", companyId, branchId], () => apiClient.inventory.validPcids({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
@@ -354,6 +382,10 @@ export function PackListPage() {
   const itemOptions = entityOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const uomOptions = entityOptions(uoms.data?.items, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const binOptions = dimensionOptions(bins.data);
+  const lotOptions = dimensionOptions(lots.data);
+  const serialOptions = dimensionOptions(serials.data);
+  const pcidOptions = dimensionOptions(pcids.data);
   const packErrors = packDraftErrors(packDraft);
   const savePackReason = !packDraft
     ? "Open a pack-list draft before saving."
@@ -446,9 +478,10 @@ export function PackListPage() {
                   { key: "warehouse", header: "Warehouse", width: "160px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a warehouse."} label={`Warehouse ${index + 1}`} onChange={(value) => patchPackLine(index, { warehouseId: numberValue(value) })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} /> },
                   { key: "uom", header: "UOM", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a UOM."} label={`Pack UOM ${index + 1}`} onChange={(value) => patchPackLine(index, { uomId: numberValue(value) })} options={uomOptions} required value={line.uomId ? String(line.uomId) : ""} /> },
                   { key: "qty", header: "Packed qty", width: "125px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing packed quantity."} label={`Packed quantity ${index + 1}`} min={0.001} onChange={(value) => patchPackLine(index, { quantity: value ?? 0 })} value={line.quantity} /> },
-                  { key: "bin", header: "Bin", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { binId: value })} value={line.binId} /> },
-                  { key: "lot", header: "Lot", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { lotId: value })} value={line.lotId} /> },
-                  { key: "serial", header: "Serial", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial id ${index + 1}`} min={1} onChange={(value) => patchPackLine(index, { serialId: value })} value={line.serialId} /> },
+                  { key: "bin", header: "Bin", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin ${index + 1}`} onChange={(value) => patchPackLine(index, { binId: numberValue(value) })} options={binOptions} value={line.binId ? String(line.binId) : ""} /> },
+                  { key: "lot", header: "Lot", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot ${index + 1}`} onChange={(value) => patchPackLine(index, { lotId: numberValue(value) })} options={lotOptions} value={line.lotId ? String(line.lotId) : ""} /> },
+                  { key: "serial", header: "Serial", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial ${index + 1}`} onChange={(value) => patchPackLine(index, { serialId: numberValue(value) })} options={serialOptions} value={line.serialId ? String(line.serialId) : ""} /> },
+                  { key: "pcid", header: "PCID", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a PCID."} label={`PCID ${index + 1}`} onChange={(value) => patchPackLine(index, { pcidId: numberValue(value) })} options={pcidOptions} value={line.pcidId ? String(line.pcidId) : ""} /> },
                   { key: "package", header: "Package", width: "150px", render: (line, index) => <label><span>Package reference</span><input aria-label={`Package reference ${index + 1}`} disabled={!live} onChange={(event) => patchPackLine(index, { packageRef: event.target.value })} value={line.packageRef} /></label> },
                   { key: "status", header: "Status", width: "130px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing line status."} label={`Line status ${index + 1}`} onChange={(value) => patchPackLine(index, { status: value })} options={lineStatusOptions} value={line.status} /> },
                   { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || packDraft.lines.length <= 1, label: "Remove Line", onClick: live && packDraft.lines.length > 1 ? () => removePackLine(index) : undefined, reason: !live ? "Live dispatch sign-in is required before removing lines." : packDraft.lines.length <= 1 ? "At least one pack line is required." : undefined }]} /> }
@@ -547,18 +580,36 @@ const shipmentLineColumns: DataGridColumn<ShipmentLineItem>[] = [
   { key: "item", header: "Item", render: (record) => <strong>{record.itemLabel}</strong> },
   { key: "location", header: "Location", width: "20%", render: (record) => record.locationLabel },
   { key: "trace", header: "Trace", width: "18%", render: (record) => record.traceLabel },
-  { key: "qty", header: "Qty", width: "10%", render: (record) => record.shippedQuantity },
+  { key: "qty", header: "Ship / Delivered / Short / Damage", width: "18%", render: (record) => `${record.shippedQuantity} / ${record.deliveredQuantity} / ${record.shortQuantity} / ${record.damagedQuantity}` },
+  { key: "source", header: "Source", width: "18%", render: (record) => <div><strong>{record.salesOrderLabel}</strong><div className="muted">{record.sourceReferenceLabel}</div></div> },
+  { key: "commercial", header: "Commercial snapshot", width: "18%", render: (record) => <div>{record.commercialSnapshotLabel}<div className="muted">{record.revisionLabel}</div></div> },
   { key: "status", header: "Status", width: "12%", render: (record) => <StatusBadge status={record.status} /> }
 ];
+
+interface ShipmentProofLineDraft {
+  shipmentLineId: number;
+  lineNo: number;
+  itemLabel: string;
+  shippedQuantity: number;
+  deliveredQuantity: number;
+  shortQuantity: number;
+  damagedQuantity: number;
+}
 
 interface ShipmentProofDraft {
   vehicleRef: string;
   trackingRef: string;
   sealNo: string;
   proofNotes: string;
+  podReceivedBy: string;
+  podReceiverContact: string;
+  podReceivedOn: string;
+  podEvidenceAttachmentId: number | null;
+  podRemarks: string;
   status: string;
   loadedOn: string;
   deliveredOn: string;
+  lines: ShipmentProofLineDraft[];
 }
 
 function toDateTimeLocalValue(value: string | null | undefined) {
@@ -571,9 +622,46 @@ function buildShipmentProofDraft(record: ShipmentItem): ShipmentProofDraft {
     trackingRef: record.trackingRef === "Tracking pending" ? "" : record.trackingRef,
     sealNo: record.sealNo === "Seal pending" ? "" : record.sealNo,
     proofNotes: record.proofNotes === "Proof pending" ? "" : record.proofNotes,
+    podReceivedBy: record.podReceivedBy,
+    podReceiverContact: record.podReceiverContact,
+    podReceivedOn: record.podReceivedLabel === "Open" ? "" : record.podReceivedLabel.replace(" ", "T"),
+    podEvidenceAttachmentId: record.podEvidenceAttachmentId,
+    podRemarks: record.podRemarks,
     status: record.status,
     loadedOn: record.loadedLabel === "Open" ? "" : record.loadedLabel.replace(" ", "T"),
-    deliveredOn: record.deliveredLabel === "Open" ? "" : record.deliveredLabel.replace(" ", "T")
+    deliveredOn: record.deliveredLabel === "Open" ? "" : record.deliveredLabel.replace(" ", "T"),
+    lines: record.lines.map((line) => ({
+      shipmentLineId: line.shipmentLineId,
+      lineNo: line.lineNo,
+      itemLabel: line.itemLabel,
+      shippedQuantity: line.shippedQuantity,
+      deliveredQuantity: line.deliveredQuantity || line.shippedQuantity,
+      shortQuantity: line.shortQuantity,
+      damagedQuantity: line.damagedQuantity
+    }))
+  };
+}
+
+function buildShipmentProofRequest(proofDraft: ShipmentProofDraft, status?: string): ShipmentProofRequest {
+  return {
+    vehicleRef: proofDraft.vehicleRef || null,
+    trackingRef: proofDraft.trackingRef || null,
+    sealNo: proofDraft.sealNo || null,
+    proofNotes: proofDraft.proofNotes || null,
+    status: status ?? proofDraft.status,
+    podReceivedBy: proofDraft.podReceivedBy || null,
+    podReceiverContact: proofDraft.podReceiverContact || null,
+    podReceivedOn: proofDraft.podReceivedOn || proofDraft.deliveredOn || null,
+    podEvidenceAttachmentId: proofDraft.podEvidenceAttachmentId,
+    podRemarks: proofDraft.podRemarks || null,
+    loadedOn: proofDraft.loadedOn || null,
+    deliveredOn: proofDraft.deliveredOn || null,
+    lines: proofDraft.lines.map((line) => ({
+      shipmentLineId: line.shipmentLineId,
+      deliveredQuantity: line.deliveredQuantity,
+      shortQuantity: line.shortQuantity,
+      damagedQuantity: line.damagedQuantity
+    }))
   };
 }
 
@@ -603,6 +691,10 @@ export function ShipmentDeliveryPage() {
   const itemLookup = useApiQuery(queryKeys.masters.items(companyId, "", "Active"), () => apiClient.masters.itemLookup(companyId), { enabled: live && companyId > 0, staleTime: 60_000 });
   const warehouses = useApiQuery(queryKeys.organization.warehouses(companyId, branchId, "", "Active"), () => apiClient.organization.warehouses({ companyId, branchId, status: "Active" }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const uoms = useApiQuery(queryKeys.measurements.uoms(companyId, "", "Active"), () => apiClient.measurements.uoms({ companyId, status: "Active" }), { enabled: live && companyId > 0, staleTime: 60_000 });
+  const bins = useApiQuery(["inventory", "shipment", "valid-bins", companyId, branchId], () => apiClient.inventory.validBins({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const lots = useApiQuery(["inventory", "shipment", "valid-lots", companyId, branchId], () => apiClient.inventory.validLots({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const serials = useApiQuery(["inventory", "shipment", "valid-serials", companyId, branchId], () => apiClient.inventory.validSerials({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
+  const pcids = useApiQuery(["inventory", "shipment", "valid-pcids", companyId, branchId], () => apiClient.inventory.validPcids({ companyId, branchId }), { enabled: live && companyId > 0 && branchId > 0, staleTime: 60_000 });
   const records = query.data ?? [];
   const selected = records.find((record) => record.id === selectedId) ?? null;
   const source = records[0]?.source ?? (live ? "Live" : "Seeded");
@@ -612,6 +704,10 @@ export function ShipmentDeliveryPage() {
   const itemOptions = entityOptions(itemLookup.data, (item) => item.id, (item) => `${item.itemCode} / ${item.itemName}`);
   const warehouseOptions = entityOptions(warehouses.data?.items, (warehouse) => warehouse.id, (warehouse) => `${warehouse.warehouseCode} / ${warehouse.warehouseName}`);
   const uomOptions = entityOptions(uoms.data?.items, (uom) => uom.id, (uom) => `${uom.uomCode} / ${uom.uomName}`);
+  const binOptions = dimensionOptions(bins.data);
+  const lotOptions = dimensionOptions(lots.data);
+  const serialOptions = dimensionOptions(serials.data);
+  const pcidOptions = dimensionOptions(pcids.data);
   const shipmentErrors = shipmentDraftErrors(shipmentDraft);
 
   useEffect(() => {
@@ -644,15 +740,7 @@ export function ShipmentDeliveryPage() {
         throw new Error("Select a shipment before saving proof status.");
       }
 
-      return apiClient.dispatch.updateShipmentProof(selected.shipmentId, {
-        vehicleRef: proofDraft.vehicleRef || null,
-        trackingRef: proofDraft.trackingRef || null,
-        sealNo: proofDraft.sealNo || null,
-        proofNotes: proofDraft.proofNotes || null,
-        status: proofDraft.status,
-        loadedOn: proofDraft.loadedOn || null,
-        deliveredOn: proofDraft.deliveredOn || null
-      });
+      return apiClient.dispatch.updateShipmentProof(selected.shipmentId, buildShipmentProofRequest(proofDraft));
     },
     {
       onSuccess: async () => {
@@ -684,15 +772,12 @@ export function ShipmentDeliveryPage() {
         throw new Error("Select a shipment before closing it.");
       }
 
-      return apiClient.dispatch.updateShipmentProof(selected.shipmentId, {
-        vehicleRef: proofDraft.vehicleRef || null,
-        trackingRef: proofDraft.trackingRef || null,
-        sealNo: proofDraft.sealNo || null,
-        proofNotes: proofDraft.proofNotes || null,
-        status: "Closed",
-        loadedOn: proofDraft.loadedOn || null,
-        deliveredOn: proofDraft.deliveredOn || new Date().toISOString()
-      });
+      const closedDraft = {
+        ...proofDraft,
+        deliveredOn: proofDraft.deliveredOn || new Date().toISOString(),
+        podReceivedOn: proofDraft.podReceivedOn || proofDraft.deliveredOn || new Date().toISOString()
+      };
+      return apiClient.dispatch.updateShipmentProof(selected.shipmentId, buildShipmentProofRequest(closedDraft, "Closed"));
     },
     {
       onSuccess: async () => {
@@ -731,14 +816,20 @@ export function ShipmentDeliveryPage() {
       ? "Shipment close requires a live shipment record."
       : selected.status.toLowerCase().includes("closed")
         ? "Shipment is already closed."
-        : !proofDraft?.vehicleRef || !proofDraft.trackingRef || !proofDraft.sealNo || !proofDraft.proofNotes
-          ? "Vehicle, tracking, seal, and proof notes are required before closing."
+        : !proofDraft?.vehicleRef || !proofDraft.trackingRef || !proofDraft.sealNo || !proofDraft.proofNotes || !proofDraft.podReceivedBy || !proofDraft.podReceiverContact
+          ? "Vehicle, tracking, seal, proof notes, receiver, and receiver contact are required before closing."
           : closeShipment.isPending
             ? "Shipment close is in progress."
             : undefined;
 
   const updateProofDraft = (patch: Partial<ShipmentProofDraft>) => {
     setProofDraft((current) => current ? { ...current, ...patch } : current);
+  };
+
+  const patchProofLine = (index: number, patch: Partial<ShipmentProofLineDraft>) => {
+    setProofDraft((current) =>
+      current ? { ...current, lines: current.lines.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)) } : current
+    );
   };
 
   const patchShipmentLine = (index: number, patch: Partial<DispatchLineDraft>) => {
@@ -772,6 +863,7 @@ export function ShipmentDeliveryPage() {
       onSuccess: (attachment, variables) => {
         setProofTone("success");
         setProofFiles((current) => ({ ...current, [variables.shipment.id]: attachment.fileName }));
+        setProofDraft((current) => current ? { ...current, podEvidenceAttachmentId: attachment.id } : current);
         setProofMessage(`${attachment.fileName} linked as shipment proof.`);
       }
     }
@@ -826,6 +918,10 @@ export function ShipmentDeliveryPage() {
               <label><span>Vehicle</span><input aria-label="Draft vehicle" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, vehicleRef: event.target.value })} value={shipmentDraft.vehicleRef} /></label>
               <label><span>Tracking / LR</span><input aria-label="Draft tracking LR" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, trackingRef: event.target.value })} value={shipmentDraft.trackingRef} /></label>
               <label><span>Seal number</span><input aria-label="Draft seal number" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, sealNo: event.target.value })} value={shipmentDraft.sealNo} /></label>
+              <label><span>Transporter / carrier</span><input aria-label="Transporter carrier" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, transporterName: event.target.value })} value={shipmentDraft.transporterName} /></label>
+              <label><span>Driver</span><input aria-label="Driver name" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, driverName: event.target.value })} value={shipmentDraft.driverName} /></label>
+              <label><span>Driver contact</span><input aria-label="Driver contact" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, driverContact: event.target.value })} value={shipmentDraft.driverContact} /></label>
+              <label className="form-span-2"><span>Delivery address snapshot</span><input aria-label="Delivery address snapshot" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, deliveryAddressSnapshot: event.target.value })} value={shipmentDraft.deliveryAddressSnapshot} /></label>
               <label className="form-span-2"><span>Proof notes</span><input aria-label="Draft proof notes" disabled={!live} onChange={(event) => setShipmentDraft({ ...shipmentDraft, proofNotes: event.target.value })} value={shipmentDraft.proofNotes} /></label>
             </FormShell>
             <Card title="Shipment lines" description="Add every shipped item and trace reference. Saving posts inventory issue transactions for the shipment lines.">
@@ -840,9 +936,10 @@ export function ShipmentDeliveryPage() {
                   { key: "warehouse", header: "Warehouse", width: "160px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a warehouse."} label={`Warehouse ${index + 1}`} onChange={(value) => patchShipmentLine(index, { warehouseId: numberValue(value) })} options={warehouseOptions} required value={line.warehouseId ? String(line.warehouseId) : ""} /> },
                   { key: "uom", header: "UOM", width: "140px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before selecting a UOM."} label={`Ship UOM ${index + 1}`} onChange={(value) => patchShipmentLine(index, { uomId: numberValue(value) })} options={uomOptions} required value={line.uomId ? String(line.uomId) : ""} /> },
                   { key: "qty", header: "Shipped qty", width: "125px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing shipped quantity."} label={`Shipped quantity ${index + 1}`} min={0.001} onChange={(value) => patchShipmentLine(index, { quantity: value ?? 0 })} value={line.quantity} /> },
-                  { key: "bin", header: "Bin", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { binId: value })} value={line.binId} /> },
-                  { key: "lot", header: "Lot", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { lotId: value })} value={line.lotId} /> },
-                  { key: "serial", header: "Serial", width: "105px", render: (line, index) => <ErpNumberField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial id ${index + 1}`} min={1} onChange={(value) => patchShipmentLine(index, { serialId: value })} value={line.serialId} /> },
+                  { key: "bin", header: "Bin", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a bin."} label={`Bin ${index + 1}`} onChange={(value) => patchShipmentLine(index, { binId: numberValue(value) })} options={binOptions} value={line.binId ? String(line.binId) : ""} /> },
+                  { key: "lot", header: "Lot", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a lot."} label={`Lot ${index + 1}`} onChange={(value) => patchShipmentLine(index, { lotId: numberValue(value) })} options={lotOptions} value={line.lotId ? String(line.lotId) : ""} /> },
+                  { key: "serial", header: "Serial", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a serial."} label={`Serial ${index + 1}`} onChange={(value) => patchShipmentLine(index, { serialId: numberValue(value) })} options={serialOptions} value={line.serialId ? String(line.serialId) : ""} /> },
+                  { key: "pcid", header: "PCID", width: "145px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before assigning a PCID."} label={`PCID ${index + 1}`} onChange={(value) => patchShipmentLine(index, { pcidId: numberValue(value) })} options={pcidOptions} value={line.pcidId ? String(line.pcidId) : ""} /> },
                   { key: "status", header: "Status", width: "130px", render: (line, index) => <ErpLookupField disabled={!live} disabledReason={live ? undefined : "Live dispatch sign-in is required before changing line status."} label={`Line status ${index + 1}`} onChange={(value) => patchShipmentLine(index, { status: value })} options={lineStatusOptions} value={line.status} /> },
                   { key: "actions", header: "Actions", width: "150px", render: (_line, index) => <ErpActionBar danger={[{ disabled: !live || shipmentDraft.lines.length <= 1, label: "Remove Line", onClick: live && shipmentDraft.lines.length > 1 ? () => removeShipmentLine(index) : undefined, reason: !live ? "Live dispatch sign-in is required before removing lines." : shipmentDraft.lines.length <= 1 ? "At least one shipment line is required." : undefined }]} /> }
                 ]}
@@ -865,7 +962,7 @@ export function ShipmentDeliveryPage() {
       >
         {selected ? (
           <>
-            <KpiStrip items={[{ label: "Seal", value: selected.sealNo }, { label: "Loaded", value: selected.loadedLabel }, { label: "Delivered", value: selected.deliveredLabel }]} />
+            <KpiStrip items={[{ label: "Seal", value: selected.sealNo }, { label: "Carrier", value: selected.transporterName }, { label: "Loaded", value: selected.loadedLabel }, { label: "POD", value: selected.podReceivedLabel }]} />
             <Card title="Shipment lines" description={selected.proofNotes}>
               <DataGrid ariaLabel="Shipment lines" columns={shipmentLineColumns} getRowId={(record) => record.id} records={selected.lines} rowLabel={(record) => `${record.itemLabel} shipment line`} />
             </Card>
@@ -873,13 +970,38 @@ export function ShipmentDeliveryPage() {
               <label><span>Vehicle</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ vehicleRef: event.target.value })} value={proofDraft?.vehicleRef ?? ""} /></label>
               <ErpLookupField disabled disabledReason="Pack list is controlled by dispatch planning." label="Pack list" onChange={() => undefined} options={[{ label: selected.packListLabel, value: selected.packListLabel }]} value={selected.packListLabel} />
               <ErpNumberField disabled disabledReason="Shipped quantity is controlled by shipment line posting." label="Shipped quantity" onChange={() => undefined} value={selected.shippedQuantity} />
+              <label><span>Transporter / carrier</span><input disabled value={selected.transporterName} /></label>
+              <label><span>Driver</span><input disabled value={selected.driverName} /></label>
+              <label><span>Driver contact</span><input disabled value={selected.driverContact} /></label>
+              <label className="form-span-2"><span>Delivery address snapshot</span><input disabled value={selected.deliveryAddressSnapshot} /></label>
               <label><span>Tracking / LR</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ trackingRef: event.target.value })} value={proofDraft?.trackingRef ?? ""} /></label>
               <label><span>Seal number</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ sealNo: event.target.value })} value={proofDraft?.sealNo ?? ""} /></label>
               <ErpLookupField disabled={!proofDraft || selected.source !== "Live"} disabledReason={selected.source !== "Live" ? "Live shipment record is required before changing shipment status." : undefined} label="Shipment status" onChange={(value) => updateProofDraft({ status: value })} options={[{ label: "Loading", value: "Loading" }, { label: "Dispatched", value: "Dispatched" }, { label: "Delivered", value: "Delivered" }, { label: "Closed", value: "Closed" }]} value={proofDraft?.status ?? selected.status} />
               <label><span>Loaded on</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ loadedOn: event.target.value })} type="datetime-local" value={toDateTimeLocalValue(proofDraft?.loadedOn)} /></label>
               <label><span>Delivered on</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ deliveredOn: event.target.value })} type="datetime-local" value={toDateTimeLocalValue(proofDraft?.deliveredOn)} /></label>
+              <label><span>Received by</span><input aria-label="POD received by" disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ podReceivedBy: event.target.value })} value={proofDraft?.podReceivedBy ?? ""} /></label>
+              <label><span>Receiver contact</span><input aria-label="POD receiver contact" disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ podReceiverContact: event.target.value })} value={proofDraft?.podReceiverContact ?? ""} /></label>
+              <label><span>POD received on</span><input aria-label="POD received on" disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ podReceivedOn: event.target.value })} type="datetime-local" value={toDateTimeLocalValue(proofDraft?.podReceivedOn)} /></label>
+              <ErpNumberField disabled={!proofDraft || selected.source !== "Live"} disabledReason={selected.source !== "Live" ? "Live shipment record is required before updating POD evidence." : undefined} label="POD evidence attachment id" min={1} onChange={(value) => updateProofDraft({ podEvidenceAttachmentId: value })} value={proofDraft?.podEvidenceAttachmentId ?? null} />
               <label className="form-span-2"><span>Proof notes</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ proofNotes: event.target.value })} value={proofDraft?.proofNotes ?? ""} /></label>
+              <label className="form-span-2"><span>POD remarks</span><input aria-label="POD remarks" disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ podRemarks: event.target.value })} value={proofDraft?.podRemarks ?? ""} /></label>
             </FormShell>
+            <Card title="POD line confirmation" description="Confirm delivered, short, and damaged quantities without changing SO commercial values.">
+              <ErpTransactionLineGrid
+                ariaLabel="POD line confirmation grid"
+                columns={[
+                  { key: "line", header: "Line", width: "72px", render: (line) => line.lineNo },
+                  { key: "item", header: "Item", width: "220px", render: (line) => <strong>{line.itemLabel}</strong> },
+                  { key: "shipped", header: "Shipped", width: "110px", render: (line) => line.shippedQuantity },
+                  { key: "delivered", header: "Delivered", width: "140px", render: (line, index) => <ErpNumberField disabled={!proofDraft || selected.source !== "Live"} disabledReason={selected.source !== "Live" ? "Live shipment record is required before confirming POD lines." : undefined} label={`Delivered quantity ${index + 1}`} min={0} onChange={(value) => patchProofLine(index, { deliveredQuantity: value ?? 0 })} value={line.deliveredQuantity} /> },
+                  { key: "short", header: "Short", width: "140px", render: (line, index) => <ErpNumberField disabled={!proofDraft || selected.source !== "Live"} disabledReason={selected.source !== "Live" ? "Live shipment record is required before confirming POD shortages." : undefined} label={`Short quantity ${index + 1}`} min={0} onChange={(value) => patchProofLine(index, { shortQuantity: value ?? 0 })} value={line.shortQuantity} /> },
+                  { key: "damaged", header: "Damaged", width: "140px", render: (line, index) => <ErpNumberField disabled={!proofDraft || selected.source !== "Live"} disabledReason={selected.source !== "Live" ? "Live shipment record is required before confirming POD damage." : undefined} label={`Damaged quantity ${index + 1}`} min={0} onChange={(value) => patchProofLine(index, { damagedQuantity: value ?? 0 })} value={line.damagedQuantity} /> }
+                ]}
+                getRowId={(line) => `pod-${line.shipmentLineId}`}
+                lines={proofDraft?.lines ?? []}
+                testId="pod-line-confirmation-grid"
+              />
+            </Card>
             <Card title="Proof documents" description="Loading and delivery proof files are linked to the shipment audit record.">
               <ErpFileActionState
                 accept=".pdf,.png,.jpg,.jpeg"
