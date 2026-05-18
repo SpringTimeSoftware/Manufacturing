@@ -161,6 +161,19 @@ import type {
   HealthCheckResponse,
   GoodsReceiptDto,
   GoodsReceiptUpsertRequest,
+  ArInvoiceDto,
+  ArInvoiceFromShipmentRequest,
+  ArInvoicePostingResultDto,
+  ChartOfAccountDto,
+  ChartOfAccountUpsertRequest,
+  FiscalPeriodDto,
+  FiscalPeriodUpsertRequest,
+  InventoryValuationEntryDto,
+  JournalDto,
+  JournalUpsertRequest,
+  PostingProfileDto,
+  PostingProfileUpsertRequest,
+  TaxLedgerEntryDto,
   ShiftDto,
   ShiftUpsertRequest,
   ShortageActionDto,
@@ -1603,6 +1616,74 @@ export const apiClient = {
       return request<DispatchPlanningItemDto[]>(`/api/dispatch/planning?${query}`);
     },
     packListPrint: (id: number) => request<PackListPrintDto>(`/api/reports/pack-lists/${id}/print`)
+  },
+  finance: {
+    chartOfAccounts: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ChartOfAccountDto>>(`/api/finance/chart-of-accounts?${query}`);
+    },
+    createChartOfAccount: (body: ChartOfAccountUpsertRequest) =>
+      request<ChartOfAccountDto>("/api/finance/chart-of-accounts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    fiscalPeriods: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<FiscalPeriodDto>>(`/api/finance/fiscal-periods?${query}`);
+    },
+    createFiscalPeriod: (body: FiscalPeriodUpsertRequest) =>
+      request<FiscalPeriodDto>("/api/finance/fiscal-periods", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    postingProfiles: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<PostingProfileDto>>(`/api/finance/posting-profiles?${query}`);
+    },
+    createPostingProfile: (body: PostingProfileUpsertRequest) =>
+      request<PostingProfileDto>("/api/finance/posting-profiles", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    journals: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<JournalDto>>(`/api/finance/journals?${query}`);
+    },
+    createJournal: (body: JournalUpsertRequest) =>
+      request<JournalDto>("/api/finance/journals", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    postJournal: (id: number) =>
+      request<JournalDto>(`/api/finance/journals/${id}/post`, {
+        method: "POST"
+      }),
+    reverseJournal: (id: number, reason: string) =>
+      request<JournalDto>(`/api/finance/journals/${id}/reverse`, {
+        method: "POST",
+        body: JSON.stringify({ reason })
+      }),
+    arInvoices: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ArInvoiceDto>>(`/api/finance/ar-invoices?${query}`);
+    },
+    createArInvoiceFromShipment: (body: ArInvoiceFromShipmentRequest) =>
+      request<ArInvoiceDto>("/api/finance/ar-invoices/from-shipment", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    postArInvoice: (id: number) =>
+      request<ArInvoicePostingResultDto>(`/api/finance/ar-invoices/${id}/post`, {
+        method: "POST"
+      }),
+    taxLedger: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<TaxLedgerEntryDto>>(`/api/finance/tax-ledger?${query}`);
+    },
+    inventoryValuation: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<InventoryValuationEntryDto>>(`/api/finance/inventory-valuation?${query}`);
+    }
   },
   notifications: {
     list: () => request<NotificationItem[]>("/api/notifications"),

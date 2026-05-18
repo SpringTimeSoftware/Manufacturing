@@ -21,6 +21,17 @@ import {
   ShipmentDeliveryPage
 } from "../pages/DispatchPages";
 import {
+  ApInvoicesPage,
+  ArInvoicesPage,
+  ChartOfAccountsPage,
+  FinanceDeferredActionsPage,
+  FiscalPeriodsPage,
+  GlJournalsPage,
+  InventoryValuationPage,
+  PostingProfilesPage,
+  TaxLedgerPage
+} from "../pages/FinancePages";
+import {
   AttachmentViewerPage,
   AvailableToPromisePage,
   BlanketOrderContractPage,
@@ -248,6 +259,15 @@ export const appRouter = createBrowserRouter([
       guardedRoute("dispatch/pack-lists", <PackListPage />),
       guardedRoute("dispatch/planning", <DispatchPlanningPage />),
       guardedRoute("dispatch/shipments", <ShipmentDeliveryPage />),
+      guardedRoute("finance/chart-of-accounts", <ChartOfAccountsPage />),
+      guardedRoute("finance/fiscal-periods", <FiscalPeriodsPage />),
+      guardedRoute("finance/posting-profiles", <PostingProfilesPage />),
+      guardedRoute("finance/gl-journals", <GlJournalsPage />),
+      guardedRoute("finance/ap-invoices", <ApInvoicesPage />),
+      guardedRoute("finance/ar-invoices", <ArInvoicesPage />),
+      guardedRoute("finance/inventory-valuation", <InventoryValuationPage />),
+      guardedRoute("finance/tax-ledger", <TaxLedgerPage />),
+      guardedRoute("finance/boundaries", <FinanceDeferredActionsPage />),
       guardedRoute("sales/available-to-promise", <AvailableToPromisePage />),
       guardedRoute("platform/users", <UserManagementPage />),
       guardedRoute("platform/roles", <RolePermissionMatrixPage />),

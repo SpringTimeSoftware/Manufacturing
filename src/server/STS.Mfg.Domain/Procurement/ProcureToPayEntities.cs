@@ -233,8 +233,14 @@ public sealed class AccountingPosting : AuditableEntity, ICompanyScoped, IBranch
     public string SourceDocumentType { get; private set; } = string.Empty;
     public long SourceDocumentId { get; private set; }
     public DateOnly PostingDate { get; private set; }
+    public long? DebitAccountId { get; private set; }
     public string DebitAccountCode { get; private set; } = string.Empty;
+    public long? CreditAccountId { get; private set; }
     public string CreditAccountCode { get; private set; } = string.Empty;
+    public long? PostingProfileId { get; private set; }
+    public long? FiscalPeriodId { get; private set; }
+    public long? JournalId { get; private set; }
+    public string? MappingSource { get; private set; }
     public decimal Amount { get; private set; }
     public string Status { get; private set; } = string.Empty;
 
@@ -247,6 +253,30 @@ public sealed class AccountingPosting : AuditableEntity, ICompanyScoped, IBranch
         return entity;
     }
 
+    public static AccountingPosting CreateMapped(
+        long companyId,
+        long branchId,
+        string postingNo,
+        string sourceDocumentType,
+        long sourceDocumentId,
+        DateOnly postingDate,
+        long debitAccountId,
+        string debitAccountCode,
+        long creditAccountId,
+        string creditAccountCode,
+        long postingProfileId,
+        long? fiscalPeriodId,
+        long? journalId,
+        string mappingSource,
+        decimal amount,
+        string status,
+        long? userId)
+    {
+        var entity = Create(companyId, branchId, postingNo, sourceDocumentType, sourceDocumentId, postingDate, debitAccountCode, creditAccountCode, amount, status, userId);
+        entity.ApplyFinanceMapping(debitAccountId, creditAccountId, postingProfileId, fiscalPeriodId, journalId, mappingSource, userId);
+        return entity;
+    }
+
     public void Update(string postingNo, string sourceDocumentType, DateOnly postingDate, string debitAccountCode, string creditAccountCode, decimal amount, string status, long? userId)
     {
         PostingNo = postingNo.Trim();
@@ -256,6 +286,18 @@ public sealed class AccountingPosting : AuditableEntity, ICompanyScoped, IBranch
         CreditAccountCode = creditAccountCode.Trim();
         Amount = amount;
         Status = status.Trim();
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void ApplyFinanceMapping(long debitAccountId, long creditAccountId, long postingProfileId, long? fiscalPeriodId, long? journalId, string mappingSource, long? userId)
+    {
+        DebitAccountId = debitAccountId;
+        CreditAccountId = creditAccountId;
+        PostingProfileId = postingProfileId;
+        FiscalPeriodId = fiscalPeriodId;
+        JournalId = journalId;
+        MappingSource = string.IsNullOrWhiteSpace(mappingSource) ? null : mappingSource.Trim();
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }

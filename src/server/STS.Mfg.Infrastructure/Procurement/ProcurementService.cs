@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using STS.Mfg.Application.Abstractions.Audit;
+using STS.Mfg.Application.Abstractions.Finance;
 using STS.Mfg.Application.Abstractions.Procurement;
 using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
@@ -17,7 +18,8 @@ internal sealed class ProcurementService(
     IDataScopeService dataScopeService,
     ICurrentUserContextAccessor currentUserContextAccessor,
     IAuditTrail auditTrail,
-    InventoryPostingService inventoryPostingService)
+    InventoryPostingService inventoryPostingService,
+    IFinanceService financeService)
     : ApplicationServiceBase(dbContext, dataScopeService, currentUserContextAccessor, auditTrail), IProcurementService
 {
     public async Task<PagedResult<PurchaseRequisitionDto>> ListPurchaseRequisitionsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default)
@@ -696,46 +698,7 @@ internal sealed class ProcurementService(
 
     public async Task<SupplierInvoicePostingResultDto> PostSupplierInvoiceAsync(long id, CancellationToken cancellationToken = default)
     {
-        var invoice = await DbContext.SupplierInvoices.ApplyActiveOrganizationScope(GetScope()).FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
-        invoice = EnsureFound(invoice, "Supplier invoice was not found in the active scope.", "procurement.invoice_not_found");
-        ThrowIfInvalid(invoice.MatchStatus != "Matched"
-            ? new ApiError("validation.blocked", nameof(invoice.MatchStatus), "Only matched supplier invoices can be posted to AP.")
-            : null);
-
-        var existingLiability = await DbContext.AccountsPayableLiabilities.AsNoTracking()
-            .FirstOrDefaultAsync(entity => entity.SupplierInvoiceId == invoice.Id, cancellationToken);
-        if (existingLiability is not null)
-        {
-            var existingPostings = await DbContext.AccountingPostings.AsNoTracking()
-                .Where(entity => entity.SourceDocumentType == nameof(SupplierInvoice) && entity.SourceDocumentId == invoice.Id)
-                .OrderBy(entity => entity.PostingNo)
-                .ToArrayAsync(cancellationToken);
-            if (!string.Equals(invoice.ApStatus, "Posted", StringComparison.OrdinalIgnoreCase))
-            {
-                invoice.SetTotals(invoice.SubtotalAmount, invoice.TaxAmount, invoice.MatchStatus, "Posted", GetUserId());
-                invoice.UpdateHeader(invoice.SupplierInvoiceNo, invoice.InvoiceDate, invoice.DueDate, invoice.CurrencyCode, "Posted", GetUserId());
-                await DbContext.SaveChangesAsync(cancellationToken);
-            }
-
-            return new SupplierInvoicePostingResultDto(
-                await LoadSupplierInvoiceDtoAsync(invoice.Id, cancellationToken),
-                MapLiability(existingLiability),
-                existingPostings.Select(MapPosting).ToArray());
-        }
-
-        var liability = AccountsPayableLiability.Create(invoice.CompanyId ?? 0, invoice.BranchId ?? 0, $"AP-{invoice.SupplierInvoiceNo}", invoice.Id, invoice.SupplierId, invoice.InvoiceDate, invoice.DueDate ?? invoice.InvoiceDate.AddDays(30), invoice.TotalAmount, GetUserId());
-        var inventoryPosting = AccountingPosting.Create(invoice.CompanyId ?? 0, invoice.BranchId ?? 0, $"GL-{invoice.SupplierInvoiceNo}-DR", nameof(SupplierInvoice), invoice.Id, invoice.InvoiceDate, "InventoryClearing", "AccountsPayable", invoice.SubtotalAmount, "Posted", GetUserId());
-        var taxPosting = AccountingPosting.Create(invoice.CompanyId ?? 0, invoice.BranchId ?? 0, $"GL-{invoice.SupplierInvoiceNo}-TAX", nameof(SupplierInvoice), invoice.Id, invoice.InvoiceDate, "InputTax", "AccountsPayable", invoice.TaxAmount, "Posted", GetUserId());
-        DbContext.AccountsPayableLiabilities.Add(liability);
-        DbContext.AccountingPostings.AddRange(inventoryPosting, taxPosting);
-        invoice.SetTotals(invoice.SubtotalAmount, invoice.TaxAmount, invoice.MatchStatus, "Posted", GetUserId());
-        invoice.UpdateHeader(invoice.SupplierInvoiceNo, invoice.InvoiceDate, invoice.DueDate, invoice.CurrencyCode, "Posted", GetUserId());
-        await DbContext.SaveChangesAsync(cancellationToken);
-
-        var invoiceDto = await LoadSupplierInvoiceDtoAsync(invoice.Id, cancellationToken);
-        var result = new SupplierInvoicePostingResultDto(invoiceDto, MapLiability(liability), new[] { MapPosting(inventoryPosting), MapPosting(taxPosting) });
-        await WriteAuditAsync("finance", nameof(SupplierInvoice), "supplierinvoice.post", invoice.Id, null, result, cancellationToken);
-        return result;
+        return await financeService.PostSupplierInvoiceAsync(id, cancellationToken);
     }
 
     public async Task<PagedResult<RfqDto>> ListRfqsAsync(ProcurementFilter filter, CancellationToken cancellationToken = default)

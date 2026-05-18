@@ -442,6 +442,60 @@ export const navigationItems: NavigationItem[] = [
     roles: ["DispatchManager", "SalesCoordinator"]
   },
   {
+    label: "Chart of Accounts",
+    path: "/finance/chart-of-accounts",
+    section: "Finance",
+    roles: ["CompanyAdmin", "ManagementViewer"]
+  },
+  {
+    label: "Fiscal Periods",
+    path: "/finance/fiscal-periods",
+    section: "Finance",
+    roles: ["CompanyAdmin", "ManagementViewer"]
+  },
+  {
+    label: "Posting Profiles",
+    path: "/finance/posting-profiles",
+    section: "Finance",
+    roles: ["CompanyAdmin"]
+  },
+  {
+    label: "GL Journals",
+    path: "/finance/gl-journals",
+    section: "Finance",
+    roles: ["CompanyAdmin", "ManagementViewer"]
+  },
+  {
+    label: "AP Invoices",
+    path: "/finance/ap-invoices",
+    section: "Finance",
+    roles: ["CompanyAdmin", "PurchaseManager", "ManagementViewer"]
+  },
+  {
+    label: "AR Invoices",
+    path: "/finance/ar-invoices",
+    section: "Finance",
+    roles: ["CompanyAdmin", "SalesCoordinator", "ManagementViewer"]
+  },
+  {
+    label: "Inventory Valuation",
+    path: "/finance/inventory-valuation",
+    section: "Finance",
+    roles: ["CompanyAdmin", "StoreKeeper", "ManagementViewer"]
+  },
+  {
+    label: "Tax Ledger",
+    path: "/finance/tax-ledger",
+    section: "Finance",
+    roles: ["CompanyAdmin", "ManagementViewer"]
+  },
+  {
+    label: "Finance Boundaries",
+    path: "/finance/boundaries",
+    section: "Finance",
+    roles: ["CompanyAdmin"]
+  },
+  {
     label: "Context Switch",
     path: "/platform/context-switch",
     section: "Platform"

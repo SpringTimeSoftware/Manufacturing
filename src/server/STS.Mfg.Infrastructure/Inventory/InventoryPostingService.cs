@@ -6,6 +6,7 @@ using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts;
 using STS.Mfg.Application.Contracts.Inventory;
 using STS.Mfg.Application.Exceptions;
+using STS.Mfg.Domain.Finance;
 using STS.Mfg.Domain.Inventory;
 using STS.Mfg.Infrastructure.Application;
 using STS.Mfg.Infrastructure.Persistence;
@@ -110,6 +111,8 @@ internal sealed class InventoryPostingService(
 
             DbContext.StockTransactions.AddRange(transactions);
             await DbContext.SaveChangesAsync(cancellationToken);
+            AddValuationPendingEntries(transactions, userId);
+            await DbContext.SaveChangesAsync(cancellationToken);
 
             if (dbTransaction is not null)
             {
@@ -203,6 +206,8 @@ internal sealed class InventoryPostingService(
         }
 
         DbContext.StockTransactions.AddRange(transactions);
+        await DbContext.SaveChangesAsync(cancellationToken);
+        AddValuationPendingEntries(transactions, userId);
         await DbContext.SaveChangesAsync(cancellationToken);
 
         var dto = transactions.Select(MapStockTransaction).ToArray();
@@ -299,6 +304,8 @@ internal sealed class InventoryPostingService(
 
         DbContext.StockTransactions.AddRange(transactions);
         await DbContext.SaveChangesAsync(cancellationToken);
+        AddValuationPendingEntries(transactions, userId);
+        await DbContext.SaveChangesAsync(cancellationToken);
 
         var dto = transactions.Select(MapStockTransaction).ToArray();
         await WriteAuditAsync("inventory", nameof(StockTransaction), command.AuditActionCode, transactions[0].Id, null, dto, cancellationToken);
@@ -379,6 +386,8 @@ internal sealed class InventoryPostingService(
         }
 
         DbContext.StockTransactions.AddRange(transactions);
+        await DbContext.SaveChangesAsync(cancellationToken);
+        AddValuationPendingEntries(transactions, userId);
         await DbContext.SaveChangesAsync(cancellationToken);
 
         var dto = transactions.Select(MapStockTransaction).ToArray();
@@ -1080,6 +1089,32 @@ internal sealed class InventoryPostingService(
             entity.PurchaseOrderLineId,
             entity.QualityDocumentId,
             entity.LegacyTrackingIncomplete);
+
+    private void AddValuationPendingEntries(IReadOnlyCollection<StockTransaction> transactions, long? userId)
+    {
+        foreach (var transaction in transactions)
+        {
+            DbContext.InventoryValuationEntries.Add(InventoryValuationEntry.Create(
+                transaction.CompanyId ?? 0,
+                transaction.BranchId,
+                transaction.Id,
+                transaction.SourceDocumentType ?? transaction.TransactionType,
+                transaction.SourceDocumentId,
+                transaction.SourceDocumentNo,
+                transaction.ItemId,
+                transaction.ToWarehouseId ?? transaction.FromWarehouseId,
+                transaction.ToBinId ?? transaction.FromBinId,
+                transaction.LotId,
+                transaction.SerialId,
+                transaction.PcidId,
+                transaction.PostingDate,
+                transaction.Quantity,
+                0m,
+                "WeightedAverage",
+                "Valuation Pending",
+                userId));
+        }
+    }
 }
 
 internal sealed record InventoryReceiptCommand(

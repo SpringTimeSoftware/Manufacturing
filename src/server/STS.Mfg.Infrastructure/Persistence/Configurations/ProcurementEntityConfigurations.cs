@@ -178,9 +178,13 @@ public sealed class AccountingPostingConfiguration : IEntityTypeConfiguration<Ac
         builder.Property(entity => entity.SourceDocumentType).HasMaxLength(32).IsRequired();
         builder.Property(entity => entity.DebitAccountCode).HasMaxLength(64).IsRequired();
         builder.Property(entity => entity.CreditAccountCode).HasMaxLength(64).IsRequired();
+        builder.Property(entity => entity.MappingSource).HasMaxLength(128);
         builder.Property(entity => entity.Amount).HasColumnType("decimal(18,4)");
         builder.Property(entity => entity.Status).HasMaxLength(24).IsRequired();
         builder.HasIndex(entity => new { entity.CompanyId, entity.PostingNo }).IsUnique();
+        builder.HasIndex(entity => entity.DebitAccountId);
+        builder.HasIndex(entity => entity.CreditAccountId);
+        builder.HasIndex(entity => entity.JournalId);
     }
 }
 

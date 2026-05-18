@@ -177,6 +177,12 @@ public sealed class InventoryPolicyServiceTests
         Assert.Equal(seed.RoutingId, movement.RoutingId);
         Assert.Equal(seed.WorkOrderId, movement.WorkOrderId);
 
+        var valuation = await dbContext.InventoryValuationEntries.SingleAsync(entry => entry.StockTransactionId == movement.Id);
+        Assert.Equal("Valuation Pending", valuation.Status);
+        Assert.Equal("WeightedAverage", valuation.ValuationMethod);
+        Assert.Equal("WorkOrder", valuation.SourceDocumentType);
+        Assert.Equal(2m, valuation.Quantity);
+
         var pcid = await dbContext.InventoryLicensePlates.SingleAsync();
         Assert.Equal(targetBin.Id, pcid.BinId);
     }
@@ -228,6 +234,11 @@ public sealed class InventoryPolicyServiceTests
 
         var balance = await dbContext.StockBalances.SingleAsync(record => record.PcidId == emptyPcid.Id);
         Assert.Equal(2m, balance.OnHandQty);
+
+        var valuation = await dbContext.InventoryValuationEntries.SingleAsync(entry => entry.StockTransactionId == movement.Id);
+        Assert.Equal("Valuation Pending", valuation.Status);
+        Assert.Equal("GRN", valuation.SourceDocumentType);
+        Assert.Equal("GRN-91001", valuation.SourceDocumentNo);
     }
 
     [Fact]

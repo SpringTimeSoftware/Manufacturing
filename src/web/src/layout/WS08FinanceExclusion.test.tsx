@@ -1,44 +1,28 @@
-import { screen } from "@testing-library/react";
-import { Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { NotFoundPage } from "../pages/NotFoundPage";
-import { renderWithApp } from "../test/render";
 import { navigationItems } from "./navigation";
 
-const blockedFinancePatterns = [
-  /\bFinance\b/i,
-  /\bAccounting\b/i,
-  /\bGeneral Ledger\b/i,
-  /\bGL\b/,
-  /\bAP\b/,
-  /\bAR\b/,
-  /\bAccounts Payable\b/i,
-  /\bAccounts Receivable\b/i,
-  /\bBank Reconciliation\b/i,
-  /\bFinancial Close\b/i
+const requiredFinanceRoutes = [
+  "/finance/chart-of-accounts",
+  "/finance/fiscal-periods",
+  "/finance/posting-profiles",
+  "/finance/gl-journals",
+  "/finance/ap-invoices",
+  "/finance/ar-invoices",
+  "/finance/inventory-valuation",
+  "/finance/tax-ledger"
 ];
 
-describe("WS08 finance/accounting exclusion guard", () => {
-  it("does not introduce Finance, Accounting, GL, AP, or AR navigation routes in V1", () => {
-    const labelsAndSections = navigationItems.map((item) => `${item.section} ${item.label}`).join(" ");
-    const paths = navigationItems.map((item) => item.path).join(" ");
-
-    for (const pattern of blockedFinancePatterns) {
-      expect(labelsAndSections).not.toMatch(pattern);
+describe("Pack 06 finance/accounting navigation guard", () => {
+  it("exposes governed Finance, GL, AP, AR, valuation, and tax ledger routes", () => {
+    const paths = new Set(navigationItems.map((item) => item.path));
+    for (const route of requiredFinanceRoutes) {
+      expect(paths.has(route), `${route} must remain discoverable after Pack 06`).toBe(true);
     }
-
-    expect(paths).not.toMatch(/\/(finance|accounting|gl|ap|ar)(\/|$)/i);
   });
 
-  it("keeps finance routes unavailable instead of showing a partial scaffold", async () => {
-    renderWithApp(
-      <Routes>
-        <Route path="/finance" element={<NotFoundPage />} />
-      </Routes>,
-      { route: "/finance" }
-    );
+  it("keeps unrelated excluded route families out of V1 navigation", () => {
+    const paths = navigationItems.map((item) => item.path).join(" ");
 
-    expect(await screen.findByText("Route not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Return to login" })).toHaveAttribute("href", "/login");
+    expect(paths).not.toMatch(/\/(hr|payroll)(\/|$)/i);
   });
 });

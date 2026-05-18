@@ -4,6 +4,7 @@ using STS.Mfg.Domain.Integration;
 using STS.Mfg.Domain.Commercial;
 using STS.Mfg.Domain.Engineering;
 using STS.Mfg.Domain.Dispatch;
+using STS.Mfg.Domain.Finance;
 using STS.Mfg.Domain.Inventory;
 using STS.Mfg.Domain.Masters;
 using STS.Mfg.Domain.Measurements;
@@ -110,6 +111,16 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<SupplierQuotationLine> SupplierQuotationLines => Set<SupplierQuotationLine>();
     public DbSet<AccountsPayableLiability> AccountsPayableLiabilities => Set<AccountsPayableLiability>();
     public DbSet<AccountingPosting> AccountingPostings => Set<AccountingPosting>();
+    public DbSet<ChartOfAccount> ChartOfAccounts => Set<ChartOfAccount>();
+    public DbSet<FiscalPeriod> FiscalPeriods => Set<FiscalPeriod>();
+    public DbSet<FinancePostingProfile> FinancePostingProfiles => Set<FinancePostingProfile>();
+    public DbSet<GeneralLedgerJournal> GeneralLedgerJournals => Set<GeneralLedgerJournal>();
+    public DbSet<GeneralLedgerJournalLine> GeneralLedgerJournalLines => Set<GeneralLedgerJournalLine>();
+    public DbSet<AccountsReceivableInvoice> AccountsReceivableInvoices => Set<AccountsReceivableInvoice>();
+    public DbSet<AccountsReceivableInvoiceLine> AccountsReceivableInvoiceLines => Set<AccountsReceivableInvoiceLine>();
+    public DbSet<AccountsReceivableLedgerEntry> AccountsReceivableLedgerEntries => Set<AccountsReceivableLedgerEntry>();
+    public DbSet<TaxLedgerEntry> TaxLedgerEntries => Set<TaxLedgerEntry>();
+    public DbSet<InventoryValuationEntry> InventoryValuationEntries => Set<InventoryValuationEntry>();
 
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<StockTransaction> StockTransactions => Set<StockTransaction>();

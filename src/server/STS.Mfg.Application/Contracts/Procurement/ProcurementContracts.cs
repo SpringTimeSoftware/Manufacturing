@@ -168,7 +168,24 @@ public sealed record SupplierInvoiceDto(long Id, long CompanyId, long BranchId, 
 public sealed record SupplierInvoiceUpsertRequest(long CompanyId, long BranchId, string SupplierInvoiceNo, long SupplierId, long PurchaseOrderId, long GoodsReceiptId, DateOnly InvoiceDate, DateOnly? DueDate, string CurrencyCode, string Status, IReadOnlyCollection<SupplierInvoiceLineUpsertRequest> Lines);
 
 public sealed record AccountsPayableLiabilityDto(long Id, long CompanyId, long BranchId, string LiabilityNo, long SupplierInvoiceId, long SupplierId, DateOnly PostingDate, DateOnly DueDate, decimal PayableAmount, decimal PaidAmount, decimal BalanceAmount, string Status);
-public sealed record AccountingPostingDto(long Id, long CompanyId, long BranchId, string PostingNo, string SourceDocumentType, long SourceDocumentId, DateOnly PostingDate, string DebitAccountCode, string CreditAccountCode, decimal Amount, string Status);
+public sealed record AccountingPostingDto(
+    long Id,
+    long CompanyId,
+    long BranchId,
+    string PostingNo,
+    string SourceDocumentType,
+    long SourceDocumentId,
+    DateOnly PostingDate,
+    string DebitAccountCode,
+    string CreditAccountCode,
+    decimal Amount,
+    string Status,
+    long? DebitAccountId = null,
+    long? CreditAccountId = null,
+    long? PostingProfileId = null,
+    long? FiscalPeriodId = null,
+    long? JournalId = null,
+    string? MappingSource = null);
 public sealed record SupplierInvoicePostingResultDto(SupplierInvoiceDto Invoice, AccountsPayableLiabilityDto Liability, IReadOnlyCollection<AccountingPostingDto> Postings);
 
 public sealed record RfqLineDto(

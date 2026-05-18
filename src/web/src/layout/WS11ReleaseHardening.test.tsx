@@ -9,6 +9,9 @@ const releaseCriticalRoutes = [
   "/planning/mrp",
   "/production/machine-board",
   "/inventory/traceability",
+  "/finance/chart-of-accounts",
+  "/finance/gl-journals",
+  "/finance/ar-invoices",
   "/platform/runtime-uat",
   "/platform/audit-trail",
   "/integrations/health",
@@ -16,7 +19,7 @@ const releaseCriticalRoutes = [
   "/reports/print-pack"
 ];
 
-const excludedRouteFamilies = /\/(finance|accounting|gl|ap|ar|hr|payroll|service|warranty|amc|rma|repair|cmms)(\/|$)/i;
+const excludedRouteFamilies = /\/(hr|payroll|service|warranty|amc|rma|repair|cmms)(\/|$)/i;
 
 function repoFile(path: string) {
   return readFileSync(resolve(process.cwd(), "../..", path), "utf-8");

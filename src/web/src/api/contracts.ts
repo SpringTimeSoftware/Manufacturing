@@ -3296,12 +3296,253 @@ export interface AccountingPostingDto {
   creditAccountCode: string;
   amount: number;
   status: string;
+  debitAccountId?: number | null;
+  creditAccountId?: number | null;
+  postingProfileId?: number | null;
+  fiscalPeriodId?: number | null;
+  journalId?: number | null;
+  mappingSource?: string | null;
 }
 
 export interface SupplierInvoicePostingResultDto {
   invoice: SupplierInvoiceDto;
   liability: AccountsPayableLiabilityDto;
   postings: AccountingPostingDto[];
+}
+
+export interface ChartOfAccountDto {
+  id: number;
+  companyId: number;
+  accountCode: string;
+  accountName: string;
+  accountClass: string;
+  parentAccountId: number | null;
+  normalBalance: string;
+  isActive: boolean;
+  isPostingAllowed: boolean;
+  status: string;
+}
+
+export type ChartOfAccountUpsertRequest = Omit<ChartOfAccountDto, "id">;
+
+export interface FiscalPeriodDto {
+  id: number;
+  companyId: number;
+  fiscalYear: number;
+  periodNo: number;
+  periodName: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  apLocked: boolean;
+  arLocked: boolean;
+  inventoryLocked: boolean;
+  productionLocked: boolean;
+  glLocked: boolean;
+}
+
+export type FiscalPeriodUpsertRequest = Omit<FiscalPeriodDto, "id">;
+
+export interface PostingProfileDto {
+  id: number;
+  companyId: number;
+  profileCode: string;
+  postingKey: string;
+  debitAccountId: number;
+  debitAccountCode: string;
+  creditAccountId: number;
+  creditAccountCode: string;
+  mappingSource: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  status: string;
+}
+
+export interface PostingProfileUpsertRequest {
+  companyId: number;
+  profileCode: string;
+  postingKey: string;
+  debitAccountId: number;
+  creditAccountId: number;
+  mappingSource: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  status: string;
+}
+
+export interface JournalLineDto {
+  id: number;
+  lineNo: number;
+  accountId: number;
+  accountCode: string;
+  debitAmount: number;
+  creditAmount: number;
+  branchId: number | null;
+  narration: string | null;
+}
+
+export interface JournalLineUpsertRequest {
+  lineNo: number;
+  accountId: number;
+  debitAmount: number;
+  creditAmount: number;
+  branchId?: number | null;
+  narration?: string | null;
+}
+
+export interface JournalDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  journalNo: string;
+  postingDate: string;
+  documentDate: string;
+  sourceModule: string;
+  sourceDocumentType: string;
+  sourceDocumentId: number | null;
+  sourceDocumentNo: string | null;
+  currencyCode: string;
+  exchangeRateSnapshot: number;
+  status: string;
+  remarks: string | null;
+  postedAt: string | null;
+  postedByUserId: number | null;
+  reversalJournalId: number | null;
+  lines: JournalLineDto[];
+}
+
+export interface JournalUpsertRequest {
+  companyId: number;
+  branchId?: number | null;
+  journalNo: string;
+  postingDate: string;
+  documentDate: string;
+  sourceModule: string;
+  sourceDocumentType: string;
+  sourceDocumentId?: number | null;
+  sourceDocumentNo?: string | null;
+  currencyCode: string;
+  exchangeRateSnapshot: number;
+  status: string;
+  remarks?: string | null;
+  lines: JournalLineUpsertRequest[];
+}
+
+export interface ArInvoiceLineDto {
+  id: number;
+  lineNo: number;
+  salesOrderLineId: number | null;
+  shipmentLineId: number | null;
+  itemId: number;
+  itemRevisionId: number | null;
+  invoiceQuantity: number;
+  uomId: number;
+  unitPrice: number;
+  discountAmount: number;
+  taxCodeId: number | null;
+  taxRateSnapshot: number;
+  taxAmount: number;
+  lineSubtotal: number;
+  lineTaxableAmount: number;
+  lineTotalAmount: number;
+}
+
+export interface ArInvoiceDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  invoiceNo: string;
+  customerId: number;
+  salesOrderId: number | null;
+  shipmentId: number | null;
+  sourceDocumentNo: string | null;
+  invoiceDate: string;
+  dueDate: string | null;
+  currencyCode: string;
+  exchangeRateSnapshot: number;
+  subtotalAmount: number;
+  discountTotalAmount: number;
+  taxableAmount: number;
+  taxTotalAmount: number;
+  freightAmount: number;
+  packingAmount: number;
+  insuranceAmount: number;
+  otherChargesAmount: number;
+  addLessAmount: number;
+  roundOffAmount: number;
+  grandTotalAmount: number;
+  status: string;
+  arStatus: string;
+  lines: ArInvoiceLineDto[];
+}
+
+export interface ArInvoiceFromShipmentRequest {
+  shipmentId: number;
+  invoiceNo: string;
+  invoiceDate: string;
+  dueDate?: string | null;
+  currencyCode: string;
+  exchangeRateSnapshot: number;
+}
+
+export interface ArSubledgerEntryDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  entryNo: string;
+  arInvoiceId: number;
+  customerId: number;
+  postingDate: string;
+  dueDate: string;
+  receivableAmount: number;
+  receivedAmount: number;
+  balanceAmount: number;
+  status: string;
+}
+
+export interface TaxLedgerEntryDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  taxDirection: string;
+  taxCodeId: number | null;
+  taxRateSnapshot: number;
+  taxableAmount: number;
+  taxAmount: number;
+  sourceDocumentType: string;
+  sourceDocumentId: number;
+  postingDate: string;
+  fiscalPeriodId: number | null;
+  status: string;
+}
+
+export interface InventoryValuationEntryDto {
+  id: number;
+  companyId: number;
+  branchId: number | null;
+  stockTransactionId: number | null;
+  sourceDocumentType: string;
+  sourceDocumentId: number | null;
+  sourceDocumentNo: string | null;
+  itemId: number;
+  warehouseId: number | null;
+  binId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  pcidId: number | null;
+  valuationDate: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  valuationMethod: string;
+  status: string;
+}
+
+export interface ArInvoicePostingResultDto {
+  invoice: ArInvoiceDto;
+  receivable: ArSubledgerEntryDto;
+  journal: JournalDto;
+  taxEntries: TaxLedgerEntryDto[];
 }
 
 export interface RfqLineDto {

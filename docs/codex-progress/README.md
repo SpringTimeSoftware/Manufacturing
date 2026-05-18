@@ -4,6 +4,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 
 ## Latest Pack Outputs
 
+- `FINANCE-GL-AP-AR-COSTING-COMPLETION-PACK-06` completed on 2026-05-17. Output: `docs/codex-progress/FINANCE-GL-AP-AR-COSTING-COMPLETION-PACK-06-output.md`.
 - `DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05` completed on 2026-05-17. Output: `docs/codex-progress/DISPATCH-LOGISTICS-POD-COMPLETION-PACK-05-output.md`.
 
 ## Execution Rules

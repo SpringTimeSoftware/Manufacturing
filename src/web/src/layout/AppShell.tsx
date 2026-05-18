@@ -22,6 +22,7 @@ const navigationGroups: Array<{ label: string; sourceSections: string[]; visible
   { label: "INVENTORY", sourceSections: ["Inventory"], visibleCount: 5 },
   { label: "QUALITY", sourceSections: ["Quality"], visibleCount: 5 },
   { label: "DISPATCH", sourceSections: ["Dispatch"], visibleCount: 4 },
+  { label: "FINANCE", sourceSections: ["Finance"], visibleCount: 6 },
   { label: "INTEGRATIONS & AI", sourceSections: ["Integrations", "AI"], visibleCount: 6 },
   { label: "PLATFORM", sourceSections: ["Platform"], visibleCount: 5 },
   { label: "REPORTS", sourceSections: ["Reports"], visibleCount: 4 }
@@ -190,6 +191,22 @@ function getNavigationParent(item: NavigationItem, groupLabel: string) {
     return "Provider Connectivity";
   }
 
+  if (groupLabel === "FINANCE") {
+    if (item.path.includes("chart-of-accounts") || item.path.includes("fiscal-periods") || item.path.includes("posting-profiles")) {
+      return "Accounting Setup";
+    }
+
+    if (item.path.includes("gl-journals") || item.path.includes("tax-ledger")) {
+      return "General Ledger";
+    }
+
+    if (item.path.includes("inventory-valuation")) {
+      return "Costing and Valuation";
+    }
+
+    return "Subledger";
+  }
+
   return item.section;
 }
 
@@ -227,6 +244,15 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
     "/engineering/eco-revisions": "eco",
     "/engineering/operations": "operation",
     "/engineering/routings": "routing",
+    "/finance/ap-invoices": "procurement",
+    "/finance/ar-invoices": "salesOrder",
+    "/finance/boundaries": "settings",
+    "/finance/chart-of-accounts": "reports",
+    "/finance/fiscal-periods": "audit",
+    "/finance/gl-journals": "document",
+    "/finance/inventory-valuation": "inventory",
+    "/finance/posting-profiles": "workflow",
+    "/finance/tax-ledger": "taxTerms",
     "/help": "help",
     "/ai/assistant": "platform",
     "/ai/translations": "translation",
@@ -352,6 +378,10 @@ function getNavigationIcon(item: NavigationItem, section: string): NavigationIco
 
   if (item.path.includes("procurement")) {
     return "procurement";
+  }
+
+  if (item.path.includes("finance")) {
+    return "reports";
   }
 
   if (item.path === "/platform/notifications") {
