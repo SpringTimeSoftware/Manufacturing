@@ -149,6 +149,7 @@ import {
 } from "../pages/HelpPages";
 import {
   AiAssistantPage,
+  CrmSyncMappingPage,
   DeliveryLogsPage,
   ExportJobsPage,
   ImportJobsPage,
@@ -285,6 +286,7 @@ export const appRouter = createBrowserRouter([
       guardedRoute("integrations/imports", <ImportJobsPage />),
       guardedRoute("integrations/exports", <ExportJobsPage />),
       guardedRoute("integrations/delivery-logs", <DeliveryLogsPage />),
+      guardedRoute("integrations/crm-mapping", <CrmSyncMappingPage />),
       guardedRoute("ai/assistant", <AiAssistantPage />),
       guardedRoute("ai/translations", <TranslationAssistantPage />),
       guardedRoute("organization/companies", <CompanyMasterPage />),

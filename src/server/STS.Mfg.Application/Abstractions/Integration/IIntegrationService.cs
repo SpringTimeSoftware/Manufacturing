@@ -28,8 +28,18 @@ public interface IIntegrationService
     Task<ExportJobDto> GetExportJobAsync(long id, CancellationToken cancellationToken = default);
     Task<ExportJobDto> CreateExportJobAsync(ExportJobCreateRequest request, CancellationToken cancellationToken = default);
     Task<WebhookDispatchResultDto> DispatchWebhookAsync(WebhookDispatchRequest request, CancellationToken cancellationToken = default);
+    Task<PagedResult<WebhookEventDto>> ListWebhookEventsAsync(IntegrationFilter filter, CancellationToken cancellationToken = default);
+    Task<WebhookEventDto> RecordInboundWebhookAsync(string providerCode, InboundWebhookRequest request, CancellationToken cancellationToken = default);
     Task<ImportJobDto> UpdateImportJobStatusAsync(long id, IntegrationJobStatusUpdateRequest request, CancellationToken cancellationToken = default);
     Task<ExportJobDto> UpdateExportJobStatusAsync(long id, IntegrationJobStatusUpdateRequest request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<IntegrationMessageTemplateDto>> ListMessageTemplatesAsync(IntegrationFilter filter, CancellationToken cancellationToken = default);
+    Task<IntegrationMessageTemplateDto> UpsertMessageTemplateAsync(IntegrationMessageTemplateUpsertRequest request, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<CrmObjectMappingDto>> ListCrmMappingsAsync(IntegrationFilter filter, CancellationToken cancellationToken = default);
+    Task<CrmObjectMappingDto> UpsertCrmMappingAsync(CrmObjectMappingUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<CrmSyncJobDto> RunCrmSyncAsync(CrmSyncRequest request, CancellationToken cancellationToken = default);
+    Task<PagedResult<CrmSyncConflictDto>> ListCrmConflictsAsync(IntegrationFilter filter, CancellationToken cancellationToken = default);
 }
 
 public interface IOutboundMessageService
@@ -38,6 +48,7 @@ public interface IOutboundMessageService
     Task<OutboundMessagePreviewDto> PreviewMessageAsync(OutboundMessagePreviewRequest request, CancellationToken cancellationToken = default);
     Task<PagedResult<OutboundDeliveryStatusDto>> ListDeliveryStatusesAsync(IntegrationFilter filter, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<OutboundProviderHealthDto>> GetProviderHealthAsync(CancellationToken cancellationToken = default);
+    Task<OutboundDeliveryStatusDto> RetryMessageAsync(long id, OutboundRetryRequest request, CancellationToken cancellationToken = default);
 }
 
 public interface IOutboundMessageProvider

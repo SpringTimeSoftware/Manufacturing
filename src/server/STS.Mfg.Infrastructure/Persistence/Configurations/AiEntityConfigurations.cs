@@ -58,6 +58,9 @@ public sealed class AiRunConfiguration : IEntityTypeConfiguration<AiRun>
         builder.Property(entity => entity.InputText).HasMaxLength(8000).IsRequired();
         builder.Property(entity => entity.OutputText).HasMaxLength(8000);
         builder.Property(entity => entity.RunStatus).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.ReviewStatus).HasMaxLength(24).IsRequired();
+        builder.Property(entity => entity.ReviewNote).HasMaxLength(512);
+        builder.Property(entity => entity.AppliedTargetType).HasMaxLength(64);
         builder.Property(entity => entity.TokenUsageJson).HasMaxLength(512);
         builder.HasIndex(entity => new { entity.CompanyId, entity.RequestedOn });
     }

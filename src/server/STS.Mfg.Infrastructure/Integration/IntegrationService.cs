@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using STS.Mfg.Application.Abstractions.Audit;
@@ -27,6 +29,12 @@ internal sealed class IntegrationService(
             query = query.Where(entity => entity.ProviderType == providerType);
         }
 
+        if (!string.IsNullOrWhiteSpace(filter.ChannelType))
+        {
+            var channel = filter.ChannelType.Trim();
+            query = query.Where(entity => entity.Channel == channel);
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.Status))
         {
             var status = filter.Status.Trim();
@@ -54,6 +62,27 @@ internal sealed class IntegrationService(
     {
         ValidateProvider(request);
         var entity = IntegrationProvider.Create(request.ProviderCode, request.ProviderName, request.ProviderType, request.BaseUrl, request.Status, request.IsSystemBase, GetUserId());
+        entity.Update(
+            request.ProviderCode,
+            request.ProviderName,
+            request.ProviderType,
+            request.Channel ?? request.ProviderType,
+            request.VendorType ?? request.ProviderType,
+            request.EnvironmentName ?? "Production",
+            request.BaseUrl,
+            request.CredentialReference,
+            request.SenderIdentity,
+            request.WhatsAppBusinessNumber,
+            request.TemplateNamespace,
+            request.CrmTenantReference,
+            request.CallbackUrl,
+            request.RateLimitPerMinute,
+            request.Status,
+            request.HealthStatus ?? "Unverified",
+            request.LastVerifiedAt,
+            request.FailureReason,
+            request.IsSystemBase,
+            GetUserId());
         DbContext.IntegrationProviders.Add(entity);
         await DbContext.SaveChangesAsync(cancellationToken);
 
@@ -69,7 +98,27 @@ internal sealed class IntegrationService(
         entity = EnsureFound(entity, "Integration provider was not found.", "integration.provider_not_found");
 
         var before = MapProvider(entity);
-        entity.Update(request.ProviderCode, request.ProviderName, request.ProviderType, request.BaseUrl, request.Status, request.IsSystemBase, GetUserId());
+        entity.Update(
+            request.ProviderCode,
+            request.ProviderName,
+            request.ProviderType,
+            request.Channel ?? request.ProviderType,
+            request.VendorType ?? request.ProviderType,
+            request.EnvironmentName ?? "Production",
+            request.BaseUrl,
+            request.CredentialReference,
+            request.SenderIdentity,
+            request.WhatsAppBusinessNumber,
+            request.TemplateNamespace,
+            request.CrmTenantReference,
+            request.CallbackUrl,
+            request.RateLimitPerMinute,
+            request.Status,
+            request.HealthStatus ?? entity.HealthStatus,
+            request.LastVerifiedAt ?? entity.LastVerifiedAt,
+            request.FailureReason,
+            request.IsSystemBase,
+            GetUserId());
         await DbContext.SaveChangesAsync(cancellationToken);
 
         var after = MapProvider(entity);
@@ -361,12 +410,48 @@ internal sealed class IntegrationService(
             if (request.SimulateFailure || string.IsNullOrWhiteSpace(subscription.TargetUrl))
             {
                 subscription.MarkRetryQueued(DateTimeOffset.UtcNow, GetUserId());
+                DbContext.WebhookEvents.Add(WebhookEvent.Create(
+                    request.CompanyId,
+                    request.BranchId,
+                    subscription.Id,
+                    null,
+                    "Outbound",
+                    request.EventType,
+                    null,
+                    null,
+                    request.PayloadReference,
+                    ComputeHash(request.PayloadReference),
+                    true,
+                    1,
+                    null,
+                    null,
+                    "RetryQueued",
+                    "Webhook delivery was queued for retry.",
+                    GetUserId()));
                 retryQueued += 1;
                 messages.Add($"{subscription.SubscriptionCode}: retry queued for {request.PayloadReference}.");
                 continue;
             }
 
             subscription.MarkDelivered(DateTimeOffset.UtcNow, GetUserId());
+            DbContext.WebhookEvents.Add(WebhookEvent.Create(
+                request.CompanyId,
+                request.BranchId,
+                subscription.Id,
+                null,
+                "Outbound",
+                request.EventType,
+                null,
+                null,
+                request.PayloadReference,
+                ComputeHash(request.PayloadReference),
+                true,
+                1,
+                202,
+                "Webhook dispatch recorded for delivery worker.",
+                "Queued",
+                null,
+                GetUserId()));
             delivered += 1;
             messages.Add($"{subscription.SubscriptionCode}: dispatch acknowledged for {request.PayloadReference}.");
         }
@@ -375,6 +460,260 @@ internal sealed class IntegrationService(
         var result = new WebhookDispatchResultDto(request.EventType, subscriptions.Count, delivered, retryQueued, messages);
         await WriteAuditAsync("integration", nameof(WebhookSubscription), "integration.webhook.dispatch", request.CompanyId, null, result, cancellationToken);
         return result;
+    }
+
+    public async Task<PagedResult<WebhookEventDto>> ListWebhookEventsAsync(IntegrationFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.WebhookEvents.AsNoTracking().ApplyActiveOrganizationScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value);
+        }
+
+        if (filter.BranchId.HasValue)
+        {
+            query = query.Where(entity => entity.BranchId == filter.BranchId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.EventType))
+        {
+            var eventType = filter.EventType.Trim();
+            query = query.Where(entity => entity.EventType == eventType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        var page = await query.OrderByDescending(entity => entity.EventOn).ThenByDescending(entity => entity.Id).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapWebhookEvent);
+    }
+
+    public async Task<WebhookEventDto> RecordInboundWebhookAsync(string providerCode, InboundWebhookRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateInboundWebhook(providerCode, request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var provider = await DbContext.IntegrationProviders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(entity => entity.ProviderCode == providerCode.Trim(), cancellationToken);
+
+        var providerMissing = provider is null;
+        var signatureRequired = provider?.CredentialReference is not null;
+        var signatureVerified = !signatureRequired || !string.IsNullOrWhiteSpace(request.Signature);
+        var failureReason = providerMissing
+            ? "Provider configuration was not found for this callback."
+            : signatureVerified ? null : "Callback signature is required for this provider.";
+        var status = failureReason is null ? "Received" : "Rejected";
+        var payloadHash = ComputeHash(request.RawPayload);
+
+        var entity = WebhookEvent.Create(
+            request.CompanyId,
+            request.BranchId,
+            null,
+            provider?.Id,
+            "Inbound",
+            request.EventType,
+            request.SourceDocumentType,
+            request.SourceDocumentId,
+            request.PayloadReference,
+            payloadHash,
+            signatureVerified,
+            1,
+            status == "Received" ? 202 : 401,
+            status == "Received" ? "Callback recorded for processing." : null,
+            status,
+            failureReason,
+            GetUserId());
+
+        DbContext.WebhookEvents.Add(entity);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapWebhookEvent(entity);
+        await WriteAuditAsync("integration", nameof(WebhookEvent), "integration.webhook.inbound", entity.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<PagedResult<IntegrationMessageTemplateDto>> ListMessageTemplatesAsync(IntegrationFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.IntegrationMessageTemplates.AsNoTracking().ApplyCompanyScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value || entity.CompanyId == null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.ChannelType))
+        {
+            var channel = NormalizeChannel(filter.ChannelType);
+            query = query.Where(entity => entity.ChannelType == channel);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.Trim();
+            query = query.Where(entity => entity.TemplateCode.Contains(search) || entity.TemplateName.Contains(search));
+        }
+
+        var page = await query.OrderBy(entity => entity.ChannelType).ThenBy(entity => entity.TemplateCode).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapTemplate);
+    }
+
+    public async Task<IntegrationMessageTemplateDto> UpsertMessageTemplateAsync(IntegrationMessageTemplateUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateTemplate(request);
+        EnsureContextAccess(request.CompanyId, null);
+
+        var channel = NormalizeChannel(request.ChannelType);
+        var entity = await DbContext.IntegrationMessageTemplates.FirstOrDefaultAsync(record =>
+            record.CompanyId == request.CompanyId &&
+            record.ChannelType == channel &&
+            record.TemplateCode == request.TemplateCode.Trim() &&
+            record.TemplateVersion == request.TemplateVersion.Trim(),
+            cancellationToken);
+
+        object? before = null;
+        if (entity is null)
+        {
+            entity = IntegrationMessageTemplate.Create(request.CompanyId, request.IntegrationProviderId, channel, request.TemplateCode, request.TemplateName, request.TemplateVersion, request.ApprovalStatus, request.BodyTemplate, request.Status, GetUserId());
+            DbContext.IntegrationMessageTemplates.Add(entity);
+        }
+        else
+        {
+            before = MapTemplate(entity);
+            entity.Update(channel, request.TemplateCode, request.TemplateName, request.TemplateVersion, request.ApprovalStatus, request.BodyTemplate, request.Status, GetUserId());
+        }
+
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapTemplate(entity);
+        await WriteAuditAsync("integration", nameof(IntegrationMessageTemplate), "integration.template.upsert", entity.Id, before, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<PagedResult<CrmObjectMappingDto>> ListCrmMappingsAsync(IntegrationFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.CrmObjectMappings.AsNoTracking().ApplyCompanyScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value || entity.CompanyId == null);
+        }
+
+        if (filter.ProviderId.HasValue)
+        {
+            query = query.Where(entity => entity.IntegrationProviderId == filter.ProviderId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.ObjectType))
+        {
+            var objectType = filter.ObjectType.Trim();
+            query = query.Where(entity => entity.ErpObjectType == objectType || entity.ExternalObjectType == objectType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.Status == status);
+        }
+
+        var page = await query.OrderByDescending(entity => entity.LastSyncedAt ?? DateTimeOffset.MinValue).ThenByDescending(entity => entity.Id).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapCrmMapping);
+    }
+
+    public async Task<CrmObjectMappingDto> UpsertCrmMappingAsync(CrmObjectMappingUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateCrmMapping(request);
+        EnsureContextAccess(request.CompanyId, null);
+        await EnsureProviderExistsAsync(request.IntegrationProviderId, cancellationToken);
+
+        var entity = await DbContext.CrmObjectMappings.FirstOrDefaultAsync(record =>
+            record.CompanyId == request.CompanyId &&
+            record.IntegrationProviderId == request.IntegrationProviderId &&
+            record.ExternalObjectType == request.ExternalObjectType.Trim() &&
+            record.ExternalId == request.ExternalId.Trim(),
+            cancellationToken);
+
+        object? before = null;
+        if (entity is null)
+        {
+            entity = CrmObjectMapping.Create(request.CompanyId, request.IntegrationProviderId, request.ErpObjectType, request.ErpObjectId, request.ExternalObjectType, request.ExternalId, request.SyncDirection, request.ConflictStatus, request.Status, GetUserId());
+            DbContext.CrmObjectMappings.Add(entity);
+        }
+        else
+        {
+            before = MapCrmMapping(entity);
+            entity.Update(request.ErpObjectType, request.ErpObjectId, request.ExternalObjectType, request.ExternalId, request.SyncDirection, request.ConflictStatus, request.Status, GetUserId());
+        }
+
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var dto = MapCrmMapping(entity);
+        await WriteAuditAsync("integration", nameof(CrmObjectMapping), "integration.crm.mapping.upsert", entity.Id, before, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<CrmSyncJobDto> RunCrmSyncAsync(CrmSyncRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateCrmSync(request);
+        EnsureContextAccess(request.CompanyId, request.BranchId);
+
+        var provider = await DbContext.IntegrationProviders.AsNoTracking().FirstOrDefaultAsync(record => record.Id == request.IntegrationProviderId, cancellationToken);
+        provider = EnsureFound(provider, "CRM provider was not found.", "integration.provider_not_found");
+        var configIssue = await ResolveProviderIssueAsync("CRM", request.CompanyId, request.BranchId, provider.Id, cancellationToken);
+
+        var mapping = request.CrmObjectMappingId.HasValue
+            ? await DbContext.CrmObjectMappings.AsNoTracking().FirstOrDefaultAsync(record => record.Id == request.CrmObjectMappingId.Value, cancellationToken)
+            : null;
+
+        var missingMapping = mapping is null || string.IsNullOrWhiteSpace(mapping.ExternalId);
+        var failure = configIssue ?? (missingMapping ? "CRM sync requires a governed external-id mapping before execution." : null);
+        var status = failure is null ? "Queued" : "Failed";
+        var job = CrmSyncJob.Create(request.CompanyId, request.BranchId, request.IntegrationProviderId, mapping?.Id, request.ObjectType, request.SyncDirection, JsonSerializer.Serialize(request.Payload), status, failure, GetUserId());
+        DbContext.CrmSyncJobs.Add(job);
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        if (missingMapping)
+        {
+            DbContext.CrmSyncConflicts.Add(CrmSyncConflict.Create(request.CompanyId, job.Id, request.ObjectType, null, null, "MissingExternalMapping", "Open", JsonSerializer.Serialize(request.Payload), GetUserId()));
+            await DbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var dto = MapCrmSyncJob(job);
+        await WriteAuditAsync("integration", nameof(CrmSyncJob), "integration.crm.sync", job.Id, null, dto, cancellationToken);
+        return dto;
+    }
+
+    public async Task<PagedResult<CrmSyncConflictDto>> ListCrmConflictsAsync(IntegrationFilter filter, CancellationToken cancellationToken = default)
+    {
+        var scope = GetScope();
+        var query = DbContext.CrmSyncConflicts.AsNoTracking().ApplyCompanyScope(scope);
+
+        if (filter.CompanyId.HasValue)
+        {
+            query = query.Where(entity => entity.CompanyId == filter.CompanyId.Value || entity.CompanyId == null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(entity => entity.ResolutionStatus == status);
+        }
+
+        var page = await query.OrderByDescending(entity => entity.Id).ToPagedResultAsync(filter, cancellationToken);
+        return MapPage(page, MapCrmConflict);
     }
 
     public async Task<ImportJobDto> UpdateImportJobStatusAsync(long id, IntegrationJobStatusUpdateRequest request, CancellationToken cancellationToken = default)
@@ -441,7 +780,8 @@ internal sealed class IntegrationService(
             Required(request.ProviderCode, nameof(request.ProviderCode), "Provider code is required."),
             Required(request.ProviderName, nameof(request.ProviderName), "Provider name is required."),
             Required(request.ProviderType, nameof(request.ProviderType), "Provider type is required."),
-            Required(request.Status, nameof(request.Status), "Status is required."));
+            Required(request.Status, nameof(request.Status), "Status is required."),
+            NonNegative(request.RateLimitPerMinute ?? 0, nameof(request.RateLimitPerMinute), "Rate limit cannot be negative."));
 
     private static void ValidateConnection(IntegrationConnectionUpsertRequest request) =>
         ThrowIfInvalid(
@@ -483,6 +823,39 @@ internal sealed class IntegrationService(
             Required(request.EventType, nameof(request.EventType), "Event type is required."),
             Required(request.PayloadReference, nameof(request.PayloadReference), "Payload reference is required."));
 
+    private static void ValidateInboundWebhook(string providerCode, InboundWebhookRequest request) =>
+        ThrowIfInvalid(
+            Required(providerCode, nameof(providerCode), "Provider code is required."),
+            Required(request.EventType, nameof(request.EventType), "Event type is required."),
+            Required(request.PayloadReference, nameof(request.PayloadReference), "Payload reference is required."),
+            Required(request.RawPayload, nameof(request.RawPayload), "Raw payload is required."));
+
+    private static void ValidateTemplate(IntegrationMessageTemplateUpsertRequest request) =>
+        ThrowIfInvalid(
+            Required(request.ChannelType, nameof(request.ChannelType), "Channel is required."),
+            Required(request.TemplateCode, nameof(request.TemplateCode), "Template code is required."),
+            Required(request.TemplateName, nameof(request.TemplateName), "Template name is required."),
+            Required(request.TemplateVersion, nameof(request.TemplateVersion), "Template version is required."),
+            Required(request.ApprovalStatus, nameof(request.ApprovalStatus), "Approval status is required."),
+            Required(request.BodyTemplate, nameof(request.BodyTemplate), "Template body is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."));
+
+    private static void ValidateCrmMapping(CrmObjectMappingUpsertRequest request) =>
+        ThrowIfInvalid(
+            Positive(request.IntegrationProviderId, nameof(request.IntegrationProviderId), "Provider is required."),
+            Required(request.ErpObjectType, nameof(request.ErpObjectType), "ERP object type is required."),
+            Required(request.ExternalObjectType, nameof(request.ExternalObjectType), "External object type is required."),
+            Required(request.ExternalId, nameof(request.ExternalId), "External ID is required."),
+            Required(request.SyncDirection, nameof(request.SyncDirection), "Sync direction is required."),
+            Required(request.ConflictStatus, nameof(request.ConflictStatus), "Conflict status is required."),
+            Required(request.Status, nameof(request.Status), "Status is required."));
+
+    private static void ValidateCrmSync(CrmSyncRequest request) =>
+        ThrowIfInvalid(
+            Positive(request.IntegrationProviderId, nameof(request.IntegrationProviderId), "CRM provider is required."),
+            Required(request.ObjectType, nameof(request.ObjectType), "CRM object type is required."),
+            Required(request.SyncDirection, nameof(request.SyncDirection), "Sync direction is required."));
+
     private static void ValidateJobStatus(IntegrationJobStatusUpdateRequest request) =>
         ThrowIfInvalid(
             Required(request.Status, nameof(request.Status), "Status is required."),
@@ -493,6 +866,55 @@ internal sealed class IntegrationService(
         status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ||
         status.Equals("Failed", StringComparison.OrdinalIgnoreCase) ||
         status.Equals("Rejected", StringComparison.OrdinalIgnoreCase);
+
+    private async Task<string?> ResolveProviderIssueAsync(string channelType, long? companyId, long? branchId, long? providerId, CancellationToken cancellationToken)
+    {
+        var channel = NormalizeChannel(channelType);
+        var provider = providerId.HasValue
+            ? await DbContext.IntegrationProviders.AsNoTracking().FirstOrDefaultAsync(record => record.Id == providerId.Value, cancellationToken)
+            : await DbContext.IntegrationProviders.AsNoTracking()
+                .OrderBy(record => record.ProviderCode)
+                .FirstOrDefaultAsync(record => record.Channel == channel || record.ProviderType == channel, cancellationToken);
+
+        if (provider is null)
+        {
+            return $"No {channel} provider is configured.";
+        }
+
+        if (!provider.Status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{provider.ProviderCode} is not active.";
+        }
+
+        var connection = await DbContext.IntegrationConnections.AsNoTracking()
+            .Where(record => record.IntegrationProviderId == provider.Id && record.Status == "Active")
+            .Where(record => !companyId.HasValue || record.CompanyId == companyId.Value)
+            .Where(record => !branchId.HasValue || record.BranchId == branchId.Value || record.BranchId == null)
+            .OrderByDescending(record => record.BranchId.HasValue)
+            .ThenBy(record => record.ConnectionCode)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (connection is null)
+        {
+            return $"{provider.ProviderCode} has no active connection for this scope.";
+        }
+
+        if (string.IsNullOrWhiteSpace(provider.CredentialReference) && string.IsNullOrWhiteSpace(connection.CredentialReference))
+        {
+            return $"{provider.ProviderCode} requires a credential reference before live sync.";
+        }
+
+        return null;
+    }
+
+    private static string NormalizeChannel(string channelType) =>
+        channelType.Trim().Equals("SMS", StringComparison.OrdinalIgnoreCase) ? "Sms" : channelType.Trim();
+
+    private static string ComputeHash(string value)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
 
     private static string? BuildJobFeedback(IntegrationJobStatusUpdateRequest request)
     {
@@ -522,7 +944,27 @@ internal sealed class IntegrationService(
     }
 
     private static IntegrationProviderDto MapProvider(IntegrationProvider entity) =>
-        new(entity.Id, entity.ProviderCode, entity.ProviderName, entity.ProviderType, entity.BaseUrl, entity.Status, entity.IsSystemBase);
+        new(
+            entity.Id,
+            entity.ProviderCode,
+            entity.ProviderName,
+            entity.ProviderType,
+            string.IsNullOrWhiteSpace(entity.Channel) ? entity.ProviderType : entity.Channel,
+            string.IsNullOrWhiteSpace(entity.VendorType) ? entity.ProviderType : entity.VendorType,
+            string.IsNullOrWhiteSpace(entity.EnvironmentName) ? "Production" : entity.EnvironmentName,
+            entity.BaseUrl,
+            MaskSecretReference(entity.CredentialReference),
+            entity.SenderIdentity,
+            entity.WhatsAppBusinessNumber,
+            entity.TemplateNamespace,
+            entity.CrmTenantReference,
+            entity.CallbackUrl,
+            entity.RateLimitPerMinute,
+            entity.Status,
+            string.IsNullOrWhiteSpace(entity.HealthStatus) ? "Unverified" : entity.HealthStatus,
+            entity.LastVerifiedAt,
+            entity.FailureReason,
+            entity.IsSystemBase);
 
     private static IntegrationConnectionDto MapConnection(IntegrationConnection entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId, entity.IntegrationProviderId, entity.ConnectionCode, entity.ConnectionName, entity.EndpointUrl, MaskSecretReference(entity.CredentialReference), entity.Status, entity.LastHealthCheckedOn, entity.LastHealthStatus);
@@ -535,6 +977,21 @@ internal sealed class IntegrationService(
 
     private static ExportJobDto MapExportJob(ExportJob entity) =>
         new(entity.Id, entity.CompanyId ?? 0, entity.BranchId ?? 0, entity.JobNo, entity.Module, entity.OutputFormat, entity.FilterJson, entity.StoragePath, entity.Status, entity.RequestedOn, entity.ProcessedOn, entity.LastError);
+
+    private static IntegrationMessageTemplateDto MapTemplate(IntegrationMessageTemplate entity) =>
+        new(entity.Id, entity.CompanyId, entity.IntegrationProviderId, entity.ChannelType, entity.TemplateCode, entity.TemplateName, entity.TemplateVersion, entity.ApprovalStatus, entity.BodyTemplate, entity.Status);
+
+    private static WebhookEventDto MapWebhookEvent(WebhookEvent entity) =>
+        new(entity.Id, entity.CompanyId, entity.BranchId, entity.WebhookSubscriptionId, entity.IntegrationProviderId, entity.Direction, entity.EventType, entity.SourceDocumentType, entity.SourceDocumentId, entity.PayloadReference, entity.PayloadHash, entity.SignatureVerified, entity.AttemptCount, entity.ResponseCode, entity.ResponseSummary, entity.Status, entity.FailureReason, entity.EventOn);
+
+    private static CrmObjectMappingDto MapCrmMapping(CrmObjectMapping entity) =>
+        new(entity.Id, entity.CompanyId, entity.IntegrationProviderId, entity.ErpObjectType, entity.ErpObjectId, entity.ExternalObjectType, entity.ExternalId, entity.SyncDirection, entity.ConflictStatus, entity.LastSyncedAt, entity.Status);
+
+    private static CrmSyncJobDto MapCrmSyncJob(CrmSyncJob entity) =>
+        new(entity.Id, entity.CompanyId, entity.BranchId, entity.IntegrationProviderId, entity.CrmObjectMappingId, entity.ObjectType, entity.SyncDirection, entity.PayloadSnapshotJson, entity.Status, entity.FailureReason, entity.RequestedOn, entity.CompletedOn);
+
+    private static CrmSyncConflictDto MapCrmConflict(CrmSyncConflict entity) =>
+        new(entity.Id, entity.CompanyId, entity.CrmSyncJobId, entity.ObjectType, entity.ErpObjectId, entity.ExternalId, entity.ConflictType, entity.ResolutionStatus, entity.DetailsJson);
 
     private static string? MaskSecretReference(string? value)
     {

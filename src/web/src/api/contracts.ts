@@ -355,8 +355,21 @@ export interface IntegrationProviderDto {
   providerCode: string;
   providerName: string;
   providerType: string;
+  channel: string;
+  vendorType: string;
+  environmentName: string;
   baseUrl: string | null;
+  credentialReference: string | null;
+  senderIdentity: string | null;
+  whatsAppBusinessNumber: string | null;
+  templateNamespace: string | null;
+  crmTenantReference: string | null;
+  callbackUrl: string | null;
+  rateLimitPerMinute: number | null;
   status: string;
+  healthStatus: string;
+  lastVerifiedAt: string | null;
+  failureReason: string | null;
   isSystemBase: boolean;
 }
 
@@ -367,6 +380,19 @@ export interface IntegrationProviderUpsertRequest {
   baseUrl: string | null;
   status: string;
   isSystemBase?: boolean;
+  channel?: string | null;
+  vendorType?: string | null;
+  environmentName?: string | null;
+  credentialReference?: string | null;
+  senderIdentity?: string | null;
+  whatsAppBusinessNumber?: string | null;
+  templateNamespace?: string | null;
+  crmTenantReference?: string | null;
+  callbackUrl?: string | null;
+  rateLimitPerMinute?: number | null;
+  healthStatus?: string | null;
+  lastVerifiedAt?: string | null;
+  failureReason?: string | null;
 }
 
 export interface IntegrationConnectionDto {
@@ -451,6 +477,31 @@ export interface IntegrationJobStatusUpdateRequest {
   failureSummary?: string | null;
 }
 
+export interface IntegrationMessageTemplateDto {
+  id: number;
+  companyId: number | null;
+  integrationProviderId: number | null;
+  channelType: string;
+  templateCode: string;
+  templateName: string;
+  templateVersion: string;
+  approvalStatus: string;
+  bodyTemplate: string;
+  status: string;
+}
+
+export interface IntegrationMessageTemplateUpsertRequest {
+  companyId: number | null;
+  integrationProviderId: number | null;
+  channelType: string;
+  templateCode: string;
+  templateName: string;
+  templateVersion: string;
+  approvalStatus: string;
+  bodyTemplate: string;
+  status: string;
+}
+
 export interface OutboundProviderHealthDto {
   channelType: string;
   providerCode: string | null;
@@ -469,6 +520,14 @@ export interface OutboundDeliveryStatusDto {
   createdOn: string;
   processedOn: string | null;
   lastError: string | null;
+  providerId: number | null;
+  providerCode: string | null;
+  sourceModule: string | null;
+  sourceDocumentType: string | null;
+  sourceDocumentId: number | null;
+  sourceDocumentNo: string | null;
+  reportOutputId: number | null;
+  deliveryReceiptStatus: string | null;
 }
 
 export interface OutboundMessagePreviewRequest {
@@ -478,11 +537,21 @@ export interface OutboundMessagePreviewRequest {
   recipientRef: string;
   templateCode: string;
   tokens: Record<string, string>;
+  subject?: string | null;
+  bodyOverride?: string | null;
 }
 
 export interface OutboundMessageRequest extends OutboundMessagePreviewRequest {
   relatedDocumentType?: string | null;
   relatedDocumentId?: number | null;
+  sourceModule?: string | null;
+  sourceDocumentNo?: string | null;
+  recipientType?: string | null;
+  reportOutputId?: number | null;
+}
+
+export interface OutboundRetryRequest {
+  reason?: string | null;
 }
 
 export interface OutboundMessagePreviewDto {
@@ -506,6 +575,101 @@ export interface WebhookDispatchResultDto {
   deliveredCount: number;
   retryQueuedCount: number;
   operatorMessages: string[];
+}
+
+export interface WebhookEventDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  webhookSubscriptionId: number | null;
+  integrationProviderId: number | null;
+  direction: string;
+  eventType: string;
+  sourceDocumentType: string | null;
+  sourceDocumentId: number | null;
+  payloadReference: string;
+  payloadHash: string;
+  signatureVerified: boolean;
+  attemptCount: number;
+  responseCode: number | null;
+  responseSummary: string | null;
+  status: string;
+  failureReason: string | null;
+  eventOn: string;
+}
+
+export interface InboundWebhookRequest {
+  companyId: number | null;
+  branchId: number | null;
+  eventType: string;
+  payloadReference: string;
+  rawPayload: string;
+  signature?: string | null;
+  sourceDocumentType?: string | null;
+  sourceDocumentId?: number | null;
+}
+
+export interface CrmObjectMappingDto {
+  id: number;
+  companyId: number | null;
+  integrationProviderId: number;
+  erpObjectType: string;
+  erpObjectId: number | null;
+  externalObjectType: string;
+  externalId: string;
+  syncDirection: string;
+  conflictStatus: string;
+  lastSyncedAt: string | null;
+  status: string;
+}
+
+export interface CrmObjectMappingUpsertRequest {
+  companyId: number | null;
+  integrationProviderId: number;
+  erpObjectType: string;
+  erpObjectId: number | null;
+  externalObjectType: string;
+  externalId: string;
+  syncDirection: string;
+  conflictStatus: string;
+  status: string;
+}
+
+export interface CrmSyncRequest {
+  companyId: number | null;
+  branchId: number | null;
+  integrationProviderId: number;
+  crmObjectMappingId: number | null;
+  objectType: string;
+  syncDirection: string;
+  payload: Record<string, string>;
+}
+
+export interface CrmSyncJobDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  integrationProviderId: number;
+  crmObjectMappingId: number | null;
+  objectType: string;
+  syncDirection: string;
+  payloadSnapshotJson: string;
+  status: string;
+  failureReason: string | null;
+  requestedOn: string;
+  completedOn: string | null;
+}
+
+export interface CrmSyncConflictDto {
+  id: number;
+  companyId: number | null;
+  crmSyncJobId: number;
+  objectType: string;
+  erpObjectId: number | null;
+  externalId: string | null;
+  conflictType: string;
+  resolutionStatus: string;
+  detailsJson: string;
 }
 
 export interface AiProviderDto {
@@ -542,6 +706,19 @@ export interface AiRunDto {
   requiresReview: boolean;
   requestedOn: string;
   completedOn: string | null;
+  reviewStatus: string;
+  reviewedByUserId: number | null;
+  reviewedOn: string | null;
+  reviewNote: string | null;
+  appliedTargetType: string | null;
+  appliedTargetId: number | null;
+}
+
+export interface AiReviewRequest {
+  reviewStatus: string;
+  reviewNote?: string | null;
+  appliedTargetType?: string | null;
+  appliedTargetId?: number | null;
 }
 
 export interface AiExecutionPolicyDto {

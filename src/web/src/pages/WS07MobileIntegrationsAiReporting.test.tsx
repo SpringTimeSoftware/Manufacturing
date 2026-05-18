@@ -7,6 +7,8 @@ import { navigationItems } from "../layout/navigation";
 import { renderWithApp } from "../test/render";
 import {
   AiAssistantPage,
+  CrmSyncMappingPage,
+  DeliveryLogsPage,
   ExportJobsPage,
   ImportJobsPage,
   IntegrationProviderAdminPage,
@@ -44,6 +46,9 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
     expect(navigationItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ path: "/integrations/providers", section: "Integrations" }),
+        expect.objectContaining({ path: "/integrations/health", section: "Integrations" }),
+        expect.objectContaining({ path: "/integrations/delivery-logs", section: "Integrations" }),
+        expect.objectContaining({ path: "/integrations/crm-mapping", section: "Integrations" }),
         expect.objectContaining({ path: "/integrations/imports", section: "Integrations" }),
         expect.objectContaining({ path: "/integrations/exports", section: "Integrations" }),
         expect.objectContaining({ path: "/ai/assistant", section: "AI" }),
@@ -238,6 +243,156 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
     await waitFor(() => expect(createExport).toHaveBeenCalledWith(expect.objectContaining({ module: "planning.mrp", outputFormat: "CSV" })));
   });
 
+  it("previews, queues, and retries outbound deliveries through durable integration APIs", async () => {
+    vi.spyOn(apiClient.integrations, "deliveries").mockResolvedValue(paged([
+      {
+        id: 1202,
+        channelType: "Email",
+        redactedRecipientRef: "c***@example.test",
+        templateCode: "SHIPMENT_NOTICE",
+        deliveryStatus: "Failed",
+        attemptCount: 1,
+        createdOn: "2026-05-18T10:00:00Z",
+        processedOn: null,
+        lastError: "Missing credential reference",
+        providerId: 701,
+        providerCode: "SMTP-LIVE",
+        sourceModule: "Dispatch",
+        sourceDocumentType: "Shipment",
+        sourceDocumentId: 1001,
+        sourceDocumentNo: "SHIP-2026-0029",
+        reportOutputId: 9300,
+        deliveryReceiptStatus: "Failed"
+      }
+    ]) as never);
+    vi.spyOn(apiClient.integrations, "templates").mockResolvedValue(paged([
+      {
+        id: 1211,
+        companyId: 1,
+        integrationProviderId: 701,
+        channelType: "Email",
+        templateCode: "SHIPMENT_NOTICE",
+        templateName: "Shipment notice",
+        templateVersion: "v1",
+        approvalStatus: "Approved",
+        bodyTemplate: "Shipment {{document}} is ready.",
+        status: "Active"
+      }
+    ]) as never);
+    const previewMessage = vi.spyOn(apiClient.integrations, "previewMessage").mockResolvedValue({
+      channelType: "Email",
+      redactedRecipientRef: "d***@customer.local",
+      renderedMessage: "Shipment SHIP-2026-0029 is ready.",
+      disabledReason: null
+    } as never);
+    const queueMessage = vi.spyOn(apiClient.integrations, "queueMessage").mockResolvedValue({
+      id: 1203,
+      channelType: "Email",
+      redactedRecipientRef: "d***@customer.local",
+      templateCode: "SHIPMENT_NOTICE",
+      deliveryStatus: "Queued",
+      attemptCount: 0,
+      createdOn: "2026-05-18T10:01:00Z",
+      processedOn: null,
+      lastError: null,
+      providerId: 701,
+      providerCode: "SMTP-LIVE",
+      sourceModule: "Dispatch",
+      sourceDocumentType: "Shipment",
+      sourceDocumentId: 1001,
+      sourceDocumentNo: "SHIP-2026-0029",
+      reportOutputId: null,
+      deliveryReceiptStatus: "Queued"
+    } as never);
+    const retryMessage = vi.spyOn(apiClient.integrations, "retryMessage").mockResolvedValue({ id: 1202, deliveryStatus: "Retrying" } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/integrations/delivery-logs" element={<DeliveryLogsPage />} />
+      </Routes>,
+      { route: "/integrations/delivery-logs", session: buildLiveSession() }
+    );
+
+    expect(await screen.findByText("Missing credential reference")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Preview message" }));
+    await waitFor(() => expect(previewMessage).toHaveBeenCalledWith(expect.objectContaining({ templateCode: "SHIPMENT_NOTICE" })));
+    expect(await screen.findByText("Shipment SHIP-2026-0029 is ready.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Queue message" }));
+    await waitFor(() => expect(queueMessage).toHaveBeenCalledWith(expect.objectContaining({ sourceModule: "Dispatch", sourceDocumentNo: "SHIP-2026-0029" })));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(retryMessage).toHaveBeenCalledWith(1202, expect.objectContaining({ reason: "Operator retry from delivery log." })));
+  });
+
+  it("persists CRM external-id mappings and records sync through live APIs", async () => {
+    vi.spyOn(apiClient.integrations, "crmMappings").mockResolvedValue(paged([]) as never);
+    vi.spyOn(apiClient.integrations, "crmConflicts").mockResolvedValue(paged([
+      {
+        id: 1241,
+        companyId: 1,
+        crmSyncJobId: 1251,
+        objectType: "Customer",
+        erpObjectId: 501,
+        externalId: null,
+        conflictType: "MissingExternalMapping",
+        resolutionStatus: "Open",
+        detailsJson: "{\"customer\":\"CUST-501\"}"
+      }
+    ]) as never);
+    vi.spyOn(apiClient.integrations, "providers").mockResolvedValue(paged([
+      {
+        id: 703,
+        providerCode: "CRM-LIVE",
+        providerName: "CRM Live",
+        providerType: "CRM",
+        channel: "CRM",
+        vendorType: "GenericCRM",
+        environmentName: "Production",
+        baseUrl: "https://crm.example.test",
+        credentialReference: "secret://crm/live",
+        senderIdentity: null,
+        whatsAppBusinessNumber: null,
+        templateNamespace: null,
+        crmTenantReference: "tenant-live",
+        callbackUrl: null,
+        rateLimitPerMinute: 30,
+        status: "Active",
+        healthStatus: "Ready",
+        lastVerifiedAt: null,
+        failureReason: null,
+        isSystemBase: false
+      }
+    ]) as never);
+    const saveCrmMapping = vi.spyOn(apiClient.integrations, "saveCrmMapping").mockResolvedValue({
+      id: 1231,
+      companyId: 1,
+      integrationProviderId: 703,
+      erpObjectType: "Customer",
+      erpObjectId: 501,
+      externalObjectType: "Account",
+      externalId: "CRM-ACC-501",
+      syncDirection: "Outbound",
+      conflictStatus: "None",
+      lastSyncedAt: null,
+      status: "Active"
+    } as never);
+    const runCrmSync = vi.spyOn(apiClient.integrations, "runCrmSync").mockResolvedValue({ id: 1252, status: "Queued" } as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/integrations/crm-mapping" element={<CrmSyncMappingPage />} />
+      </Routes>,
+      { route: "/integrations/crm-mapping", session: buildLiveSession() }
+    );
+
+    expect(await screen.findByText("MissingExternalMapping")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("ERP object ID"), { target: { value: "501" } });
+    fireEvent.change(screen.getByLabelText("External ID"), { target: { value: "CRM-ACC-501" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save CRM mapping" }));
+    await waitFor(() => expect(saveCrmMapping).toHaveBeenCalledWith(expect.objectContaining({ erpObjectType: "Customer", erpObjectId: 501, externalId: "CRM-ACC-501" })));
+    fireEvent.click(screen.getByRole("button", { name: "Run CRM sync" }));
+    await waitFor(() => expect(runCrmSync).toHaveBeenCalledWith(expect.objectContaining({ objectType: "Customer", syncDirection: "Outbound" })));
+  });
+
   it("keeps AI draft-only and runs reports through persisted generated outputs", async () => {
     vi.spyOn(apiClient.ai, "assistantIntents").mockResolvedValue([
       {
@@ -251,7 +406,32 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
     ] as never);
     vi.spyOn(apiClient.ai, "providers").mockResolvedValue(paged([{ id: 1301, providerCode: "OPENAI", providerName: "OpenAI", providerType: "DraftAssistant", status: "Active" }]) as never);
     vi.spyOn(apiClient.ai, "models").mockResolvedValue(paged([{ id: 1401, aiProviderId: 1301, modelCode: "draft-model", modelName: "Draft model", capabilityFlagsJson: "{}", status: "Active" }]) as never);
-    vi.spyOn(apiClient.ai, "runs").mockResolvedValue(paged([]) as never);
+    vi.spyOn(apiClient.ai, "runs").mockResolvedValue(paged([
+      {
+        id: 1501,
+        companyId: 1,
+        branchId: 10,
+        aiProviderId: 1301,
+        aiModelId: 1401,
+        aiPromptTemplateId: null,
+        draftPurpose: "RiskDigest",
+        relatedDocumentType: "DailyReview",
+        relatedDocumentId: null,
+        inputText: "Summarize risk.",
+        outputText: "Draft follow-up text.",
+        runStatus: "Completed",
+        tokenUsageJson: "{}",
+        requiresReview: true,
+        requestedOn: "2026-05-18T10:00:00Z",
+        completedOn: "2026-05-18T10:01:00Z",
+        reviewStatus: "Drafted",
+        reviewedByUserId: null,
+        reviewedOn: null,
+        reviewNote: null,
+        appliedTargetType: null,
+        appliedTargetId: null
+      }
+    ]) as never);
     vi.spyOn(apiClient.ai, "executionPolicy").mockResolvedValue({
       draftOnly: true,
       allowsOperationalWriteBack: false,
@@ -267,6 +447,7 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
       safetyNote: "Grounded query only."
     } as never);
     const createDraft = vi.spyOn(apiClient.ai, "createDraft").mockResolvedValue({ id: 1501 } as never);
+    const reviewRun = vi.spyOn(apiClient.ai, "reviewRun").mockResolvedValue({ id: 1501, reviewStatus: "Reviewed" } as never);
 
     renderWithApp(
       <Routes>
@@ -280,6 +461,8 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
     fireEvent.click(screen.getByRole("button", { name: "Generate draft" }));
     await waitFor(() => expect(createDraft).toHaveBeenCalledWith(expect.objectContaining({ draftPurpose: "RiskDigest" })));
     expect(screen.getByRole("button", { name: "Apply recommendation" })).toBeDisabled();
+    fireEvent.click(await screen.findByRole("button", { name: "Mark reviewed" }));
+    await waitFor(() => expect(reviewRun).toHaveBeenCalledWith(1501, expect.objectContaining({ reviewStatus: "Reviewed" })));
 
     cleanup();
     vi.restoreAllMocks();

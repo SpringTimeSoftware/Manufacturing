@@ -101,6 +101,13 @@ public sealed class OutboundMessagesController(IOutboundMessageService outboundM
         var response = await outboundMessageService.QueueMessageAsync(request, cancellationToken);
         return OkEnvelope(response, "Outbound message queued.");
     }
+
+    [HttpPost("{id:long}/retry")]
+    public async Task<ActionResult<ApiEnvelope<OutboundDeliveryStatusDto>>> Retry(long id, [FromBody] OutboundRetryRequest request, CancellationToken cancellationToken)
+    {
+        var response = await outboundMessageService.RetryMessageAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Outbound retry recorded.");
+    }
 }
 
 [ApiController]
@@ -141,6 +148,75 @@ public sealed class WebhooksController(IIntegrationService integrationService) :
     {
         var response = await integrationService.DispatchWebhookAsync(request, cancellationToken);
         return OkEnvelope(response, "Webhook dispatch recorded.");
+    }
+
+    [HttpGet("events")]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<WebhookEventDto>>>> ListEvents([FromQuery] IntegrationFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.ListWebhookEventsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("inbound/{providerCode}")]
+    public async Task<ActionResult<ApiEnvelope<WebhookEventDto>>> Inbound(string providerCode, [FromBody] InboundWebhookRequest request, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.RecordInboundWebhookAsync(providerCode, request, cancellationToken);
+        return OkEnvelope(response, "Inbound webhook event recorded.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.CompanyAdministration)]
+[Route("api/integrations/templates")]
+public sealed class IntegrationTemplatesController(IIntegrationService integrationService) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<IntegrationMessageTemplateDto>>>> List([FromQuery] IntegrationFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.ListMessageTemplatesAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiEnvelope<IntegrationMessageTemplateDto>>> Upsert([FromBody] IntegrationMessageTemplateUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.UpsertMessageTemplateAsync(request, cancellationToken);
+        return OkEnvelope(response, "Message template saved.");
+    }
+}
+
+[ApiController]
+[Authorize(Policy = AppPolicies.CompanyAdministration)]
+[Route("api/integrations/crm")]
+public sealed class CrmIntegrationController(IIntegrationService integrationService) : ApiControllerBase
+{
+    [HttpGet("mappings")]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<CrmObjectMappingDto>>>> ListMappings([FromQuery] IntegrationFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.ListCrmMappingsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("mappings")]
+    public async Task<ActionResult<ApiEnvelope<CrmObjectMappingDto>>> UpsertMapping([FromBody] CrmObjectMappingUpsertRequest request, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.UpsertCrmMappingAsync(request, cancellationToken);
+        return OkEnvelope(response, "CRM mapping saved.");
+    }
+
+    [HttpPost("sync")]
+    public async Task<ActionResult<ApiEnvelope<CrmSyncJobDto>>> RunSync([FromBody] CrmSyncRequest request, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.RunCrmSyncAsync(request, cancellationToken);
+        return OkEnvelope(response, "CRM sync recorded.");
+    }
+
+    [HttpGet("conflicts")]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<CrmSyncConflictDto>>>> ListConflicts([FromQuery] IntegrationFilter filter, CancellationToken cancellationToken)
+    {
+        var response = await integrationService.ListCrmConflictsAsync(filter, cancellationToken);
+        return OkEnvelope(response);
     }
 }
 

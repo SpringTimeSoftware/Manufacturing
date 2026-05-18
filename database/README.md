@@ -38,12 +38,13 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 20. `ddl/20-commercial/110_finance_gl_ap_ar_costing_completion.sql`
 21. `ddl/20-commercial/130_reports_dashboard_builder_completion.sql`
 22. `ddl/00-foundation/020_integration_ai_tables.sql`
-23. `procedures/production/001_machine_board.sql`
-24. `seed/001_minimum_platform_seed.sql`
-25. `seed/002_minimum_org_seed.sql`
-26. `seed/003_minimum_masters_seed.sql`
-27. `seed/005_uat_runtime_seed.sql`
-28. future backfill, seed, and procedure packs in numeric order
+23. `ddl/20-commercial/140_integrations_email_whatsapp_crm_ai_completion.sql`
+24. `procedures/production/001_machine_board.sql`
+25. `seed/001_minimum_platform_seed.sql`
+26. `seed/002_minimum_org_seed.sql`
+27. `seed/003_minimum_masters_seed.sql`
+28. `seed/005_uat_runtime_seed.sql`
+29. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 
@@ -63,6 +64,7 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 - quality/NCR/COA completion tables for QC plan characteristics, NCR affected lines, disposition release metadata, CAPA fields, and versioned COA certificate/evidence snapshots without inventing historical inspection or disposition data;
 - Pack 06 finance foundation for governed chart of accounts, fiscal periods, posting profiles, GL journals, AR invoices/subledger, tax ledger, inventory valuation entries, and mapped AP postings without assigning fake accounting data to existing operational documents;
 - Pack 07 reporting foundation for governed report definitions, durable report runs, generated-output metadata/download audit, persisted dashboards, and dashboard widgets over accepted sales, procurement, inventory, quality, dispatch, production, and finance datasets;
+- Pack 08 integration foundation for governed provider registry metadata, credential references without raw secret storage, durable outbound message/delivery ledgers, webhook event records, CRM external-id mapping/sync conflict records, and AI draft review metadata;
 - resources, routings, BOM, and ECO;
 - sales, quote/SO commercial snapshots, quote release/reopen/quote-to-SO conversion, planning, MPS/MRP/BOQ plans, snapshots, planned orders, shortage actions, procurement, RFQ/supplier quotation/quote-comparison sourcing, subcontract receive-back receipts, GRN, supplier invoice matching, AP liability/accounting posting bridge, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
 - machine-board stored procedure coverage for the production occupancy read model;

@@ -11,8 +11,8 @@ internal sealed class EmailNotificationChannel(ILogger<EmailNotificationChannel>
     public Task SendAsync(NotificationDeliveryContext context, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
-        logger.LogInformation("Email notification queued through provider abstraction for {DocumentType}:{DocumentId}.", context.RelatedDocumentType, context.RelatedDocumentId);
-        return Task.CompletedTask;
+        logger.LogWarning("Email provider delivery was blocked because no live adapter is configured for {DocumentType}:{DocumentId}.", context.RelatedDocumentType, context.RelatedDocumentId);
+        throw new InvalidOperationException("Email provider delivery is not configured. Configure a live provider adapter and credential reference before sending.");
     }
 }
 
@@ -23,8 +23,8 @@ internal sealed class SmsNotificationChannel(ILogger<SmsNotificationChannel> log
     public Task SendAsync(NotificationDeliveryContext context, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
-        logger.LogInformation("SMS notification queued through provider abstraction for {DocumentType}:{DocumentId}.", context.RelatedDocumentType, context.RelatedDocumentId);
-        return Task.CompletedTask;
+        logger.LogWarning("SMS provider delivery was blocked because no live adapter is configured for {DocumentType}:{DocumentId}.", context.RelatedDocumentType, context.RelatedDocumentId);
+        throw new InvalidOperationException("SMS provider delivery is not configured. Configure a live provider adapter and credential reference before sending.");
     }
 }
 
@@ -35,7 +35,7 @@ internal sealed class WhatsAppNotificationChannel(ILogger<WhatsAppNotificationCh
     public Task SendAsync(NotificationDeliveryContext context, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
-        logger.LogInformation("WhatsApp notification queued through provider abstraction for {DocumentType}:{DocumentId}.", context.RelatedDocumentType, context.RelatedDocumentId);
-        return Task.CompletedTask;
+        logger.LogWarning("WhatsApp provider delivery was blocked because no live adapter is configured for {DocumentType}:{DocumentId}.", context.RelatedDocumentType, context.RelatedDocumentId);
+        throw new InvalidOperationException("WhatsApp provider delivery is not configured. Configure a live provider adapter and credential reference before sending.");
     }
 }

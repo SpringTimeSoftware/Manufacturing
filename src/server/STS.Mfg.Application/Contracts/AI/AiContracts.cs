@@ -24,9 +24,32 @@ public sealed record AiModelUpsertRequest(long AiProviderId, string ModelCode, s
 public sealed record AiPromptTemplateDto(long Id, long? CompanyId, string TemplateCode, string TemplateName, string PromptPurpose, string TemplateBody, string Status);
 public sealed record AiPromptTemplateUpsertRequest(long? CompanyId, string TemplateCode, string TemplateName, string PromptPurpose, string TemplateBody, string Status);
 
-public sealed record AiRunDto(long Id, long? CompanyId, long? BranchId, long AiProviderId, long AiModelId, long? AiPromptTemplateId, string DraftPurpose, string? RelatedDocumentType, long? RelatedDocumentId, string InputText, string? OutputText, string RunStatus, string? TokenUsageJson, bool RequiresReview, DateTimeOffset RequestedOn, DateTimeOffset? CompletedOn);
+public sealed record AiRunDto(
+    long Id,
+    long? CompanyId,
+    long? BranchId,
+    long AiProviderId,
+    long AiModelId,
+    long? AiPromptTemplateId,
+    string DraftPurpose,
+    string? RelatedDocumentType,
+    long? RelatedDocumentId,
+    string InputText,
+    string? OutputText,
+    string RunStatus,
+    string? TokenUsageJson,
+    bool RequiresReview,
+    DateTimeOffset RequestedOn,
+    DateTimeOffset? CompletedOn,
+    string ReviewStatus,
+    long? ReviewedByUserId,
+    DateTimeOffset? ReviewedOn,
+    string? ReviewNote,
+    string? AppliedTargetType,
+    long? AppliedTargetId);
 
 public sealed record AiDraftRequest(long? CompanyId, long? BranchId, long AiProviderId, long AiModelId, long? AiPromptTemplateId, string DraftPurpose, string InputText, string? RelatedDocumentType = null, long? RelatedDocumentId = null);
+public sealed record AiReviewRequest(string ReviewStatus, string? ReviewNote = null, string? AppliedTargetType = null, long? AppliedTargetId = null);
 
 public sealed record TranslationDraftRequest(long? CompanyId, long? BranchId, long AiProviderId, long AiModelId, long? AiPromptTemplateId, string SourceText, string TargetLanguageCode, string? SourceLanguageCode = null, string? RelatedDocumentType = null, long? RelatedDocumentId = null);
 public sealed record TranslationDraftDto(AiRunDto Run, string? SourceLanguageCode, string TargetLanguageCode, string DraftText);

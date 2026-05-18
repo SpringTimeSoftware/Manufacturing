@@ -116,6 +116,12 @@ public sealed class AiRun : AuditableEntity, ICompanyScoped, IBranchScoped
     public string InputText { get; private set; } = string.Empty;
     public string? OutputText { get; private set; }
     public string RunStatus { get; private set; } = string.Empty;
+    public string ReviewStatus { get; private set; } = string.Empty;
+    public long? ReviewedByUserId { get; private set; }
+    public DateTimeOffset? ReviewedOn { get; private set; }
+    public string? ReviewNote { get; private set; }
+    public string? AppliedTargetType { get; private set; }
+    public long? AppliedTargetId { get; private set; }
     public string? TokenUsageJson { get; private set; }
     public bool RequiresReview { get; private set; }
     public DateTimeOffset RequestedOn { get; private set; }
@@ -146,9 +152,23 @@ public sealed class AiRun : AuditableEntity, ICompanyScoped, IBranchScoped
         InputText = inputText.Trim();
         OutputText = string.IsNullOrWhiteSpace(outputText) ? null : outputText.Trim();
         RunStatus = runStatus.Trim();
+        ReviewStatus = requiresReview ? "Drafted" : "NotRequired";
         TokenUsageJson = string.IsNullOrWhiteSpace(tokenUsageJson) ? null : tokenUsageJson.Trim();
         RequiresReview = requiresReview;
         CompletedOn = DateTimeOffset.UtcNow;
+        ModifiedOn = DateTimeOffset.UtcNow;
+        ModifiedByUserId = userId;
+    }
+
+    public void Review(string reviewStatus, string? reviewNote, string? appliedTargetType, long? appliedTargetId, long? userId)
+    {
+        ReviewStatus = reviewStatus.Trim();
+        ReviewNote = string.IsNullOrWhiteSpace(reviewNote) ? null : reviewNote.Trim();
+        AppliedTargetType = string.IsNullOrWhiteSpace(appliedTargetType) ? null : appliedTargetType.Trim();
+        AppliedTargetId = appliedTargetId;
+        ReviewedByUserId = userId;
+        ReviewedOn = DateTimeOffset.UtcNow;
+        RequiresReview = reviewStatus.Equals("Applied", StringComparison.OrdinalIgnoreCase) ? false : RequiresReview;
         ModifiedOn = DateTimeOffset.UtcNow;
         ModifiedByUserId = userId;
     }

@@ -51,6 +51,7 @@ import type {
   AiModelDto,
   AiProviderDto,
   AiProviderHealthDto,
+  AiReviewRequest,
   AiRunDto,
   ExportJobCreateRequest,
   ExportJobDto,
@@ -80,6 +81,8 @@ import type {
   IntegrationConnectionDto,
   IntegrationConnectionUpsertRequest,
   IntegrationJobStatusUpdateRequest,
+  IntegrationMessageTemplateDto,
+  IntegrationMessageTemplateUpsertRequest,
   IntegrationProviderDto,
   IntegrationProviderUpsertRequest,
   LoginRequest,
@@ -131,6 +134,7 @@ import type {
   OutboundMessagePreviewRequest,
   OutboundMessageRequest,
   OutboundProviderHealthDto,
+  OutboundRetryRequest,
   PackListDto,
   PackListPrintDto,
   PackListUpsertRequest,
@@ -215,6 +219,13 @@ import type {
   UdfValueUpsertRequest,
   WebhookDispatchRequest,
   WebhookDispatchResultDto,
+  WebhookEventDto,
+  InboundWebhookRequest,
+  CrmObjectMappingDto,
+  CrmObjectMappingUpsertRequest,
+  CrmSyncConflictDto,
+  CrmSyncJobDto,
+  CrmSyncRequest,
   WebhookSubscriptionDto,
   WebhookSubscriptionUpsertRequest,
   SupplierAddressDto,
@@ -1793,6 +1804,20 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(body)
       }),
+    retryMessage: (id: number, body: OutboundRetryRequest = {}) =>
+      request<OutboundDeliveryStatusDto>(`/api/integrations/messages/${id}/retry`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    templates: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<IntegrationMessageTemplateDto>>(`/api/integrations/templates?${query}`);
+    },
+    saveTemplate: (body: IntegrationMessageTemplateUpsertRequest) =>
+      request<IntegrationMessageTemplateDto>("/api/integrations/templates", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
     webhooks: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<WebhookSubscriptionDto>>(`/api/webhooks?${query}`);
@@ -1812,6 +1837,33 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(body)
       }),
+    webhookEvents: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<WebhookEventDto>>(`/api/webhooks/events?${query}`);
+    },
+    inboundWebhook: (providerCode: string, body: InboundWebhookRequest) =>
+      request<WebhookEventDto>(`/api/webhooks/inbound/${encodeURIComponent(providerCode)}`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    crmMappings: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<CrmObjectMappingDto>>(`/api/integrations/crm/mappings?${query}`);
+    },
+    saveCrmMapping: (body: CrmObjectMappingUpsertRequest) =>
+      request<CrmObjectMappingDto>("/api/integrations/crm/mappings", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    runCrmSync: (body: CrmSyncRequest) =>
+      request<CrmSyncJobDto>("/api/integrations/crm/sync", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    crmConflicts: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<CrmSyncConflictDto>>(`/api/integrations/crm/conflicts?${query}`);
+    },
     imports: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<ImportJobDto>>(`/api/imports?${query}`);
@@ -1864,6 +1916,11 @@ export const apiClient = {
       }),
     createDraft: (body: AiDraftRequest) =>
       request<AiRunDto>("/api/ai/runs/draft", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    reviewRun: (id: number, body: AiReviewRequest) =>
+      request<AiRunDto>(`/api/ai/runs/${id}/review`, {
         method: "POST",
         body: JSON.stringify(body)
       }),

@@ -617,6 +617,12 @@ export const navigationItems: NavigationItem[] = [
     roles: ["PlatformAdmin", "CompanyAdmin", "SalesCoordinator", "DispatchManager"]
   },
   {
+    label: "CRM Mapping",
+    path: "/integrations/crm-mapping",
+    section: "Integrations",
+    roles: ["PlatformAdmin", "CompanyAdmin", "SalesCoordinator"]
+  },
+  {
     label: "AI Assistant",
     path: "/ai/assistant",
     section: "AI",

@@ -137,6 +137,13 @@ public sealed class AiRunsController(IAiService aiService) : ApiControllerBase
         return CreatedEnvelope(nameof(GetRun), new { id = response.Id }, response, "AI draft generated for review.");
     }
 
+    [HttpPost("runs/{id:long}/review")]
+    public async Task<ActionResult<ApiEnvelope<AiRunDto>>> ReviewRun(long id, [FromBody] AiReviewRequest request, CancellationToken cancellationToken)
+    {
+        var response = await aiService.ReviewRunAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "AI draft review recorded.");
+    }
+
     [HttpPost("translations/draft")]
     public async Task<ActionResult<ApiEnvelope<TranslationDraftDto>>> CreateTranslationDraft([FromBody] TranslationDraftRequest request, CancellationToken cancellationToken)
     {

@@ -8,7 +8,12 @@ import type {
   AiModelDto,
   AiProviderDto,
   AiProviderHealthDto,
+  AiReviewRequest,
   AiRunDto,
+  CrmObjectMappingDto,
+  CrmObjectMappingUpsertRequest,
+  CrmSyncConflictDto,
+  CrmSyncRequest,
   ExportJobCreateRequest,
   ExportJobDto,
   ImportJobCreateRequest,
@@ -16,11 +21,13 @@ import type {
   IntegrationConnectionDto,
   IntegrationConnectionUpsertRequest,
   IntegrationJobStatusUpdateRequest,
+  IntegrationMessageTemplateDto,
   IntegrationProviderDto,
   IntegrationProviderUpsertRequest,
   OutboundDeliveryStatusDto,
   OutboundMessagePreviewDto,
   OutboundMessagePreviewRequest,
+  OutboundRetryRequest,
   OutboundProviderHealthDto,
   PagedResult,
   QueryFilter,
@@ -34,6 +41,7 @@ import type {
   TranslationDraftRequest,
   WebhookDispatchRequest,
   WebhookDispatchResultDto,
+  WebhookEventDto,
   WebhookSubscriptionDto,
   WebhookSubscriptionUpsertRequest
 } from "../api/contracts";
@@ -121,9 +129,9 @@ function useWs07Filter(statusDefault = "all") {
 }
 
 const seededProviders: IntegrationProviderDto[] = [
-  { id: 701, providerCode: "SMTP-IN", providerName: "Transactional Email", providerType: "Email", baseUrl: "smtp://mail.sts.local", status: "Active", isSystemBase: true },
-  { id: 702, providerCode: "SMS-GW", providerName: "SMS Gateway", providerType: "SMS", baseUrl: "https://sms.example.local", status: "Paused", isSystemBase: false },
-  { id: 703, providerCode: "CRM-SYNC", providerName: "CRM Connector", providerType: "CRM", baseUrl: "https://crm.example.local", status: "Draft", isSystemBase: false }
+  { id: 701, providerCode: "SMTP-IN", providerName: "Transactional Email", providerType: "Email", channel: "Email", vendorType: "SMTP", environmentName: "Sandbox", baseUrl: "smtp://mail.sts.local", credentialReference: "mail...nt1", senderIdentity: "dispatch@sts.local", whatsAppBusinessNumber: null, templateNamespace: null, crmTenantReference: null, callbackUrl: null, rateLimitPerMinute: 120, status: "Active", healthStatus: "SandboxReady", lastVerifiedAt: null, failureReason: null, isSystemBase: true },
+  { id: 702, providerCode: "SMS-GW", providerName: "SMS Gateway", providerType: "SMS", channel: "Sms", vendorType: "Gateway", environmentName: "Production", baseUrl: "https://sms.example.local", credentialReference: null, senderIdentity: "STSERP", whatsAppBusinessNumber: null, templateNamespace: null, crmTenantReference: null, callbackUrl: null, rateLimitPerMinute: 60, status: "Paused", healthStatus: "MissingCredential", lastVerifiedAt: null, failureReason: "Credential reference required.", isSystemBase: false },
+  { id: 703, providerCode: "CRM-SYNC", providerName: "CRM Connector", providerType: "CRM", channel: "CRM", vendorType: "GenericCRM", environmentName: "Sandbox", baseUrl: "https://crm.example.local", credentialReference: "crm...uote", senderIdentity: null, whatsAppBusinessNumber: null, templateNamespace: null, crmTenantReference: "tenant-review", callbackUrl: null, rateLimitPerMinute: 30, status: "Draft", healthStatus: "Unverified", lastVerifiedAt: null, failureReason: null, isSystemBase: false }
 ];
 
 const seededConnections: IntegrationConnectionDto[] = [
@@ -153,8 +161,25 @@ const seededExports: ExportJobDto[] = [
 ];
 
 const seededDeliveries: OutboundDeliveryStatusDto[] = [
-  { id: 1201, channelType: "Email", redactedRecipientRef: "r***@customer.local", templateCode: "SHIPMENT_NOTICE", deliveryStatus: "Delivered", attemptCount: 1, createdOn: "2026-05-13T07:40:00Z", processedOn: "2026-05-13T07:41:00Z", lastError: null },
-  { id: 1202, channelType: "SMS", redactedRecipientRef: "+91******0142", templateCode: "QC_HOLD", deliveryStatus: "RetryQueued", attemptCount: 2, createdOn: "2026-05-13T06:52:00Z", processedOn: null, lastError: "Provider credentials require review." }
+  { id: 1201, channelType: "Email", redactedRecipientRef: "r***@customer.local", templateCode: "SHIPMENT_NOTICE", deliveryStatus: "Queued", attemptCount: 0, createdOn: "2026-05-13T07:40:00Z", processedOn: null, lastError: null, providerId: 701, providerCode: "SMTP-IN", sourceModule: "Dispatch", sourceDocumentType: "Shipment", sourceDocumentId: 1001, sourceDocumentNo: "SHIP-1001", reportOutputId: 401, deliveryReceiptStatus: "Queued" },
+  { id: 1202, channelType: "SMS", redactedRecipientRef: "+91******0142", templateCode: "QC_HOLD", deliveryStatus: "Failed", attemptCount: 2, createdOn: "2026-05-13T06:52:00Z", processedOn: null, lastError: "Provider credentials require review.", providerId: 702, providerCode: "SMS-GW", sourceModule: "Quality", sourceDocumentType: "NCR", sourceDocumentId: 42, sourceDocumentNo: "NCR-0042", reportOutputId: null, deliveryReceiptStatus: "Failed" }
+];
+
+const seededTemplates: IntegrationMessageTemplateDto[] = [
+  { id: 1211, companyId: 1, integrationProviderId: 701, channelType: "Email", templateCode: "SHIPMENT_NOTICE", templateName: "Shipment notice", templateVersion: "v1", approvalStatus: "Approved", bodyTemplate: "Shipment {{documentNo}} is ready for review.", status: "Active" },
+  { id: 1212, companyId: 1, integrationProviderId: 702, channelType: "Sms", templateCode: "QC_HOLD", templateName: "Quality hold", templateVersion: "v1", approvalStatus: "Approved", bodyTemplate: "QC hold {{documentNo}} needs review.", status: "Active" }
+];
+
+const seededWebhookEvents: WebhookEventDto[] = [
+  { id: 1221, companyId: 1, branchId: 10, webhookSubscriptionId: 901, integrationProviderId: null, direction: "Outbound", eventType: "Dispatch.ShipmentClosed", sourceDocumentType: "Shipment", sourceDocumentId: 1001, payloadReference: "SHIP-1001", payloadHash: "review-hash", signatureVerified: true, attemptCount: 1, responseCode: 202, responseSummary: "Queued for delivery worker.", status: "Queued", failureReason: null, eventOn: "2026-05-13T07:55:00Z" }
+];
+
+const seededCrmMappings: CrmObjectMappingDto[] = [
+  { id: 1231, companyId: 1, integrationProviderId: 703, erpObjectType: "Customer", erpObjectId: 501, externalObjectType: "Account", externalId: "CRM-ACC-501", syncDirection: "Outbound", conflictStatus: "None", lastSyncedAt: "2026-05-13T07:10:00Z", status: "Active" }
+];
+
+const seededCrmConflicts: CrmSyncConflictDto[] = [
+  { id: 1241, companyId: 1, crmSyncJobId: 1251, objectType: "Contact", erpObjectId: 601, externalId: null, conflictType: "MissingExternalMapping", resolutionStatus: "Open", detailsJson: "{\"field\":\"email\"}" }
 ];
 
 const seededAiProviders: AiProviderDto[] = [
@@ -166,7 +191,7 @@ const seededAiModels: AiModelDto[] = [
 ];
 
 const seededAiRuns: AiRunDto[] = [
-  { id: 1501, companyId: 1, branchId: 10, aiProviderId: 1301, aiModelId: 1401, aiPromptTemplateId: null, draftPurpose: "RiskDigest", relatedDocumentType: "MRP", relatedDocumentId: 102, inputText: "Summarize late purchase and dispatch risk.", outputText: "Draft notes require planner review before sharing.", runStatus: "Completed", tokenUsageJson: "{\"prompt\":120,\"completion\":44}", requiresReview: true, requestedOn: "2026-05-13T06:10:00Z", completedOn: "2026-05-13T06:11:00Z" }
+  { id: 1501, companyId: 1, branchId: 10, aiProviderId: 1301, aiModelId: 1401, aiPromptTemplateId: null, draftPurpose: "RiskDigest", relatedDocumentType: "MRP", relatedDocumentId: 102, inputText: "Summarize late purchase and dispatch risk.", outputText: "Draft notes require planner review before sharing.", runStatus: "Completed", tokenUsageJson: "{\"prompt\":120,\"completion\":44}", requiresReview: true, requestedOn: "2026-05-13T06:10:00Z", completedOn: "2026-05-13T06:11:00Z", reviewStatus: "Drafted", reviewedByUserId: null, reviewedOn: null, reviewNote: null, appliedTargetType: null, appliedTargetId: null }
 ];
 
 const seededIntents: AiAssistantIntentDefinitionDto[] = [
@@ -232,7 +257,27 @@ export function IntegrationProviderAdminPage() {
 
   const openProvider = (record: IntegrationProviderDto) => {
     setSelected(record);
-    setDraft({ providerCode: record.providerCode, providerName: record.providerName, providerType: record.providerType, baseUrl: record.baseUrl, status: record.status, isSystemBase: record.isSystemBase });
+    setDraft({
+      providerCode: record.providerCode,
+      providerName: record.providerName,
+      providerType: record.providerType,
+      channel: record.channel,
+      vendorType: record.vendorType,
+      environmentName: record.environmentName,
+      baseUrl: record.baseUrl,
+      credentialReference: record.credentialReference,
+      senderIdentity: record.senderIdentity,
+      whatsAppBusinessNumber: record.whatsAppBusinessNumber,
+      templateNamespace: record.templateNamespace,
+      crmTenantReference: record.crmTenantReference,
+      callbackUrl: record.callbackUrl,
+      rateLimitPerMinute: record.rateLimitPerMinute,
+      status: record.status,
+      healthStatus: record.healthStatus,
+      lastVerifiedAt: record.lastVerifiedAt,
+      failureReason: record.failureReason,
+      isSystemBase: record.isSystemBase
+    });
     setMessage(null);
   };
   const openConnection = (record: IntegrationConnectionDto) => {
@@ -267,7 +312,7 @@ export function IntegrationProviderAdminPage() {
   return (
     <>
       <ListPageShell
-        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New provider", onClick: () => { setSelected(null); setDraft({ providerCode: "", providerName: "", providerType: "Email", baseUrl: null, status: "Draft", isSystemBase: false }); } }, { label: "New connection", onClick: openNewConnection }]} secondary={[{ label: "Rotate credentials", onClick: connections[0] ? () => openConnection(connections[0]) : openNewConnection }]} testId="integration-provider-action-bar" /></>}
+        actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ label: "New provider", onClick: () => { setSelected(null); setDraft({ providerCode: "", providerName: "", providerType: "Email", channel: "Email", vendorType: "SMTP", environmentName: "Production", baseUrl: null, credentialReference: null, senderIdentity: null, whatsAppBusinessNumber: null, templateNamespace: null, crmTenantReference: null, callbackUrl: null, rateLimitPerMinute: null, status: "Draft", healthStatus: "Unverified", failureReason: null, isSystemBase: false }); } }, { label: "New connection", onClick: openNewConnection }]} secondary={[{ label: "Rotate credentials", onClick: connections[0] ? () => openConnection(connections[0]) : openNewConnection }]} testId="integration-provider-action-bar" /></>}
         description="Provider, channel, and connection readiness for email, SMS, WhatsApp, CRM, webhook, storage, and AI integrations."
         filters={<ErpFilterBar ariaLabel="Integration provider filters" onClear={() => { setSearch(""); setStatus("all"); }}><input aria-label="Search providers" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search provider or channel" value={search} /><select aria-label="Provider status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Active">Active</option><option value="Draft">Draft</option><option value="Paused">Paused</option></select></ErpFilterBar>}
         title="Integration Provider Admin"
@@ -306,8 +351,17 @@ export function IntegrationProviderAdminPage() {
             <label><span>Provider code</span><input disabled={!isLive || selected?.isSystemBase} onChange={(event) => setDraft({ ...draft, providerCode: event.target.value })} value={draft.providerCode} /></label>
             <label><span>Provider name</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, providerName: event.target.value })} value={draft.providerName} /></label>
             <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live platform sign-in is required before changing provider type." : undefined} label="Provider type" onChange={(value) => setDraft({ ...draft, providerType: value })} options={providerTypeOptions} value={draft.providerType} />
+            <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live platform sign-in is required before changing channel." : undefined} label="Channel" onChange={(value) => setDraft({ ...draft, channel: value })} options={providerTypeOptions} value={draft.channel ?? draft.providerType} />
+            <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live platform sign-in is required before changing environment." : undefined} label="Environment" onChange={(value) => setDraft({ ...draft, environmentName: value })} options={["Sandbox", "Production"].map(toOption)} value={draft.environmentName ?? "Production"} />
             <ErpLookupField disabled={!isLive} disabledReason={!isLive ? "Live platform sign-in is required before changing status." : undefined} label="Status" onChange={(value) => setDraft({ ...draft, status: value })} options={statusOptions} value={draft.status} />
+            <label><span>Vendor type</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, vendorType: event.target.value || null })} value={draft.vendorType ?? ""} /></label>
+            <label><span>Sender identity</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, senderIdentity: event.target.value || null })} value={draft.senderIdentity ?? ""} /></label>
+            <label><span>Credential reference</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, credentialReference: event.target.value || null })} value={draft.credentialReference ?? ""} /></label>
+            <ErpNumberField disabled={!isLive} disabledReason={!isLive ? "Live platform sign-in is required before changing rate limits." : undefined} label="Rate limit per minute" min={0} onChange={(value) => setDraft({ ...draft, rateLimitPerMinute: value })} value={draft.rateLimitPerMinute ?? null} />
             <label className="form-span-2"><span>Endpoint / base URL</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, baseUrl: event.target.value || null })} value={draft.baseUrl ?? ""} /></label>
+            <label><span>Template namespace</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, templateNamespace: event.target.value || null })} value={draft.templateNamespace ?? ""} /></label>
+            <label><span>CRM tenant reference</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, crmTenantReference: event.target.value || null })} value={draft.crmTenantReference ?? ""} /></label>
+            <label className="form-span-2"><span>Callback URL</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, callbackUrl: event.target.value || null })} value={draft.callbackUrl ?? ""} /></label>
           </FormShell>
         ) : null}
       </ErpModalWorkspace>
@@ -380,9 +434,11 @@ export function WebhookAdminPage() {
   const [draft, setDraft] = useState<WebhookSubscriptionUpsertRequest | null>(null);
   const [dispatchResult, setDispatchResult] = useState<WebhookDispatchResultDto | null>(null);
   const query = useApiQuery(queryKeys.ws07.webhooks(user?.activeContext.companyId, user?.activeContext.branchId, filter.search as string, status), () => isLive ? apiClient.integrations.webhooks({ ...filter, companyId: user?.activeContext.companyId ?? undefined, branchId: user?.activeContext.branchId ?? undefined }) : Promise.resolve(asPaged(seededWebhooks)), { staleTime: 60_000 });
+  const eventQuery = useApiQuery(["ws07", "webhook-events", user?.activeContext.companyId ?? 0, user?.activeContext.branchId ?? 0], () =>
+    isLive ? apiClient.integrations.webhookEvents({ companyId: user?.activeContext.companyId ?? undefined, branchId: user?.activeContext.branchId ?? undefined }) : Promise.resolve(asPaged(seededWebhookEvents)), { staleTime: 60_000 });
   const records = query.data?.items ?? [];
   const save = useApiMutation((request: WebhookSubscriptionUpsertRequest) => selected ? apiClient.integrations.updateWebhook(selected.id, request) : apiClient.integrations.createWebhook(request), { onSuccess: async () => { setDraft(null); setSelected(null); await query.refetch(); } });
-  const dispatch = useApiMutation((request: WebhookDispatchRequest) => apiClient.integrations.dispatchWebhook(request), { onSuccess: (result) => setDispatchResult(result) });
+  const dispatch = useApiMutation((request: WebhookDispatchRequest) => apiClient.integrations.dispatchWebhook(request), { onSuccess: async (result) => { setDispatchResult(result); await eventQuery.refetch(); } });
   const saveReason = !isLive ? "Webhook changes require a live company administration session." : save.isPending ? "Webhook save is in progress." : undefined;
 
   const open = (record: WebhookSubscriptionDto) => {
@@ -401,6 +457,16 @@ export function WebhookAdminPage() {
             { key: "target", header: "Target", render: (record) => record.targetUrl },
             { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.status)}>{record.status}</Badge> }
           ]} getRowId={(record) => String(record.id)} onRowSelect={open} records={records} rowLabel={(record) => `${record.subscriptionCode} webhook`} />
+        </Card>
+        <Card title="Webhook events" description="Outbound and inbound webhook attempts are durable records with payload hashes and signature state.">
+          <ErpGrid ariaLabel="Webhook event table" columns={[
+            { key: "event", header: "Event", render: (record: WebhookEventDto) => <strong>{record.eventType}</strong> },
+            { key: "direction", header: "Direction", render: (record) => record.direction },
+            { key: "payload", header: "Payload", render: (record) => record.payloadReference },
+            { key: "signature", header: "Signature", render: (record) => <Badge tone={record.signatureVerified ? "success" : "warn"}>{record.signatureVerified ? "Verified" : "Pending"}</Badge> },
+            { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.status)}>{record.status}</Badge> },
+            { key: "reason", header: "Reason", render: (record) => record.failureReason ?? record.responseSummary ?? "None" }
+          ]} getRowId={(record) => String(record.id)} records={eventQuery.data?.items ?? []} />
         </Card>
       </ListPageShell>
       <ErpModalWorkspace description="Webhook dispatch tests record matched subscriptions and retry counts without exposing secrets." footer={<ErpActionBar primary={[{ disabled: Boolean(saveReason), label: save.isPending ? "Saving webhook" : "Save webhook", onClick: draft && !saveReason ? () => save.mutate(draft) : undefined, reason: saveReason }]} secondary={[{ disabled: !isLive || !draft || dispatch.isPending, label: dispatch.isPending ? "Dispatching test" : "Dispatch test event", onClick: isLive && draft ? () => dispatch.mutate({ companyId: draft.companyId, branchId: draft.branchId, eventType: draft.eventType, payloadReference: draft.subscriptionCode || "manual-test" }) : undefined, reason: !isLive ? "Dispatch test requires a live company administration session." : undefined }]} utility={[{ label: "Close", onClick: () => setDraft(null), variant: "quiet" }]} />} isOpen={Boolean(draft)} onClose={() => setDraft(null)} statusMeta={dispatchResult ? <Badge tone="success">{`${dispatchResult.deliveredCount} delivered / ${dispatchResult.retryQueuedCount} retry queued`}</Badge> : null} title={selected?.subscriptionCode ?? "New webhook"}>
@@ -483,9 +549,13 @@ export function DeliveryLogsPage() {
   const [preview, setPreview] = useState<OutboundMessagePreviewDto | null>(null);
   const [draft, setDraft] = useState<OutboundMessagePreviewRequest>({ companyId: user?.activeContext.companyId ?? null, branchId: user?.activeContext.branchId ?? null, channelType: "Email", recipientRef: "dispatch@customer.local", templateCode: "SHIPMENT_NOTICE", tokens: { document: "SHIP-2026-0029" } });
   const query = useApiQuery(queryKeys.ws07.deliveries(user?.activeContext.companyId, user?.activeContext.branchId, filter.search as string, status), () => isLive ? apiClient.integrations.deliveries(filter) : Promise.resolve(asPaged(seededDeliveries)), { staleTime: 60_000 });
+  const templateQuery = useApiQuery(["ws07", "message-templates", user?.activeContext.companyId ?? 0, draft.channelType], () =>
+    isLive ? apiClient.integrations.templates({ companyId: user?.activeContext.companyId ?? undefined, channelType: draft.channelType, status: "Active" } as QueryFilter) : Promise.resolve(asPaged(seededTemplates.filter((template) => template.channelType === draft.channelType))), { staleTime: 60_000 });
   const previewMutation = useApiMutation((request: OutboundMessagePreviewRequest) => apiClient.integrations.previewMessage(request), { onSuccess: setPreview });
-  const queueMutation = useApiMutation(() => apiClient.integrations.queueMessage({ ...draft, relatedDocumentType: "Shipment", relatedDocumentId: 1001 }), { onSuccess: async () => { await query.refetch(); } });
+  const queueMutation = useApiMutation(() => apiClient.integrations.queueMessage({ ...draft, relatedDocumentType: "Shipment", relatedDocumentId: 1001, sourceModule: "Dispatch", sourceDocumentNo: draft.tokens.document, recipientType: "Customer", reportOutputId: null }), { onSuccess: async () => { await query.refetch(); } });
+  const retryMutation = useApiMutation(({ id, body }: { id: number; body: OutboundRetryRequest }) => apiClient.integrations.retryMessage(id, body), { onSuccess: async () => { await query.refetch(); } });
   const liveReason = !isLive ? "Message preview and queue require a live branch operations session." : undefined;
+  const templateOptions = (templateQuery.data?.items ?? seededTemplates).filter((template) => template.channelType === draft.channelType).map((template) => ({ label: `${template.templateCode} / ${template.approvalStatus}`, value: template.templateCode }));
   return (
     <ListPageShell actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ disabled: Boolean(liveReason) || previewMutation.isPending, label: previewMutation.isPending ? "Rendering preview" : "Preview message", onClick: !liveReason ? () => previewMutation.mutate(draft) : undefined, reason: liveReason }, { disabled: Boolean(liveReason) || !preview || queueMutation.isPending, label: queueMutation.isPending ? "Queueing message" : "Queue message", onClick: !liveReason && preview ? () => queueMutation.mutate(undefined) : undefined, reason: !preview ? "Preview the message before queueing delivery." : liveReason }]} testId="delivery-log-action-bar" /></>} description="Outbound email, SMS, WhatsApp, and CRM message deliveries with redacted recipients and retry state." filters={<ErpFilterBar ariaLabel="Delivery log filters" onClear={() => { setSearch(""); setStatus("all"); }}><input aria-label="Search delivery logs" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search template or recipient" value={search} /><select aria-label="Delivery status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Delivered">Delivered</option><option value="RetryQueued">Retry queued</option><option value="Failed">Failed</option></select></ErpFilterBar>} title="Delivery Logs">
       <KpiStrip items={[{ label: "Deliveries", value: String(query.data?.items.length ?? 0) }, { label: "Retry", value: String((query.data?.items ?? []).filter((record) => record.deliveryStatus.includes("Retry")).length) }, { label: "Mode", value: sourceFor(session) }]} />
@@ -493,9 +563,10 @@ export function DeliveryLogsPage() {
         <Card title="Message preview controls" description="Recipients are redacted after preview and deliveries are queued through provider policy.">
           <FormShell initialFingerprint={`${draft.channelType}-${draft.templateCode}`} title="Preview request">
             <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="Channel" onChange={(value) => setDraft({ ...draft, channelType: value })} options={channelOptions} value={draft.channelType} />
-            <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="Template" onChange={(value) => setDraft({ ...draft, templateCode: value })} options={["SHIPMENT_NOTICE", "QC_HOLD", "QUOTE_FOLLOWUP"].map(toOption)} value={draft.templateCode} />
+            <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="Template" onChange={(value) => setDraft({ ...draft, templateCode: value })} options={templateOptions.length ? templateOptions : ["SHIPMENT_NOTICE", "QC_HOLD", "QUOTE_FOLLOWUP"].map(toOption)} value={draft.templateCode} />
             <label><span>Recipient</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, recipientRef: event.target.value })} value={draft.recipientRef} /></label>
             <label><span>Document token</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, tokens: { document: event.target.value } })} value={draft.tokens.document ?? ""} /></label>
+            <label className="form-span-2"><span>Subject</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, subject: event.target.value || null })} value={draft.subject ?? ""} /></label>
           </FormShell>
           {preview ? <Card title="Rendered preview" description={preview.redactedRecipientRef}><p>{preview.renderedMessage}</p></Card> : null}
         </Card>
@@ -504,11 +575,76 @@ export function DeliveryLogsPage() {
             { key: "channel", header: "Channel", render: (record: OutboundDeliveryStatusDto) => <strong>{record.channelType}</strong> },
             { key: "recipient", header: "Recipient", render: (record) => record.redactedRecipientRef },
             { key: "template", header: "Template", render: (record) => record.templateCode },
+            { key: "source", header: "Source", render: (record) => record.sourceDocumentNo ?? record.sourceDocumentType ?? "Not linked" },
             { key: "attempts", header: "Attempts", render: (record) => <ErpNumberField disabled disabledReason="Attempt count is generated by the delivery worker." label={`${record.templateCode} attempts`} onChange={() => undefined} value={record.attemptCount} /> },
-            { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.deliveryStatus)}>{record.deliveryStatus}</Badge> }
+            { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.deliveryStatus)}>{record.deliveryStatus}</Badge> },
+            { key: "reason", header: "Failure", render: (record) => record.lastError ?? "None" },
+            { key: "retry", header: "Action", render: (record) => <button className="link-button" disabled={!isLive || retryMutation.isPending || !["Failed", "Retrying"].includes(record.deliveryStatus)} onClick={() => retryMutation.mutate({ id: record.id, body: { reason: "Operator retry from delivery log." } })}>{!isLive ? "Live session required" : "Retry"}</button> }
           ]} getRowId={(record) => String(record.id)} records={query.data?.items ?? []} />
         </Card>
       </div>
+    </ListPageShell>
+  );
+}
+
+export function CrmSyncMappingPage() {
+  const { session, user } = useAuth();
+  const isLive = hasLiveSession(session);
+  const [draft, setDraft] = useState<CrmObjectMappingUpsertRequest>({
+    companyId: user?.activeContext.companyId ?? null,
+    integrationProviderId: 703,
+    erpObjectType: "Customer",
+    erpObjectId: null,
+    externalObjectType: "Account",
+    externalId: "",
+    syncDirection: "Outbound",
+    conflictStatus: "None",
+    status: "Active"
+  });
+  const query = useApiQuery(["ws07", "crm-mappings", user?.activeContext.companyId ?? 0], () =>
+    isLive ? apiClient.integrations.crmMappings({ companyId: user?.activeContext.companyId ?? undefined }) : Promise.resolve(asPaged(seededCrmMappings)), { staleTime: 60_000 });
+  const conflictsQuery = useApiQuery(["ws07", "crm-conflicts", user?.activeContext.companyId ?? 0], () =>
+    isLive ? apiClient.integrations.crmConflicts({ companyId: user?.activeContext.companyId ?? undefined }) : Promise.resolve(asPaged(seededCrmConflicts)), { staleTime: 60_000 });
+  const providersQuery = useApiQuery(["ws07", "crm-providers"], () =>
+    isLive ? apiClient.integrations.providers({ channelType: "CRM" } as QueryFilter) : Promise.resolve(asPaged(seededProviders.filter((provider) => provider.channel === "CRM" || provider.providerType === "CRM"))), { staleTime: 60_000 });
+  const save = useApiMutation((request: CrmObjectMappingUpsertRequest) => apiClient.integrations.saveCrmMapping(request), { onSuccess: async () => { await query.refetch(); } });
+  const sync = useApiMutation((request: CrmSyncRequest) => apiClient.integrations.runCrmSync(request), { onSuccess: async () => { await conflictsQuery.refetch(); } });
+  const liveReason = !isLive ? "CRM mappings and sync require a live company administration session." : undefined;
+  const providerOptions = (providersQuery.data?.items ?? seededProviders).filter((provider) => provider.channel === "CRM" || provider.providerType === "CRM").map((provider) => ({ label: provider.providerCode, value: String(provider.id) }));
+  const syncReason = liveReason ?? (!draft.externalId ? "Save or enter an external CRM ID before sync." : undefined);
+
+  return (
+    <ListPageShell actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ disabled: Boolean(liveReason) || save.isPending, label: save.isPending ? "Saving CRM mapping" : "Save CRM mapping", onClick: !liveReason ? () => save.mutate(draft) : undefined, reason: liveReason }, { disabled: Boolean(syncReason) || sync.isPending, label: sync.isPending ? "Recording CRM sync" : "Run CRM sync", onClick: !syncReason ? () => sync.mutate({ companyId: user?.activeContext.companyId ?? null, branchId: user?.activeContext.branchId ?? null, integrationProviderId: draft.integrationProviderId, crmObjectMappingId: null, objectType: draft.erpObjectType, syncDirection: draft.syncDirection, payload: { erpObjectType: draft.erpObjectType, externalId: draft.externalId } }) : undefined, reason: syncReason }]} testId="crm-mapping-action-bar" /></>} description="Governed CRM object mappings, external IDs, sync direction, and conflict queue. ERP records are never silently overwritten." title="CRM Mapping / Sync">
+      <KpiStrip items={[{ label: "Mappings", value: String(query.data?.items.length ?? 0) }, { label: "Open conflicts", value: String((conflictsQuery.data?.items ?? []).filter((record) => record.resolutionStatus === "Open").length) }, { label: "Mode", value: sourceFor(session) }]} />
+      <div className="split-panels">
+        <Card title="Mapping controls" description="CRM sync requires a governed provider and external ID mapping.">
+          <FormShell initialFingerprint={`${draft.integrationProviderId}-${draft.externalId}-${draft.syncDirection}`} title="CRM mapping">
+            <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="CRM provider" onChange={(value) => setDraft({ ...draft, integrationProviderId: Number(value) })} options={providerOptions} value={String(draft.integrationProviderId)} />
+            <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="ERP object type" onChange={(value) => setDraft({ ...draft, erpObjectType: value })} options={["Customer", "Contact", "Quote", "SalesOrder"].map(toOption)} value={draft.erpObjectType} />
+            <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="External object type" onChange={(value) => setDraft({ ...draft, externalObjectType: value })} options={["Account", "Contact", "Opportunity", "Order"].map(toOption)} value={draft.externalObjectType} />
+            <ErpLookupField disabled={!isLive} disabledReason={liveReason} label="Sync direction" onChange={(value) => setDraft({ ...draft, syncDirection: value })} options={["Outbound", "Inbound", "Bidirectional"].map(toOption)} value={draft.syncDirection} />
+            <label><span>ERP object ID</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, erpObjectId: event.target.value ? Number(event.target.value) : null })} type="number" value={draft.erpObjectId ?? ""} /></label>
+            <label><span>External ID</span><input disabled={!isLive} onChange={(event) => setDraft({ ...draft, externalId: event.target.value })} value={draft.externalId} /></label>
+          </FormShell>
+        </Card>
+        <Card title="CRM mapping register" description="Mappings persist the external ID used by every sync job.">
+          <ErpGrid ariaLabel="CRM mapping table" columns={[
+            { key: "erp", header: "ERP object", render: (record: CrmObjectMappingDto) => <strong>{record.erpObjectType} {record.erpObjectId ?? ""}</strong> },
+            { key: "external", header: "External ID", render: (record) => `${record.externalObjectType} / ${record.externalId}` },
+            { key: "direction", header: "Direction", render: (record) => record.syncDirection },
+            { key: "conflict", header: "Conflict", render: (record) => <Badge tone={record.conflictStatus === "None" ? "success" : "warn"}>{record.conflictStatus}</Badge> },
+            { key: "last", header: "Last sync", render: (record) => formatDate(record.lastSyncedAt) }
+          ]} getRowId={(record) => String(record.id)} records={query.data?.items ?? []} />
+        </Card>
+      </div>
+      <Card title="Conflict queue" description="Conflicts stay visible until an authorized user resolves mapping or direction.">
+        <ErpGrid ariaLabel="CRM conflict table" columns={[
+          { key: "type", header: "Object", render: (record: CrmSyncConflictDto) => <strong>{record.objectType}</strong> },
+          { key: "conflict", header: "Conflict", render: (record) => record.conflictType },
+          { key: "external", header: "External ID", render: (record) => record.externalId ?? "Missing" },
+          { key: "status", header: "Status", render: (record) => <Badge tone={record.resolutionStatus === "Open" ? "warn" : "success"}>{record.resolutionStatus}</Badge> }
+        ]} getRowId={(record) => String(record.id)} records={conflictsQuery.data?.items ?? []} />
+      </Card>
     </ListPageShell>
   );
 }
@@ -531,6 +667,7 @@ export function AiAssistantPage() {
   }), { staleTime: 60_000 });
   const planMutation = useApiMutation((request: AiAssistantPlanRequest) => apiClient.ai.createAssistantPlan(request), { onSuccess: setPlan });
   const draftMutation = useApiMutation((request: AiDraftRequest) => apiClient.ai.createDraft(request), { onSuccess: async () => { await query.refetch(); } });
+  const reviewMutation = useApiMutation(({ id, body }: { id: number; body: AiReviewRequest }) => apiClient.ai.reviewRun(id, body), { onSuccess: async () => { await query.refetch(); } });
   const liveReason = !isLive ? "AI assistant planning requires a live permission-aware session." : undefined;
   const providerOptions = (query.data?.providers ?? seededAiProviders).map((provider) => ({ label: provider.providerCode, value: String(provider.id) }));
   const modelOptions = (query.data?.models ?? seededAiModels).map((model) => ({ label: model.modelCode, value: String(model.id) }));
@@ -554,9 +691,10 @@ export function AiAssistantPage() {
           <ErpGrid ariaLabel="AI run table" columns={[
             { key: "purpose", header: "Purpose", render: (record: AiRunDto) => <strong>{record.draftPurpose}</strong> },
             { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.runStatus)}>{record.runStatus}</Badge> },
-            { key: "review", header: "Review", render: (record) => record.requiresReview ? "Required" : "Not required" },
+            { key: "review", header: "Review", render: (record) => <Badge tone={record.reviewStatus === "Drafted" ? "warn" : "success"}>{record.reviewStatus}</Badge> },
             { key: "requested", header: "Requested", render: (record) => formatDate(record.requestedOn) },
-            { key: "output", header: "Output", render: (record) => record.outputText ?? "Draft pending" }
+            { key: "output", header: "Output", render: (record) => record.outputText ?? "Draft pending" },
+            { key: "action", header: "Action", render: (record) => <button className="link-button" disabled={!isLive || reviewMutation.isPending || record.reviewStatus !== "Drafted"} onClick={() => reviewMutation.mutate({ id: record.id, body: { reviewStatus: "Reviewed", reviewNote: "Reviewed from AI assistant register." } })}>{!isLive ? "Live session required" : "Mark reviewed"}</button> }
           ]} getRowId={(record) => String(record.id)} records={query.data?.runs ?? []} />
         </Card>
       </div>

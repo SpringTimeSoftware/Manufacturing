@@ -295,6 +295,27 @@ internal sealed class AiService(
         return dto;
     }
 
+    public async Task<AiRunDto> ReviewRunAsync(long id, AiReviewRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidateReview(request);
+        var scope = GetScope();
+        var entity = await DbContext.AiRuns.ApplyActiveOrganizationScope(scope).FirstOrDefaultAsync(record => record.Id == id, cancellationToken);
+        entity = EnsureFound(entity, "AI draft was not found in the active scope.", "ai.run_not_found");
+
+        var before = MapRun(entity);
+        ThrowIfInvalid(!entity.RequiresReview && !request.ReviewStatus.Equals("Applied", StringComparison.OrdinalIgnoreCase)
+            ? new ApiError("ai.review_not_required", nameof(request.ReviewStatus), "This AI draft no longer requires review.")
+            : null);
+
+        entity.Review(request.ReviewStatus, request.ReviewNote, request.AppliedTargetType, request.AppliedTargetId, GetUserId());
+        await DbContext.SaveChangesAsync(cancellationToken);
+
+        var after = MapRun(entity);
+        await WriteAuditAsync("ai", nameof(AiRun), "ai.run.review", entity.Id, before, after, cancellationToken);
+        return after;
+    }
+
+
     public async Task<TranslationDraftDto> CreateTranslationDraftAsync(TranslationDraftRequest request, CancellationToken cancellationToken = default)
     {
         ValidateTranslationDraft(request);
@@ -531,6 +552,19 @@ internal sealed class AiService(
             request.TargetLanguageCodes.Any(code => !string.IsNullOrWhiteSpace(code)) ? null : new ApiError("validation.required", nameof(request.TargetLanguageCodes), "At least one target language is required."));
     }
 
+    private static void ValidateReview(AiReviewRequest request)
+    {
+        var allowed = new[] { "Reviewed", "Accepted", "Rejected", "Applied" };
+        ThrowIfInvalid(
+            Required(request.ReviewStatus, nameof(request.ReviewStatus), "Review status is required."),
+            !allowed.Contains(request.ReviewStatus, StringComparer.OrdinalIgnoreCase)
+                ? new ApiError("validation.unsupported", nameof(request.ReviewStatus), "Review status must be Reviewed, Accepted, Rejected, or Applied.")
+                : null,
+            request.ReviewStatus.Equals("Applied", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(request.AppliedTargetType)
+                ? new ApiError("validation.required", nameof(request.AppliedTargetType), "Applied target is required when marking an AI draft as applied.")
+                : null);
+    }
+
     private static string BuildDraftText(string draftPurpose, string? templateBody, string inputText, string? sourceLanguageCode, string? targetLanguageCode)
     {
         var header = draftPurpose switch
@@ -643,5 +677,27 @@ internal sealed class AiService(
         new(entity.Id, entity.CompanyId, entity.TemplateCode, entity.TemplateName, entity.PromptPurpose, entity.TemplateBody, entity.Status);
 
     private static AiRunDto MapRun(AiRun entity) =>
-        new(entity.Id, entity.CompanyId, entity.BranchId, entity.AiProviderId, entity.AiModelId, entity.AiPromptTemplateId, entity.DraftPurpose, entity.RelatedDocumentType, entity.RelatedDocumentId, entity.InputText, entity.OutputText, entity.RunStatus, entity.TokenUsageJson, entity.RequiresReview, entity.RequestedOn, entity.CompletedOn);
+        new(
+            entity.Id,
+            entity.CompanyId,
+            entity.BranchId,
+            entity.AiProviderId,
+            entity.AiModelId,
+            entity.AiPromptTemplateId,
+            entity.DraftPurpose,
+            entity.RelatedDocumentType,
+            entity.RelatedDocumentId,
+            entity.InputText,
+            entity.OutputText,
+            entity.RunStatus,
+            entity.TokenUsageJson,
+            entity.RequiresReview,
+            entity.RequestedOn,
+            entity.CompletedOn,
+            string.IsNullOrWhiteSpace(entity.ReviewStatus) ? (entity.RequiresReview ? "Drafted" : "NotRequired") : entity.ReviewStatus,
+            entity.ReviewedByUserId,
+            entity.ReviewedOn,
+            entity.ReviewNote,
+            entity.AppliedTargetType,
+            entity.AppliedTargetId);
 }

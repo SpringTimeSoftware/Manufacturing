@@ -106,6 +106,7 @@ const implementedProtectedRoutes = [
   "/integrations/imports",
   "/integrations/exports",
   "/integrations/delivery-logs",
+  "/integrations/crm-mapping",
   "/ai/assistant",
   "/ai/translations",
   "/search",

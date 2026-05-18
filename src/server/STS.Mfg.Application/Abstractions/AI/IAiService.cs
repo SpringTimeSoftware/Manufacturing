@@ -23,6 +23,7 @@ public interface IAiService
     Task<PagedResult<AiRunDto>> ListRunsAsync(AiFilter filter, CancellationToken cancellationToken = default);
     Task<AiRunDto> GetRunAsync(long id, CancellationToken cancellationToken = default);
     Task<AiRunDto> CreateDraftRunAsync(AiDraftRequest request, CancellationToken cancellationToken = default);
+    Task<AiRunDto> ReviewRunAsync(long id, AiReviewRequest request, CancellationToken cancellationToken = default);
     Task<TranslationDraftDto> CreateTranslationDraftAsync(TranslationDraftRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<AiProviderHealthDto>> GetProviderHealthAsync(CancellationToken cancellationToken = default);
     Task<AiExecutionPolicyDto> GetExecutionPolicyAsync(CancellationToken cancellationToken = default);

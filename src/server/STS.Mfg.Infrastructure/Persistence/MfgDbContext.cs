@@ -156,9 +156,16 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<ShipmentLine> ShipmentLines => Set<ShipmentLine>();
     public DbSet<IntegrationProvider> IntegrationProviders => Set<IntegrationProvider>();
     public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
+    public DbSet<IntegrationMessageTemplate> IntegrationMessageTemplates => Set<IntegrationMessageTemplate>();
+    public DbSet<IntegrationOutboundMessage> IntegrationOutboundMessages => Set<IntegrationOutboundMessage>();
+    public DbSet<IntegrationDeliveryEvent> IntegrationDeliveryEvents => Set<IntegrationDeliveryEvent>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
     public DbSet<ExportJob> ExportJobs => Set<ExportJob>();
+    public DbSet<CrmObjectMapping> CrmObjectMappings => Set<CrmObjectMapping>();
+    public DbSet<CrmSyncJob> CrmSyncJobs => Set<CrmSyncJob>();
+    public DbSet<CrmSyncConflict> CrmSyncConflicts => Set<CrmSyncConflict>();
     public DbSet<AiProvider> AiProviders => Set<AiProvider>();
     public DbSet<AiModel> AiModels => Set<AiModel>();
     public DbSet<AiPromptTemplate> AiPromptTemplates => Set<AiPromptTemplate>();
