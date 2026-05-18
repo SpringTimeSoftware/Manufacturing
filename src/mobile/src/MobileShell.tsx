@@ -1,46 +1,42 @@
 import { useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { seededRoleNavigationRules } from "./mobileSeedData";
+import type { MobileRuntimeHandlers } from "../App";
 import { canWorkOffline, summarizeQueue } from "./offlineQueue";
-import type { MobileContext, MobileSession, MobileTab, OfflineQueueEntry, SyncSummary } from "./mobileTypes";
+import type {
+  MobileContext,
+  MobileRuntimeContext,
+  MobileSession,
+  MobileTab,
+  MobileTask,
+  OfflineQueueEntry,
+  SyncSummary
+} from "./mobileTypes";
 import { ContextSwitchScreen } from "./screens/ContextSwitchScreen";
 import { DeviceUtilitiesScreen } from "./screens/DeviceUtilitiesScreen";
 import { DispatchProofScreen } from "./screens/DispatchProofScreen";
-import { ExecutionCaptureScreen } from "./screens/ExecutionCaptureScreen";
 import { HomeDashboardScreen } from "./screens/HomeDashboardScreen";
 import { InventoryMovementScreen } from "./screens/InventoryMovementScreen";
-import { JobCardsScreen } from "./screens/JobCardsScreen";
-import { MachineDowntimeScreen } from "./screens/MachineDowntimeScreen";
 import { MaterialScanScreen } from "./screens/MaterialScanScreen";
-import { NotificationsApprovalsScreen } from "./screens/NotificationsApprovalsScreen";
-import { OrderStageBoardScreen } from "./screens/OrderStageBoardScreen";
-import { ProductionReceiptReworkScreen } from "./screens/ProductionReceiptReworkScreen";
 import { QualityCaptureScreen } from "./screens/QualityCaptureScreen";
 import { SettingsSyncStatusScreen } from "./screens/SettingsSyncStatusScreen";
-import { ShiftHandoverMediaScreen } from "./screens/ShiftHandoverMediaScreen";
 
-interface MobileShellProps {
+interface MobileShellProps extends MobileRuntimeHandlers {
   activeContext: MobileContext;
   contexts: MobileContext[];
   onContextChange: (context: MobileContext) => void;
   queue: OfflineQueueEntry[];
+  runtime: MobileRuntimeContext | null;
   session: MobileSession;
   syncSummary: SyncSummary;
+  tasks: MobileTask[];
 }
 
 const tabs: Array<{ id: MobileTab; label: string }> = [
   { id: "home", label: "Home" },
-  { id: "inbox", label: "Inbox" },
-  { id: "jobs", label: "Jobs" },
-  { id: "execute", label: "Execute" },
   { id: "materials", label: "Material" },
   { id: "stock", label: "Stock" },
-  { id: "machine", label: "Machine" },
   { id: "quality", label: "Quality" },
-  { id: "output", label: "Output" },
-  { id: "handover", label: "Handover" },
   { id: "dispatch", label: "Dispatch" },
-  { id: "orders", label: "Orders" },
   { id: "device", label: "Device" },
   { id: "sync", label: "Sync" },
   { id: "context", label: "Context" }
@@ -49,47 +45,36 @@ const tabs: Array<{ id: MobileTab; label: string }> = [
 export function MobileShell({
   activeContext,
   contexts,
+  onCaptureEvidence,
   onContextChange,
+  onQueueOperation,
+  onResolveScan,
+  onSync,
   queue,
+  runtime,
   session,
-  syncSummary
+  syncSummary,
+  tasks
 }: MobileShellProps) {
   const [tab, setTab] = useState<MobileTab>("home");
   const queueSummary = summarizeQueue(queue);
-  const roleRule = seededRoleNavigationRules.find((rule) => session.roles.includes(rule.role));
-  const visibleTabs = roleRule
-    ? tabs.filter((entry) => roleRule.primaryTabs.includes(entry.id) || entry.id === "context")
-    : tabs;
+  const disabledReason = runtime?.device.disabledReason ?? runtime?.disabledReasons[0] ?? null;
 
   const currentScreen =
     tab === "home" ? (
-      <HomeDashboardScreen onNavigate={setTab} queue={queue} session={session} />
-    ) : tab === "inbox" ? (
-      <NotificationsApprovalsScreen />
-    ) : tab === "jobs" ? (
-      <JobCardsScreen />
-    ) : tab === "execute" ? (
-      <ExecutionCaptureScreen />
+      <HomeDashboardScreen onNavigate={setTab} queue={queue} runtime={runtime} session={session} tasks={tasks} />
     ) : tab === "materials" ? (
-      <MaterialScanScreen />
+      <MaterialScanScreen activeContext={activeContext} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
     ) : tab === "stock" ? (
-      <InventoryMovementScreen />
-    ) : tab === "machine" ? (
-      <MachineDowntimeScreen />
+      <InventoryMovementScreen activeContext={activeContext} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
     ) : tab === "quality" ? (
-      <QualityCaptureScreen />
-    ) : tab === "output" ? (
-      <ProductionReceiptReworkScreen />
-    ) : tab === "handover" ? (
-      <ShiftHandoverMediaScreen />
+      <QualityCaptureScreen onCaptureEvidence={onCaptureEvidence} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
     ) : tab === "dispatch" ? (
-      <DispatchProofScreen />
-    ) : tab === "orders" ? (
-      <OrderStageBoardScreen />
+      <DispatchProofScreen onCaptureEvidence={onCaptureEvidence} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
     ) : tab === "device" ? (
-      <DeviceUtilitiesScreen />
+      <DeviceUtilitiesScreen onCaptureEvidence={onCaptureEvidence} onResolveScan={onResolveScan} runtime={runtime} />
     ) : tab === "sync" ? (
-      <SettingsSyncStatusScreen queue={queue} session={session} syncSummary={syncSummary} />
+      <SettingsSyncStatusScreen onSync={onSync} queue={queue} runtime={runtime} session={session} syncSummary={syncSummary} />
     ) : (
       <ContextSwitchScreen activeContext={activeContext} contexts={contexts} onContextChange={onContextChange} />
     );
@@ -102,14 +87,16 @@ export function MobileShell({
           <Text style={styles.title}>{session.displayName}</Text>
           <Text style={styles.muted}>{`${activeContext.companyName} / ${activeContext.branchName}`}</Text>
           <View style={styles.badgeRow}>
-            <Text style={styles.badge}>{session.deviceBindingStatus}</Text>
-            <Text style={styles.badge}>{canWorkOffline(queue) ? "Offline ready" : "Sync review"}</Text>
+            <Text style={styles.badge}>{runtime?.device.trustStatus ?? session.deviceBindingStatus}</Text>
+            <Text style={styles.badge}>{canWorkOffline(queue) && runtime?.canWorkOffline ? "Offline queue ready" : "Sync review"}</Text>
             <Text style={styles.badge}>{`${queueSummary.pending} pending`}</Text>
+            <Text style={styles.badge}>{runtime?.onlineMode ?? "Live API pending"}</Text>
           </View>
+          {disabledReason ? <Text style={styles.warning}>{disabledReason}</Text> : null}
         </View>
 
         <ScrollView contentContainerStyle={styles.tabRow} horizontal showsHorizontalScrollIndicator={false}>
-          {visibleTabs.map((entry) => {
+          {tabs.map((entry) => {
             const isActive = tab === entry.id;
 
             return (
@@ -194,5 +181,11 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 6,
     textTransform: "capitalize"
+  },
+  warning: {
+    color: "#7a3b14",
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 10
   }
 });

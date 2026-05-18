@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pack 09 Mobile Runtime Evidence</title>
+    <style>
+      body {
+        background: #fbf7ef;
+        color: #10251f;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 24px;
+      }
+      main {
+        display: grid;
+        gap: 18px;
+        margin: 0 auto;
+        max-width: 1180px;
+      }
+      .panel {
+        background: #fffaf2;
+        border: 1px solid #eadcc7;
+        border-radius: 22px;
+        padding: 18px;
+      }
+      .grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #d8c6ac;
+        border-radius: 16px;
+        padding: 14px;
+      }
+      .badge {
+        background: #e8f2ee;
+        border-radius: 999px;
+        color: #17463a;
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 6px 10px;
+      }
+      .warn {
+        background: #fff0c2;
+        color: #7a4a00;
+      }
+      .danger {
+        background: #fde7df;
+        color: #8e2c18;
+      }
+      h1,
+      h2,
+      p {
+        margin: 0 0 8px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #eadcc7;
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        color: #5c6f68;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <span class="badge">Pack 09</span>
+        <h1>Mobile Runtime / Barcode / Camera / Offline Evidence</h1>
+        <p>Authenticated mobile shell is wired to live APIs for device trust, task feed, scan resolution, offline operations, sync, and evidence metadata. Seeded operational mobile rows are not imported by App or MobileShell.</p>
+      </section>
+      <section class="grid">
+        <div class="card">
+          <span class="badge warn">Device Pending</span>
+          <h2>Device Trust</h2>
+          <p>Persisted in mobile.DeviceRegistrations. Revoked devices cannot sync or post; untrusted devices cannot post stock, quality, dispatch, or POD.</p>
+        </div>
+        <div class="card">
+          <span class="badge">Scan Sources</span>
+          <h2>Barcode / QR</h2>
+          <p>Manual, hardware, and camera are explicit scan sources. Camera actions stay disabled when runtime capability is unavailable.</p>
+        </div>
+        <div class="card">
+          <span class="badge warn">Pending Upload</span>
+          <h2>Photo Evidence</h2>
+          <p>Evidence metadata is persisted. Metadata-only capture is shown as PendingUpload, not fake success.</p>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Offline Queue</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Operation</th>
+              <th>Status</th>
+              <th>Server Truth</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Inventory</td>
+              <td>StockIssue</td>
+              <td><span class="badge">Synced</span></td>
+              <td>Posts through IInventoryService with shared tracking validation and source snapshots.</td>
+            </tr>
+            <tr>
+              <td>Dispatch</td>
+              <td>MobilePod</td>
+              <td><span class="badge danger">Conflict</span></td>
+              <td>Pre-shipment POD sync is rejected with durable conflict reason.</td>
+            </tr>
+            <tr>
+              <td>Quality</td>
+              <td>NcrDraft</td>
+              <td><span class="badge warn">Queued</span></td>
+              <td>Queued draft persists; sync status remains visible until quality API validation.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

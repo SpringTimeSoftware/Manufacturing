@@ -1,14 +1,13 @@
-import type { MobileContext, MobileCredentials, MobileSession } from "./mobileTypes";
+import { signInMobile } from "./mobileApi";
+import type { MobileCredentials, MobileRuntimeContext, MobileSession } from "./mobileTypes";
 
-export function signInWithDeviceBinding(credentials: MobileCredentials, activeContext: MobileContext): MobileSession {
-  const name = credentials.userName.trim() || "operator";
-
+export async function signInWithDeviceBinding(credentials: MobileCredentials): Promise<{
+  session: MobileSession;
+  runtime: MobileRuntimeContext;
+}> {
+  const response = await signInMobile(credentials);
   return {
-    accessToken: `demo-mobile-${name}`,
-    displayName: name.replace(/[._-]/g, " "),
-    deviceBindingStatus: credentials.deviceName.trim() ? "Bound" : "Pending",
-    languageCode: "en-IN",
-    roles: ["ProductionSupervisor", "MachineOperator", "StoreKeeper", "QCInspector"],
-    activeContext
+    session: response.session,
+    runtime: response.runtime
   };
 }

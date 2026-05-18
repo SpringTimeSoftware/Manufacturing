@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { seededConflictTasks, seededLocalizationOptions, seededRoleNavigationRules } from "../mobileSeedData";
-import type { MobileSession, OfflineQueueEntry, SyncSummary } from "../mobileTypes";
+import type { MobileRuntimeContext, MobileSession, OfflineQueueEntry, SyncSummary } from "../mobileTypes";
+import { MobileActionNotice, MobileButton } from "../ui/mobileComponents";
 
 interface SettingsSyncStatusScreenProps {
+  onSync: () => Promise<OfflineQueueEntry[]>;
   queue: OfflineQueueEntry[];
+  runtime: MobileRuntimeContext | null;
   session: MobileSession;
   syncSummary: SyncSummary;
 }
@@ -20,10 +23,24 @@ function statusStyle(status: OfflineQueueEntry["status"]) {
   return styles.statusWarn;
 }
 
-export function SettingsSyncStatusScreen({ queue, session, syncSummary }: SettingsSyncStatusScreenProps) {
+export function SettingsSyncStatusScreen({ onSync, queue, runtime, session, syncSummary }: SettingsSyncStatusScreenProps) {
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const runSync = async () => {
+    setSyncMessage(null);
+    setSyncError(null);
+    try {
+      const result = await onSync();
+      setSyncMessage(`${result.length} operation(s) were processed by the live sync API.`);
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Sync failed.");
+    }
+  };
+
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Settings / Sync Status / Language</Text>
+      <Text style={styles.title}>Settings / Sync Status / Device Trust</Text>
       <View style={styles.summaryRow}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryValue}>{syncSummary.pendingCount}</Text>
@@ -34,30 +51,30 @@ export function SettingsSyncStatusScreen({ queue, session, syncSummary }: Settin
           <Text style={styles.summaryLabel}>Failed</Text>
         </View>
         <View style={styles.summaryCard}>
+          <Text style={styles.summaryValue}>{syncSummary.conflictCount ?? 0}</Text>
+          <Text style={styles.summaryLabel}>Conflict</Text>
+        </View>
+        <View style={styles.summaryCard}>
           <Text style={styles.summaryValue}>{session.languageCode}</Text>
           <Text style={styles.summaryLabel}>Language</Text>
         </View>
       </View>
       <Text style={styles.copy}>{`Last sync: ${syncSummary.lastSyncLabel}`}</Text>
+      <MobileActionNotice message={syncMessage} tone="success" />
+      <MobileActionNotice message={syncError} tone="danger" />
+      <MobileButton disabled={runtime?.device.isRevoked} disabledReason="Revoked devices cannot sync queued work." label="Sync queued operations" onPress={() => void runSync()} tone="success" />
       <View style={styles.deviceCard}>
-        <Text style={styles.queueTitle}>Device and language</Text>
-        <Text style={styles.copy}>{`Device binding: ${session.deviceBindingStatus}`}</Text>
-        <View style={styles.languageRow}>
-          {seededLocalizationOptions.map((option) => (
-            <Text key={option.code} style={[styles.languageChip, option.status === "Active" && styles.languageActive]}>
-              {`${option.label} / ${option.status}`}
-            </Text>
-          ))}
-        </View>
+        <Text style={styles.queueTitle}>Device registration</Text>
+        <Text style={styles.copy}>{`Device: ${runtime?.device.deviceCode ?? session.deviceCode ?? "not registered"}`}</Text>
+        <Text style={styles.copy}>{`Trust: ${runtime?.device.trustStatus ?? session.deviceBindingStatus}`}</Text>
+        <Text style={styles.copy}>{`Offline capability: ${runtime?.device.offlineCapability ? "Enabled" : "Disabled"}`}</Text>
+        <Text style={styles.copy}>{`Scanner: ${runtime?.device.scannerCapability ?? "Unknown"}`}</Text>
+        <Text style={styles.copy}>{`Camera: ${runtime?.device.cameraCapability ?? "Unknown"}`}</Text>
+        {runtime?.disabledReasons.map((reason) => (
+          <Text key={reason} style={styles.audit}>{reason}</Text>
+        ))}
       </View>
-      <View style={styles.deviceCard}>
-        <Text style={styles.queueTitle}>Role-aware navigation</Text>
-        {seededRoleNavigationRules
-          .filter((rule) => session.roles.includes(rule.role))
-          .map((rule) => (
-            <Text key={rule.role} style={styles.audit}>{`${rule.role}: default ${rule.defaultTab}, ${rule.primaryTabs.length} mobile tabs`}</Text>
-          ))}
-      </View>
+      {queue.length === 0 ? <Text style={styles.copy}>No offline operations are queued for this device.</Text> : null}
       {queue.map((entry) => (
         <View key={entry.id} style={styles.queueCard}>
           <View>
@@ -66,18 +83,8 @@ export function SettingsSyncStatusScreen({ queue, session, syncSummary }: Settin
           </View>
           <Text style={[styles.status, statusStyle(entry.status)]}>{entry.status}</Text>
           <Text style={styles.audit}>{`${entry.queuedOnLabel} / ${entry.auditLabel}`}</Text>
-        </View>
-      ))}
-      <Text style={styles.subhead}>Conflict resolution</Text>
-      {seededConflictTasks.map((conflict) => (
-        <View key={conflict.id} style={styles.queueCard}>
-          <View>
-            <Text style={styles.queueTitle}>{conflict.documentRef}</Text>
-            <Text style={styles.copy}>{`Local: ${conflict.localChangeLabel}`}</Text>
-            <Text style={styles.copy}>{`Server: ${conflict.serverChangeLabel}`}</Text>
-          </View>
-          <Text style={[styles.status, statusStyle(conflict.status)]}>{conflict.status}</Text>
-          <Text style={styles.audit}>{conflict.recommendedAction}</Text>
+          {entry.failureReason ? <Text style={styles.audit}>{entry.failureReason}</Text> : null}
+          {entry.conflictReason ? <Text style={styles.audit}>{entry.conflictReason}</Text> : null}
         </View>
       ))}
     </View>
@@ -86,8 +93,9 @@ export function SettingsSyncStatusScreen({ queue, session, syncSummary }: Settin
 
 const styles = StyleSheet.create({
   audit: {
-    color: "#5c6f68",
-    fontSize: 12
+    color: "#8e2c18",
+    fontSize: 12,
+    fontWeight: "700"
   },
   card: {
     backgroundColor: "#fffaf2",
@@ -106,24 +114,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     padding: 16
-  },
-  languageActive: {
-    backgroundColor: "#17463a",
-    color: "#ffffff"
-  },
-  languageChip: {
-    backgroundColor: "#edf2ef",
-    borderRadius: 999,
-    color: "#17463a",
-    fontSize: 12,
-    fontWeight: "900",
-    paddingHorizontal: 10,
-    paddingVertical: 6
-  },
-  languageRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8
   },
   queueCard: {
     backgroundColor: "#ffffff",
@@ -159,11 +149,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff0c2",
     color: "#7a4a00"
   },
-  subhead: {
-    color: "#10251f",
-    fontSize: 16,
-    fontWeight: "900"
-  },
   summaryCard: {
     backgroundColor: "#f8efe0",
     borderRadius: 18,
@@ -177,6 +162,7 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10
   },
   summaryValue: {

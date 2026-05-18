@@ -319,6 +319,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 - INVENTORY-WAREHOUSE-TRACEABILITY-COMPLETION-01 completed on 2026-05-15 to close P0 inventory movement, traceability deep-link, cycle-count grid, action truth, screenshot, workbook, validation, and review-pack gates. Output: `/docs/codex-progress/INVENTORY-WAREHOUSE-TRACEABILITY-COMPLETION-01-output.md`
 - LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01 completed on 2026-05-16 to harden large modal workspaces, dense transaction header grids, desktop line-grid labeling, and screenshot/audit evidence before Dispatch / Logistics / POD. Output: `/docs/codex-progress/LARGE-WORK-MODAL-TRANSACTION-DENSITY-UI-RETROFIT-01-output.md`
 - QUALITY-NCR-COA-COMPLETION-PACK-04 completed on 2026-05-16 to close QC plan characteristics, inspection result evidence, NCR affected lines/CAPA/disposition release, COA certificate generation/issue/reissue, quality route/action truth, screenshots, audits, and validation. Output: `/docs/codex-progress/QUALITY-NCR-COA-COMPLETION-PACK-04-output.md`
+- MOBILE-BARCODE-CAMERA-OFFLINE-COMPLETION-PACK-09 completed on 2026-05-18 to add persisted device trust, scan-event audit, durable offline operations/sync conflicts, evidence metadata, live mobile shell API wiring, screenshot evidence, and review artifacts. Output: `/docs/codex-progress/MOBILE-BARCODE-CAMERA-OFFLINE-COMPLETION-PACK-09-output.md`
 
 ## Remediation Log
 

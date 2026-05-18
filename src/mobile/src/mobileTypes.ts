@@ -30,16 +30,22 @@ export interface MobileContext {
   companyName: string;
   branchId: number;
   branchName: string;
+  warehouseId?: number | null;
   warehouseLabel: string;
 }
 
 export interface MobileSession {
   accessToken: string;
+  refreshToken?: string;
+  userId?: number;
   displayName: string;
   deviceBindingStatus: "Bound" | "Pending";
+  deviceCode?: string;
+  deviceTrustStatus?: "Trusted" | "Pending" | "Revoked" | string;
   languageCode: string;
   roles: MobileRole[];
   activeContext: MobileContext;
+  availableContexts?: MobileContext[];
 }
 
 export interface MobileCredentials {
@@ -54,14 +60,100 @@ export interface OfflineQueueEntry {
   actionLabel: string;
   documentRef: string;
   queuedOnLabel: string;
-  status: "Pending" | "Queued" | "Syncing" | "Synced" | "Failed" | "Conflict" | "Rejected" | "RetryScheduled";
+  status: "Draft" | "Pending" | "Queued" | "Syncing" | "Synced" | "Failed" | "Conflict" | "Rejected" | "RetryScheduled" | "Cancelled";
   auditLabel: string;
+  failureReason?: string | null;
+  conflictReason?: string | null;
+  idempotencyKey?: string;
+  serverReferenceNo?: string | null;
 }
 
 export interface SyncSummary {
   lastSyncLabel: string;
   pendingCount: number;
   failedCount: number;
+  conflictCount?: number;
+}
+
+export interface MobileDeviceRegistration {
+  id: number;
+  companyId: number;
+  branchId: number;
+  warehouseId?: number | null;
+  deviceCode: string;
+  deviceName: string;
+  scannerCapability: "HardwareCameraManual" | "HardwareManual" | "ManualOnly" | string;
+  cameraCapability: "Available" | "Unavailable" | string;
+  offlineCapability: boolean;
+  trustStatus: "Trusted" | "Pending" | "Revoked" | string;
+  isTrusted: boolean;
+  isRevoked: boolean;
+  lastSeenOn?: string | null;
+  status: string;
+  disabledReason?: string | null;
+}
+
+export interface MobileRuntimeContext {
+  device: MobileDeviceRegistration;
+  canPostStock: boolean;
+  canWorkOffline: boolean;
+  onlineMode: "LiveApi" | string;
+  lastSyncAt?: string | null;
+  queuedCount: number;
+  failedCount: number;
+  conflictCount: number;
+  disabledReasons: string[];
+}
+
+export interface MobileTask {
+  id: string;
+  module: string;
+  taskType: string;
+  documentNo: string;
+  sourceDocumentId?: number | null;
+  title: string;
+  subtitle: string;
+  status: string;
+  disabledReason?: string | null;
+}
+
+export type MobileScanSource = "Camera" | "Hardware" | "Manual";
+
+export interface MobileScanResult {
+  scanEventId: number;
+  scanValue: string;
+  scanSource: MobileScanSource | string;
+  scanContext: string;
+  resolutionStatus: "Resolved" | "NotFound" | "Blocked" | string;
+  validationMessage?: string | null;
+  resolvedEntityType?: string | null;
+  resolvedEntityId?: number | null;
+  resolvedEntityCode?: string | null;
+  scanTimestamp: string;
+}
+
+export interface MobilePhotoEvidence {
+  id: number;
+  sourceModule: string;
+  sourceDocumentType: string;
+  sourceDocumentId?: number | null;
+  sourceDocumentNo?: string | null;
+  evidenceType: string;
+  fileName?: string | null;
+  contentType?: string | null;
+  attachmentId?: number | null;
+  capturedOn: string;
+  uploadStatus: "Uploaded" | "PendingUpload" | "Failed" | string;
+  failureReason?: string | null;
+}
+
+export interface QueueOfflineOperationInput {
+  operationType: string;
+  sourceModule: string;
+  documentRef: string;
+  actionLabel: string;
+  payloadSnapshotJson: string;
+  idempotencyKey: string;
 }
 
 export interface MobileSummaryTile {

@@ -8,6 +8,7 @@ using STS.Mfg.Domain.Finance;
 using STS.Mfg.Domain.Inventory;
 using STS.Mfg.Domain.Masters;
 using STS.Mfg.Domain.Measurements;
+using STS.Mfg.Domain.Mobile;
 using STS.Mfg.Domain.Organization;
 using STS.Mfg.Domain.Platform.Attachments;
 using STS.Mfg.Domain.Platform.Audit;
@@ -175,6 +176,11 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<ReportOutput> ReportOutputs => Set<ReportOutput>();
     public DbSet<DashboardDefinition> DashboardDefinitions => Set<DashboardDefinition>();
     public DbSet<DashboardWidget> DashboardWidgets => Set<DashboardWidget>();
+    public DbSet<MobileDeviceRegistration> MobileDeviceRegistrations => Set<MobileDeviceRegistration>();
+    public DbSet<MobileOfflineOperation> MobileOfflineOperations => Set<MobileOfflineOperation>();
+    public DbSet<MobileSyncConflict> MobileSyncConflicts => Set<MobileSyncConflict>();
+    public DbSet<MobileScanEvent> MobileScanEvents => Set<MobileScanEvent>();
+    public DbSet<MobilePhotoEvidence> MobilePhotoEvidence => Set<MobilePhotoEvidence>();
 
     public DbSet<Quote> Quotes => Set<Quote>();
     public DbSet<QuoteLine> QuoteLines => Set<QuoteLine>();

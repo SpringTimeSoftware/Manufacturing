@@ -3,13 +3,15 @@ import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } fro
 import type { MobileCredentials } from "../mobileTypes";
 
 interface LoginScreenProps {
-  onSubmit: (credentials: MobileCredentials) => void;
+  onSubmit: (credentials: MobileCredentials) => void | Promise<void>;
+  errorMessage?: string | null;
+  isSubmitting?: boolean;
 }
 
-export function LoginScreen({ onSubmit }: LoginScreenProps) {
-  const [userName, setUserName] = useState("prod.supervisor");
-  const [password, setPassword] = useState("Production@123");
-  const [deviceName, setDeviceName] = useState("Shopfloor Tablet 01");
+export function LoginScreen({ errorMessage, isSubmitting = false, onSubmit }: LoginScreenProps) {
+  const [userName, setUserName] = useState("");
+  const [password, setPassword] = useState("");
+  const [deviceName, setDeviceName] = useState("");
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -21,13 +23,15 @@ export function LoginScreen({ onSubmit }: LoginScreenProps) {
         <TextInput accessibilityLabel="Mobile user name" onChangeText={setUserName} style={styles.input} value={userName} />
         <TextInput accessibilityLabel="Mobile password" onChangeText={setPassword} secureTextEntry style={styles.input} value={password} />
         <TextInput accessibilityLabel="Device name" onChangeText={setDeviceName} style={styles.input} value={deviceName} />
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
         <TouchableOpacity
           accessibilityRole="button"
-          onPress={() => onSubmit({ userName, password, deviceName })}
-          style={styles.primaryButton}
+          disabled={isSubmitting}
+          onPress={() => void onSubmit({ userName, password, deviceName })}
+          style={[styles.primaryButton, isSubmitting && styles.disabledButton]}
         >
-          <Text style={styles.primaryButtonText}>Bind device and sign in</Text>
+          <Text style={styles.primaryButtonText}>{isSubmitting ? "Signing in..." : "Bind device and sign in"}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -46,12 +50,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22
   },
+  disabledButton: {
+    opacity: 0.58
+  },
   eyebrow: {
     color: "#9b4d1a",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
     textTransform: "uppercase"
+  },
+  errorText: {
+    color: "#9b2d20",
+    fontSize: 13,
+    fontWeight: "700"
   },
   input: {
     backgroundColor: "#ffffff",
