@@ -14,7 +14,8 @@ const fastActions: Array<{ id: string; title: string; subtitle: string; targetTa
   { id: "scan", title: "Scan material", subtitle: "Resolve item, bin, lot, serial, or PCID against live ERP data.", targetTab: "materials", tone: "info" },
   { id: "stock", title: "Inventory move", subtitle: "Queue stock movement only with server-side tracking validation.", targetTab: "stock", tone: "success" },
   { id: "quality", title: "Quality capture", subtitle: "Record inspection/NCR drafts and evidence metadata.", targetTab: "quality", tone: "warn" },
-  { id: "dispatch", title: "Dispatch/POD", subtitle: "Use shipment tasks and POD sync with idempotency.", targetTab: "dispatch", tone: "info" }
+  { id: "dispatch", title: "Dispatch/POD", subtitle: "Use shipment tasks and POD sync with idempotency.", targetTab: "dispatch", tone: "info" },
+  { id: "service", title: "Field service", subtitle: "Resolve service tickets, queue visit completion, and record evidence metadata.", targetTab: "service", tone: "success" }
 ];
 
 export function HomeDashboardScreen({ onNavigate, queue, runtime, session, tasks }: HomeDashboardScreenProps) {

@@ -371,6 +371,12 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
             "finance.inventory-valuation" => await QueryInventoryValuationAsync(parameters, cancellationToken),
             "finance.ar-ledger" => await QueryArLedgerAsync(parameters, cancellationToken),
             "platform.udf-value-register" => await QueryUdfValuesAsync(parameters, cancellationToken),
+            "service.ticket-register" => await QueryServiceTicketsAsync(parameters, cancellationToken),
+            "service.asset-history" => await QueryInstalledAssetsAsync(parameters, cancellationToken),
+            "service.warranty-claim-register" => await QueryWarrantyClaimsAsync(parameters, cancellationToken),
+            "service.amc-contract-register" => await QueryServiceContractsAsync(parameters, cancellationToken),
+            "service.spare-consumption" => await QueryServiceSparesAsync(parameters, cancellationToken),
+            "service.charge-register" => await QueryServiceChargesAsync(parameters, cancellationToken),
             _ => throw new ValidationFailureException(new[] { new ApiError("report.dataset_missing", nameof(datasetSource), $"Report dataset '{datasetSource}' is not configured.") })
         };
     }
@@ -746,6 +752,118 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
         return Dataset(rows);
     }
 
+    private async Task<ReportDataset> QueryServiceTicketsAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var query = DbContext.ServiceTickets.AsNoTracking().ApplyActiveOrganizationScope(GetScope());
+        if (parameters.TryGetValue("status", out var status) && !string.IsNullOrWhiteSpace(status))
+        {
+            var normalized = status.Trim();
+            query = query.Where(record => record.Status == normalized);
+        }
+
+        var records = await query.OrderByDescending(record => record.CreatedOn).Take(500).ToArrayAsync(cancellationToken);
+        var rows = records.Select(record => Row(
+            ("Ticket No", record.TicketNo),
+            ("Customer Id", record.CustomerId.ToString()),
+            ("Asset Id", record.InstalledAssetId.HasValue ? record.InstalledAssetId.Value.ToString() : null),
+            ("Issue Category", record.IssueCategory),
+            ("Priority", record.Priority),
+            ("Status", record.Status),
+            ("Entitlement", record.EntitlementType),
+            ("Assigned Owner", record.AssignedOwnerUserId.HasValue ? record.AssignedOwnerUserId.Value.ToString() : null),
+            ("Target Response", record.TargetResponseOn.HasValue ? record.TargetResponseOn.Value.ToString("u") : null),
+            ("Target Resolution", record.TargetResolutionOn.HasValue ? record.TargetResolutionOn.Value.ToString("u") : null))).ToArray();
+        return Dataset(rows);
+    }
+
+    private async Task<ReportDataset> QueryInstalledAssetsAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var records = await DbContext.InstalledAssets.AsNoTracking().ApplyActiveOrganizationScope(GetScope()).OrderBy(record => record.AssetNo).Take(500).ToArrayAsync(cancellationToken);
+        var rows = records.Select(record => Row(
+            ("Asset No", record.AssetNo),
+            ("Customer Id", record.CustomerId.ToString()),
+            ("Item Id", record.ItemId.ToString()),
+            ("Item Revision Id", record.ItemRevisionId.HasValue ? record.ItemRevisionId.Value.ToString() : null),
+            ("Serial No", record.SerialNo),
+            ("Source", record.SourceDocumentNo is null ? record.SourceDocumentType : $"{record.SourceDocumentType}:{record.SourceDocumentNo}"),
+            ("Installation Date", record.InstallationDate.ToString("yyyy-MM-dd")),
+            ("Warranty End Date", record.WarrantyEndDate.HasValue ? record.WarrantyEndDate.Value.ToString("yyyy-MM-dd") : null),
+            ("Status", record.Status))).ToArray();
+        return Dataset(rows);
+    }
+
+    private async Task<ReportDataset> QueryWarrantyClaimsAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var records = await DbContext.WarrantyClaims.AsNoTracking().ApplyActiveOrganizationScope(GetScope()).OrderByDescending(record => record.CreatedOn).Take(500).ToArrayAsync(cancellationToken);
+        var rows = records.Select(record => Row(
+            ("Claim No", record.ClaimNo),
+            ("Ticket Id", record.ServiceTicketId.ToString()),
+            ("Customer Id", record.CustomerId.ToString()),
+            ("Asset Id", record.InstalledAssetId.HasValue ? record.InstalledAssetId.Value.ToString() : null),
+            ("Claim Type", record.ClaimType),
+            ("Entitlement", record.EntitlementType),
+            ("Approval", record.ApprovalStatus),
+            ("Disposition", record.Disposition),
+            ("Status", record.Status))).ToArray();
+        return Dataset(rows);
+    }
+
+    private async Task<ReportDataset> QueryServiceContractsAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var records = await DbContext.ServiceContracts.AsNoTracking().ApplyActiveOrganizationScope(GetScope()).OrderBy(record => record.EndDate).Take(500).ToArrayAsync(cancellationToken);
+        var rows = records.Select(record => Row(
+            ("Contract No", record.ContractNo),
+            ("Customer Id", record.CustomerId.ToString()),
+            ("Asset Id", record.InstalledAssetId.HasValue ? record.InstalledAssetId.Value.ToString() : null),
+            ("Start Date", record.StartDate.ToString("yyyy-MM-dd")),
+            ("End Date", record.EndDate.ToString("yyyy-MM-dd")),
+            ("Visit Frequency Days", record.VisitFrequencyDays.HasValue ? record.VisitFrequencyDays.Value.ToString() : null),
+            ("SLA Response Hours", record.SlaResponseHours.HasValue ? record.SlaResponseHours.Value.ToString() : null),
+            ("Contract Value", record.ContractValueAmount.HasValue ? FormatMoney(record.ContractValueAmount.Value) : null),
+            ("Status", record.Status))).ToArray();
+        return Dataset(rows);
+    }
+
+    private async Task<ReportDataset> QueryServiceSparesAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var records = await DbContext.ServiceSpareMovements.AsNoTracking().ApplyActiveOrganizationScope(GetScope()).OrderByDescending(record => record.CreatedOn).Take(500).ToArrayAsync(cancellationToken);
+        var rows = records.Select(record => Row(
+            ("Movement No", record.MovementNo),
+            ("Type", record.MovementType),
+            ("Ticket Id", record.ServiceTicketId.ToString()),
+            ("Visit Id", record.ServiceVisitId.HasValue ? record.ServiceVisitId.Value.ToString() : null),
+            ("Item Id", record.ItemId.ToString()),
+            ("Item Revision Id", record.ItemRevisionId.HasValue ? record.ItemRevisionId.Value.ToString() : null),
+            ("Warehouse Id", record.WarehouseId.HasValue ? record.WarehouseId.Value.ToString() : null),
+            ("Bin Id", record.BinId.HasValue ? record.BinId.Value.ToString() : null),
+            ("Lot Id", record.LotId.HasValue ? record.LotId.Value.ToString() : null),
+            ("Serial Id", record.SerialId.HasValue ? record.SerialId.Value.ToString() : null),
+            ("PCID Id", record.PcidId.HasValue ? record.PcidId.Value.ToString() : null),
+            ("Quantity", FormatMoney(record.Quantity)),
+            ("Stock Transaction Id", record.StockTransactionId.HasValue ? record.StockTransactionId.Value.ToString() : null),
+            ("Status", record.Status))).ToArray();
+        return Dataset(rows);
+    }
+
+    private async Task<ReportDataset> QueryServiceChargesAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var records = await DbContext.ServiceCharges.AsNoTracking().ApplyActiveOrganizationScope(GetScope()).OrderByDescending(record => record.CreatedOn).Take(500).ToArrayAsync(cancellationToken);
+        var rows = records.Select(record => Row(
+            ("Charge No", record.ChargeNo),
+            ("Ticket Id", record.ServiceTicketId.ToString()),
+            ("Customer Id", record.CustomerId.ToString()),
+            ("Labor", FormatMoney(record.LaborAmount)),
+            ("Parts", FormatMoney(record.PartsAmount)),
+            ("Travel", FormatMoney(record.TravelAmount)),
+            ("Other", FormatMoney(record.OtherAmount)),
+            ("Discount", FormatMoney(record.DiscountAmount)),
+            ("Tax", FormatMoney(record.TaxAmount)),
+            ("Total", FormatMoney(record.TotalAmount)),
+            ("Billable", record.BillableStatus),
+            ("Status", record.Status))).ToArray();
+        return Dataset(rows);
+    }
+
     private static IQueryable<ReportDefinition> ApplyDefinitionFilters(IQueryable<ReportDefinition> query, ReportFilter filter)
     {
         if (!string.IsNullOrWhiteSpace(filter.Module))
@@ -1062,7 +1180,13 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
             BuiltIn("FINANCE-TAX-LEDGER", "Tax Ledger", "Finance", "Tax", "Input and output tax ledger entries from posted document snapshots.", "finance.tax-ledger", "ledger", "reports.finance.tax", ["CSV", "XLSX", "PDF"]),
             BuiltIn("FINANCE-INVENTORY-VALUATION", "Inventory Valuation Report", "Finance", "Valuation", "Inventory value entries linked to stock and source documents.", "finance.inventory-valuation", "ledger", "reports.finance.valuation", ["CSV", "XLSX", "PDF"]),
             BuiltIn("FINANCE-AR-LEDGER", "AR Ledger", "Finance", "AR", "Customer receivable ledger balances and due dates.", "finance.ar-ledger", "ledger", "reports.finance.ar", ["CSV", "XLSX", "PDF"]),
-            BuiltIn("PLATFORM-UDF-VALUE-REGISTER", "UDF Value Register", "Platform", "Customization", "Reportable non-sensitive UDF values across configured entity placements.", "platform.udf-value-register", "register", "reports.platform.udf", ["CSV", "XLSX", "JSON"])
+            BuiltIn("PLATFORM-UDF-VALUE-REGISTER", "UDF Value Register", "Platform", "Customization", "Reportable non-sensitive UDF values across configured entity placements.", "platform.udf-value-register", "register", "reports.platform.udf", ["CSV", "XLSX", "JSON"]),
+            BuiltIn("SERVICE-TICKET-REGISTER", "Service Ticket Register", "Service", "Ticket", "Persisted service tickets with entitlement, owner, SLA, and status.", "service.ticket-register", "register", "reports.service.ticket", ["CSV", "XLSX", "PDF", "JSON"]),
+            BuiltIn("SERVICE-ASSET-HISTORY", "Installed Asset History", "Service", "Installed Base", "Customer installed assets with source, serial, revision, and warranty snapshots.", "service.asset-history", "register", "reports.service.asset", ["CSV", "XLSX", "PDF"]),
+            BuiltIn("SERVICE-WARRANTY-CLAIM-REGISTER", "Warranty Claim Register", "Service", "Warranty", "Warranty claim approval, entitlement, disposition, and replacement evidence.", "service.warranty-claim-register", "register", "reports.service.warranty", ["CSV", "XLSX", "PDF"]),
+            BuiltIn("SERVICE-AMC-CONTRACT-REGISTER", "AMC Contract Register", "Service", "AMC", "Active and expiring AMC/service contracts with SLA and visit cadence.", "service.amc-contract-register", "register", "reports.service.contract", ["CSV", "XLSX", "PDF"]),
+            BuiltIn("SERVICE-SPARE-CONSUMPTION", "Service Spare Consumption", "Service", "Spares", "Service spare issue/return movements linked to inventory posting.", "service.spare-consumption", "ledger", "reports.service.spares", ["CSV", "XLSX", "PDF"]),
+            BuiltIn("SERVICE-CHARGE-REGISTER", "Service Charge Register", "Service", "Billing", "Service charge and invoice-ready records with tax and billable snapshots.", "service.charge-register", "ledger", "reports.service.charges", ["CSV", "XLSX", "PDF"])
         };
 
     private static BuiltInReport BuiltIn(string code, string name, string module, string category, string description, string source, string type, string permission, IReadOnlyCollection<string> formats) =>

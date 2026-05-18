@@ -496,6 +496,66 @@ export const navigationItems: NavigationItem[] = [
     roles: ["CompanyAdmin"]
   },
   {
+    label: "Service Dashboard",
+    path: "/service/dashboard",
+    section: "Service",
+    roles: ["SalesCoordinator", "DispatchManager", "StoreKeeper", "ManagementViewer", "CompanyAdmin"]
+  },
+  {
+    label: "Installed Assets",
+    path: "/service/installed-assets",
+    section: "Service",
+    roles: ["SalesCoordinator", "DispatchManager", "ManagementViewer", "CompanyAdmin"]
+  },
+  {
+    label: "Warranty Policies",
+    path: "/service/warranty-policies",
+    section: "Service",
+    roles: ["CompanyAdmin", "ManagementViewer"]
+  },
+  {
+    label: "AMC Contracts",
+    path: "/service/contracts",
+    section: "Service",
+    roles: ["CompanyAdmin", "ManagementViewer", "SalesCoordinator"]
+  },
+  {
+    label: "Service Tickets",
+    path: "/service/tickets",
+    section: "Service",
+    roles: ["SalesCoordinator", "DispatchManager", "StoreKeeper", "ManagementViewer", "CompanyAdmin"]
+  },
+  {
+    label: "Service Visits",
+    path: "/service/visits",
+    section: "Service",
+    roles: ["DispatchManager", "StoreKeeper", "ManagementViewer", "CompanyAdmin"]
+  },
+  {
+    label: "Spare Issue / Return",
+    path: "/service/spares",
+    section: "Service",
+    roles: ["StoreKeeper", "DispatchManager", "CompanyAdmin"]
+  },
+  {
+    label: "Warranty Claims",
+    path: "/service/warranty-claims",
+    section: "Service",
+    roles: ["CompanyAdmin", "ManagementViewer", "SalesCoordinator"]
+  },
+  {
+    label: "Service Charges",
+    path: "/service/charges",
+    section: "Service",
+    roles: ["CompanyAdmin", "SalesCoordinator", "ManagementViewer"]
+  },
+  {
+    label: "Service Reports",
+    path: "/service/reports",
+    section: "Service",
+    roles: ["CompanyAdmin", "ManagementViewer"]
+  },
+  {
     label: "Context Switch",
     path: "/platform/context-switch",
     section: "Platform"

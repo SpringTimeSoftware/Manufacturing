@@ -7,7 +7,8 @@
     "quantity-posting",
     "downtime",
     "quality-checkpoint",
-    "dispatch-proof"
+    "dispatch-proof",
+    "service-field"
   ],
   "flows": [
     {
@@ -44,6 +45,11 @@
       "id": "dispatch-proof",
       "screenIds": ["M019", "M023"],
       "assertions": ["package scan count", "vehicle and seal notes", "loading proof queued"]
+    },
+    {
+      "id": "service-field",
+      "screenIds": ["M030", "M031"],
+      "assertions": ["service ticket live lookup", "service completion queued with idempotency", "spare issue disabled until tracking payload is available"]
     }
   ]
 }

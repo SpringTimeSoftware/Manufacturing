@@ -34,6 +34,7 @@ using STS.Mfg.Application.Abstractions.Reporting;
 using STS.Mfg.Application.Abstractions.Resources;
 using STS.Mfg.Application.Abstractions.SalesPlanning;
 using STS.Mfg.Application.Abstractions.Security;
+using STS.Mfg.Application.Abstractions.ServiceManagement;
 using STS.Mfg.Application.Contracts;
 using STS.Mfg.Infrastructure.Engineering;
 using STS.Mfg.Infrastructure.Commercial;
@@ -61,6 +62,7 @@ using STS.Mfg.Infrastructure.Quality;
 using STS.Mfg.Infrastructure.Reporting;
 using STS.Mfg.Infrastructure.Resources;
 using STS.Mfg.Infrastructure.SalesPlanning;
+using STS.Mfg.Infrastructure.ServiceManagement;
 
 namespace STS.Mfg.Infrastructure;
 
@@ -127,6 +129,7 @@ public static class DependencyInjection
         services.AddScoped<IQualityService, QualityService>();
         services.AddScoped<IFinanceService, FinanceService>();
         services.AddScoped<IReportingService, ReportingService>();
+        services.AddScoped<IServiceManagementService, ServiceManagementService>();
         services.AddScoped<IProcurementService, ProcurementService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IEngineeringService, EngineeringService>();

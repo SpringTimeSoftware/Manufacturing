@@ -4,6 +4,7 @@ export type MobileRole =
   | "StoreKeeper"
   | "QCInspector"
   | "DispatchManager"
+  | "ServiceTechnician"
   | "PlantHead";
 
 export type MobileTone = "info" | "success" | "warn" | "danger" | "neutral";
@@ -20,6 +21,7 @@ export type MobileTab =
   | "output"
   | "handover"
   | "dispatch"
+  | "service"
   | "orders"
   | "device"
   | "sync"

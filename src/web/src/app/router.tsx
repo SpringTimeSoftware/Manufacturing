@@ -161,6 +161,18 @@ import {
   TranslationAssistantPage,
   WebhookAdminPage
 } from "../pages/WS07Pages";
+import {
+  InstalledAssetsPage,
+  ServiceChargesPage,
+  ServiceContractsPage,
+  ServiceDashboardPage,
+  ServiceReportsPage,
+  ServiceSpareMovementsPage,
+  ServiceTicketsPage,
+  ServiceVisitsPage,
+  WarrantyClaimsPage,
+  WarrantyPoliciesPage
+} from "../pages/ServiceWarrantyAmcPages";
 
 function guardedRoute(path: string, element: ReactElement) {
   const roles = navigationItems.find((item) => item.path === `/${path}`)?.roles;
@@ -269,6 +281,16 @@ export const appRouter = createBrowserRouter([
       guardedRoute("finance/inventory-valuation", <InventoryValuationPage />),
       guardedRoute("finance/tax-ledger", <TaxLedgerPage />),
       guardedRoute("finance/boundaries", <FinanceDeferredActionsPage />),
+      guardedRoute("service/dashboard", <ServiceDashboardPage />),
+      guardedRoute("service/installed-assets", <InstalledAssetsPage />),
+      guardedRoute("service/warranty-policies", <WarrantyPoliciesPage />),
+      guardedRoute("service/contracts", <ServiceContractsPage />),
+      guardedRoute("service/tickets", <ServiceTicketsPage />),
+      guardedRoute("service/visits", <ServiceVisitsPage />),
+      guardedRoute("service/spares", <ServiceSpareMovementsPage />),
+      guardedRoute("service/warranty-claims", <WarrantyClaimsPage />),
+      guardedRoute("service/charges", <ServiceChargesPage />),
+      guardedRoute("service/reports", <ServiceReportsPage />),
       guardedRoute("sales/available-to-promise", <AvailableToPromisePage />),
       guardedRoute("platform/users", <UserManagementPage />),
       guardedRoute("platform/roles", <RolePermissionMatrixPage />),

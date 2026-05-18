@@ -19,6 +19,7 @@ import { InventoryMovementScreen } from "./screens/InventoryMovementScreen";
 import { MaterialScanScreen } from "./screens/MaterialScanScreen";
 import { QualityCaptureScreen } from "./screens/QualityCaptureScreen";
 import { SettingsSyncStatusScreen } from "./screens/SettingsSyncStatusScreen";
+import { ServiceFieldScreen } from "./screens/ServiceFieldScreen";
 
 interface MobileShellProps extends MobileRuntimeHandlers {
   activeContext: MobileContext;
@@ -37,6 +38,7 @@ const tabs: Array<{ id: MobileTab; label: string }> = [
   { id: "stock", label: "Stock" },
   { id: "quality", label: "Quality" },
   { id: "dispatch", label: "Dispatch" },
+  { id: "service", label: "Service" },
   { id: "device", label: "Device" },
   { id: "sync", label: "Sync" },
   { id: "context", label: "Context" }
@@ -71,6 +73,8 @@ export function MobileShell({
       <QualityCaptureScreen onCaptureEvidence={onCaptureEvidence} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
     ) : tab === "dispatch" ? (
       <DispatchProofScreen onCaptureEvidence={onCaptureEvidence} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
+    ) : tab === "service" ? (
+      <ServiceFieldScreen onCaptureEvidence={onCaptureEvidence} onQueueOperation={onQueueOperation} onResolveScan={onResolveScan} runtime={runtime} tasks={tasks} />
     ) : tab === "device" ? (
       <DeviceUtilitiesScreen onCaptureEvidence={onCaptureEvidence} onResolveScan={onResolveScan} runtime={runtime} />
     ) : tab === "sync" ? (

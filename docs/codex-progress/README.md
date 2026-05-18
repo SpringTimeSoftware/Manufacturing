@@ -4,6 +4,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 
 ## Latest Pack Outputs
 
+- `SERVICE-WARRANTY-AMC-COMPLETION-PACK-11` completed on 2026-05-18. Output: `docs/codex-progress/SERVICE-WARRANTY-AMC-COMPLETION-PACK-11-output.md`.
 - `UDF-CUSTOMIZATION-COMPLETION-PACK-10` completed on 2026-05-18. Output: `docs/codex-progress/UDF-CUSTOMIZATION-COMPLETION-PACK-10-output.md`.
 - `MOBILE-BARCODE-CAMERA-OFFLINE-COMPLETION-PACK-09` completed on 2026-05-18. Output: `docs/codex-progress/MOBILE-BARCODE-CAMERA-OFFLINE-COMPLETION-PACK-09-output.md`.
 - `INTEGRATIONS-EMAIL-WHATSAPP-CRM-AI-COMPLETION-PACK-08` completed on 2026-05-18. Output: `docs/codex-progress/INTEGRATIONS-EMAIL-WHATSAPP-CRM-AI-COMPLETION-PACK-08-output.md`.

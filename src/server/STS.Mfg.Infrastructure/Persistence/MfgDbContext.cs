@@ -21,6 +21,7 @@ using STS.Mfg.Domain.Quality;
 using STS.Mfg.Domain.Reporting;
 using STS.Mfg.Domain.Resources;
 using STS.Mfg.Domain.SalesPlanning;
+using STS.Mfg.Domain.ServiceManagement;
 
 namespace STS.Mfg.Infrastructure.Persistence;
 
@@ -192,6 +193,15 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<MobileSyncConflict> MobileSyncConflicts => Set<MobileSyncConflict>();
     public DbSet<MobileScanEvent> MobileScanEvents => Set<MobileScanEvent>();
     public DbSet<MobilePhotoEvidence> MobilePhotoEvidence => Set<MobilePhotoEvidence>();
+
+    public DbSet<InstalledAsset> InstalledAssets => Set<InstalledAsset>();
+    public DbSet<WarrantyPolicy> WarrantyPolicies => Set<WarrantyPolicy>();
+    public DbSet<ServiceContract> ServiceContracts => Set<ServiceContract>();
+    public DbSet<ServiceTicket> ServiceTickets => Set<ServiceTicket>();
+    public DbSet<ServiceVisit> ServiceVisits => Set<ServiceVisit>();
+    public DbSet<ServiceSpareMovement> ServiceSpareMovements => Set<ServiceSpareMovement>();
+    public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
+    public DbSet<ServiceCharge> ServiceCharges => Set<ServiceCharge>();
 
     public DbSet<Quote> Quotes => Set<Quote>();
     public DbSet<QuoteLine> QuoteLines => Set<QuoteLine>();

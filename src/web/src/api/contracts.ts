@@ -5758,3 +5758,299 @@ export interface DiscountSchemeDto {
 export type DiscountSchemeUpsertRequest = Omit<DiscountSchemeDto, "id" | "currencyCode" | "rules"> & {
   rules: DiscountRuleUpsertRequest[];
 };
+
+export interface ServiceDashboardDto {
+  openTickets: number;
+  waitingForParts: number;
+  activeContracts: number;
+  warrantyClaimsPending: number;
+  invoiceReadyCharges: number;
+  disabledActionReasons: string[];
+}
+
+export interface InstalledAssetDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  assetNo: string;
+  customerId: number;
+  customerSiteId: number | null;
+  customerContactId: number | null;
+  itemId: number;
+  itemRevisionId: number | null;
+  serialId: number | null;
+  serialNo: string | null;
+  lotId: number | null;
+  pcidId: number | null;
+  sourceSalesOrderId: number | null;
+  sourceSalesOrderLineId: number | null;
+  sourceDispatchId: number | null;
+  sourceDispatchLineId: number | null;
+  sourceInvoiceId: number | null;
+  sourceDocumentType: string | null;
+  sourceDocumentNo: string | null;
+  sourceDocumentRevisionNo: number | null;
+  installationDate: string;
+  commissioningDate: string | null;
+  warrantyStartDate: string | null;
+  warrantyEndDate: string | null;
+  serviceContractId: number | null;
+  status: string;
+  locationSnapshot: string | null;
+  remarks: string | null;
+  legacySourceIncomplete: boolean;
+}
+
+export type InstalledAssetUpsertRequest = Omit<InstalledAssetDto, "id">;
+
+export interface WarrantyPolicyDto {
+  id: number;
+  companyId: number | null;
+  policyCode: string;
+  policyName: string;
+  itemId: number | null;
+  itemGroupId: number | null;
+  customerGroupId: number | null;
+  durationDays: number;
+  startTrigger: string;
+  coversParts: boolean;
+  coversLabor: boolean;
+  coversOnsite: boolean;
+  coversReplacement: boolean;
+  exclusions: string | null;
+  claimLimitAmount: number | null;
+  status: string;
+}
+
+export type WarrantyPolicyUpsertRequest = Omit<WarrantyPolicyDto, "id">;
+
+export interface ServiceContractDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  contractNo: string;
+  customerId: number;
+  installedAssetId: number | null;
+  startDate: string;
+  endDate: string;
+  renewalDate: string | null;
+  coverageSummary: string;
+  visitFrequencyDays: number | null;
+  preventiveScheduleJson: string | null;
+  slaResponseHours: number | null;
+  billingTermsId: number | null;
+  contractValueAmount: number | null;
+  taxCodeId: number | null;
+  taxRateSnapshot: number | null;
+  status: string;
+  versionNo: number;
+  priorContractId: number | null;
+}
+
+export type ServiceContractUpsertRequest = Omit<ServiceContractDto, "id">;
+
+export interface ServiceEntitlementDto {
+  entitlementType: string;
+  source: string;
+  warrantyPolicyId: number | null;
+  serviceContractId: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  checkedOn: string;
+  snapshotJson: string;
+}
+
+export interface ServiceTicketDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  ticketNo: string;
+  customerId: number;
+  contactId: number | null;
+  installedAssetId: number | null;
+  itemId: number | null;
+  serialNo: string | null;
+  issueCategory: string;
+  issueDescription: string;
+  priority: string;
+  severity: string;
+  channel: string;
+  sourceIntegrationMessageId: number | null;
+  entitlementType: string;
+  entitlementSource: string | null;
+  entitlementPolicyId: number | null;
+  entitlementContractId: number | null;
+  entitlementSnapshotJson: string | null;
+  entitlementCheckedOn: string | null;
+  assignedOwnerUserId: number | null;
+  assignedTeamId: number | null;
+  targetResponseOn: string | null;
+  targetResolutionOn: string | null;
+  status: string;
+  internalRemarks: string | null;
+  customerFacingRemarks: string | null;
+  sourceSalesOrderId: number | null;
+  sourceDispatchId: number | null;
+  sourceInvoiceId: number | null;
+  assetSnapshotJson: string | null;
+  reopenReason: string | null;
+  closedOn: string | null;
+  closedByUserId: number | null;
+  closureReason: string | null;
+}
+
+export type ServiceTicketUpsertRequest = Omit<
+  ServiceTicketDto,
+  "id" | "entitlementType" | "entitlementSource" | "entitlementPolicyId" | "entitlementContractId" | "entitlementSnapshotJson" | "entitlementCheckedOn" | "assetSnapshotJson" | "reopenReason" | "closedOn" | "closedByUserId" | "closureReason"
+>;
+
+export interface ServiceTicketAssignmentRequest {
+  assignedOwnerUserId: number | null;
+  assignedTeamId: number | null;
+  targetResponseOn: string | null;
+  targetResolutionOn: string | null;
+}
+
+export interface ServiceTicketStatusRequest {
+  status: string;
+  reason: string | null;
+}
+
+export interface ServiceVisitDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  serviceTicketId: number;
+  technicianUserId: number | null;
+  teamId: number | null;
+  scheduledStartOn: string | null;
+  scheduledEndOn: string | null;
+  visitAddressSnapshot: string | null;
+  travelStartedOn: string | null;
+  workStartedOn: string | null;
+  workEndedOn: string | null;
+  workPerformed: string | null;
+  diagnosis: string | null;
+  resolution: string | null;
+  customerSignoffName: string | null;
+  customerSignoffOn: string | null;
+  evidenceAttachmentId: number | null;
+  photoEvidenceId: number | null;
+  status: string;
+  remarks: string | null;
+}
+
+export type ServiceVisitUpsertRequest = Omit<ServiceVisitDto, "id">;
+
+export interface ServiceSpareMovementDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  movementNo: string;
+  movementType: string;
+  serviceTicketId: number;
+  serviceVisitId: number | null;
+  itemId: number;
+  itemRevisionId: number | null;
+  warehouseId: number;
+  binId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  serialNo: string | null;
+  pcidId: number | null;
+  quantity: number;
+  inventoryState: string;
+  stockTransactionId: number | null;
+  replacementInstalledAssetId: number | null;
+  defectiveInstalledAssetId: number | null;
+  status: string;
+  reasonCode: string | null;
+  remarks: string | null;
+}
+
+export interface ServiceSpareMovementRequest {
+  companyId: number;
+  branchId: number | null;
+  movementNo: string;
+  serviceTicketId: number;
+  serviceVisitId: number | null;
+  itemId: number;
+  itemRevisionId: number | null;
+  warehouseId: number;
+  binId: number | null;
+  lotId: number | null;
+  serialId: number | null;
+  serialNo: string | null;
+  pcidId: number | null;
+  quantity: number;
+  inventoryState: string;
+  reasonCode: string | null;
+  remarks: string | null;
+  replacementInstalledAssetId: number | null;
+  defectiveInstalledAssetId: number | null;
+  postingDate: string;
+  sourceDocumentNo: string | null;
+}
+
+export interface ServiceSparePostResultDto {
+  movement: ServiceSpareMovementDto;
+  stockTransactions: StockTransactionDto[];
+}
+
+export interface WarrantyClaimDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  claimNo: string;
+  serviceTicketId: number;
+  installedAssetId: number | null;
+  customerId: number;
+  itemId: number | null;
+  serialNo: string | null;
+  claimType: string;
+  entitlementType: string;
+  entitlementSnapshotJson: string | null;
+  approvalStatus: string;
+  disposition: string | null;
+  replacementAssetId: number | null;
+  costDecision: string | null;
+  rejectionReason: string | null;
+  overrideReason: string | null;
+  status: string;
+}
+
+export type WarrantyClaimUpsertRequest = Omit<WarrantyClaimDto, "id">;
+
+export interface WarrantyClaimDecisionRequest {
+  approvalStatus: string;
+  disposition: string | null;
+  rejectionReason: string | null;
+  overrideReason: string | null;
+  replacementAssetId: number | null;
+}
+
+export interface ServiceChargeDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  chargeNo: string;
+  serviceTicketId: number;
+  customerId: number;
+  currencyId: number | null;
+  laborAmount: number;
+  partsAmount: number;
+  travelAmount: number;
+  otherAmount: number;
+  discountAmount: number;
+  taxCodeId: number | null;
+  taxRateSnapshot: number | null;
+  taxAmount: number;
+  totalAmount: number;
+  billableStatus: string;
+  nonBillableReason: string | null;
+  arInvoiceId: number | null;
+  status: string;
+  snapshotJson: string;
+}
+
+export type ServiceChargeUpsertRequest = Omit<ServiceChargeDto, "id">;

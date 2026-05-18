@@ -19,7 +19,7 @@ const releaseCriticalRoutes = [
   "/reports/print-pack"
 ];
 
-const excludedRouteFamilies = /\/(hr|payroll|service|warranty|amc|rma|repair|cmms)(\/|$)/i;
+const excludedRouteFamilies = /\/(hr|payroll|rma|repair|cmms)(\/|$)/i;
 
 function repoFile(path: string) {
   return readFileSync(resolve(process.cwd(), "../..", path), "utf-8");

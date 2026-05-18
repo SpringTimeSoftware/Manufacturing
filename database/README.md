@@ -41,12 +41,13 @@ This folder contains ordered SQL Server packs for STS Manufacturing ERP.
 23. `ddl/00-foundation/020_integration_ai_tables.sql`
 24. `ddl/20-commercial/140_integrations_email_whatsapp_crm_ai_completion.sql`
 25. `ddl/20-commercial/150_mobile_barcode_camera_offline_completion.sql`
-26. `procedures/production/001_machine_board.sql`
-27. `seed/001_minimum_platform_seed.sql`
-28. `seed/002_minimum_org_seed.sql`
-29. `seed/003_minimum_masters_seed.sql`
-30. `seed/005_uat_runtime_seed.sql`
-31. future backfill, seed, and procedure packs in numeric order
+26. `ddl/20-commercial/170_service_warranty_amc_completion.sql`
+27. `procedures/production/001_machine_board.sql`
+28. `seed/001_minimum_platform_seed.sql`
+29. `seed/002_minimum_org_seed.sql`
+30. `seed/003_minimum_masters_seed.sql`
+31. `seed/005_uat_runtime_seed.sql`
+32. future backfill, seed, and procedure packs in numeric order
 
 ## Minimum Runnable Foundation
 
@@ -68,6 +69,7 @@ After the ordered packs and seeds above run, the completed backend/runtime scope
 - Pack 07 reporting foundation for governed report definitions, durable report runs, generated-output metadata/download audit, persisted dashboards, and dashboard widgets over accepted sales, procurement, inventory, quality, dispatch, production, and finance datasets;
 - Pack 08 integration foundation for governed provider registry metadata, credential references without raw secret storage, durable outbound message/delivery ledgers, webhook event records, CRM external-id mapping/sync conflict records, and AI draft review metadata;
 - Pack 09 mobile foundation for governed device registration/trust, live scan-event audit, durable offline operation queues with idempotency/conflict status, and photo-evidence metadata without seeded mobile operational fallback;
+- Pack 11 service/warranty/AMC foundation for installed assets, warranty policies, AMC/service contracts, service tickets, field visits, spare issue/return records linked to inventory posting, warranty claims, and service charge invoice-ready snapshots without inventing historical assets or coverage;
 - resources, routings, BOM, and ECO;
 - sales, quote/SO commercial snapshots, quote release/reopen/quote-to-SO conversion, planning, MPS/MRP/BOQ plans, snapshots, planned orders, shortage actions, procurement, RFQ/supplier quotation/quote-comparison sourcing, subcontract receive-back receipts, GRN, supplier invoice matching, AP liability/accounting posting bridge, inventory, work orders, job cards, production output, quality, dispatch, integration, and AI draft registry;
 - machine-board stored procedure coverage for the production occupancy read model;

@@ -13,6 +13,7 @@ using STS.Mfg.Domain.Masters;
 using STS.Mfg.Domain.Organization;
 using STS.Mfg.Domain.Platform.Security;
 using STS.Mfg.Domain.Resources;
+using STS.Mfg.Domain.ServiceManagement;
 using STS.Mfg.Infrastructure.Inventory;
 using STS.Mfg.Infrastructure.Mobile;
 using STS.Mfg.Infrastructure.Persistence;
@@ -198,6 +199,54 @@ public sealed class MobileBarcodeCameraOfflineServiceTests
         var operation = Assert.Single(result);
         Assert.Equal("Conflict", operation.Status);
         Assert.Contains("before the shipment", operation.ConflictReason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task MobileTasks_IncludePersistedServiceTicketsAndServiceScanResolvesLiveTicket()
+    {
+        await using var dbContext = CreateDbContext();
+        var service = CreateService(dbContext);
+        var device = await RegisterDeviceAsync(service, "MOB-SERVICE", trusted: true);
+        var ticket = ServiceTicket.Create(
+            new ServiceTicketDraft(
+                1,
+                10,
+                "SVC-MOB-001",
+                7001,
+                null,
+                null,
+                null,
+                null,
+                "Breakdown",
+                "Mobile technician assignment.",
+                "High",
+                "Major",
+                "Phone",
+                null,
+                77,
+                null,
+                null,
+                null,
+                "Assigned",
+                "Internal service note.",
+                "Technician assigned.",
+                null,
+                null,
+                null),
+            new EntitlementSnapshot("Paid", "NoConfiguredDefault", null, null, null, null, new DateOnly(2026, 5, 18), "{\"source\":\"test\"}"),
+            null,
+            77);
+        dbContext.ServiceTickets.Add(ticket);
+        await dbContext.SaveChangesAsync();
+
+        var tasks = await service.ListTasksAsync(device.DeviceCode);
+        var scan = await service.ResolveScanAsync(new MobileScanResolveRequest(1, 10, null, device.DeviceCode, "SERVICE:SVC-MOB-001", "Hardware", "ServiceTicket", DateTimeOffset.UtcNow));
+
+        var serviceTask = Assert.Single(tasks.Where(task => task.Module == "Service"));
+        Assert.Equal("ServiceTicketJob", serviceTask.TaskType);
+        Assert.Equal("SVC-MOB-001", serviceTask.DocumentNo);
+        Assert.Equal("Resolved", scan.ResolutionStatus);
+        Assert.Equal("ServiceTicket", scan.ResolvedEntityType);
     }
 
     private static MobileRuntimeService CreateService(MfgDbContext dbContext)

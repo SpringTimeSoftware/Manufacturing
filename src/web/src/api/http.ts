@@ -194,6 +194,28 @@ import type {
   StageWiseDashboardItem,
   SalesOrderDto,
   SalesOrderUpsertRequest,
+  InstalledAssetDto,
+  InstalledAssetUpsertRequest,
+  ServiceChargeDto,
+  ServiceChargeUpsertRequest,
+  ServiceContractDto,
+  ServiceContractUpsertRequest,
+  ServiceDashboardDto,
+  ServiceEntitlementDto,
+  ServiceSpareMovementDto,
+  ServiceSpareMovementRequest,
+  ServiceSparePostResultDto,
+  ServiceTicketAssignmentRequest,
+  ServiceTicketDto,
+  ServiceTicketStatusRequest,
+  ServiceTicketUpsertRequest,
+  ServiceVisitDto,
+  ServiceVisitUpsertRequest,
+  WarrantyClaimDecisionRequest,
+  WarrantyClaimDto,
+  WarrantyClaimUpsertRequest,
+  WarrantyPolicyDto,
+  WarrantyPolicyUpsertRequest,
   SalesTeamDto,
   SalesTerritoryDto,
   SwitchOperatingContextRequest,
@@ -1645,6 +1667,143 @@ export const apiClient = {
       return request<DispatchPlanningItemDto[]>(`/api/dispatch/planning?${query}`);
     },
     packListPrint: (id: number) => request<PackListPrintDto>(`/api/reports/pack-lists/${id}/print`)
+  },
+  service: {
+    dashboard: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<ServiceDashboardDto>(`/api/service/dashboard?${query}`);
+    },
+    installedAssets: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<InstalledAssetDto>>(`/api/service/installed-assets?${query}`);
+    },
+    createInstalledAsset: (body: InstalledAssetUpsertRequest) =>
+      request<InstalledAssetDto>("/api/service/installed-assets", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateInstalledAsset: (id: number, body: InstalledAssetUpsertRequest) =>
+      request<InstalledAssetDto>(`/api/service/installed-assets/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    warrantyPolicies: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<WarrantyPolicyDto>>(`/api/service/warranty-policies?${query}`);
+    },
+    createWarrantyPolicy: (body: WarrantyPolicyUpsertRequest) =>
+      request<WarrantyPolicyDto>("/api/service/warranty-policies", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateWarrantyPolicy: (id: number, body: WarrantyPolicyUpsertRequest) =>
+      request<WarrantyPolicyDto>(`/api/service/warranty-policies/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    contracts: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ServiceContractDto>>(`/api/service/contracts?${query}`);
+    },
+    createContract: (body: ServiceContractUpsertRequest) =>
+      request<ServiceContractDto>("/api/service/contracts", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateContract: (id: number, body: ServiceContractUpsertRequest) =>
+      request<ServiceContractDto>(`/api/service/contracts/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    entitlement: (params: { installedAssetId?: number | null; customerId?: number | null; itemId?: number | null; asOfDate?: string | null }) => {
+      const query = serializeFilters({
+        installedAssetId: params.installedAssetId ?? undefined,
+        customerId: params.customerId ?? undefined,
+        itemId: params.itemId ?? undefined,
+        asOfDate: params.asOfDate ?? undefined
+      });
+      return request<ServiceEntitlementDto>(`/api/service/entitlement?${query}`);
+    },
+    tickets: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ServiceTicketDto>>(`/api/service/tickets?${query}`);
+    },
+    ticket: (id: number) => request<ServiceTicketDto>(`/api/service/tickets/${id}`),
+    createTicket: (body: ServiceTicketUpsertRequest) =>
+      request<ServiceTicketDto>("/api/service/tickets", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateTicket: (id: number, body: ServiceTicketUpsertRequest) =>
+      request<ServiceTicketDto>(`/api/service/tickets/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    assignTicket: (id: number, body: ServiceTicketAssignmentRequest) =>
+      request<ServiceTicketDto>(`/api/service/tickets/${id}/assign`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    changeTicketStatus: (id: number, body: ServiceTicketStatusRequest) =>
+      request<ServiceTicketDto>(`/api/service/tickets/${id}/status`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    visits: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ServiceVisitDto>>(`/api/service/visits?${query}`);
+    },
+    createVisit: (body: ServiceVisitUpsertRequest) =>
+      request<ServiceVisitDto>("/api/service/visits", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateVisit: (id: number, body: ServiceVisitUpsertRequest) =>
+      request<ServiceVisitDto>(`/api/service/visits/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    spares: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ServiceSpareMovementDto>>(`/api/service/spares?${query}`);
+    },
+    issueSpare: (body: ServiceSpareMovementRequest) =>
+      request<ServiceSparePostResultDto>("/api/service/spares/issue", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    returnSpare: (body: ServiceSpareMovementRequest) =>
+      request<ServiceSparePostResultDto>("/api/service/spares/return", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    warrantyClaims: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<WarrantyClaimDto>>(`/api/service/warranty-claims?${query}`);
+    },
+    createWarrantyClaim: (body: WarrantyClaimUpsertRequest) =>
+      request<WarrantyClaimDto>("/api/service/warranty-claims", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    decideWarrantyClaim: (id: number, body: WarrantyClaimDecisionRequest) =>
+      request<WarrantyClaimDto>(`/api/service/warranty-claims/${id}/decision`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    charges: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ServiceChargeDto>>(`/api/service/charges?${query}`);
+    },
+    createCharge: (body: ServiceChargeUpsertRequest) =>
+      request<ServiceChargeDto>("/api/service/charges", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    markChargeInvoiceReady: (id: number) =>
+      request<ServiceChargeDto>(`/api/service/charges/${id}/invoice-ready`, {
+        method: "POST"
+      })
   },
   reporting: {
     definitions: (filter: QueryFilter = {}) => {

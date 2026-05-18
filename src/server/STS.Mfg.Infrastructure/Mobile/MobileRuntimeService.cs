@@ -189,7 +189,24 @@ internal sealed class MobileRuntimeService(
                 "Production mobile posting is queued and validated at sync; direct native execution adapters are not configured."))
             .ToListAsync(cancellationToken);
 
-        return shipmentTasks.Concat(qualityTasks).Concat(jobTasks).ToArray();
+        var serviceTasks = await DbContext.ServiceTickets.AsNoTracking()
+            .Where(ticket => ticket.CompanyId == device.CompanyId && ticket.BranchId == device.BranchId)
+            .Where(ticket => ticket.Status != "Closed" && ticket.Status != "Cancelled")
+            .OrderByDescending(ticket => ticket.CreatedOn)
+            .Take(10)
+            .Select(ticket => new MobileTaskDto(
+                $"service-ticket-{ticket.Id}",
+                "Service",
+                "ServiceTicketJob",
+                ticket.TicketNo,
+                ticket.Id,
+                $"Service ticket {ticket.TicketNo}",
+                $"{ticket.Priority} / {ticket.EntitlementType} / {ticket.IssueCategory}",
+                ticket.Status,
+                device.IsTrusted ? null : "Device approval is required before service completion or spare posting."))
+            .ToListAsync(cancellationToken);
+
+        return shipmentTasks.Concat(qualityTasks).Concat(jobTasks).Concat(serviceTasks).ToArray();
     }
 
     public async Task<MobileScanResultDto> ResolveScanAsync(MobileScanResolveRequest request, CancellationToken cancellationToken = default)
@@ -607,6 +624,18 @@ internal sealed class MobileRuntimeService(
                     ? new ScanResolution("NotFound", "Inspection barcode was not found.", null, null, null)
                     : new ScanResolution("Resolved", $"Inspection status: {inspection.Status}.", "Inspection", inspection.Id, inspection.InspectionNo);
             }
+
+            case "SERVICE":
+            case "TICKET":
+            {
+                var ticket = await DbContext.ServiceTickets.AsNoTracking()
+                    .Where(record => record.CompanyId == companyId && record.BranchId == branchId && record.TicketNo == value)
+                    .Select(record => new { record.Id, record.TicketNo, record.Status })
+                    .SingleOrDefaultAsync(cancellationToken);
+                return ticket is null
+                    ? new ScanResolution("NotFound", "Service ticket barcode was not found.", null, null, null)
+                    : new ScanResolution("Resolved", $"Service ticket status: {ticket.Status}.", "ServiceTicket", ticket.Id, ticket.TicketNo);
+            }
         }
 
         return new ScanResolution("NotFound", "Barcode prefix is not supported by the mobile runtime.", null, null, null);
@@ -633,7 +662,9 @@ internal sealed class MobileRuntimeService(
         || operationType.Contains("Pod", StringComparison.OrdinalIgnoreCase)
         || operationType.Contains("Quality", StringComparison.OrdinalIgnoreCase)
         || operationType.Contains("Inspection", StringComparison.OrdinalIgnoreCase)
-        || operationType.Contains("Ncr", StringComparison.OrdinalIgnoreCase);
+        || operationType.Contains("Ncr", StringComparison.OrdinalIgnoreCase)
+        || operationType.Contains("Service", StringComparison.OrdinalIgnoreCase)
+        || operationType.Contains("Warranty", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsStockOperation(string operationType) =>
         operationType.Contains("Stock", StringComparison.OrdinalIgnoreCase)
