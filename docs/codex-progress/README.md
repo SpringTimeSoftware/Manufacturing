@@ -4,6 +4,7 @@ This folder stores prompt-by-prompt execution notes for the STS Manufacturing ER
 
 ## Latest Pack Outputs
 
+- `CONTROLLED-INTERNAL-UAT-RUNTIME-READINESS-13` completed on 2026-05-18. Output: `docs/codex-progress/CONTROLLED-INTERNAL-UAT-RUNTIME-READINESS-13-output.md`.
 - `FINAL-CROSS-PACK-ACCEPTANCE-UI-WORKFLOW-AUDIT-12` completed on 2026-05-18. Output: `docs/codex-progress/FINAL-CROSS-PACK-ACCEPTANCE-UI-WORKFLOW-AUDIT-12-output.md`.
 - `SERVICE-WARRANTY-AMC-COMPLETION-PACK-11` completed on 2026-05-18. Output: `docs/codex-progress/SERVICE-WARRANTY-AMC-COMPLETION-PACK-11-output.md`.
 - `UDF-CUSTOMIZATION-COMPLETION-PACK-10` completed on 2026-05-18. Output: `docs/codex-progress/UDF-CUSTOMIZATION-COMPLETION-PACK-10-output.md`.
