@@ -183,6 +183,173 @@ export interface ExportJobCreateRequest {
   storagePath: string;
 }
 
+export interface ReportDefinitionDto {
+  id: number;
+  companyId: number | null;
+  reportCode: string;
+  reportName: string;
+  module: string;
+  category: string;
+  description: string | null;
+  datasetSource: string;
+  reportType: string;
+  outputFormats: string[];
+  permissionKey: string;
+  parameterSchemaJson: string;
+  defaultFiltersJson: string | null;
+  ownerUserName: string | null;
+  versionNo: number;
+  status: string;
+  isActive: boolean;
+}
+
+export interface ReportDefinitionUpsertRequest {
+  companyId: number | null;
+  reportCode: string;
+  reportName: string;
+  module: string;
+  category: string;
+  description?: string | null;
+  datasetSource: string;
+  reportType: string;
+  outputFormats: string[];
+  permissionKey: string;
+  parameterSchemaJson: string;
+  defaultFiltersJson?: string | null;
+  ownerUserName?: string | null;
+  status: string;
+  isActive: boolean;
+}
+
+export interface ReportRowDto {
+  values: Record<string, string | null>;
+}
+
+export interface ReportOutputDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  reportRunId: number;
+  fileName: string;
+  outputFormat: string;
+  contentType: string;
+  storagePath: string;
+  checksum: string;
+  sizeBytes: number;
+  status: string;
+  generatedOn: string;
+  downloadCount: number;
+  lastDownloadedOn: string | null;
+  lastDownloadedByUserId: number | null;
+}
+
+export interface ReportRunDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  reportDefinitionId: number;
+  runNo: string;
+  parametersJson: string;
+  outputFormat: string;
+  status: string;
+  rowCount: number;
+  failureReason: string | null;
+  startedOn: string;
+  completedOn: string | null;
+  generatedByUserId: number | null;
+  sourceReportVersion: number;
+  sourceEntityType: string | null;
+  sourceEntityId: number | null;
+  definition: ReportDefinitionDto | null;
+  columns: string[];
+  rows: ReportRowDto[];
+  outputs: ReportOutputDto[];
+}
+
+export interface ReportRunRequest {
+  parameters: Record<string, string | null>;
+  outputFormat: string;
+  sourceEntityType?: string | null;
+  sourceEntityId?: number | null;
+}
+
+export interface DashboardWidgetDto {
+  id: number;
+  dashboardDefinitionId: number;
+  widgetCode: string;
+  title: string;
+  widgetType: string;
+  reportDefinitionId: number | null;
+  datasetSource: string | null;
+  filtersJson: string;
+  drilldownRoute: string | null;
+  drilldownFilterJson: string | null;
+  layoutX: number;
+  layoutY: number;
+  layoutW: number;
+  layoutH: number;
+  refreshMinutes: number | null;
+  status: string;
+}
+
+export interface DashboardDefinitionDto {
+  id: number;
+  companyId: number | null;
+  branchId: number | null;
+  dashboardCode: string;
+  dashboardName: string;
+  module: string;
+  description: string | null;
+  visibilityRole: string | null;
+  ownerUserId: number | null;
+  status: string;
+  widgets: DashboardWidgetDto[];
+}
+
+export interface DashboardWidgetUpsertRequest {
+  id?: number | null;
+  widgetCode: string;
+  title: string;
+  widgetType: string;
+  reportDefinitionId?: number | null;
+  datasetSource?: string | null;
+  filtersJson: string;
+  drilldownRoute?: string | null;
+  drilldownFilterJson?: string | null;
+  layoutX: number;
+  layoutY: number;
+  layoutW: number;
+  layoutH: number;
+  refreshMinutes?: number | null;
+  status: string;
+}
+
+export interface DashboardUpsertRequest {
+  companyId: number | null;
+  branchId: number | null;
+  dashboardCode: string;
+  dashboardName: string;
+  module: string;
+  description?: string | null;
+  visibilityRole?: string | null;
+  ownerUserId?: number | null;
+  status: string;
+  widgets: DashboardWidgetUpsertRequest[];
+}
+
+export interface DashboardWidgetDataDto {
+  widget: DashboardWidgetDto;
+  columns: string[];
+  rows: ReportRowDto[];
+  loadedOn: string;
+  disabledReason: string | null;
+}
+
+export interface DashboardDataDto {
+  dashboard: DashboardDefinitionDto;
+  widgets: DashboardWidgetDataDto[];
+}
+
 export interface IntegrationProviderDto {
   id: number;
   providerCode: string;

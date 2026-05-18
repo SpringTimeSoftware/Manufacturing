@@ -12,6 +12,7 @@ import {
   IntegrationProviderAdminPage,
   ProviderHealthPage,
   ReportCatalogPage,
+  SavedViewsPage,
   WebhookAdminPage
 } from "./WS07Pages";
 
@@ -237,7 +238,7 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
     await waitFor(() => expect(createExport).toHaveBeenCalledWith(expect.objectContaining({ module: "planning.mrp", outputFormat: "CSV" })));
   });
 
-  it("keeps AI draft-only and queues report exports through governed actions", async () => {
+  it("keeps AI draft-only and runs reports through persisted generated outputs", async () => {
     vi.spyOn(apiClient.ai, "assistantIntents").mockResolvedValue([
       {
         intentCode: "order_risk_digest",
@@ -282,7 +283,67 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
 
     cleanup();
     vi.restoreAllMocks();
-    const createExport = vi.spyOn(apiClient.integrations, "createExport").mockResolvedValue({ id: 9201 } as never);
+    const reportDefinition = {
+      id: 9200,
+      companyId: 1,
+      reportCode: "FINANCE-GL-JOURNAL-REGISTER",
+      reportName: "GL journal register",
+      module: "Finance",
+      category: "Ledger",
+      description: "GL journals from Pack 06.",
+      datasetSource: "finance.gl-journal-register",
+      reportType: "Ledger",
+      outputFormats: ["CSV", "PDF"],
+      permissionKey: "reports.finance.run",
+      parameterSchemaJson: "{}",
+      defaultFiltersJson: "{}",
+      ownerUserName: "Finance Admin",
+      versionNo: 1,
+      status: "Active",
+      isActive: true
+    };
+    const reportOutput = {
+      id: 9300,
+      companyId: 1,
+      branchId: 10,
+      reportRunId: 9400,
+      fileName: "FINANCE-GL-JOURNAL-REGISTER-9400.csv",
+      outputFormat: "CSV",
+      contentType: "text/csv",
+      storagePath: "reporting/generated/FINANCE-GL-JOURNAL-REGISTER-9400.csv",
+      checksum: "abc123",
+      sizeBytes: 42,
+      status: "Completed",
+      generatedOn: "2026-05-18T10:00:00Z",
+      downloadCount: 0,
+      lastDownloadedOn: null,
+      lastDownloadedByUserId: null
+    };
+    vi.spyOn(apiClient.reporting, "definitions").mockResolvedValue(paged([reportDefinition]) as never);
+    vi.spyOn(apiClient.reporting, "runs").mockResolvedValue(paged([]) as never);
+    vi.spyOn(apiClient.reporting, "outputs").mockResolvedValue(paged([reportOutput]) as never);
+    const runReport = vi.spyOn(apiClient.reporting, "runReport").mockResolvedValue({
+      id: 9400,
+      companyId: 1,
+      branchId: 10,
+      reportDefinitionId: 9200,
+      runNo: "RUN-9400",
+      parametersJson: "{}",
+      outputFormat: "CSV",
+      status: "Completed",
+      rowCount: 2,
+      failureReason: null,
+      startedOn: "2026-05-18T10:00:00Z",
+      completedOn: "2026-05-18T10:00:01Z",
+      generatedByUserId: 1,
+      sourceReportVersion: 1,
+      sourceEntityType: null,
+      sourceEntityId: null,
+      definition: reportDefinition,
+      columns: ["Journal", "Status"],
+      rows: [],
+      outputs: []
+    } as never);
 
     renderWithApp(
       <Routes>
@@ -291,8 +352,70 @@ describe("WS07 mobile, integrations, AI, and reporting", () => {
       { route: "/reports/catalog", session: buildLiveSession() }
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Queue report export" }));
-    await waitFor(() => expect(createExport).toHaveBeenCalledWith(expect.objectContaining({ module: "report.production", outputFormat: "PDF" })));
-    expect(screen.getByLabelText("Minimum risk %")).toHaveAttribute("type", "number");
+    expect(await screen.findByText("GL journal register")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
+    await waitFor(() => expect(runReport).toHaveBeenCalledWith(9200, expect.objectContaining({ outputFormat: "CSV" })));
+    expect(await screen.findByText("FINANCE-GL-JOURNAL-REGISTER-9400.csv")).toBeInTheDocument();
+  });
+
+  it("persists dashboard builder layout and loads widget data from reporting APIs", async () => {
+    const dashboard = {
+      id: 9500,
+      companyId: 1,
+      branchId: 10,
+      dashboardCode: "EXECUTIVE-OVERVIEW",
+      dashboardName: "Executive Overview",
+      module: "Executive",
+      description: "Live dashboard.",
+      visibilityRole: "ManagementViewer",
+      ownerUserId: 1,
+      status: "Active",
+      widgets: [
+        {
+          id: 9501,
+          dashboardDefinitionId: 9500,
+          widgetCode: "FINANCE",
+          title: "Finance ledger",
+          widgetType: "Table",
+          reportDefinitionId: 9200,
+          datasetSource: "finance.gl-journal-register",
+          filtersJson: "{}",
+          drilldownRoute: "/finance/gl-journals",
+          drilldownFilterJson: "{}",
+          layoutX: 0,
+          layoutY: 0,
+          layoutW: 2,
+          layoutH: 1,
+          refreshMinutes: 15,
+          status: "Active"
+        }
+      ]
+    };
+    vi.spyOn(apiClient.reporting, "dashboards").mockResolvedValue(paged([dashboard]) as never);
+    vi.spyOn(apiClient.reporting, "dashboardData").mockResolvedValue({
+      dashboard,
+      widgets: [
+        {
+          widget: dashboard.widgets[0],
+          columns: ["Journal", "Status"],
+          rows: [{ values: { Journal: "GL-2026-0001", Status: "Posted" } }],
+          loadedOn: "2026-05-18T10:00:00Z",
+          disabledReason: null
+        }
+      ]
+    } as never);
+    const saveDashboard = vi.spyOn(apiClient.reporting, "saveDashboard").mockResolvedValue(dashboard as never);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/reports/saved-views" element={<SavedViewsPage />} />
+      </Routes>,
+      { route: "/reports/saved-views", session: buildLiveSession() }
+    );
+
+    expect(await screen.findByText("Executive Overview")).toBeInTheDocument();
+    expect(await screen.findByText("Finance ledger")).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Save dashboard" }));
+    await waitFor(() => expect(saveDashboard).toHaveBeenCalledWith(expect.objectContaining({ dashboardCode: "OPS-DASHBOARD" })));
   });
 });

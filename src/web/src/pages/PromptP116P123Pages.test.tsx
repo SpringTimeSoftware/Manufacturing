@@ -191,6 +191,6 @@ describe("Prompt P116-P123 execution surfaces", () => {
     );
 
     expect(await screen.findByText("Print Pack / Traveler / Labels")).toBeInTheDocument();
-    expect(await screen.findByText("Dispatch carton label")).toBeInTheDocument();
+    expect(await screen.findByText("Dispatch Note / Packing Slip / POD")).toBeInTheDocument();
   });
 });

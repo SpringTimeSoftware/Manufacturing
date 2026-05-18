@@ -24,6 +24,12 @@ import type {
   OutboundProviderHealthDto,
   PagedResult,
   QueryFilter,
+  DashboardDefinitionDto,
+  DashboardUpsertRequest,
+  DashboardWidgetDataDto,
+  ReportDefinitionDto,
+  ReportRunDto,
+  ReportRunRequest,
   TranslationDraftDto,
   TranslationDraftRequest,
   WebhookDispatchRequest,
@@ -40,7 +46,6 @@ import { Card } from "../ui/Card";
 import { type DataGridColumn } from "../ui/DataGrid";
 import {
   ErpActionBar,
-  ErpDecimalField,
   ErpEmptyState,
   ErpFileActionState,
   ErpFilterBar,
@@ -592,43 +597,129 @@ export function TranslationAssistantPage() {
   );
 }
 
-const reportCatalog = [
-  { id: "work-order-traveler", title: "Work Order Traveler", domain: "Production", format: "PDF", ownerRole: "ProductionSupervisor", status: "Active" },
-  { id: "mrp-exceptions", title: "MRP Exception Snapshot", domain: "Planning", format: "CSV", ownerRole: "PlanningManager", status: "Active" },
-  { id: "shipment-proof-pack", title: "Shipment Proof Pack", domain: "Dispatch", format: "PDF", ownerRole: "DispatchManager", status: "Draft" }
+const reviewReportDefinitions: ReportDefinitionDto[] = [
+  { id: 101, companyId: null, reportCode: "SALES-SO-REGISTER", reportName: "Sales Order Register", module: "Sales", category: "Commercial", description: "Registered sales order snapshot report.", datasetSource: "sales.sales-order-register", reportType: "register", outputFormats: ["CSV", "XLSX", "PDF"], permissionKey: "reports.sales.order", parameterSchemaJson: "{\"parameters\":[\"dateFrom\",\"dateTo\",\"status\"]}", defaultFiltersJson: null, ownerUserName: "System", versionNo: 1, status: "Active", isActive: true },
+  { id: 102, companyId: null, reportCode: "INVENTORY-STOCK-BALANCE", reportName: "Inventory Stock Balance", module: "Inventory", category: "Stock", description: "Inventory balance by warehouse, bin, lot, serial, PCID, and status.", datasetSource: "inventory.stock-balance", reportType: "ledger", outputFormats: ["CSV", "XLSX", "JSON"], permissionKey: "reports.inventory.balance", parameterSchemaJson: "{\"parameters\":[\"warehouse\",\"item\",\"status\"]}", defaultFiltersJson: null, ownerUserName: "System", versionNo: 1, status: "Active", isActive: true },
+  { id: 103, companyId: null, reportCode: "DISPATCH-POD-REGISTER", reportName: "POD Register", module: "Dispatch", category: "POD", description: "Proof-of-delivery status and receiver evidence.", datasetSource: "dispatch.pod-register", reportType: "document", outputFormats: ["CSV", "XLSX", "PDF"], permissionKey: "reports.dispatch.pod", parameterSchemaJson: "{\"parameters\":[\"dateFrom\",\"dateTo\",\"status\"]}", defaultFiltersJson: null, ownerUserName: "System", versionNo: 1, status: "Active", isActive: true },
+  { id: 104, companyId: null, reportCode: "FINANCE-TAX-LEDGER", reportName: "Tax Ledger", module: "Finance", category: "Tax", description: "Input and output tax ledger from posted document snapshots.", datasetSource: "finance.tax-ledger", reportType: "ledger", outputFormats: ["CSV", "XLSX", "PDF"], permissionKey: "reports.finance.tax", parameterSchemaJson: "{\"parameters\":[\"dateFrom\",\"dateTo\",\"taxCode\"]}", defaultFiltersJson: null, ownerUserName: "System", versionNo: 1, status: "Active", isActive: true }
 ];
+
+const reviewDashboards: DashboardDefinitionDto[] = [
+  {
+    id: 301,
+    companyId: null,
+    branchId: null,
+    dashboardCode: "EXECUTIVE-OVERVIEW",
+    dashboardName: "Executive Overview",
+    module: "Executive",
+    description: "Registered dashboard with live widgets in authenticated mode.",
+    visibilityRole: "ManagementViewer",
+    ownerUserId: null,
+    status: "Active",
+    widgets: [
+      { id: 401, dashboardDefinitionId: 301, widgetCode: "SALES-ORDERS", title: "Sales order register", widgetType: "Table", reportDefinitionId: 101, datasetSource: "sales.sales-order-register", filtersJson: "{}", drilldownRoute: "/sales/orders", drilldownFilterJson: "{}", layoutX: 0, layoutY: 0, layoutW: 2, layoutH: 1, refreshMinutes: 15, status: "Active" },
+      { id: 402, dashboardDefinitionId: 301, widgetCode: "POD", title: "POD register", widgetType: "StatusList", reportDefinitionId: 103, datasetSource: "dispatch.pod-register", filtersJson: "{}", drilldownRoute: "/dispatch/shipments", drilldownFilterJson: "{}", layoutX: 2, layoutY: 0, layoutW: 2, layoutH: 1, refreshMinutes: 15, status: "Active" }
+    ]
+  }
+];
+
+function buildRunRequest(dateFrom: string, dateTo: string, status: string, outputFormat: string): ReportRunRequest {
+  return {
+    outputFormat,
+    parameters: {
+      dateFrom,
+      dateTo,
+      status: status === "all" ? null : status
+    }
+  };
+}
+
+function downloadGeneratedOutput(output: { blob: Blob; contentDisposition: string | null }, fallbackName: string) {
+  const dispositionName = output.contentDisposition?.match(/filename="?([^";]+)"?/i)?.[1];
+  const fileName = dispositionName ?? fallbackName;
+  const href = URL.createObjectURL(output.blob);
+  const anchor = document.createElement("a");
+  anchor.href = href;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(href);
+}
 
 export function ReportCatalogPage({ title = "Report Catalog" }: { title?: string } = {}) {
   const { session, user } = useAuth();
   const isLive = hasLiveSession(session);
   const [dateFrom, setDateFrom] = useState("2026-05-13");
   const [dateTo, setDateTo] = useState("2026-05-13");
-  const [domain, setDomain] = useState("Production");
-  const [minRisk, setMinRisk] = useState<number | null>(50);
-  const exportMutation = useApiMutation((request: ExportJobCreateRequest) => apiClient.integrations.createExport(request));
-  const liveReason = !isLive ? "Report export queue requires a live branch operations session." : undefined;
+  const [module, setModule] = useState("all");
+  const [format, setFormat] = useState("CSV");
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const filter: QueryFilter = { page: 1, pageSize: 50, status: "Active", module: module === "all" ? undefined : module };
+  const query = useApiQuery(queryKeys.ws07.reporting("definitions", user?.activeContext.companyId, user?.activeContext.branchId, module, "Active"), () =>
+    isLive ? apiClient.reporting.definitions(filter) : Promise.resolve(asPaged(reviewReportDefinitions.filter((record) => module === "all" || record.module === module))), { staleTime: 60_000 });
+  const runsQuery = useApiQuery(queryKeys.ws07.reporting("runs", user?.activeContext.companyId, user?.activeContext.branchId, "", "all"), () =>
+    isLive ? apiClient.reporting.runs({ page: 1, pageSize: 10 }) : Promise.resolve(asPaged<ReportRunDto>([])), { staleTime: 60_000 });
+  const outputQuery = useApiQuery(queryKeys.ws07.reporting("outputs", user?.activeContext.companyId, user?.activeContext.branchId, "", "all"), () =>
+    isLive ? apiClient.reporting.outputs({ page: 1, pageSize: 10 }) : Promise.resolve(asPaged([])), { staleTime: 60_000 });
+  const reports = query.data?.items ?? [];
+  const selected = reports.find((record) => record.id === selectedReportId) ?? reports[0] ?? null;
+  const runMutation = useApiMutation(
+    ({ report, request }: { report: ReportDefinitionDto; request: ReportRunRequest }) => apiClient.reporting.runReport(report.id, request),
+    {
+      onSuccess: async (run) => {
+        setMessage(`Report run ${run.runNo} completed with ${run.rowCount} rows.`);
+        await runsQuery.refetch();
+        await outputQuery.refetch();
+      },
+      onError: (error) => setMessage(error.message)
+    }
+  );
+  const downloadMutation = useApiMutation(
+    (outputId: number) => apiClient.reporting.downloadOutput(outputId),
+    {
+      onSuccess: (output, outputId) => {
+        const record = outputQuery.data?.items.find((item) => item.id === outputId);
+        downloadGeneratedOutput(output, record?.fileName ?? "report-output.csv");
+      },
+      onError: (error) => setMessage(error.message)
+    }
+  );
+  const liveReason = !isLive ? "Report runs and downloads require a live permission-aware session." : undefined;
+  const runReason = liveReason ?? (!selected ? "Select an active report definition before running." : selected.status !== "Active" ? "Inactive reports cannot be run." : runMutation.isPending ? "Report run is in progress." : undefined);
   return (
-    <ListPageShell actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ disabled: Boolean(liveReason) || exportMutation.isPending, label: exportMutation.isPending ? "Queueing report" : "Queue report export", onClick: !liveReason ? () => exportMutation.mutate({ companyId: user?.activeContext.companyId ?? 0, branchId: user?.activeContext.branchId ?? 0, jobNo: `RPT-${Date.now().toString().slice(-5)}`, module: `report.${domain.toLowerCase()}`, outputFormat: "PDF", filterJson: JSON.stringify({ dateFrom, dateTo, minRisk }), storagePath: `exports/reports/${domain.toLowerCase()}/report.pdf` }) : undefined, reason: liveReason }]} secondary={[{ disabled: true, label: "Edit report layout", reason: "Report layout authoring requires the approved report-builder workflow." }]} testId="report-catalog-action-bar" /></>} description="Approved report catalog with governed parameters and audited export queue." title={title}>
-      <KpiStrip items={[{ label: "Reports", value: String(reportCatalog.length) }, { label: "Active", value: String(reportCatalog.filter((report) => report.status === "Active").length) }, { label: "Mode", value: sourceFor(session) }]} />
+    <ListPageShell actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ disabled: Boolean(runReason), label: runMutation.isPending ? "Running report" : "Run report", onClick: selected && !runReason ? () => runMutation.mutate({ report: selected, request: buildRunRequest(dateFrom, dateTo, "all", format) }) : undefined, reason: runReason }]} secondary={[{ disabled: true, label: "Schedule report", reason: "Scheduled report execution needs the background scheduling policy pack." }]} testId="report-catalog-action-bar" /></>} description="Governed report registry with persisted run and generated-output history." title={title}>
+      <KpiStrip items={[{ label: "Registered", value: String(reports.length) }, { label: "Completed runs", value: String(runsQuery.data?.items.filter((run) => run.status === "Completed").length ?? 0) }, { label: "Outputs", value: String(outputQuery.data?.items.length ?? 0) }, { label: "Mode", value: sourceFor(session) }]} />
       <div className="split-panels">
-        <Card title="Report parameters" description="Dates and numeric risk thresholds use governed controls.">
-          <FormShell initialFingerprint={`${dateFrom}-${dateTo}-${domain}-${minRisk}`} title="Parameter set">
-            <ErpLookupField label="Domain" onChange={setDomain} options={["Production", "Planning", "Dispatch", "Quality"].map(toOption)} value={domain} />
+        <Card title="Report parameters" description="Parameter choices are governed and passed to the report run API.">
+          <FormShell initialFingerprint={`${dateFrom}-${dateTo}-${module}-${format}`} title="Parameter set">
+            <ErpLookupField label="Module" onChange={setModule} options={["all", "Sales", "Procurement", "Inventory", "Production", "Quality", "Dispatch", "Finance"].map(toOption)} value={module} />
+            <ErpLookupField label="Output format" onChange={setFormat} options={formatOptions} value={format} />
             <label><span>Date from</span><input aria-label="Report date from" onChange={(event) => setDateFrom(event.target.value)} type="date" value={dateFrom} /></label>
             <label><span>Date to</span><input aria-label="Report date to" onChange={(event) => setDateTo(event.target.value)} type="date" value={dateTo} /></label>
-            <ErpDecimalField label="Minimum risk %" max={100} min={0} onChange={setMinRisk} scale={2} unit="%" value={minRisk} />
           </FormShell>
+          {message ? <Badge tone={message.includes("completed") ? "success" : "danger"}>{message}</Badge> : null}
         </Card>
-        <Card title="Catalog" description="Saved views and dashboards can consume the same parameter set.">
+        <Card title="Catalog" description="Reports must be registered before they can run or download.">
           <ErpGrid ariaLabel="Report catalog table" columns={[
-            { key: "title", header: "Report", render: (record: (typeof reportCatalog)[number]) => <strong>{record.title}</strong> },
-            { key: "domain", header: "Domain", render: (record) => record.domain },
-            { key: "format", header: "Format", render: (record) => record.format },
-            { key: "owner", header: "Owner role", render: (record) => record.ownerRole },
+            { key: "title", header: "Report", render: (record: ReportDefinitionDto) => <strong>{record.reportName}</strong> },
+            { key: "code", header: "Code", render: (record) => record.reportCode },
+            { key: "module", header: "Module", render: (record) => record.module },
+            { key: "formats", header: "Formats", render: (record) => record.outputFormats.join(", ") },
+            { key: "permission", header: "Permission", render: (record) => record.permissionKey },
             { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.status)}>{record.status}</Badge> }
-          ]} getRowId={(record) => record.id} records={reportCatalog} />
+          ]} getRowId={(record) => String(record.id)} isLoading={query.isLoading} onRowSelect={(record) => setSelectedReportId(record.id)} records={reports} />
         </Card>
       </div>
+      <Card title="Generated output history" description="Downloads re-check permissions and update output audit.">
+        <ErpGrid ariaLabel="Report output history table" columns={[
+          { key: "file", header: "File", render: (record: NonNullable<typeof outputQuery.data>["items"][number]) => <strong>{record.fileName}</strong> },
+          { key: "format", header: "Format", render: (record) => record.outputFormat },
+          { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.status)}>{record.status}</Badge> },
+          { key: "generated", header: "Generated", render: (record) => formatDate(record.generatedOn) },
+          { key: "downloads", header: "Downloads", render: (record) => <ErpNumberField disabled disabledReason="Download count is generated by the reporting API." label={`${record.fileName} downloads`} onChange={() => undefined} value={record.downloadCount} /> },
+          { key: "download", header: "Action", render: (record) => <button className="link-button" disabled={Boolean(liveReason) || downloadMutation.isPending} onClick={() => !liveReason && downloadMutation.mutate(record.id)}>{liveReason ?? "Download"}</button> }
+        ]} getRowId={(record) => String(record.id)} isLoading={outputQuery.isLoading} records={outputQuery.data?.items ?? []} />
+        </Card>
     </ListPageShell>
   );
 }
@@ -638,23 +729,40 @@ export function ReportParametersPage() {
 }
 
 export function SavedViewsPage() {
-  const views = [
-    { id: "view-production-risk", name: "Production risk by shift", route: "/dashboards/stage-wise", owner: "PlantHead", refreshMinutes: 15, status: "Active" },
-    { id: "view-dispatch-proof", name: "Dispatch proof queue", route: "/dispatch/shipments", owner: "DispatchManager", refreshMinutes: 30, status: "Active" },
-    { id: "view-quality-holds", name: "Quality holds and NCRs", route: "/quality/ncr", owner: "QCInspector", refreshMinutes: 20, status: "Draft" }
-  ];
+  const { session, user } = useAuth();
+  const isLive = hasLiveSession(session);
+  const query = useApiQuery(queryKeys.ws07.reporting("dashboards", user?.activeContext.companyId, user?.activeContext.branchId, "", "all"), () =>
+    isLive ? apiClient.reporting.dashboards({ page: 1, pageSize: 25 }) : Promise.resolve(asPaged(reviewDashboards)), { staleTime: 60_000 });
+  const dashboard = query.data?.items[0] ?? null;
+  const dataQuery = useApiQuery(["ws07", "dashboard-data", dashboard?.id ?? 0], () =>
+    isLive && dashboard ? apiClient.reporting.dashboardData(dashboard.id) : Promise.resolve({ dashboard: dashboard ?? reviewDashboards[0], widgets: [] }), { enabled: Boolean(dashboard), staleTime: 60_000 });
+  const saveMutation = useApiMutation((request: DashboardUpsertRequest) => apiClient.reporting.saveDashboard(request));
+  const liveReason = !isLive ? "Dashboard builder changes require a live permission-aware session." : undefined;
+  const dashboards = query.data?.items ?? [];
+  const saveReason = liveReason ?? (saveMutation.isPending ? "Dashboard save is in progress." : undefined);
   return (
-    <ListPageShell actions={<ErpActionBar primary={[{ disabled: true, label: "Save current view", reason: "Saved-view persistence requires the approved personalization workflow." }]} secondary={[{ disabled: true, label: "Share view", reason: "View sharing requires role-based publication workflow." }]} testId="saved-view-action-bar" />} description="Saved dashboard/report views with route, owner, refresh cadence, and publication state." title="Saved Views">
-      <KpiStrip items={[{ label: "Saved views", value: String(views.length) }, { label: "Published", value: String(views.filter((view) => view.status === "Active").length) }, { label: "Draft", value: String(views.filter((view) => view.status === "Draft").length) }]} />
-      <Card title="View registry" description="Refresh cadence is numeric and publication actions remain controlled by role-based workflow.">
+    <ListPageShell actions={<><SourceBadge source={sourceFor(session)} /><ErpActionBar primary={[{ disabled: Boolean(saveReason), label: saveMutation.isPending ? "Saving dashboard" : "Save dashboard", onClick: !saveReason ? () => saveMutation.mutate({ companyId: user?.activeContext.companyId ?? null, branchId: user?.activeContext.branchId ?? null, dashboardCode: "OPS-DASHBOARD", dashboardName: "Operations Dashboard", module: "Executive", description: "Persisted dashboard builder workspace.", visibilityRole: "ManagementViewer", ownerUserId: user?.userId ?? null, status: "Active", widgets: [] }) : undefined, reason: saveReason }]} secondary={[{ disabled: true, label: "Publish to role", reason: "Role publication is governed by the dashboard assignment policy." }]} testId="saved-view-action-bar" /></>} description="Persisted dashboards and widgets backed by registered report datasets." title="Dashboard Builder">
+      <KpiStrip items={[{ label: "Dashboards", value: String(dashboards.length) }, { label: "Active", value: String(dashboards.filter((view) => view.status === "Active").length) }, { label: "Widgets", value: String(dashboards.reduce((sum, view) => sum + view.widgets.length, 0)) }]} />
+      <div className="split-panels">
+        <Card title="Dashboard registry" description="Each saved dashboard stores widget layout, report source, filters, and drilldown route.">
         <ErpGrid ariaLabel="Saved view table" columns={[
-          { key: "name", header: "View", render: (record: (typeof views)[number]) => <strong>{record.name}</strong> },
-          { key: "route", header: "Route", render: (record) => record.route },
-          { key: "owner", header: "Owner", render: (record) => record.owner },
-          { key: "refresh", header: "Refresh", render: (record) => <ErpNumberField disabled disabledReason="Refresh cadence is controlled by saved-view policy." label={`${record.name} refresh minutes`} onChange={() => undefined} value={record.refreshMinutes} /> },
+          { key: "name", header: "Dashboard", render: (record: DashboardDefinitionDto) => <strong>{record.dashboardName}</strong> },
+          { key: "module", header: "Module", render: (record) => record.module },
+          { key: "role", header: "Visibility", render: (record) => record.visibilityRole ?? "All permitted users" },
+          { key: "widgets", header: "Widgets", render: (record) => <ErpNumberField disabled disabledReason="Widget count is derived from saved dashboard configuration." label={`${record.dashboardName} widgets`} onChange={() => undefined} value={record.widgets.length} /> },
           { key: "status", header: "Status", render: (record) => <Badge tone={statusTone(record.status)}>{record.status}</Badge> }
-        ]} getRowId={(record) => record.id} records={views} />
-      </Card>
+        ]} getRowId={(record) => String(record.id)} isLoading={query.isLoading} records={dashboards} />
+        </Card>
+        <Card title="Widget data" description="Widgets read live registered report datasets and keep drilldowns explicit.">
+          <ErpGrid ariaLabel="Dashboard widget data table" columns={[
+            { key: "widget", header: "Widget", render: (record: DashboardWidgetDataDto) => <strong>{record.widget.title}</strong> },
+            { key: "type", header: "Type", render: (record) => record.widget.widgetType },
+            { key: "rows", header: "Rows", render: (record) => <ErpNumberField disabled disabledReason="Widget rows are loaded from the report dataset." label={`${record.widget.title} rows`} onChange={() => undefined} value={record.rows.length} /> },
+            { key: "route", header: "Drilldown", render: (record) => record.widget.drilldownRoute ?? "No route" },
+            { key: "state", header: "State", render: (record) => record.disabledReason ? <Badge tone="warn">{record.disabledReason}</Badge> : <Badge tone="success">Live dataset</Badge> }
+          ]} getRowId={(record) => String(record.widget.id)} isLoading={dataQuery.isLoading} records={dataQuery.data?.widgets ?? []} />
+        </Card>
+      </div>
     </ListPageShell>
   );
 }

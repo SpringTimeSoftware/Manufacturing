@@ -147,6 +147,9 @@ import type {
   PurchaseRequisitionDto,
   PurchaseRequisitionUpsertRequest,
   QueryFilter,
+  DashboardDataDto,
+  DashboardDefinitionDto,
+  DashboardUpsertRequest,
   QuoteComparisonDto,
   QuoteConvertRequest,
   QuoteDto,
@@ -266,6 +269,11 @@ import type {
   ReworkOrderDto,
   ReworkOrderActionRequest,
   ReworkOrderCreateRequest,
+  ReportDefinitionDto,
+  ReportDefinitionUpsertRequest,
+  ReportOutputDto,
+  ReportRunDto,
+  ReportRunRequest,
   RfqDto,
   RfqUpsertRequest,
   SupplierQuotationDto,
@@ -1616,6 +1624,42 @@ export const apiClient = {
       return request<DispatchPlanningItemDto[]>(`/api/dispatch/planning?${query}`);
     },
     packListPrint: (id: number) => request<PackListPrintDto>(`/api/reports/pack-lists/${id}/print`)
+  },
+  reporting: {
+    definitions: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ReportDefinitionDto>>(`/api/reporting/definitions?${query}`);
+    },
+    definition: (id: number) => request<ReportDefinitionDto>(`/api/reporting/definitions/${id}`),
+    saveDefinition: (body: ReportDefinitionUpsertRequest) =>
+      request<ReportDefinitionDto>("/api/reporting/definitions", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    runReport: (id: number, body: ReportRunRequest) =>
+      request<ReportRunDto>(`/api/reporting/definitions/${id}/run`, {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    runs: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ReportRunDto>>(`/api/reporting/runs?${query}`);
+    },
+    outputs: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<ReportOutputDto>>(`/api/reporting/outputs?${query}`);
+    },
+    downloadOutput: (id: number) => requestBlob(`/api/reporting/outputs/${id}/download`),
+    dashboards: (filter: QueryFilter = {}) => {
+      const query = serializeFilters(filter);
+      return request<PagedResult<DashboardDefinitionDto>>(`/api/reporting/dashboards?${query}`);
+    },
+    saveDashboard: (body: DashboardUpsertRequest) =>
+      request<DashboardDefinitionDto>("/api/reporting/dashboards", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    dashboardData: (id: number) => request<DashboardDataDto>(`/api/reporting/dashboards/${id}/data`)
   },
   finance: {
     chartOfAccounts: (filter: QueryFilter = {}) => {

@@ -540,6 +540,114 @@ describe("WS06 inventory, quality, dispatch, and documents", () => {
     })));
   });
 
+  it("downloads COA output through the persisted reporting API", async () => {
+    const certificate = {
+      id: 7401,
+      companyId: 1,
+      branchId: 12,
+      coaNo: "COA-SAVED",
+      inspectionRecordId: 802,
+      sourceDocumentType: "ProductionReceipt",
+      sourceDocumentId: 501,
+      lotId: null,
+      serialId: null,
+      templateCode: "COA-FINAL-STD",
+      versionNo: 1,
+      storagePath: "quality/coa/company-1/branch-12/COA-SAVED-v1.json",
+      status: "Issued",
+      generatedOn: "2026-05-13T09:30:00Z",
+      generatedByUserId: 1,
+      issuedOn: "2026-05-13T10:00:00Z",
+      issuedByUserId: 2,
+      reissueReason: null,
+      lines: []
+    };
+    const definition = {
+      id: 9701,
+      companyId: 1,
+      reportCode: "QUALITY-COA-REGISTER",
+      reportName: "COA Certificate Register",
+      module: "Quality",
+      category: "Document",
+      description: "COA output.",
+      datasetSource: "quality.coa-register",
+      reportType: "Document",
+      outputFormats: ["PDF"],
+      permissionKey: "reports.quality.run",
+      parameterSchemaJson: "{}",
+      defaultFiltersJson: "{}",
+      ownerUserName: "Quality Admin",
+      versionNo: 1,
+      status: "Active",
+      isActive: true
+    };
+    const output = {
+      id: 9801,
+      companyId: 1,
+      branchId: 12,
+      reportRunId: 9800,
+      fileName: "COA-SAVED.pdf",
+      outputFormat: "PDF",
+      contentType: "application/pdf",
+      storagePath: "reporting/generated/COA-SAVED.pdf",
+      checksum: "checksum",
+      sizeBytes: 100,
+      status: "Completed",
+      generatedOn: "2026-05-18T10:00:00Z",
+      downloadCount: 0,
+      lastDownloadedOn: null,
+      lastDownloadedByUserId: null
+    };
+    vi.spyOn(apiClient.quality, "coas").mockResolvedValue(paged([certificate]) as never);
+    vi.spyOn(apiClient.reporting, "definitions").mockResolvedValue(paged([definition]) as never);
+    const runReport = vi.spyOn(apiClient.reporting, "runReport").mockResolvedValue({
+      id: 9800,
+      companyId: 1,
+      branchId: 12,
+      reportDefinitionId: 9701,
+      runNo: "RPT-9800",
+      parametersJson: "{}",
+      outputFormat: "PDF",
+      status: "Completed",
+      rowCount: 1,
+      failureReason: null,
+      startedOn: "2026-05-18T10:00:00Z",
+      completedOn: "2026-05-18T10:00:01Z",
+      generatedByUserId: 1,
+      sourceReportVersion: 1,
+      sourceEntityType: "COA",
+      sourceEntityId: 7401,
+      definition,
+      columns: ["COA"],
+      rows: [],
+      outputs: [output]
+    } as never);
+    vi.spyOn(apiClient.reporting, "downloadOutput").mockResolvedValue({
+      blob: new Blob(["coa"], { type: "application/pdf" }),
+      contentDisposition: "attachment; filename=\"COA-SAVED.pdf\""
+    } as never);
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:coa") });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+
+    renderWithApp(
+      <Routes>
+        <Route path="/quality/coas" element={<CoaCertificatePage />} />
+      </Routes>,
+      { route: "/quality/coas", session: buildLiveSession() }
+    );
+
+    fireEvent.click(await screen.findByRole("row", { name: "COA-SAVED certificate" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Download COA" }).at(-1)!);
+
+    await waitFor(() => expect(runReport).toHaveBeenCalledWith(9701, expect.objectContaining({
+      outputFormat: "PDF",
+      sourceEntityType: "COA",
+      sourceEntityId: 7401
+    })));
+    expect(await screen.findByText("Downloaded COA COA-SAVED.")).toBeInTheDocument();
+  });
+
   it("creates a live pack list with governed item, warehouse, UOM, and quantity controls", async () => {
     vi.spyOn(apiClient.dispatch, "packLists").mockResolvedValue(paged([]) as never);
     vi.spyOn(apiClient.salesPlanning, "salesOrders").mockResolvedValue(paged([dispatchSalesOrder]) as never);

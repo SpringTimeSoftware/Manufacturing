@@ -16,6 +16,7 @@ using STS.Mfg.Domain.Platform.Notifications;
 using STS.Mfg.Domain.Production;
 using STS.Mfg.Domain.Procurement;
 using STS.Mfg.Domain.Quality;
+using STS.Mfg.Domain.Reporting;
 using STS.Mfg.Domain.Resources;
 using STS.Mfg.Domain.SalesPlanning;
 
@@ -162,6 +163,11 @@ public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbCon
     public DbSet<AiModel> AiModels => Set<AiModel>();
     public DbSet<AiPromptTemplate> AiPromptTemplates => Set<AiPromptTemplate>();
     public DbSet<AiRun> AiRuns => Set<AiRun>();
+    public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
+    public DbSet<ReportRun> ReportRuns => Set<ReportRun>();
+    public DbSet<ReportOutput> ReportOutputs => Set<ReportOutput>();
+    public DbSet<DashboardDefinition> DashboardDefinitions => Set<DashboardDefinition>();
+    public DbSet<DashboardWidget> DashboardWidgets => Set<DashboardWidget>();
 
     public DbSet<Quote> Quotes => Set<Quote>();
     public DbSet<QuoteLine> QuoteLines => Set<QuoteLine>();

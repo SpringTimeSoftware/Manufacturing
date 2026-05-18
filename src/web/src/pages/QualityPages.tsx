@@ -178,6 +178,17 @@ function todayStamp() {
   return Date.now().toString().slice(-6);
 }
 
+function downloadGeneratedOutput(output: { blob: Blob; contentDisposition: string | null }, fallbackName: string) {
+  const dispositionName = output.contentDisposition?.match(/filename="?([^";]+)"?/i)?.[1];
+  const fileName = dispositionName ?? fallbackName;
+  const href = URL.createObjectURL(output.blob);
+  const anchor = document.createElement("a");
+  anchor.href = href;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(href);
+}
+
 function numberValue(value: string) {
   if (!value) {
     return null;
@@ -1137,6 +1148,11 @@ export function CoaCertificatePage() {
       : selected.status.toLowerCase().includes("issued")
         ? "This COA has already been issued."
         : undefined;
+  const downloadReason = !selected
+    ? "Open a COA before downloading certificate output."
+    : !live
+      ? "Live quality sign-in is required before downloading COA output."
+      : undefined;
   const generateMutation = useApiMutation(
     (request: CoaGenerateRequest) => apiClient.quality.generateCoa(request),
     {
@@ -1181,13 +1197,53 @@ export function CoaCertificatePage() {
       onError: (error) => setMessage(error.message)
     }
   );
+  const downloadMutation = useApiMutation(
+    async (_: void) => {
+      if (!selected) {
+        throw new Error("Open a COA before downloading certificate output.");
+      }
+
+      const definitions = await apiClient.reporting.definitions({ page: 1, pageSize: 10, module: "Quality", status: "Active", search: "QUALITY-COA-REGISTER" });
+      const definition = definitions.items.find((record) => record.reportCode === "QUALITY-COA-REGISTER");
+      if (!definition) {
+        throw new Error("COA certificate output report is not registered.");
+      }
+
+      const run = await apiClient.reporting.runReport(definition.id, {
+        outputFormat: "PDF",
+        sourceEntityType: "COA",
+        sourceEntityId: selected.coaId,
+        parameters: {
+          documentNo: selected.coaNo,
+          status: selected.status
+        }
+      });
+      const output = run.outputs[0];
+      if (!output) {
+        throw new Error("COA certificate output did not produce a generated file.");
+      }
+
+      return {
+        coaNo: selected.coaNo,
+        fileName: output.fileName,
+        output: await apiClient.reporting.downloadOutput(output.id)
+      };
+    },
+    {
+      onSuccess: ({ coaNo, fileName, output }) => {
+        downloadGeneratedOutput(output, fileName);
+        setMessage(`Downloaded COA ${coaNo}.`);
+      },
+      onError: (error) => setMessage(error.message)
+    }
+  );
 
   return (
     <>
-      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Generate COA", onClick: live ? () => setDraft({ inspectionRecordId: null, coaNo: `COA-${todayStamp()}`, templateCode: "COA-FINAL-STD", issueImmediately: false }) : undefined, reason: live ? undefined : "Live quality sign-in is required before generating COA certificates." }]} secondary={[{ disabled: true, label: "Download COA", reason: "COA binary rendering is pending the approved report document renderer; certificate data and version history are stored." }]} testId="coa-action-bar" /></>} description="Certificates generated from released final inspection evidence with versioned issue and reissue history." filters={<FilterBar><input aria-label="Search COA certificates" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search COA, source, template" value={search} /><select aria-label="COA status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Generated">Generated</option><option value="Issued">Issued</option></select></FilterBar>} title="COA Certificates">
+      <ListPageShell actions={<><SourceBadge source={source} /><ErpActionBar primary={[{ disabled: !live, label: "Generate COA", onClick: live ? () => setDraft({ inspectionRecordId: null, coaNo: `COA-${todayStamp()}`, templateCode: "COA-FINAL-STD", issueImmediately: false }) : undefined, reason: live ? undefined : "Live quality sign-in is required before generating COA certificates." }]} secondary={[{ disabled: Boolean(downloadReason) || downloadMutation.isPending, label: downloadMutation.isPending ? "Downloading COA" : "Download COA", onClick: !downloadReason ? () => downloadMutation.mutate(undefined) : undefined, reason: downloadReason }]} testId="coa-action-bar" /></>} description="Certificates generated from released final inspection evidence with versioned issue and reissue history." filters={<FilterBar><input aria-label="Search COA certificates" onChange={(event) => startTransition(() => setSearch(event.target.value))} placeholder="Search COA, source, template" value={search} /><select aria-label="COA status" onChange={(event) => setStatus(event.target.value)} value={status}><option value="all">Status: Any</option><option value="Generated">Generated</option><option value="Issued">Issued</option></select></FilterBar>} title="COA Certificates">
         <KpiStrip items={[{ label: "Certificates", value: String(records.length) }, { label: "Issued", value: String(records.filter((record) => record.status.toLowerCase().includes("issued")).length) }, { label: "Versions", value: String(records.reduce((sum, record) => sum + record.versionNo, 0)) }, { label: "Readiness", value: source === "Live" ? "Current" : source === "Deferred" ? "Planned" : "Reference" }]} />
         {query.error ? <Card title="Live COA data unavailable" description={query.error.message} /> : null}
-        {message ? <Badge tone={message.includes("Generated") || message.includes("issued") || message.includes("Reissued") ? "success" : "danger"}>{message}</Badge> : null}
+        {message ? <Badge tone={message.includes("Generated") || message.includes("issued") || message.includes("Reissued") || message.includes("Downloaded") ? "success" : "danger"}>{message}</Badge> : null}
         <Card title="COA register" description="Open a certificate to review generated evidence, issue state, and reissue controls.">
           <DataGrid ariaLabel="COA certificate list" columns={coaColumns} getRowId={(record) => record.id} isLoading={query.isLoading} onRowSelect={(record) => setSelectedId(record.id)} records={records} rowLabel={(record) => `${record.coaNo} certificate`} />
         </Card>
@@ -1211,7 +1267,7 @@ export function CoaCertificatePage() {
         description="Review generated certificate evidence, issue state, and reissue controls."
         footer={<ErpActionBar primary={[{ disabled: Boolean(issueReason) || issueMutation.isPending, label: issueMutation.isPending ? "Issuing COA" : "Issue COA", onClick: !issueReason ? () => issueMutation.mutate(undefined) : undefined, reason: issueReason }]} secondary={[
           { disabled: Boolean(reissueReasonText) || reissueMutation.isPending, label: reissueMutation.isPending ? "Reissuing COA" : "Reissue COA", onClick: !reissueReasonText ? () => reissueMutation.mutate(undefined) : undefined, reason: reissueReasonText },
-          { disabled: true, label: "Download COA", reason: "COA binary rendering is pending the approved report document renderer; certificate data and version history are stored." }
+          { disabled: Boolean(downloadReason) || downloadMutation.isPending, label: downloadMutation.isPending ? "Downloading COA" : "Download COA", onClick: !downloadReason ? () => downloadMutation.mutate(undefined) : undefined, reason: downloadReason }
         ]} utility={[{ label: "Close", onClick: () => setSelectedId(null), variant: "quiet" }]} />}
         isOpen={Boolean(selected)}
         onClose={() => setSelectedId(null)}
