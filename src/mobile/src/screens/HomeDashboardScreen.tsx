@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { MobileRuntimeContext, MobileSession, MobileTab, MobileTask, OfflineQueueEntry } from "../mobileTypes";
-import { MobileBadge, MobileCard, MobileListItem, MobileSectionTitle, MobileTile } from "../ui/mobileComponents";
+import { MobileBadge, MobileCard, MobileListItem, MobileSectionTitle, MobileTile, MobileUdfFields } from "../ui/mobileComponents";
 
 interface HomeDashboardScreenProps {
   onNavigate: (tab: MobileTab) => void;
@@ -67,6 +67,7 @@ export function HomeDashboardScreen({ onNavigate, queue, runtime, session, tasks
                 <MobileBadge label={task.status} tone={task.disabledReason ? "warn" : "success"} />
               </View>
               <Text style={styles.audit}>{`${task.module} / ${task.documentNo}`}</Text>
+              <MobileUdfFields values={task.udfValues} />
               {task.disabledReason ? <Text style={styles.warning}>{task.disabledReason}</Text> : null}
             </MobileListItem>
           ))

@@ -172,7 +172,9 @@ public sealed record UdfDefinitionFilter(
     int PageSize = 100,
     string? Search = null,
     string? Status = null,
-    string? EntityType = null) : QueryFilter(Page, PageSize, Search, Status);
+    string? EntityType = null,
+    string? Module = null,
+    string? EntityLevel = null) : QueryFilter(Page, PageSize, Search, Status);
 
 public sealed record UdfDefinitionDto(
     long Id,
@@ -191,7 +193,30 @@ public sealed record UdfDefinitionDto(
     string RoleVisibility,
     string Status,
     DateTimeOffset CreatedOn,
-    DateTimeOffset? ModifiedOn);
+    DateTimeOffset? ModifiedOn,
+    string Module = "Platform",
+    string? EntitySubType = null,
+    string EntityLevel = "Header",
+    string? Description = null,
+    bool IsUnique = false,
+    bool IsReadOnly = false,
+    string? DefaultValue = null,
+    string? PlaceholderText = null,
+    string? HelpText = null,
+    int DisplayOrder = 100,
+    string? SectionName = null,
+    DateTimeOffset? EffectiveFrom = null,
+    DateTimeOffset? EffectiveTo = null,
+    int VersionNo = 1,
+    string? ValidationRulesJson = null,
+    string? OptionSetCode = null,
+    string? LookupSourceType = null,
+    bool IsReportable = false,
+    bool AllowIntegration = false,
+    bool AllowMobile = false,
+    bool IsSensitive = false,
+    string LifecycleGate = "DraftSave",
+    string ValueLockPolicy = "LockOnRelease");
 
 public sealed record UdfDefinitionUpsertRequest(
     long? CompanyId,
@@ -207,7 +232,29 @@ public sealed record UdfDefinitionUpsertRequest(
     int? MaxLength,
     int? DecimalScale,
     string RoleVisibility,
-    string Status);
+    string Status,
+    string Module = "Platform",
+    string? EntitySubType = null,
+    string EntityLevel = "Header",
+    string? Description = null,
+    bool IsUnique = false,
+    bool IsReadOnly = false,
+    string? DefaultValue = null,
+    string? PlaceholderText = null,
+    string? HelpText = null,
+    int DisplayOrder = 100,
+    string? SectionName = null,
+    DateTimeOffset? EffectiveFrom = null,
+    DateTimeOffset? EffectiveTo = null,
+    string? ValidationRulesJson = null,
+    string? OptionSetCode = null,
+    string? LookupSourceType = null,
+    bool IsReportable = false,
+    bool AllowIntegration = false,
+    bool AllowMobile = false,
+    bool IsSensitive = false,
+    string LifecycleGate = "DraftSave",
+    string ValueLockPolicy = "LockOnRelease");
 
 public sealed record UdfValueDto(
     long Id,
@@ -219,7 +266,25 @@ public sealed record UdfValueDto(
     DateTimeOffset? ValueDate,
     bool? ValueBoolean,
     DateTimeOffset CreatedOn,
-    DateTimeOffset? ModifiedOn);
+    DateTimeOffset? ModifiedOn,
+    long? CompanyId = null,
+    long? EntityLineId = null,
+    int? EntityVersionNo = null,
+    string? FieldKey = null,
+    string? Label = null,
+    string? DataType = null,
+    string? ValueLongText = null,
+    long? ValueInteger = null,
+    decimal? ValueDecimal = null,
+    decimal? ValueMoneyAmount = null,
+    long? ValueCurrencyId = null,
+    DateTimeOffset? ValueDateTime = null,
+    long? ValueOptionId = null,
+    string? ValueOptionCode = null,
+    string? ValueJson = null,
+    long? AttachmentReferenceId = null,
+    string? DisplayValue = null,
+    string Status = "Active");
 
 public sealed record UdfValueUpsertRequest(
     long DefinitionId,
@@ -227,7 +292,156 @@ public sealed record UdfValueUpsertRequest(
     string? ValueText,
     decimal? ValueNumber,
     DateTimeOffset? ValueDate,
-    bool? ValueBoolean);
+    bool? ValueBoolean,
+    long? CompanyId = null,
+    long? EntityLineId = null,
+    int? EntityVersionNo = null,
+    string? ValueLongText = null,
+    long? ValueInteger = null,
+    decimal? ValueDecimal = null,
+    decimal? ValueMoneyAmount = null,
+    long? ValueCurrencyId = null,
+    DateTimeOffset? ValueDateTime = null,
+    long? ValueOptionId = null,
+    string? ValueOptionCode = null,
+    string? ValueJson = null,
+    long? AttachmentReferenceId = null,
+    string? DisplayValue = null,
+    string Status = "Active",
+    string? ChangeReason = null);
+
+public sealed record UdfPlacementDto(
+    long Id,
+    long UdfDefinitionId,
+    long? CompanyId,
+    string Module,
+    string ScreenKey,
+    string? RoutePath,
+    string EntityType,
+    string EntityLevel,
+    string SectionName,
+    string? TabName,
+    string? GroupName,
+    int DisplayOrder,
+    int? ColumnSpan,
+    string? VisibleConditionJson,
+    string? EditableConditionJson,
+    string? RequiredConditionJson,
+    string? PermissionKey,
+    string Status,
+    string FieldKey,
+    string Label,
+    string DataType,
+    string ControlType,
+    string? LookupSource,
+    bool IsRequired,
+    bool IsReadOnly,
+    bool IsSensitive,
+    bool IsReportable,
+    bool AllowIntegration,
+    bool AllowMobile);
+
+public sealed record UdfPlacementUpsertRequest(
+    long UdfDefinitionId,
+    long? CompanyId,
+    string Module,
+    string ScreenKey,
+    string? RoutePath,
+    string EntityType,
+    string EntityLevel,
+    string SectionName,
+    string? TabName,
+    string? GroupName,
+    int DisplayOrder,
+    int? ColumnSpan,
+    string? VisibleConditionJson,
+    string? EditableConditionJson,
+    string? RequiredConditionJson,
+    string? PermissionKey,
+    string Status);
+
+public sealed record UdfRuntimeFieldDto(
+    UdfPlacementDto Placement,
+    UdfValueDto? Value);
+
+public sealed record UdfRuntimeValueSetRequest(
+    IReadOnlyCollection<UdfValueUpsertRequest> Values);
+
+public sealed record CustomObjectDto(
+    long Id,
+    long? CompanyId,
+    string ObjectCode,
+    string ObjectName,
+    string Module,
+    string? Category,
+    string? PrimaryDisplayFieldCode,
+    string? Description,
+    string Status,
+    DateTimeOffset CreatedOn,
+    DateTimeOffset? ModifiedOn);
+
+public sealed record CustomObjectUpsertRequest(
+    long? CompanyId,
+    string ObjectCode,
+    string ObjectName,
+    string Module,
+    string? Category,
+    string? PrimaryDisplayFieldCode,
+    string? Description,
+    string Status);
+
+public sealed record CustomObjectRecordDto(
+    long Id,
+    long CustomObjectId,
+    long? CompanyId,
+    string RecordNo,
+    string? DisplayValue,
+    string? LinkedEntityType,
+    long? LinkedEntityId,
+    string Status,
+    DateTimeOffset CreatedOn,
+    DateTimeOffset? ModifiedOn);
+
+public sealed record CustomObjectRecordUpsertRequest(
+    long CustomObjectId,
+    long? CompanyId,
+    string RecordNo,
+    string? DisplayValue,
+    string? LinkedEntityType,
+    long? LinkedEntityId,
+    string Status,
+    IReadOnlyCollection<UdfValueUpsertRequest> Values);
+
+public sealed record CustomScreenDto(
+    long Id,
+    long? CompanyId,
+    string ScreenCode,
+    string ScreenName,
+    string Module,
+    string? NavigationGroup,
+    string? BoundEntityType,
+    long? CustomObjectId,
+    string RoutePath,
+    string LayoutJson,
+    string? ListViewJson,
+    string? PermissionKey,
+    string Status,
+    DateTimeOffset CreatedOn,
+    DateTimeOffset? ModifiedOn);
+
+public sealed record CustomScreenUpsertRequest(
+    long? CompanyId,
+    string ScreenCode,
+    string ScreenName,
+    string Module,
+    string? NavigationGroup,
+    string? BoundEntityType,
+    long? CustomObjectId,
+    string RoutePath,
+    string LayoutJson,
+    string? ListViewJson,
+    string? PermissionKey,
+    string Status);
 
 public sealed record AuditTrailFilter(
     int Page = 1,

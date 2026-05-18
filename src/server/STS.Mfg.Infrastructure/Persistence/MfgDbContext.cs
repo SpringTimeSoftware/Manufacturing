@@ -12,6 +12,7 @@ using STS.Mfg.Domain.Mobile;
 using STS.Mfg.Domain.Organization;
 using STS.Mfg.Domain.Platform.Attachments;
 using STS.Mfg.Domain.Platform.Audit;
+using STS.Mfg.Domain.Platform.Customization;
 using STS.Mfg.Domain.Platform.Localization;
 using STS.Mfg.Domain.Platform.Notifications;
 using STS.Mfg.Domain.Production;
@@ -26,6 +27,16 @@ namespace STS.Mfg.Infrastructure.Persistence;
 public sealed class MfgDbContext(DbContextOptions<MfgDbContext> options) : DbContext(options)
 {
     public DbSet<AuditLogEntry> AuditLogs => Set<AuditLogEntry>();
+
+    public DbSet<UdfDefinition> UdfDefinitions => Set<UdfDefinition>();
+    public DbSet<UdfValue> UdfValues => Set<UdfValue>();
+    public DbSet<UdfPlacement> UdfPlacements => Set<UdfPlacement>();
+    public DbSet<UdfOptionSet> UdfOptionSets => Set<UdfOptionSet>();
+    public DbSet<UdfOption> UdfOptions => Set<UdfOption>();
+    public DbSet<UdfValueHistory> UdfValueHistory => Set<UdfValueHistory>();
+    public DbSet<CustomObject> CustomObjects => Set<CustomObject>();
+    public DbSet<CustomObjectRecord> CustomObjectRecords => Set<CustomObjectRecord>();
+    public DbSet<CustomScreen> CustomScreens => Set<CustomScreen>();
 
     public DbSet<AttachmentRecord> Attachments => Set<AttachmentRecord>();
 

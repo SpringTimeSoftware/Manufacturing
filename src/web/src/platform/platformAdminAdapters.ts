@@ -5,9 +5,19 @@ import type {
   RoleUpsertRequest,
   TenantSettingUpdateRequest,
   TranslationResourceUpsertRequest,
+  CustomObjectDto,
+  CustomObjectRecordDto,
+  CustomObjectRecordUpsertRequest,
+  CustomObjectUpsertRequest,
+  CustomScreenDto,
+  CustomScreenUpsertRequest,
   UdfDefinitionDto,
   UdfDefinitionFilter,
   UdfDefinitionUpsertRequest,
+  UdfPlacementDto,
+  UdfPlacementUpsertRequest,
+  UdfRuntimeFieldDto,
+  UdfRuntimeValueSetRequest,
   UserAccessPolicyUpdateRequest,
   WorkflowRuleUpsertRequest
 } from "../api/contracts";
@@ -79,6 +89,10 @@ export interface TenantSettingItem {
 export type AuditTrailItem = AuditTrailItemDto;
 export type PermissionCatalogItem = PermissionCatalogItemDto;
 export type UdfDefinitionItem = UdfDefinitionDto;
+export type UdfPlacementItem = UdfPlacementDto;
+export type CustomObjectItem = CustomObjectDto;
+export type CustomObjectRecordItem = CustomObjectRecordDto;
+export type CustomScreenItem = CustomScreenDto;
 
 export interface AuditTrailQuery {
   search?: string;
@@ -273,7 +287,30 @@ const seededUdfDefinitions: UdfDefinitionItem[] = [
     roleVisibility: "CompanyAdmin,EngineeringManager,SalesCoordinator",
     status: "Active",
     createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
-    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    module: "Master",
+    entitySubType: null,
+    entityLevel: "Header",
+    description: "Customer-supplied drawing number shown on item, quote, and quality outputs when configured.",
+    isUnique: false,
+    isReadOnly: false,
+    defaultValue: null,
+    placeholderText: "DRW-...",
+    helpText: "Controlled text, not a document attachment.",
+    displayOrder: 20,
+    sectionName: "Customer-visible specs",
+    effectiveFrom: null,
+    effectiveTo: null,
+    versionNo: 1,
+    validationRulesJson: "{\"maxLength\":64}",
+    optionSetCode: null,
+    lookupSourceType: null,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: false,
+    isSensitive: false,
+    lifecycleGate: "DraftSave",
+    valueLockPolicy: "LockOnRelease"
   },
   {
     id: 2,
@@ -290,6 +327,437 @@ const seededUdfDefinitions: UdfDefinitionItem[] = [
     maxLength: 48,
     decimalScale: null,
     roleVisibility: "CompanyAdmin,SalesCoordinator,DispatchManager",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    module: "Master",
+    entitySubType: null,
+    entityLevel: "Header",
+    description: "Governed customer dispatch preference used by dispatch planning screens.",
+    isUnique: false,
+    isReadOnly: false,
+    defaultValue: null,
+    placeholderText: null,
+    helpText: "Values must come from the configured dispatch window option source.",
+    displayOrder: 30,
+    sectionName: "Dispatch preferences",
+    effectiveFrom: null,
+    effectiveTo: null,
+    versionNo: 1,
+    validationRulesJson: "{\"allowedSource\":\"DispatchWindow\"}",
+    optionSetCode: "DISPATCH_WINDOW",
+    lookupSourceType: "OptionSet",
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: true,
+    isSensitive: false,
+    lifecycleGate: "DraftSave",
+    valueLockPolicy: "EditableUntilPosted"
+  },
+  {
+    id: 3,
+    companyId: 1,
+    entityType: "Supplier",
+    fieldKey: "complianceClass",
+    label: "Compliance class",
+    dataType: "SingleSelect",
+    controlType: "Select",
+    lookupSource: "SupplierComplianceClass",
+    isRequired: false,
+    minNumber: null,
+    maxNumber: null,
+    maxLength: 32,
+    decimalScale: null,
+    roleVisibility: "CompanyAdmin,PurchaseManager,QCInspector",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    module: "Master",
+    entitySubType: null,
+    entityLevel: "Header",
+    description: "Governed supplier compliance category used by procurement and quality reports.",
+    isUnique: false,
+    isReadOnly: false,
+    defaultValue: null,
+    placeholderText: null,
+    helpText: "Select from the approved compliance class option set.",
+    displayOrder: 35,
+    sectionName: "Compliance",
+    effectiveFrom: null,
+    effectiveTo: null,
+    versionNo: 1,
+    validationRulesJson: "{\"optionSet\":\"SUPPLIER_COMPLIANCE_CLASS\"}",
+    optionSetCode: "SUPPLIER_COMPLIANCE_CLASS",
+    lookupSourceType: "OptionSet",
+    isReportable: true,
+    allowIntegration: false,
+    allowMobile: false,
+    isSensitive: false,
+    lifecycleGate: "DraftSave",
+    valueLockPolicy: "EditableUntilPosted"
+  },
+  {
+    id: 4,
+    companyId: 1,
+    entityType: "Quote",
+    fieldKey: "customerApprovalRef",
+    label: "Customer approval reference",
+    dataType: "Text",
+    controlType: "Text",
+    lookupSource: null,
+    isRequired: false,
+    minNumber: null,
+    maxNumber: null,
+    maxLength: 80,
+    decimalScale: null,
+    roleVisibility: "CompanyAdmin,SalesCoordinator",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    module: "Commercial",
+    entitySubType: null,
+    entityLevel: "Header",
+    description: "External approval reference locked with the released quote snapshot.",
+    isUnique: false,
+    isReadOnly: false,
+    defaultValue: null,
+    placeholderText: "APR-...",
+    helpText: null,
+    displayOrder: 40,
+    sectionName: "Commercial evidence",
+    effectiveFrom: null,
+    effectiveTo: null,
+    versionNo: 1,
+    validationRulesJson: "{\"maxLength\":80}",
+    optionSetCode: null,
+    lookupSourceType: null,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: false,
+    isSensitive: false,
+    lifecycleGate: "Release",
+    valueLockPolicy: "LockOnRelease"
+  },
+  {
+    id: 5,
+    companyId: 1,
+    entityType: "Shipment",
+    fieldKey: "temperatureBand",
+    label: "Temperature band",
+    dataType: "SingleSelect",
+    controlType: "Select",
+    lookupSource: "ShipmentTemperatureBand",
+    isRequired: false,
+    minNumber: null,
+    maxNumber: null,
+    maxLength: 32,
+    decimalScale: null,
+    roleVisibility: "CompanyAdmin,DispatchManager",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    module: "Dispatch",
+    entitySubType: null,
+    entityLevel: "Header",
+    description: "Shipment-specific temperature handling band for POD and dispatch reporting.",
+    isUnique: false,
+    isReadOnly: false,
+    defaultValue: null,
+    placeholderText: null,
+    helpText: null,
+    displayOrder: 45,
+    sectionName: "Logistics handling",
+    effectiveFrom: null,
+    effectiveTo: null,
+    versionNo: 1,
+    validationRulesJson: "{\"optionSet\":\"SHIPMENT_TEMPERATURE_BAND\"}",
+    optionSetCode: "SHIPMENT_TEMPERATURE_BAND",
+    lookupSourceType: "OptionSet",
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: true,
+    isSensitive: false,
+    lifecycleGate: "Ship",
+    valueLockPolicy: "EditableUntilPosted"
+  },
+  {
+    id: 6,
+    companyId: 1,
+    entityType: "SalesOrder",
+    fieldKey: "customerProjectCode",
+    label: "Customer project code",
+    dataType: "Text",
+    controlType: "Text",
+    lookupSource: null,
+    isRequired: false,
+    minNumber: null,
+    maxNumber: null,
+    maxLength: 64,
+    decimalScale: null,
+    roleVisibility: "CompanyAdmin,SalesCoordinator",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    module: "Commercial",
+    entitySubType: null,
+    entityLevel: "Header",
+    description: "Customer project reference carried on direct sales orders and reports.",
+    isUnique: false,
+    isReadOnly: false,
+    defaultValue: null,
+    placeholderText: "PRJ-...",
+    helpText: null,
+    displayOrder: 42,
+    sectionName: "Commercial evidence",
+    effectiveFrom: null,
+    effectiveTo: null,
+    versionNo: 1,
+    validationRulesJson: "{\"maxLength\":64}",
+    optionSetCode: null,
+    lookupSourceType: null,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: false,
+    isSensitive: false,
+    lifecycleGate: "Release",
+    valueLockPolicy: "LockOnRelease"
+  }
+];
+
+const seededUdfPlacements: UdfPlacementItem[] = [
+  {
+    id: 101,
+    udfDefinitionId: 1,
+    companyId: 1,
+    module: "Master",
+    screenKey: "masters.items",
+    routePath: "/masters/items",
+    entityType: "Item",
+    entityLevel: "Header",
+    sectionName: "Customer-visible specs",
+    tabName: "Customer References",
+    groupName: "Drawings",
+    displayOrder: 20,
+    columnSpan: 6,
+    visibleConditionJson: null,
+    editableConditionJson: null,
+    requiredConditionJson: null,
+    permissionKey: "udf.value.edit",
+    status: "Active",
+    fieldKey: "customerDrawingNo",
+    label: "Customer drawing number",
+    dataType: "Text",
+    controlType: "Text",
+    lookupSource: null,
+    isRequired: false,
+    isReadOnly: false,
+    isSensitive: false,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: false
+  },
+  {
+    id: 102,
+    udfDefinitionId: 2,
+    companyId: 1,
+    module: "Master",
+    screenKey: "partners.customers",
+    routePath: "/partners/customers",
+    entityType: "Customer",
+    entityLevel: "Header",
+    sectionName: "Dispatch preferences",
+    tabName: "Commercial",
+    groupName: "Delivery",
+    displayOrder: 30,
+    columnSpan: 6,
+    visibleConditionJson: null,
+    editableConditionJson: null,
+    requiredConditionJson: null,
+    permissionKey: "udf.value.edit",
+    status: "Active",
+    fieldKey: "preferredDispatchWindow",
+    label: "Preferred dispatch window",
+    dataType: "Lookup",
+    controlType: "Select",
+    lookupSource: "DispatchWindow",
+    isRequired: false,
+    isReadOnly: false,
+    isSensitive: false,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: true
+  },
+  {
+    id: 103,
+    udfDefinitionId: 3,
+    companyId: 1,
+    module: "Master",
+    screenKey: "partners.suppliers",
+    routePath: "/partners/suppliers",
+    entityType: "Supplier",
+    entityLevel: "Header",
+    sectionName: "Compliance",
+    tabName: "Commercial",
+    groupName: "Quality",
+    displayOrder: 35,
+    columnSpan: 6,
+    visibleConditionJson: null,
+    editableConditionJson: null,
+    requiredConditionJson: null,
+    permissionKey: "udf.value.edit",
+    status: "Active",
+    fieldKey: "complianceClass",
+    label: "Compliance class",
+    dataType: "SingleSelect",
+    controlType: "Select",
+    lookupSource: "SupplierComplianceClass",
+    isRequired: false,
+    isReadOnly: false,
+    isSensitive: false,
+    isReportable: true,
+    allowIntegration: false,
+    allowMobile: false
+  },
+  {
+    id: 104,
+    udfDefinitionId: 4,
+    companyId: 1,
+    module: "Commercial",
+    screenKey: "commercial.quotes",
+    routePath: "/sales/quotes",
+    entityType: "Quote",
+    entityLevel: "Header",
+    sectionName: "Commercial evidence",
+    tabName: "Header",
+    groupName: "Approval",
+    displayOrder: 40,
+    columnSpan: 6,
+    visibleConditionJson: null,
+    editableConditionJson: null,
+    requiredConditionJson: null,
+    permissionKey: "udf.value.edit",
+    status: "Active",
+    fieldKey: "customerApprovalRef",
+    label: "Customer approval reference",
+    dataType: "Text",
+    controlType: "Text",
+    lookupSource: null,
+    isRequired: false,
+    isReadOnly: false,
+    isSensitive: false,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: false
+  },
+  {
+    id: 105,
+    udfDefinitionId: 5,
+    companyId: 1,
+    module: "Dispatch",
+    screenKey: "dispatch.shipments",
+    routePath: "/dispatch/shipments",
+    entityType: "Shipment",
+    entityLevel: "Header",
+    sectionName: "Logistics handling",
+    tabName: "POD",
+    groupName: "Handling",
+    displayOrder: 45,
+    columnSpan: 6,
+    visibleConditionJson: null,
+    editableConditionJson: null,
+    requiredConditionJson: null,
+    permissionKey: "udf.value.edit",
+    status: "Active",
+    fieldKey: "temperatureBand",
+    label: "Temperature band",
+    dataType: "SingleSelect",
+    controlType: "Select",
+    lookupSource: "ShipmentTemperatureBand",
+    isRequired: false,
+    isReadOnly: false,
+    isSensitive: false,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: true
+  },
+  {
+    id: 106,
+    udfDefinitionId: 6,
+    companyId: 1,
+    module: "Commercial",
+    screenKey: "commercial.sales-orders",
+    routePath: "/sales/orders",
+    entityType: "SalesOrder",
+    entityLevel: "Header",
+    sectionName: "Commercial evidence",
+    tabName: "Header",
+    groupName: "Customer references",
+    displayOrder: 42,
+    columnSpan: 6,
+    visibleConditionJson: null,
+    editableConditionJson: null,
+    requiredConditionJson: null,
+    permissionKey: "udf.value.edit",
+    status: "Active",
+    fieldKey: "customerProjectCode",
+    label: "Customer project code",
+    dataType: "Text",
+    controlType: "Text",
+    lookupSource: null,
+    isRequired: false,
+    isReadOnly: false,
+    isSensitive: false,
+    isReportable: true,
+    allowIntegration: true,
+    allowMobile: false
+  }
+];
+
+const seededCustomObjects: CustomObjectItem[] = [
+  {
+    id: 201,
+    companyId: 1,
+    objectCode: "CUSTOMER_SCORECARD",
+    objectName: "Customer scorecard",
+    module: "Commercial",
+    category: "Customer",
+    primaryDisplayFieldCode: "scorecardName",
+    description: "Metadata-driven customer scorecard records linked to customer master.",
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
+  }
+];
+
+const seededCustomObjectRecords: CustomObjectRecordItem[] = [
+  {
+    id: 301,
+    customObjectId: 201,
+    companyId: 1,
+    recordNo: "CS-0001",
+    displayValue: "Strategic customer scorecard",
+    linkedEntityType: "Customer",
+    linkedEntityId: 501,
+    status: "Active",
+    createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+    modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
+  }
+];
+
+const seededCustomScreens: CustomScreenItem[] = [
+  {
+    id: 401,
+    companyId: 1,
+    screenCode: "customer-scorecards",
+    screenName: "Customer Scorecards",
+    module: "Commercial",
+    navigationGroup: "Customers",
+    boundEntityType: "CustomObject",
+    customObjectId: 201,
+    routePath: "/custom/customer-scorecards",
+    layoutJson: "{\"sections\":[{\"title\":\"Scorecard\",\"fields\":[\"scorecardName\",\"riskClass\"]}]}",
+    listViewJson: "{\"columns\":[\"recordNo\",\"displayValue\",\"status\"]}",
+    permissionKey: "custom.object.record.edit",
     status: "Active",
     createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
     modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
@@ -769,6 +1237,273 @@ export async function saveUdfDefinition(
         : await apiClient.platform.createUdfDefinition(request);
     } catch {
       throw liveDataUnavailable("Extensibility field definition save");
+    }
+  }
+
+  return {
+    id: id ?? Date.now(),
+    ...request,
+    module: request.module ?? "Platform",
+    entityLevel: request.entityLevel ?? "Header",
+    isUnique: request.isUnique ?? false,
+    isReadOnly: request.isReadOnly ?? false,
+    displayOrder: request.displayOrder ?? 100,
+    versionNo: 1,
+    isReportable: request.isReportable ?? false,
+    allowIntegration: request.allowIntegration ?? false,
+    allowMobile: request.allowMobile ?? false,
+    isSensitive: request.isSensitive ?? false,
+    lifecycleGate: request.lifecycleGate ?? "DraftSave",
+    valueLockPolicy: request.valueLockPolicy ?? "LockOnRelease",
+    createdOn: new Date().toISOString(),
+    modifiedOn: new Date().toISOString()
+  };
+}
+
+export async function listUdfPlacements(
+  session: AuthSessionResponse | null | undefined,
+  filter: { screenKey?: string; entityType?: string; entityLevel?: string } = {}
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.udfPlacements(filter);
+    } catch {
+      throw liveDataUnavailable("Extensibility field placements");
+    }
+  }
+
+  return seededUdfPlacements.filter((placement) => {
+    const matchesScreen = !filter.screenKey || placement.screenKey === filter.screenKey;
+    const matchesEntity = !filter.entityType || placement.entityType === filter.entityType;
+    const matchesLevel = !filter.entityLevel || placement.entityLevel === filter.entityLevel;
+    return matchesScreen && matchesEntity && matchesLevel;
+  });
+}
+
+export async function saveUdfPlacement(
+  session: AuthSessionResponse | null | undefined,
+  id: number | null,
+  request: UdfPlacementUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id
+        ? await apiClient.platform.updateUdfPlacement(id, request)
+        : await apiClient.platform.createUdfPlacement(request);
+    } catch {
+      throw liveDataUnavailable("Extensibility field placement save");
+    }
+  }
+
+  const definition = seededUdfDefinitions.find((item) => item.id === request.udfDefinitionId);
+  return {
+    id: id ?? Date.now(),
+    ...request,
+    fieldKey: definition?.fieldKey ?? "customField",
+    label: definition?.label ?? "Custom field",
+    dataType: definition?.dataType ?? "Text",
+    controlType: definition?.controlType ?? "Text",
+    lookupSource: definition?.lookupSource ?? null,
+    isRequired: definition?.isRequired ?? false,
+    isReadOnly: definition?.isReadOnly ?? false,
+    isSensitive: definition?.isSensitive ?? false,
+    isReportable: definition?.isReportable ?? false,
+    allowIntegration: definition?.allowIntegration ?? false,
+    allowMobile: definition?.allowMobile ?? false
+  };
+}
+
+export async function listUdfRuntimeFields(
+  session: AuthSessionResponse | null | undefined,
+  screenKey: string,
+  entityType: string,
+  entityLevel: string,
+  entityId: number,
+  entityLineId?: number | null
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.udfRuntimeFields(screenKey, entityType, entityLevel, entityId, entityLineId);
+    } catch {
+      throw liveDataUnavailable("Runtime extension fields");
+    }
+  }
+
+  const placements = await listUdfPlacements(session, { screenKey, entityType, entityLevel });
+  return placements.map<UdfRuntimeFieldDto>((placement) => ({
+    placement,
+    value: {
+      id: placement.id + 1000,
+      definitionId: placement.udfDefinitionId,
+      companyId: placement.companyId ?? 1,
+      entityType,
+      entityId,
+      entityLineId: entityLineId ?? null,
+      fieldKey: placement.fieldKey,
+      label: placement.label,
+      dataType: placement.dataType,
+      valueText: placement.dataType === "Text" ? "Configured value" : null,
+      valueNumber: null,
+      valueDate: null,
+      valueBoolean: null,
+      valueOptionCode: placement.dataType === "Lookup" ? "MORNING" : null,
+      displayValue: placement.dataType === "Lookup" ? "Morning dispatch window" : "Configured value",
+      status: "Active",
+      createdOn: new Date("2026-05-01T00:00:00Z").toISOString(),
+      modifiedOn: new Date("2026-05-01T00:00:00Z").toISOString()
+    }
+  }));
+}
+
+export async function saveUdfRuntimeValues(
+  session: AuthSessionResponse | null | undefined,
+  entityType: string,
+  entityId: number,
+  request: UdfRuntimeValueSetRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.upsertUdfRuntimeValues(entityType, entityId, request);
+    } catch {
+      throw liveDataUnavailable("Runtime extension field save");
+    }
+  }
+
+  return request.values.map((value, index) => ({
+    id: Date.now() + index,
+    ...value,
+    companyId: value.companyId ?? 1,
+    entityType,
+    entityId,
+    displayValue:
+      value.displayValue ??
+      value.valueText ??
+      value.valueLongText ??
+      value.valueOptionCode ??
+      (value.valueNumber ?? value.valueDecimal ?? value.valueMoneyAmount ?? value.valueInteger ?? value.valueBoolean ?? value.valueDate ?? value.valueDateTime ?? "").toString(),
+    status: value.status ?? "Active",
+    createdOn: new Date().toISOString(),
+    modifiedOn: new Date().toISOString()
+  }));
+}
+
+export async function listCustomObjects(
+  session: AuthSessionResponse | null | undefined,
+  filter: { module?: string; status?: string } = {}
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.customObjects(filter);
+    } catch {
+      throw liveDataUnavailable("Custom object definitions");
+    }
+  }
+
+  return seededCustomObjects.filter((item) => {
+    const matchesModule = !filter.module || filter.module === "all" || item.module === filter.module;
+    const matchesStatus = !filter.status || filter.status === "all" || item.status === filter.status;
+    return matchesModule && matchesStatus;
+  });
+}
+
+export async function saveCustomObject(
+  session: AuthSessionResponse | null | undefined,
+  id: number | null,
+  request: CustomObjectUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id
+        ? await apiClient.platform.updateCustomObject(id, request)
+        : await apiClient.platform.createCustomObject(request);
+    } catch {
+      throw liveDataUnavailable("Custom object save");
+    }
+  }
+
+  return {
+    id: id ?? Date.now(),
+    ...request,
+    createdOn: new Date().toISOString(),
+    modifiedOn: new Date().toISOString()
+  };
+}
+
+export async function listCustomObjectRecords(
+  session: AuthSessionResponse | null | undefined,
+  customObjectId: number
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.customObjectRecords(customObjectId);
+    } catch {
+      throw liveDataUnavailable("Custom object records");
+    }
+  }
+
+  return seededCustomObjectRecords.filter((record) => record.customObjectId === customObjectId);
+}
+
+export async function saveCustomObjectRecord(
+  session: AuthSessionResponse | null | undefined,
+  id: number | null,
+  request: CustomObjectRecordUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id
+        ? await apiClient.platform.updateCustomObjectRecord(id, request)
+        : await apiClient.platform.createCustomObjectRecord(request);
+    } catch {
+      throw liveDataUnavailable("Custom object record save");
+    }
+  }
+
+  return {
+    id: id ?? Date.now(),
+    customObjectId: request.customObjectId,
+    companyId: request.companyId ?? 1,
+    recordNo: request.recordNo,
+    displayValue: request.displayValue ?? request.recordNo,
+    linkedEntityType: request.linkedEntityType ?? null,
+    linkedEntityId: request.linkedEntityId ?? null,
+    status: request.status,
+    createdOn: new Date().toISOString(),
+    modifiedOn: new Date().toISOString()
+  };
+}
+
+export async function listCustomScreens(
+  session: AuthSessionResponse | null | undefined,
+  filter: { module?: string; status?: string } = {}
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return await apiClient.platform.customScreens(filter);
+    } catch {
+      throw liveDataUnavailable("Custom screen definitions");
+    }
+  }
+
+  return seededCustomScreens.filter((item) => {
+    const matchesModule = !filter.module || filter.module === "all" || item.module === filter.module;
+    const matchesStatus = !filter.status || filter.status === "all" || item.status === filter.status;
+    return matchesModule && matchesStatus;
+  });
+}
+
+export async function saveCustomScreen(
+  session: AuthSessionResponse | null | undefined,
+  id: number | null,
+  request: CustomScreenUpsertRequest
+) {
+  if (!isDemoSession(session)) {
+    try {
+      return id
+        ? await apiClient.platform.updateCustomScreen(id, request)
+        : await apiClient.platform.createCustomScreen(request);
+    } catch {
+      throw liveDataUnavailable("Custom screen save");
     }
   }
 

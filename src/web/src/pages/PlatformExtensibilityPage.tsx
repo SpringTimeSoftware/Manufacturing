@@ -4,8 +4,14 @@ import { useApiMutation, useApiQuery } from "../api/hooks";
 import { useAuth } from "../auth/AuthContext";
 import {
   listUdfDefinitions,
+  listUdfPlacements,
+  listCustomObjects,
+  listCustomScreens,
   saveUdfDefinition,
-  type UdfDefinitionItem
+  type CustomObjectItem,
+  type CustomScreenItem,
+  type UdfDefinitionItem,
+  type UdfPlacementItem
 } from "../platform/platformAdminAdapters";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
@@ -28,21 +34,41 @@ const entityOptions = [
   { label: "Item", value: "Item" },
   { label: "Customer", value: "Customer" },
   { label: "Supplier", value: "Supplier" },
+  { label: "Quote", value: "Quote" },
+  { label: "Sales order", value: "SalesOrder" },
+  { label: "Purchase order", value: "PurchaseOrder" },
+  { label: "Shipment", value: "Shipment" },
+  { label: "GL journal", value: "Journal" },
   { label: "Work order", value: "WorkOrder" },
   { label: "Job card", value: "JobCard" },
   { label: "Quality inspection", value: "Inspection" },
   { label: "Dispatch pack list", value: "PackList" }
 ];
 
+const moduleOptions = ["Master", "Commercial", "Procurement", "Inventory", "Production", "Quality", "Dispatch", "Finance", "Reporting", "Integrations", "Mobile", "Platform"].map((value) => ({
+  label: value,
+  value
+}));
+
+const entityLevelOptions = ["Header", "Line", "Detail", "Evidence", "Address", "Contact"].map((value) => ({ label: value, value }));
+
 const dataTypeOptions = [
   { label: "Text", value: "Text" },
-  { label: "Lookup", value: "Lookup" },
-  { label: "Number", value: "Number" },
+  { label: "Long text", value: "LongText" },
+  { label: "Integer", value: "Integer" },
   { label: "Decimal", value: "Decimal" },
   { label: "Money", value: "Money" },
-  { label: "Integer", value: "Integer" },
   { label: "Date", value: "Date" },
-  { label: "Boolean", value: "Boolean" }
+  { label: "Date time", value: "DateTime" },
+  { label: "Boolean", value: "Boolean" },
+  { label: "Single select", value: "SingleSelect" },
+  { label: "Multi select", value: "MultiSelect" },
+  { label: "Lookup", value: "Lookup" },
+  { label: "Attachment reference", value: "AttachmentReference" },
+  { label: "URL", value: "Url" },
+  { label: "Email", value: "Email" },
+  { label: "Phone", value: "Phone" },
+  { label: "Governed JSON", value: "Json" }
 ];
 
 const controlTypeOptions = [
@@ -53,6 +79,7 @@ const controlTypeOptions = [
   { label: "Decimal", value: "Decimal" },
   { label: "Money", value: "Money" },
   { label: "Date", value: "Date" },
+  { label: "Date time", value: "DateTime" },
   { label: "Checkbox", value: "Checkbox" }
 ];
 
@@ -87,7 +114,29 @@ const emptyDraft: UdfDefinitionUpsertRequest = {
   maxLength: 80,
   decimalScale: null,
   roleVisibility: "CompanyAdmin",
-  status: "Active"
+  status: "Active",
+  module: "Master",
+  entityLevel: "Header",
+  entitySubType: null,
+  description: null,
+  isUnique: false,
+  isReadOnly: false,
+  defaultValue: null,
+  placeholderText: null,
+  helpText: null,
+  displayOrder: 100,
+  sectionName: "General",
+  effectiveFrom: null,
+  effectiveTo: null,
+  validationRulesJson: null,
+  optionSetCode: null,
+  lookupSourceType: null,
+  isReportable: true,
+  allowIntegration: false,
+  allowMobile: false,
+  isSensitive: false,
+  lifecycleGate: "DraftSave",
+  valueLockPolicy: "LockOnRelease"
 };
 
 function toDraft(record: UdfDefinitionItem): UdfDefinitionUpsertRequest {
@@ -105,13 +154,37 @@ function toDraft(record: UdfDefinitionItem): UdfDefinitionUpsertRequest {
     maxLength: record.maxLength ?? null,
     decimalScale: record.decimalScale ?? null,
     roleVisibility: record.roleVisibility,
-    status: record.status
+    status: record.status,
+    module: record.module,
+    entityLevel: record.entityLevel,
+    entitySubType: record.entitySubType ?? null,
+    description: record.description ?? null,
+    isUnique: record.isUnique,
+    isReadOnly: record.isReadOnly,
+    defaultValue: record.defaultValue ?? null,
+    placeholderText: record.placeholderText ?? null,
+    helpText: record.helpText ?? null,
+    displayOrder: record.displayOrder,
+    sectionName: record.sectionName ?? null,
+    effectiveFrom: record.effectiveFrom ?? null,
+    effectiveTo: record.effectiveTo ?? null,
+    validationRulesJson: record.validationRulesJson ?? null,
+    optionSetCode: record.optionSetCode ?? null,
+    lookupSourceType: record.lookupSourceType ?? null,
+    isReportable: record.isReportable,
+    allowIntegration: record.allowIntegration,
+    allowMobile: record.allowMobile,
+    isSensitive: record.isSensitive,
+    lifecycleGate: record.lifecycleGate,
+    valueLockPolicy: record.valueLockPolicy
   };
 }
 
 function validateDraft(draft: UdfDefinitionUpsertRequest) {
   const errors: string[] = [];
   if (!draft.entityType) errors.push("Entity type is required.");
+  if (!draft.module) errors.push("Module is required.");
+  if (!draft.entityLevel) errors.push("Entity level is required.");
   if (!draft.fieldKey.trim()) errors.push("Field key is required.");
   if (!draft.label.trim()) errors.push("Field label is required.");
   if (!draft.dataType) errors.push("Data type is required.");
@@ -128,6 +201,16 @@ function validateDraft(draft: UdfDefinitionUpsertRequest) {
   }
   if ((draft.dataType === "Lookup" || draft.controlType === "Lookup" || draft.controlType === "Select") && !draft.lookupSource) {
     errors.push("Lookup source is required for lookup or select fields.");
+  }
+  if (draft.effectiveFrom && draft.effectiveTo && draft.effectiveFrom > draft.effectiveTo) {
+    errors.push("Effective from must be earlier than effective to.");
+  }
+  if (draft.validationRulesJson) {
+    try {
+      JSON.parse(draft.validationRulesJson);
+    } catch {
+      errors.push("Validation rules must be valid JSON.");
+    }
   }
   return errors;
 }
@@ -170,6 +253,58 @@ const columns: DataGridColumn<UdfDefinitionItem>[] = [
   }
 ];
 
+const placementColumns: DataGridColumn<UdfPlacementItem>[] = [
+  {
+    key: "field",
+    header: "Placed field",
+    width: "26%",
+    render: (record) => (
+      <div>
+        <strong>{record.label}</strong>
+        <div className="muted">{record.fieldKey}</div>
+      </div>
+    )
+  },
+  { key: "screen", header: "Screen", width: "24%", render: (record) => record.screenKey },
+  { key: "level", header: "Level", width: "14%", render: (record) => record.entityLevel },
+  { key: "section", header: "Section", width: "18%", render: (record) => record.sectionName },
+  { key: "status", header: "Status", width: "12%", render: (record) => <Badge tone={record.status === "Active" ? "success" : "warn"}>{record.status}</Badge> }
+];
+
+const customObjectColumns: DataGridColumn<CustomObjectItem>[] = [
+  {
+    key: "object",
+    header: "Custom object",
+    width: "32%",
+    render: (record) => (
+      <div>
+        <strong>{record.objectName}</strong>
+        <div className="muted">{record.objectCode}</div>
+      </div>
+    )
+  },
+  { key: "module", header: "Module", width: "16%", render: (record) => record.module },
+  { key: "primary", header: "Primary field", width: "20%", render: (record) => record.primaryDisplayFieldCode ?? "Not configured" },
+  { key: "status", header: "Status", width: "12%", render: (record) => <Badge tone={record.status === "Active" ? "success" : "warn"}>{record.status}</Badge> }
+];
+
+const customScreenColumns: DataGridColumn<CustomScreenItem>[] = [
+  {
+    key: "screen",
+    header: "Custom screen",
+    width: "32%",
+    render: (record) => (
+      <div>
+        <strong>{record.screenName}</strong>
+        <div className="muted">{record.screenCode}</div>
+      </div>
+    )
+  },
+  { key: "route", header: "Route", width: "24%", render: (record) => record.routePath },
+  { key: "module", header: "Module", width: "16%", render: (record) => record.module },
+  { key: "status", header: "Status", width: "12%", render: (record) => <Badge tone={record.status === "Active" ? "success" : "warn"}>{record.status}</Badge> }
+];
+
 export function PlatformExtensibilityPage() {
   const { session } = useAuth();
   const [search, setSearch] = useState("");
@@ -191,7 +326,25 @@ export function PlatformExtensibilityPage() {
       }),
     { staleTime: 60_000 }
   );
+  const placementQuery = useApiQuery(
+    ["platform", "udf-placements", entityFilter, statusFilter],
+    () => listUdfPlacements(session, { entityType: entityFilter === "all" ? undefined : entityFilter }),
+    { staleTime: 60_000 }
+  );
+  const customObjectQuery = useApiQuery(
+    ["platform", "custom-objects", statusFilter],
+    () => listCustomObjects(session, { status: statusFilter }),
+    { staleTime: 60_000 }
+  );
+  const customScreenQuery = useApiQuery(
+    ["platform", "custom-screens", statusFilter],
+    () => listCustomScreens(session, { status: statusFilter }),
+    { staleTime: 60_000 }
+  );
   const records = query.data ?? [];
+  const placements = placementQuery.data ?? [];
+  const customObjects = customObjectQuery.data ?? [];
+  const customScreens = customScreenQuery.data ?? [];
 
   const mutation = useApiMutation(
     ({ id, request }: { id: number | null; request: UdfDefinitionUpsertRequest }) =>
@@ -273,7 +426,9 @@ export function PlatformExtensibilityPage() {
             { label: "Definitions", value: String(records.length) },
             { label: "Active", value: String(activeCount) },
             { label: "Lookup-backed", value: String(lookupCount) },
-            { label: "Numeric", value: String(numericCount) }
+            { label: "Numeric", value: String(numericCount) },
+            { label: "Placements", value: String(placements.length) },
+            { label: "Custom screens", value: String(customScreens.length) }
           ]}
         />
 
@@ -298,6 +453,54 @@ export function PlatformExtensibilityPage() {
             onRowSelect={openExisting}
             records={records}
             rowLabel={(record) => `${record.label} definition`}
+            virtualization={{ enabled: true }}
+          />
+        </Card>
+
+        <Card title="Domain placements" description="Active UDFs are rendered through placement metadata in real workspaces.">
+          <DataGrid
+            ariaLabel="Extensibility field placements"
+            columns={placementColumns}
+            emptyState={{
+              title: "No placements match the current filter",
+              description: "Place active fields onto a real screen before collecting custom values."
+            }}
+            getRowId={(record) => String(record.id)}
+            isLoading={placementQuery.isLoading}
+            records={placements}
+            rowLabel={(record) => `${record.label} placement`}
+            virtualization={{ enabled: true }}
+          />
+        </Card>
+
+        <Card title="Custom objects" description="Metadata-driven custom records use governed object definitions and typed UDF values.">
+          <DataGrid
+            ariaLabel="Custom object definitions"
+            columns={customObjectColumns}
+            emptyState={{
+              title: "No custom objects match the current filter",
+              description: "Create governed custom objects when a business extension needs records, not new unsafe SQL tables."
+            }}
+            getRowId={(record) => String(record.id)}
+            isLoading={customObjectQuery.isLoading}
+            records={customObjects}
+            rowLabel={(record) => `${record.objectName} custom object`}
+            virtualization={{ enabled: true }}
+          />
+        </Card>
+
+        <Card title="Custom screens" description="Dynamic screens are permissioned route definitions bound to core or custom objects.">
+          <DataGrid
+            ariaLabel="Custom screen definitions"
+            columns={customScreenColumns}
+            emptyState={{
+              title: "No custom screens match the current filter",
+              description: "Custom screens remain unavailable until a governed definition, layout, and permission key are saved."
+            }}
+            getRowId={(record) => String(record.id)}
+            isLoading={customScreenQuery.isLoading}
+            records={customScreens}
+            rowLabel={(record) => `${record.screenName} custom screen`}
             virtualization={{ enabled: true }}
           />
         </Card>
@@ -335,6 +538,20 @@ export function PlatformExtensibilityPage() {
             required
             value={draft.entityType}
           />
+          <ErpLookupField
+            label="Module"
+            onChange={(value) => setDraft((current) => ({ ...current, module: value }))}
+            options={moduleOptions}
+            required
+            value={draft.module ?? "Master"}
+          />
+          <ErpLookupField
+            label="Entity level"
+            onChange={(value) => setDraft((current) => ({ ...current, entityLevel: value }))}
+            options={entityLevelOptions}
+            required
+            value={draft.entityLevel ?? "Header"}
+          />
           <label>
             <span>Field key</span>
             <input
@@ -349,6 +566,21 @@ export function PlatformExtensibilityPage() {
               onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))}
               required
               value={draft.label}
+            />
+          </label>
+          <label>
+            <span>Section</span>
+            <input
+              onChange={(event) => setDraft((current) => ({ ...current, sectionName: event.target.value || null }))}
+              value={draft.sectionName ?? ""}
+            />
+          </label>
+          <label>
+            <span>Description</span>
+            <textarea
+              onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value || null }))}
+              rows={3}
+              value={draft.description ?? ""}
             />
           </label>
           <ErpLookupField
@@ -371,6 +603,13 @@ export function PlatformExtensibilityPage() {
             options={lookupSourceOptions}
             value={draft.lookupSource ?? ""}
           />
+          <label>
+            <span>Option set code</span>
+            <input
+              onChange={(event) => setDraft((current) => ({ ...current, optionSetCode: event.target.value || null }))}
+              value={draft.optionSetCode ?? ""}
+            />
+          </label>
           <ErpLookupField
             label="Role visibility"
             onChange={(value) => setDraft((current) => ({ ...current, roleVisibility: value }))}
@@ -394,6 +633,46 @@ export function PlatformExtensibilityPage() {
             <input
               checked={draft.isRequired}
               onChange={(event) => setDraft((current) => ({ ...current, isRequired: event.target.checked }))}
+              type="checkbox"
+            />
+          </label>
+          <label className="login-form__toggle">
+            <span>Read-only field</span>
+            <input
+              checked={draft.isReadOnly ?? false}
+              onChange={(event) => setDraft((current) => ({ ...current, isReadOnly: event.target.checked }))}
+              type="checkbox"
+            />
+          </label>
+          <label className="login-form__toggle">
+            <span>Expose to reports</span>
+            <input
+              checked={draft.isReportable ?? false}
+              onChange={(event) => setDraft((current) => ({ ...current, isReportable: event.target.checked }))}
+              type="checkbox"
+            />
+          </label>
+          <label className="login-form__toggle">
+            <span>Allow integration payload</span>
+            <input
+              checked={draft.allowIntegration ?? false}
+              onChange={(event) => setDraft((current) => ({ ...current, allowIntegration: event.target.checked }))}
+              type="checkbox"
+            />
+          </label>
+          <label className="login-form__toggle">
+            <span>Allow mobile capture</span>
+            <input
+              checked={draft.allowMobile ?? false}
+              onChange={(event) => setDraft((current) => ({ ...current, allowMobile: event.target.checked }))}
+              type="checkbox"
+            />
+          </label>
+          <label className="login-form__toggle">
+            <span>Sensitive field</span>
+            <input
+              checked={draft.isSensitive ?? false}
+              onChange={(event) => setDraft((current) => ({ ...current, isSensitive: event.target.checked }))}
               type="checkbox"
             />
           </label>
@@ -425,6 +704,41 @@ export function PlatformExtensibilityPage() {
             onChange={(value) => setDraft((current) => ({ ...current, decimalScale: value }))}
             value={draft.decimalScale ?? null}
           />
+          <label>
+            <span>Default value</span>
+            <input
+              onChange={(event) => setDraft((current) => ({ ...current, defaultValue: event.target.value || null }))}
+              value={draft.defaultValue ?? ""}
+            />
+          </label>
+          <label>
+            <span>Placeholder text</span>
+            <input
+              onChange={(event) => setDraft((current) => ({ ...current, placeholderText: event.target.value || null }))}
+              value={draft.placeholderText ?? ""}
+            />
+          </label>
+          <label>
+            <span>Help text</span>
+            <input
+              onChange={(event) => setDraft((current) => ({ ...current, helpText: event.target.value || null }))}
+              value={draft.helpText ?? ""}
+            />
+          </label>
+          <ErpNumberField
+            label="Display order"
+            min={0}
+            onChange={(value) => setDraft((current) => ({ ...current, displayOrder: value ?? 100 }))}
+            value={draft.displayOrder ?? 100}
+          />
+          <label>
+            <span>Validation rules JSON</span>
+            <textarea
+              onChange={(event) => setDraft((current) => ({ ...current, validationRulesJson: event.target.value || null }))}
+              rows={4}
+              value={draft.validationRulesJson ?? ""}
+            />
+          </label>
         </FormShell>
       </ErpModalWorkspace>
     </>

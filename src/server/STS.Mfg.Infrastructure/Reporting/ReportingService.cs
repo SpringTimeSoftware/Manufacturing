@@ -370,6 +370,7 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
             "finance.tax-ledger" => await QueryTaxLedgerAsync(parameters, cancellationToken),
             "finance.inventory-valuation" => await QueryInventoryValuationAsync(parameters, cancellationToken),
             "finance.ar-ledger" => await QueryArLedgerAsync(parameters, cancellationToken),
+            "platform.udf-value-register" => await QueryUdfValuesAsync(parameters, cancellationToken),
             _ => throw new ValidationFailureException(new[] { new ApiError("report.dataset_missing", nameof(datasetSource), $"Report dataset '{datasetSource}' is not configured.") })
         };
     }
@@ -698,6 +699,53 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
         return Dataset(rows);
     }
 
+    private async Task<ReportDataset> QueryUdfValuesAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken cancellationToken)
+    {
+        var definitions = await DbContext.UdfDefinitions.AsNoTracking()
+            .ApplyCompanyScope(GetScope())
+            .Where(record => record.Status == "Active" && record.IsReportable && !record.IsSensitive)
+            .OrderBy(record => record.Module)
+            .ThenBy(record => record.EntityType)
+            .ThenBy(record => record.DisplayOrder)
+            .ToArrayAsync(cancellationToken);
+        var definitionIds = definitions.Select(record => record.Id).ToArray();
+        if (definitionIds.Length == 0)
+        {
+            return Dataset(Array.Empty<Dictionary<string, string?>>());
+        }
+
+        var byId = definitions.ToDictionary(record => record.Id);
+        var query = DbContext.UdfValues.AsNoTracking()
+            .ApplyCompanyScope(GetScope())
+            .Where(record => definitionIds.Contains(record.DefinitionId));
+        if (parameters.TryGetValue("entityType", out var entityType) && !string.IsNullOrWhiteSpace(entityType))
+        {
+            var normalized = entityType.Trim();
+            query = query.Where(record => record.EntityType == normalized);
+        }
+
+        var values = await query.OrderByDescending(record => record.Id).Take(500).ToArrayAsync(cancellationToken);
+        var rows = values.Select(record =>
+        {
+            var definition = byId[record.DefinitionId];
+            return Row(
+                ("Module", definition.Module),
+                ("Entity Type", definition.EntityType),
+                ("Entity Level", definition.EntityLevel),
+                ("Entity Id", record.EntityId.ToString()),
+                ("Entity Line Id", record.EntityLineId.HasValue ? record.EntityLineId.Value.ToString() : null),
+                ("Field Code", definition.FieldKey),
+                ("Field Name", definition.Label),
+                ("Data Type", definition.DataType),
+                ("Display Value", record.DisplayValue),
+                ("Typed Value", FormatUdfTypedValue(record)),
+                ("Status", record.Status),
+                ("Entity Version", record.EntityVersionNo.HasValue ? record.EntityVersionNo.Value.ToString() : null),
+                ("Field Version", definition.VersionNo.ToString()));
+        }).ToArray();
+        return Dataset(rows);
+    }
+
     private static IQueryable<ReportDefinition> ApplyDefinitionFilters(IQueryable<ReportDefinition> query, ReportFilter filter)
     {
         if (!string.IsNullOrWhiteSpace(filter.Module))
@@ -963,6 +1011,20 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
 
     private static string FormatMoney(decimal value) => value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
 
+    private static string? FormatUdfTypedValue(Domain.Platform.Customization.UdfValue value) =>
+        value.ValueText
+        ?? value.ValueLongText
+        ?? (value.ValueInteger.HasValue ? value.ValueInteger.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)
+        ?? (value.ValueDecimal.HasValue ? value.ValueDecimal.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : null)
+        ?? (value.ValueNumber.HasValue ? value.ValueNumber.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : null)
+        ?? (value.ValueMoneyAmount.HasValue ? value.ValueMoneyAmount.Value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : null)
+        ?? (value.ValueDate.HasValue ? value.ValueDate.Value.ToString("yyyy-MM-dd") : null)
+        ?? (value.ValueDateTime.HasValue ? value.ValueDateTime.Value.ToString("u") : null)
+        ?? (value.ValueBoolean.HasValue ? value.ValueBoolean.Value.ToString() : null)
+        ?? value.ValueOptionCode
+        ?? value.ValueJson
+        ?? (value.AttachmentReferenceId.HasValue ? value.AttachmentReferenceId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
+
     private static ReportDefinitionDto MapDefinition(ReportDefinition entity) =>
         new(entity.Id, entity.CompanyId, entity.ReportCode, entity.ReportName, entity.Module, entity.Category, entity.Description, entity.DatasetSource, entity.ReportType, ParseFormats(entity.OutputFormatsJson), entity.PermissionKey, entity.ParameterSchemaJson, entity.DefaultFiltersJson, entity.OwnerUserName, entity.VersionNo, entity.Status, entity.IsActive);
 
@@ -999,7 +1061,8 @@ internal sealed class ReportingService : ApplicationServiceBase, IReportingServi
             BuiltIn("FINANCE-GL-JOURNAL-REGISTER", "GL Journal Register", "Finance", "GL", "Posted, draft, reversed, and source-generated journals.", "finance.gl-journal-register", "ledger", "reports.finance.gl", ["CSV", "XLSX", "PDF"]),
             BuiltIn("FINANCE-TAX-LEDGER", "Tax Ledger", "Finance", "Tax", "Input and output tax ledger entries from posted document snapshots.", "finance.tax-ledger", "ledger", "reports.finance.tax", ["CSV", "XLSX", "PDF"]),
             BuiltIn("FINANCE-INVENTORY-VALUATION", "Inventory Valuation Report", "Finance", "Valuation", "Inventory value entries linked to stock and source documents.", "finance.inventory-valuation", "ledger", "reports.finance.valuation", ["CSV", "XLSX", "PDF"]),
-            BuiltIn("FINANCE-AR-LEDGER", "AR Ledger", "Finance", "AR", "Customer receivable ledger balances and due dates.", "finance.ar-ledger", "ledger", "reports.finance.ar", ["CSV", "XLSX", "PDF"])
+            BuiltIn("FINANCE-AR-LEDGER", "AR Ledger", "Finance", "AR", "Customer receivable ledger balances and due dates.", "finance.ar-ledger", "ledger", "reports.finance.ar", ["CSV", "XLSX", "PDF"]),
+            BuiltIn("PLATFORM-UDF-VALUE-REGISTER", "UDF Value Register", "Platform", "Customization", "Reportable non-sensitive UDF values across configured entity placements.", "platform.udf-value-register", "register", "reports.platform.udf", ["CSV", "XLSX", "JSON"])
         };
 
     private static BuiltInReport BuiltIn(string code, string name, string module, string category, string description, string source, string type, string permission, IReadOnlyCollection<string> formats) =>

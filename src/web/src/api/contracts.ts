@@ -1037,6 +1037,8 @@ export interface TranslationResourceUpsertRequest {
 
 export interface UdfDefinitionFilter extends QueryFilter {
   entityType?: string;
+  module?: string;
+  entityLevel?: string;
 }
 
 export interface UdfDefinitionDto {
@@ -1057,6 +1059,29 @@ export interface UdfDefinitionDto {
   status: string;
   createdOn: string;
   modifiedOn?: string | null;
+  module: string;
+  entitySubType?: string | null;
+  entityLevel: string;
+  description?: string | null;
+  isUnique: boolean;
+  isReadOnly: boolean;
+  defaultValue?: string | null;
+  placeholderText?: string | null;
+  helpText?: string | null;
+  displayOrder: number;
+  sectionName?: string | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  versionNo: number;
+  validationRulesJson?: string | null;
+  optionSetCode?: string | null;
+  lookupSourceType?: string | null;
+  isReportable: boolean;
+  allowIntegration: boolean;
+  allowMobile: boolean;
+  isSensitive: boolean;
+  lifecycleGate: string;
+  valueLockPolicy: string;
 }
 
 export interface UdfDefinitionUpsertRequest {
@@ -1074,6 +1099,28 @@ export interface UdfDefinitionUpsertRequest {
   decimalScale?: number | null;
   roleVisibility: string;
   status: string;
+  module?: string;
+  entitySubType?: string | null;
+  entityLevel?: string;
+  description?: string | null;
+  isUnique?: boolean;
+  isReadOnly?: boolean;
+  defaultValue?: string | null;
+  placeholderText?: string | null;
+  helpText?: string | null;
+  displayOrder?: number;
+  sectionName?: string | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  validationRulesJson?: string | null;
+  optionSetCode?: string | null;
+  lookupSourceType?: string | null;
+  isReportable?: boolean;
+  allowIntegration?: boolean;
+  allowMobile?: boolean;
+  isSensitive?: boolean;
+  lifecycleGate?: string;
+  valueLockPolicy?: string;
 }
 
 export interface UdfValueDto {
@@ -1087,6 +1134,24 @@ export interface UdfValueDto {
   valueBoolean?: boolean | null;
   createdOn: string;
   modifiedOn?: string | null;
+  companyId?: number | null;
+  entityLineId?: number | null;
+  entityVersionNo?: number | null;
+  fieldKey?: string | null;
+  label?: string | null;
+  dataType?: string | null;
+  valueLongText?: string | null;
+  valueInteger?: number | null;
+  valueDecimal?: number | null;
+  valueMoneyAmount?: number | null;
+  valueCurrencyId?: number | null;
+  valueDateTime?: string | null;
+  valueOptionId?: number | null;
+  valueOptionCode?: string | null;
+  valueJson?: string | null;
+  attachmentReferenceId?: number | null;
+  displayValue?: string | null;
+  status: string;
 }
 
 export interface UdfValueUpsertRequest {
@@ -1096,6 +1161,165 @@ export interface UdfValueUpsertRequest {
   valueNumber?: number | null;
   valueDate?: string | null;
   valueBoolean?: boolean | null;
+  companyId?: number | null;
+  entityLineId?: number | null;
+  entityVersionNo?: number | null;
+  valueLongText?: string | null;
+  valueInteger?: number | null;
+  valueDecimal?: number | null;
+  valueMoneyAmount?: number | null;
+  valueCurrencyId?: number | null;
+  valueDateTime?: string | null;
+  valueOptionId?: number | null;
+  valueOptionCode?: string | null;
+  valueJson?: string | null;
+  attachmentReferenceId?: number | null;
+  displayValue?: string | null;
+  status?: string;
+  changeReason?: string | null;
+}
+
+export interface UdfPlacementDto {
+  id: number;
+  udfDefinitionId: number;
+  companyId?: number | null;
+  module: string;
+  screenKey: string;
+  routePath?: string | null;
+  entityType: string;
+  entityLevel: string;
+  sectionName: string;
+  tabName?: string | null;
+  groupName?: string | null;
+  displayOrder: number;
+  columnSpan?: number | null;
+  visibleConditionJson?: string | null;
+  editableConditionJson?: string | null;
+  requiredConditionJson?: string | null;
+  permissionKey?: string | null;
+  status: string;
+  fieldKey: string;
+  label: string;
+  dataType: string;
+  controlType: string;
+  lookupSource?: string | null;
+  isRequired: boolean;
+  isReadOnly: boolean;
+  isSensitive: boolean;
+  isReportable: boolean;
+  allowIntegration: boolean;
+  allowMobile: boolean;
+}
+
+export interface UdfPlacementUpsertRequest {
+  udfDefinitionId: number;
+  companyId?: number | null;
+  module: string;
+  screenKey: string;
+  routePath?: string | null;
+  entityType: string;
+  entityLevel: string;
+  sectionName: string;
+  tabName?: string | null;
+  groupName?: string | null;
+  displayOrder: number;
+  columnSpan?: number | null;
+  visibleConditionJson?: string | null;
+  editableConditionJson?: string | null;
+  requiredConditionJson?: string | null;
+  permissionKey?: string | null;
+  status: string;
+}
+
+export interface UdfRuntimeFieldDto {
+  placement: UdfPlacementDto;
+  value?: UdfValueDto | null;
+}
+
+export interface UdfRuntimeValueSetRequest {
+  values: UdfValueUpsertRequest[];
+}
+
+export interface CustomObjectDto {
+  id: number;
+  companyId?: number | null;
+  objectCode: string;
+  objectName: string;
+  module: string;
+  category?: string | null;
+  primaryDisplayFieldCode?: string | null;
+  description?: string | null;
+  status: string;
+  createdOn: string;
+  modifiedOn?: string | null;
+}
+
+export interface CustomObjectUpsertRequest {
+  companyId?: number | null;
+  objectCode: string;
+  objectName: string;
+  module: string;
+  category?: string | null;
+  primaryDisplayFieldCode?: string | null;
+  description?: string | null;
+  status: string;
+}
+
+export interface CustomObjectRecordDto {
+  id: number;
+  customObjectId: number;
+  companyId?: number | null;
+  recordNo: string;
+  displayValue?: string | null;
+  linkedEntityType?: string | null;
+  linkedEntityId?: number | null;
+  status: string;
+  createdOn: string;
+  modifiedOn?: string | null;
+}
+
+export interface CustomObjectRecordUpsertRequest {
+  customObjectId: number;
+  companyId?: number | null;
+  recordNo: string;
+  displayValue?: string | null;
+  linkedEntityType?: string | null;
+  linkedEntityId?: number | null;
+  status: string;
+  values: UdfValueUpsertRequest[];
+}
+
+export interface CustomScreenDto {
+  id: number;
+  companyId?: number | null;
+  screenCode: string;
+  screenName: string;
+  module: string;
+  navigationGroup?: string | null;
+  boundEntityType?: string | null;
+  customObjectId?: number | null;
+  routePath: string;
+  layoutJson: string;
+  listViewJson?: string | null;
+  permissionKey?: string | null;
+  status: string;
+  createdOn: string;
+  modifiedOn?: string | null;
+}
+
+export interface CustomScreenUpsertRequest {
+  companyId?: number | null;
+  screenCode: string;
+  screenName: string;
+  module: string;
+  navigationGroup?: string | null;
+  boundEntityType?: string | null;
+  customObjectId?: number | null;
+  routePath: string;
+  layoutJson: string;
+  listViewJson?: string | null;
+  permissionKey?: string | null;
+  status: string;
 }
 
 export interface AuditTrailItemDto {

@@ -263,6 +263,146 @@ public sealed class PlatformExtensibilityController(IPlatformRuntimeService plat
         var response = await platformRuntimeService.UpsertUdfValueAsync(entityType, entityId, request, cancellationToken);
         return OkEnvelope(response, "Field value saved.");
     }
+
+    [HttpGet("udf-placements")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<UdfPlacementDto>>>> ListPlacements(
+        [FromQuery] string? screenKey,
+        [FromQuery] string? entityType,
+        [FromQuery] string? entityLevel,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.ListUdfPlacementsAsync(screenKey, entityType, entityLevel, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("udf-placements")]
+    public async Task<ActionResult<ApiEnvelope<UdfPlacementDto>>> CreatePlacement(
+        [FromBody] UdfPlacementUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertUdfPlacementAsync(null, request, cancellationToken);
+        return OkEnvelope(response, "Field placement saved.");
+    }
+
+    [HttpPut("udf-placements/{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<UdfPlacementDto>>> UpdatePlacement(
+        long id,
+        [FromBody] UdfPlacementUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertUdfPlacementAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Field placement saved.");
+    }
+
+    [HttpGet("udf-runtime/{screenKey}/{entityType}/{entityLevel}/{entityId:long}")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<UdfRuntimeFieldDto>>>> GetRuntimeFields(
+        string screenKey,
+        string entityType,
+        string entityLevel,
+        long entityId,
+        [FromQuery] long? entityLineId,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.GetUdfRuntimeFieldsAsync(screenKey, entityType, entityLevel, entityId, entityLineId, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPut("udf-runtime/{entityType}/{entityId:long}")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<UdfValueDto>>>> UpsertRuntimeValues(
+        string entityType,
+        long entityId,
+        [FromBody] UdfRuntimeValueSetRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertUdfRuntimeValuesAsync(entityType, entityId, request, cancellationToken);
+        return OkEnvelope(response, "Field values saved.");
+    }
+
+    [HttpGet("custom-objects")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<CustomObjectDto>>>> ListCustomObjects(
+        [FromQuery] string? module,
+        [FromQuery] string? status,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.ListCustomObjectsAsync(module, status, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("custom-objects")]
+    public async Task<ActionResult<ApiEnvelope<CustomObjectDto>>> CreateCustomObject(
+        [FromBody] CustomObjectUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertCustomObjectAsync(null, request, cancellationToken);
+        return OkEnvelope(response, "Custom object saved.");
+    }
+
+    [HttpPut("custom-objects/{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<CustomObjectDto>>> UpdateCustomObject(
+        long id,
+        [FromBody] CustomObjectUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertCustomObjectAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Custom object saved.");
+    }
+
+    [HttpGet("custom-objects/{customObjectId:long}/records")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<CustomObjectRecordDto>>>> ListCustomObjectRecords(
+        long customObjectId,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.ListCustomObjectRecordsAsync(customObjectId, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("custom-object-records")]
+    public async Task<ActionResult<ApiEnvelope<CustomObjectRecordDto>>> CreateCustomObjectRecord(
+        [FromBody] CustomObjectRecordUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertCustomObjectRecordAsync(null, request, cancellationToken);
+        return OkEnvelope(response, "Custom record saved.");
+    }
+
+    [HttpPut("custom-object-records/{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<CustomObjectRecordDto>>> UpdateCustomObjectRecord(
+        long id,
+        [FromBody] CustomObjectRecordUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertCustomObjectRecordAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Custom record saved.");
+    }
+
+    [HttpGet("custom-screens")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyCollection<CustomScreenDto>>>> ListCustomScreens(
+        [FromQuery] string? module,
+        [FromQuery] string? status,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.ListCustomScreensAsync(module, status, cancellationToken);
+        return OkEnvelope(response);
+    }
+
+    [HttpPost("custom-screens")]
+    public async Task<ActionResult<ApiEnvelope<CustomScreenDto>>> CreateCustomScreen(
+        [FromBody] CustomScreenUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertCustomScreenAsync(null, request, cancellationToken);
+        return OkEnvelope(response, "Custom screen saved.");
+    }
+
+    [HttpPut("custom-screens/{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<CustomScreenDto>>> UpdateCustomScreen(
+        long id,
+        [FromBody] CustomScreenUpsertRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await platformRuntimeService.UpsertCustomScreenAsync(id, request, cancellationToken);
+        return OkEnvelope(response, "Custom screen saved.");
+    }
 }
 
 [ApiController]

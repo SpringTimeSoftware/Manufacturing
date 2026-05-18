@@ -66,6 +66,7 @@ export interface OfflineQueueEntry {
   conflictReason?: string | null;
   idempotencyKey?: string;
   serverReferenceNo?: string | null;
+  udfValues?: MobileUdfValue[];
 }
 
 export interface SyncSummary {
@@ -115,6 +116,20 @@ export interface MobileTask {
   subtitle: string;
   status: string;
   disabledReason?: string | null;
+  udfValues?: MobileUdfValue[];
+}
+
+export interface MobileUdfValue {
+  fieldCode: string;
+  fieldName: string;
+  dataType: string;
+  displayValue: string | null;
+  entityLevel: "Header" | "Line" | "Evidence" | string;
+  isRequired: boolean;
+  isReadOnly: boolean;
+  sourceVersion: number;
+  syncStatus: "Live" | "Queued" | "Conflict" | "Unsupported";
+  disabledReason?: string | null;
 }
 
 export type MobileScanSource = "Camera" | "Hardware" | "Manual";
@@ -154,6 +169,7 @@ export interface QueueOfflineOperationInput {
   actionLabel: string;
   payloadSnapshotJson: string;
   idempotencyKey: string;
+  udfValues?: MobileUdfValue[];
 }
 
 export interface MobileSummaryTile {

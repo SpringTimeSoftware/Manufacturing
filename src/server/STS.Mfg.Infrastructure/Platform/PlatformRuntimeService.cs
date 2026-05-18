@@ -1038,24 +1038,49 @@ public sealed class PlatformRuntimeService(
             SELECT
                 Id,
                 CompanyId,
+                Module,
                 EntityType,
+                EntitySubType,
+                EntityLevel,
                 FieldKey,
                 Label,
+                Description,
                 DataType,
                 ControlType,
                 LookupSource,
                 IsRequired,
+                IsUnique,
+                IsReadOnly,
                 MinNumber,
                 MaxNumber,
                 MaxLength,
                 DecimalScale,
+                DefaultValue,
+                PlaceholderText,
+                HelpText,
+                DisplayOrder,
+                SectionName,
+                EffectiveFrom,
+                EffectiveTo,
+                VersionNo,
+                ValidationRulesJson,
+                OptionSetCode,
+                LookupSourceType,
                 RoleVisibility,
+                IsReportable,
+                AllowIntegration,
+                AllowMobile,
+                IsSensitive,
+                LifecycleGate,
+                ValueLockPolicy,
                 Status,
                 CreatedOn,
                 ModifiedOn
             FROM platform.UdfDefinitions
             WHERE (@Status IS NULL OR @Status = N'all' OR Status = @Status)
               AND (@EntityType IS NULL OR @EntityType = N'all' OR EntityType = @EntityType)
+              AND (@Module IS NULL OR @Module = N'all' OR Module = @Module)
+              AND (@EntityLevel IS NULL OR @EntityLevel = N'all' OR EntityLevel = @EntityLevel)
               AND (
                   @HasDeploymentAccess = 1
                   OR @CompanyId IS NULL
@@ -1089,6 +1114,8 @@ public sealed class PlatformRuntimeService(
             {
                 Status = string.IsNullOrWhiteSpace(filter.Status) ? null : filter.Status,
                 EntityType = string.IsNullOrWhiteSpace(filter.EntityType) ? null : filter.EntityType,
+                Module = string.IsNullOrWhiteSpace(filter.Module) ? null : filter.Module,
+                EntityLevel = string.IsNullOrWhiteSpace(filter.EntityLevel) ? null : filter.EntityLevel,
                 Search = string.IsNullOrWhiteSpace(filter.Search) ? null : $"%{filter.Search.Trim()}%",
                 scope.HasDeploymentAccess,
                 CompanyId = scope.ActiveCompanyId,
@@ -1106,9 +1133,9 @@ public sealed class PlatformRuntimeService(
         var current = currentUserContextAccessor.GetCurrent();
         const string sql = """
             INSERT INTO platform.UdfDefinitions
-                (CompanyId, EntityType, FieldKey, Label, DataType, ControlType, LookupSource, IsRequired, MinNumber, MaxNumber, MaxLength, DecimalScale, RoleVisibility, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+                (CompanyId, Module, EntityType, EntitySubType, EntityLevel, FieldKey, Label, Description, DataType, ControlType, LookupSource, LookupSourceType, OptionSetCode, IsRequired, IsUnique, IsReadOnly, MinNumber, MaxNumber, MaxLength, DecimalScale, DefaultValue, PlaceholderText, HelpText, DisplayOrder, SectionName, EffectiveFrom, EffectiveTo, VersionNo, ValidationRulesJson, RoleVisibility, IsReportable, AllowIntegration, AllowMobile, IsSensitive, LifecycleGate, ValueLockPolicy, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
             VALUES
-                (@CompanyId, @EntityType, @FieldKey, @Label, @DataType, @ControlType, @LookupSource, @IsRequired, @MinNumber, @MaxNumber, @MaxLength, @DecimalScale, @RoleVisibility, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
+                (@CompanyId, @Module, @EntityType, @EntitySubType, @EntityLevel, @FieldKey, @Label, @Description, @DataType, @ControlType, @LookupSource, @LookupSourceType, @OptionSetCode, @IsRequired, @IsUnique, @IsReadOnly, @MinNumber, @MaxNumber, @MaxLength, @DecimalScale, @DefaultValue, @PlaceholderText, @HelpText, @DisplayOrder, @SectionName, @EffectiveFrom, @EffectiveTo, 1, @ValidationRulesJson, @RoleVisibility, @IsReportable, @AllowIntegration, @AllowMobile, @IsSensitive, @LifecycleGate, @ValueLockPolicy, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
             SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
             """;
 
@@ -1118,18 +1145,40 @@ public sealed class PlatformRuntimeService(
             new
             {
                 request.CompanyId,
+                request.Module,
                 request.EntityType,
+                request.EntitySubType,
+                request.EntityLevel,
                 request.FieldKey,
                 request.Label,
+                request.Description,
                 request.DataType,
                 request.ControlType,
                 request.LookupSource,
+                request.LookupSourceType,
+                request.OptionSetCode,
                 request.IsRequired,
+                request.IsUnique,
+                request.IsReadOnly,
                 request.MinNumber,
                 request.MaxNumber,
                 request.MaxLength,
                 request.DecimalScale,
+                request.DefaultValue,
+                request.PlaceholderText,
+                request.HelpText,
+                request.DisplayOrder,
+                request.SectionName,
+                request.EffectiveFrom,
+                request.EffectiveTo,
+                request.ValidationRulesJson,
                 request.RoleVisibility,
+                request.IsReportable,
+                request.AllowIntegration,
+                request.AllowMobile,
+                request.IsSensitive,
+                request.LifecycleGate,
+                request.ValueLockPolicy,
                 request.Status,
                 ActorUserId = current.UserId
             },
@@ -1153,20 +1202,53 @@ public sealed class PlatformRuntimeService(
         ValidateUdfDefinition(request);
         var current = currentUserContextAccessor.GetCurrent();
         const string sql = """
+            DECLARE @ExistingDataType NVARCHAR(32);
+            DECLARE @ValueCount INT;
+            SELECT @ExistingDataType = DataType FROM platform.UdfDefinitions WHERE Id = @Id;
+            SELECT @ValueCount = COUNT(*) FROM platform.UdfValues WHERE DefinitionId = @Id;
+
+            IF @ExistingDataType IS NOT NULL AND @ValueCount > 0 AND @ExistingDataType <> @DataType
+            BEGIN
+                THROW 51030, 'Active UDF field type cannot be changed after values exist. Retire the field and create a new definition.', 1;
+            END;
+
             UPDATE platform.UdfDefinitions
             SET CompanyId = @CompanyId,
+                Module = @Module,
                 EntityType = @EntityType,
+                EntitySubType = @EntitySubType,
+                EntityLevel = @EntityLevel,
                 FieldKey = @FieldKey,
                 Label = @Label,
+                Description = @Description,
                 DataType = @DataType,
                 ControlType = @ControlType,
                 LookupSource = @LookupSource,
+                LookupSourceType = @LookupSourceType,
+                OptionSetCode = @OptionSetCode,
                 IsRequired = @IsRequired,
+                IsUnique = @IsUnique,
+                IsReadOnly = @IsReadOnly,
                 MinNumber = @MinNumber,
                 MaxNumber = @MaxNumber,
                 MaxLength = @MaxLength,
                 DecimalScale = @DecimalScale,
+                DefaultValue = @DefaultValue,
+                PlaceholderText = @PlaceholderText,
+                HelpText = @HelpText,
+                DisplayOrder = @DisplayOrder,
+                SectionName = @SectionName,
+                EffectiveFrom = @EffectiveFrom,
+                EffectiveTo = @EffectiveTo,
+                VersionNo = CASE WHEN @ValueCount > 0 THEN VersionNo + 1 ELSE VersionNo END,
+                ValidationRulesJson = @ValidationRulesJson,
                 RoleVisibility = @RoleVisibility,
+                IsReportable = @IsReportable,
+                AllowIntegration = @AllowIntegration,
+                AllowMobile = @AllowMobile,
+                IsSensitive = @IsSensitive,
+                LifecycleGate = @LifecycleGate,
+                ValueLockPolicy = @ValueLockPolicy,
                 Status = @Status,
                 ModifiedOn = SYSUTCDATETIME(),
                 ModifiedByUserId = @ActorUserId
@@ -1180,18 +1262,40 @@ public sealed class PlatformRuntimeService(
             {
                 Id = id,
                 request.CompanyId,
+                request.Module,
                 request.EntityType,
+                request.EntitySubType,
+                request.EntityLevel,
                 request.FieldKey,
                 request.Label,
+                request.Description,
                 request.DataType,
                 request.ControlType,
                 request.LookupSource,
+                request.LookupSourceType,
+                request.OptionSetCode,
                 request.IsRequired,
+                request.IsUnique,
+                request.IsReadOnly,
                 request.MinNumber,
                 request.MaxNumber,
                 request.MaxLength,
                 request.DecimalScale,
+                request.DefaultValue,
+                request.PlaceholderText,
+                request.HelpText,
+                request.DisplayOrder,
+                request.SectionName,
+                request.EffectiveFrom,
+                request.EffectiveTo,
+                request.ValidationRulesJson,
                 request.RoleVisibility,
+                request.IsReportable,
+                request.AllowIntegration,
+                request.AllowMobile,
+                request.IsSensitive,
+                request.LifecycleGate,
+                request.ValueLockPolicy,
                 request.Status,
                 ActorUserId = current.UserId
             },
@@ -1223,10 +1327,28 @@ public sealed class PlatformRuntimeService(
                 v.DefinitionId,
                 d.EntityType,
                 v.EntityId,
+                v.CompanyId,
+                v.EntityLineId,
+                v.EntityVersionNo,
+                d.FieldKey,
+                d.Label,
+                d.DataType,
                 v.ValueText,
+                v.ValueLongText,
+                v.ValueInteger,
                 v.ValueNumber,
+                v.ValueDecimal,
+                v.ValueMoneyAmount,
+                v.ValueCurrencyId,
                 v.ValueDate,
+                v.ValueDateTime,
                 v.ValueBoolean,
+                v.ValueOptionId,
+                v.ValueOptionCode,
+                v.ValueJson,
+                v.AttachmentReferenceId,
+                v.DisplayValue,
+                v.Status,
                 v.CreatedOn,
                 v.ModifiedOn
             FROM platform.UdfValues v
@@ -1269,30 +1391,54 @@ public sealed class PlatformRuntimeService(
         var current = currentUserContextAccessor.GetCurrent();
         const string sql = """
             DECLARE @ValueId BIGINT;
+            DECLARE @PriorDisplayValue NVARCHAR(512);
             SELECT @ValueId = Id
+                 , @PriorDisplayValue = DisplayValue
             FROM platform.UdfValues
             WHERE DefinitionId = @DefinitionId
-              AND EntityId = @EntityId;
+              AND EntityId = @EntityId
+              AND ((@EntityLineId IS NULL AND EntityLineId IS NULL) OR EntityLineId = @EntityLineId);
 
             IF @ValueId IS NULL
             BEGIN
                 INSERT INTO platform.UdfValues
-                    (DefinitionId, EntityId, ValueText, ValueNumber, ValueDate, ValueBoolean, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+                    (DefinitionId, CompanyId, EntityType, EntityId, EntityLineId, EntityVersionNo, ValueText, ValueLongText, ValueInteger, ValueNumber, ValueDecimal, ValueMoneyAmount, ValueCurrencyId, ValueDate, ValueDateTime, ValueBoolean, ValueOptionId, ValueOptionCode, ValueJson, AttachmentReferenceId, DisplayValue, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
                 VALUES
-                    (@DefinitionId, @EntityId, @ValueText, @ValueNumber, @ValueDate, @ValueBoolean, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
+                    (@DefinitionId, @CompanyId, @EntityType, @EntityId, @EntityLineId, @EntityVersionNo, @ValueText, @ValueLongText, @ValueInteger, @ValueNumber, @ValueDecimal, @ValueMoneyAmount, @ValueCurrencyId, @ValueDate, @ValueDateTime, @ValueBoolean, @ValueOptionId, @ValueOptionCode, @ValueJson, @AttachmentReferenceId, @DisplayValue, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
                 SET @ValueId = CAST(SCOPE_IDENTITY() AS BIGINT);
             END
             ELSE
             BEGIN
                 UPDATE platform.UdfValues
-                SET ValueText = @ValueText,
+                SET CompanyId = @CompanyId,
+                    EntityType = @EntityType,
+                    EntityLineId = @EntityLineId,
+                    EntityVersionNo = @EntityVersionNo,
+                    ValueText = @ValueText,
+                    ValueLongText = @ValueLongText,
+                    ValueInteger = @ValueInteger,
                     ValueNumber = @ValueNumber,
+                    ValueDecimal = @ValueDecimal,
+                    ValueMoneyAmount = @ValueMoneyAmount,
+                    ValueCurrencyId = @ValueCurrencyId,
                     ValueDate = @ValueDate,
+                    ValueDateTime = @ValueDateTime,
                     ValueBoolean = @ValueBoolean,
+                    ValueOptionId = @ValueOptionId,
+                    ValueOptionCode = @ValueOptionCode,
+                    ValueJson = @ValueJson,
+                    AttachmentReferenceId = @AttachmentReferenceId,
+                    DisplayValue = @DisplayValue,
+                    Status = @Status,
                     ModifiedOn = SYSUTCDATETIME(),
                     ModifiedByUserId = @ActorUserId
                 WHERE Id = @ValueId;
             END;
+
+            INSERT INTO platform.UdfValueHistory
+                (UdfValueId, DefinitionId, EntityType, EntityId, EntityLineId, PriorDisplayValue, NextDisplayValue, ChangeReason, ChangedOn, ChangedByUserId)
+            VALUES
+                (@ValueId, @DefinitionId, @EntityType, @EntityId, @EntityLineId, @PriorDisplayValue, @DisplayValue, @ChangeReason, SYSUTCDATETIME(), @ActorUserId);
 
             SELECT @ValueId;
             """;
@@ -1303,11 +1449,28 @@ public sealed class PlatformRuntimeService(
             new
             {
                 request.DefinitionId,
+                request.CompanyId,
+                EntityType = entityType,
                 EntityId = entityId,
+                request.EntityLineId,
+                request.EntityVersionNo,
                 request.ValueText,
+                request.ValueLongText,
+                request.ValueInteger,
                 request.ValueNumber,
+                request.ValueDecimal,
+                request.ValueMoneyAmount,
+                request.ValueCurrencyId,
                 request.ValueDate,
+                request.ValueDateTime,
                 request.ValueBoolean,
+                request.ValueOptionId,
+                request.ValueOptionCode,
+                request.ValueJson,
+                request.AttachmentReferenceId,
+                DisplayValue = ResolveUdfDisplayValue(definition, request),
+                request.Status,
+                request.ChangeReason,
                 ActorUserId = current.UserId
             },
             cancellationToken: cancellationToken));
@@ -1321,6 +1484,438 @@ public sealed class PlatformRuntimeService(
 
         return (await ListUdfValuesAsync(entityType, entityId, cancellationToken))
             .First(value => value.Id == valueId);
+    }
+
+    public async Task<IReadOnlyCollection<UdfPlacementDto>> ListUdfPlacementsAsync(
+        string? screenKey = null,
+        string? entityType = null,
+        string? entityLevel = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT
+                p.Id,
+                p.UdfDefinitionId,
+                p.CompanyId,
+                p.Module,
+                p.ScreenKey,
+                p.RoutePath,
+                p.EntityType,
+                p.EntityLevel,
+                p.SectionName,
+                p.TabName,
+                p.GroupName,
+                p.DisplayOrder,
+                p.ColumnSpan,
+                p.VisibleConditionJson,
+                p.EditableConditionJson,
+                p.RequiredConditionJson,
+                p.PermissionKey,
+                p.Status,
+                d.FieldKey,
+                d.Label,
+                d.DataType,
+                d.ControlType,
+                d.LookupSource,
+                d.IsRequired,
+                d.IsReadOnly,
+                d.IsSensitive,
+                d.IsReportable,
+                d.AllowIntegration,
+                d.AllowMobile
+            FROM platform.UdfPlacements p
+            JOIN platform.UdfDefinitions d ON d.Id = p.UdfDefinitionId
+            WHERE (@ScreenKey IS NULL OR @ScreenKey = N'all' OR p.ScreenKey = @ScreenKey)
+              AND (@EntityType IS NULL OR @EntityType = N'all' OR p.EntityType = @EntityType)
+              AND (@EntityLevel IS NULL OR @EntityLevel = N'all' OR p.EntityLevel = @EntityLevel)
+              AND (
+                  @HasDeploymentAccess = 1
+                  OR @CompanyId IS NULL
+                  OR p.CompanyId IS NULL
+                  OR p.CompanyId = @CompanyId
+              )
+            ORDER BY p.Module, p.ScreenKey, p.DisplayOrder, d.FieldKey;
+            """;
+
+        var scope = dataScopeService.GetCurrentScope();
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<UdfPlacementDto>(new CommandDefinition(
+            sql,
+            new
+            {
+                ScreenKey = string.IsNullOrWhiteSpace(screenKey) ? null : screenKey,
+                EntityType = string.IsNullOrWhiteSpace(entityType) ? null : entityType,
+                EntityLevel = string.IsNullOrWhiteSpace(entityLevel) ? null : entityLevel,
+                scope.HasDeploymentAccess,
+                CompanyId = scope.ActiveCompanyId
+            },
+            cancellationToken: cancellationToken));
+
+        return rows.ToArray();
+    }
+
+    public async Task<UdfPlacementDto> UpsertUdfPlacementAsync(
+        long? id,
+        UdfPlacementUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateUdfPlacement(request);
+        _ = await GetUdfDefinitionAsync(request.UdfDefinitionId, cancellationToken);
+        var current = currentUserContextAccessor.GetCurrent();
+
+        const string insertSql = """
+            INSERT INTO platform.UdfPlacements
+                (UdfDefinitionId, CompanyId, Module, ScreenKey, RoutePath, EntityType, EntityLevel, SectionName, TabName, GroupName, DisplayOrder, ColumnSpan, VisibleConditionJson, EditableConditionJson, RequiredConditionJson, PermissionKey, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+            VALUES
+                (@UdfDefinitionId, @CompanyId, @Module, @ScreenKey, @RoutePath, @EntityType, @EntityLevel, @SectionName, @TabName, @GroupName, @DisplayOrder, @ColumnSpan, @VisibleConditionJson, @EditableConditionJson, @RequiredConditionJson, @PermissionKey, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
+            SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+            """;
+
+        const string updateSql = """
+            UPDATE platform.UdfPlacements
+            SET UdfDefinitionId = @UdfDefinitionId,
+                CompanyId = @CompanyId,
+                Module = @Module,
+                ScreenKey = @ScreenKey,
+                RoutePath = @RoutePath,
+                EntityType = @EntityType,
+                EntityLevel = @EntityLevel,
+                SectionName = @SectionName,
+                TabName = @TabName,
+                GroupName = @GroupName,
+                DisplayOrder = @DisplayOrder,
+                ColumnSpan = @ColumnSpan,
+                VisibleConditionJson = @VisibleConditionJson,
+                EditableConditionJson = @EditableConditionJson,
+                RequiredConditionJson = @RequiredConditionJson,
+                PermissionKey = @PermissionKey,
+                Status = @Status,
+                ModifiedOn = SYSUTCDATETIME(),
+                ModifiedByUserId = @ActorUserId
+            WHERE Id = @Id;
+            SELECT @Id;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var placementId = await connection.ExecuteScalarAsync<long>(new CommandDefinition(
+            id.HasValue ? updateSql : insertSql,
+            new
+            {
+                Id = id,
+                request.UdfDefinitionId,
+                request.CompanyId,
+                request.Module,
+                request.ScreenKey,
+                request.RoutePath,
+                request.EntityType,
+                request.EntityLevel,
+                request.SectionName,
+                request.TabName,
+                request.GroupName,
+                request.DisplayOrder,
+                request.ColumnSpan,
+                request.VisibleConditionJson,
+                request.EditableConditionJson,
+                request.RequiredConditionJson,
+                request.PermissionKey,
+                request.Status,
+                ActorUserId = current.UserId
+            },
+            cancellationToken: cancellationToken));
+
+        await WriteAuditAsync(
+            "UdfPlacement",
+            id.HasValue ? "platform.udf_placement.update" : "platform.udf_placement.create",
+            placementId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            request,
+            cancellationToken);
+
+        return (await ListUdfPlacementsAsync(null, null, null, cancellationToken)).First(placement => placement.Id == placementId);
+    }
+
+    public async Task<IReadOnlyCollection<UdfRuntimeFieldDto>> GetUdfRuntimeFieldsAsync(
+        string screenKey,
+        string entityType,
+        string entityLevel,
+        long entityId,
+        long? entityLineId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var placements = await ListUdfPlacementsAsync(screenKey, entityType, entityLevel, cancellationToken);
+        var values = entityId > 0
+            ? await ListUdfValuesAsync(entityType, entityId, cancellationToken)
+            : Array.Empty<UdfValueDto>();
+
+        return placements
+            .Where(placement => string.Equals(placement.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            .Select(placement =>
+            {
+                var value = values.FirstOrDefault(candidate =>
+                    candidate.DefinitionId == placement.UdfDefinitionId &&
+                    ((!entityLineId.HasValue && !candidate.EntityLineId.HasValue) || candidate.EntityLineId == entityLineId));
+                return new UdfRuntimeFieldDto(placement, value);
+            })
+            .ToArray();
+    }
+
+    public async Task<IReadOnlyCollection<UdfValueDto>> UpsertUdfRuntimeValuesAsync(
+        string entityType,
+        long entityId,
+        UdfRuntimeValueSetRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (entityId <= 0)
+        {
+            throw new ValidationFailureException([
+                new ApiError("validation.out_of_range", nameof(entityId), "Entity ID must be saved before UDF values can be persisted.")
+            ]);
+        }
+
+        foreach (var value in request.Values)
+        {
+            await UpsertUdfValueAsync(entityType, entityId, value, cancellationToken);
+        }
+
+        return await ListUdfValuesAsync(entityType, entityId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<CustomObjectDto>> ListCustomObjectsAsync(
+        string? module = null,
+        string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT Id, CompanyId, ObjectCode, ObjectName, Module, Category, PrimaryDisplayFieldCode, Description, Status, CreatedOn, ModifiedOn
+            FROM platform.CustomObjects
+            WHERE (@Module IS NULL OR @Module = N'all' OR Module = @Module)
+              AND (@Status IS NULL OR @Status = N'all' OR Status = @Status)
+            ORDER BY Module, ObjectCode;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<CustomObjectDto>(new CommandDefinition(
+            sql,
+            new
+            {
+                Module = string.IsNullOrWhiteSpace(module) ? null : module,
+                Status = string.IsNullOrWhiteSpace(status) ? null : status
+            },
+            cancellationToken: cancellationToken));
+        return rows.ToArray();
+    }
+
+    public async Task<CustomObjectDto> UpsertCustomObjectAsync(
+        long? id,
+        CustomObjectUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateCustomObject(request);
+        var current = currentUserContextAccessor.GetCurrent();
+        const string sql = """
+            IF @Id IS NULL
+            BEGIN
+                INSERT INTO platform.CustomObjects
+                    (CompanyId, ObjectCode, ObjectName, Module, Category, PrimaryDisplayFieldCode, Description, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+                VALUES
+                    (@CompanyId, @ObjectCode, @ObjectName, @Module, @Category, @PrimaryDisplayFieldCode, @Description, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
+                SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+            END
+            ELSE
+            BEGIN
+                UPDATE platform.CustomObjects
+                SET ObjectName = @ObjectName,
+                    Module = @Module,
+                    Category = @Category,
+                    PrimaryDisplayFieldCode = @PrimaryDisplayFieldCode,
+                    Description = @Description,
+                    Status = @Status,
+                    ModifiedOn = SYSUTCDATETIME(),
+                    ModifiedByUserId = @ActorUserId
+                WHERE Id = @Id;
+                SELECT @Id;
+            END;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var objectId = await connection.ExecuteScalarAsync<long>(new CommandDefinition(
+            sql,
+            new
+            {
+                Id = id,
+                request.CompanyId,
+                request.ObjectCode,
+                request.ObjectName,
+                request.Module,
+                request.Category,
+                request.PrimaryDisplayFieldCode,
+                request.Description,
+                request.Status,
+                ActorUserId = current.UserId
+            },
+            cancellationToken: cancellationToken));
+
+        await WriteAuditAsync("CustomObject", id.HasValue ? "platform.custom_object.update" : "platform.custom_object.create", objectId.ToString(System.Globalization.CultureInfo.InvariantCulture), request, cancellationToken);
+        return (await ListCustomObjectsAsync(null, null, cancellationToken)).First(record => record.Id == objectId);
+    }
+
+    public async Task<IReadOnlyCollection<CustomObjectRecordDto>> ListCustomObjectRecordsAsync(
+        long customObjectId,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT Id, CustomObjectId, CompanyId, RecordNo, DisplayValue, LinkedEntityType, LinkedEntityId, Status, CreatedOn, ModifiedOn
+            FROM platform.CustomObjectRecords
+            WHERE CustomObjectId = @CustomObjectId
+            ORDER BY RecordNo;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<CustomObjectRecordDto>(new CommandDefinition(sql, new { CustomObjectId = customObjectId }, cancellationToken: cancellationToken));
+        return rows.ToArray();
+    }
+
+    public async Task<CustomObjectRecordDto> UpsertCustomObjectRecordAsync(
+        long? id,
+        CustomObjectRecordUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateCustomObjectRecord(request);
+        var current = currentUserContextAccessor.GetCurrent();
+        const string sql = """
+            IF @Id IS NULL
+            BEGIN
+                INSERT INTO platform.CustomObjectRecords
+                    (CustomObjectId, CompanyId, RecordNo, DisplayValue, LinkedEntityType, LinkedEntityId, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+                VALUES
+                    (@CustomObjectId, @CompanyId, @RecordNo, @DisplayValue, @LinkedEntityType, @LinkedEntityId, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
+                SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+            END
+            ELSE
+            BEGIN
+                UPDATE platform.CustomObjectRecords
+                SET RecordNo = @RecordNo,
+                    DisplayValue = @DisplayValue,
+                    LinkedEntityType = @LinkedEntityType,
+                    LinkedEntityId = @LinkedEntityId,
+                    Status = @Status,
+                    ModifiedOn = SYSUTCDATETIME(),
+                    ModifiedByUserId = @ActorUserId
+                WHERE Id = @Id;
+                SELECT @Id;
+            END;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var recordId = await connection.ExecuteScalarAsync<long>(new CommandDefinition(
+            sql,
+            new
+            {
+                Id = id,
+                request.CustomObjectId,
+                request.CompanyId,
+                request.RecordNo,
+                request.DisplayValue,
+                request.LinkedEntityType,
+                request.LinkedEntityId,
+                request.Status,
+                ActorUserId = current.UserId
+            },
+            cancellationToken: cancellationToken));
+
+        foreach (var value in request.Values)
+        {
+            await UpsertUdfValueAsync($"CustomObject:{request.CustomObjectId}", recordId, value, cancellationToken);
+        }
+
+        await WriteAuditAsync("CustomObjectRecord", id.HasValue ? "platform.custom_record.update" : "platform.custom_record.create", recordId.ToString(System.Globalization.CultureInfo.InvariantCulture), request, cancellationToken);
+        return (await ListCustomObjectRecordsAsync(request.CustomObjectId, cancellationToken)).First(record => record.Id == recordId);
+    }
+
+    public async Task<IReadOnlyCollection<CustomScreenDto>> ListCustomScreensAsync(
+        string? module = null,
+        string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT Id, CompanyId, ScreenCode, ScreenName, Module, NavigationGroup, BoundEntityType, CustomObjectId, RoutePath, LayoutJson, ListViewJson, PermissionKey, Status, CreatedOn, ModifiedOn
+            FROM platform.CustomScreens
+            WHERE (@Module IS NULL OR @Module = N'all' OR Module = @Module)
+              AND (@Status IS NULL OR @Status = N'all' OR Status = @Status)
+            ORDER BY Module, ScreenCode;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<CustomScreenDto>(new CommandDefinition(
+            sql,
+            new
+            {
+                Module = string.IsNullOrWhiteSpace(module) ? null : module,
+                Status = string.IsNullOrWhiteSpace(status) ? null : status
+            },
+            cancellationToken: cancellationToken));
+        return rows.ToArray();
+    }
+
+    public async Task<CustomScreenDto> UpsertCustomScreenAsync(
+        long? id,
+        CustomScreenUpsertRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateCustomScreen(request);
+        var current = currentUserContextAccessor.GetCurrent();
+        const string sql = """
+            IF @Id IS NULL
+            BEGIN
+                INSERT INTO platform.CustomScreens
+                    (CompanyId, ScreenCode, ScreenName, Module, NavigationGroup, BoundEntityType, CustomObjectId, RoutePath, LayoutJson, ListViewJson, PermissionKey, Status, CreatedOn, CreatedByUserId, ModifiedOn, ModifiedByUserId)
+                VALUES
+                    (@CompanyId, @ScreenCode, @ScreenName, @Module, @NavigationGroup, @BoundEntityType, @CustomObjectId, @RoutePath, @LayoutJson, @ListViewJson, @PermissionKey, @Status, SYSUTCDATETIME(), @ActorUserId, SYSUTCDATETIME(), @ActorUserId);
+                SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+            END
+            ELSE
+            BEGIN
+                UPDATE platform.CustomScreens
+                SET ScreenName = @ScreenName,
+                    Module = @Module,
+                    NavigationGroup = @NavigationGroup,
+                    BoundEntityType = @BoundEntityType,
+                    CustomObjectId = @CustomObjectId,
+                    RoutePath = @RoutePath,
+                    LayoutJson = @LayoutJson,
+                    ListViewJson = @ListViewJson,
+                    PermissionKey = @PermissionKey,
+                    Status = @Status,
+                    ModifiedOn = SYSUTCDATETIME(),
+                    ModifiedByUserId = @ActorUserId
+                WHERE Id = @Id;
+                SELECT @Id;
+            END;
+            """;
+
+        await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
+        var screenId = await connection.ExecuteScalarAsync<long>(new CommandDefinition(
+            sql,
+            new
+            {
+                Id = id,
+                request.CompanyId,
+                request.ScreenCode,
+                request.ScreenName,
+                request.Module,
+                request.NavigationGroup,
+                request.BoundEntityType,
+                request.CustomObjectId,
+                request.RoutePath,
+                request.LayoutJson,
+                request.ListViewJson,
+                request.PermissionKey,
+                request.Status,
+                ActorUserId = current.UserId
+            },
+            cancellationToken: cancellationToken));
+
+        await WriteAuditAsync("CustomScreen", id.HasValue ? "platform.custom_screen.update" : "platform.custom_screen.create", screenId.ToString(System.Globalization.CultureInfo.InvariantCulture), request, cancellationToken);
+        return (await ListCustomScreensAsync(null, null, cancellationToken)).First(record => record.Id == screenId);
     }
 
     public async Task<PagedResult<AuditTrailItem>> ListAuditTrailAsync(
@@ -1587,27 +2182,53 @@ public sealed class PlatformRuntimeService(
         var errors = new List<ApiError>();
         AddRequired(errors, request.EntityType, nameof(request.EntityType));
         AddMaxLength(errors, request.EntityType, nameof(request.EntityType), 64);
+        AddRequired(errors, request.Module, nameof(request.Module));
+        AddMaxLength(errors, request.Module, nameof(request.Module), 64);
+        AddRequired(errors, request.EntityLevel, nameof(request.EntityLevel));
+        AddMaxLength(errors, request.EntityLevel, nameof(request.EntityLevel), 32);
+        AddMaxLength(errors, request.EntitySubType, nameof(request.EntitySubType), 64);
         AddRequired(errors, request.FieldKey, nameof(request.FieldKey));
         AddMaxLength(errors, request.FieldKey, nameof(request.FieldKey), 64);
         AddRequired(errors, request.Label, nameof(request.Label));
         AddMaxLength(errors, request.Label, nameof(request.Label), 128);
+        AddMaxLength(errors, request.Description, nameof(request.Description), 512);
         AddRequired(errors, request.DataType, nameof(request.DataType));
         AddRequired(errors, request.ControlType, nameof(request.ControlType));
         AddRequired(errors, request.RoleVisibility, nameof(request.RoleVisibility));
         AddRequired(errors, request.Status, nameof(request.Status));
         AddMaxLength(errors, request.LookupSource, nameof(request.LookupSource), 128);
+        AddMaxLength(errors, request.LookupSourceType, nameof(request.LookupSourceType), 32);
+        AddMaxLength(errors, request.OptionSetCode, nameof(request.OptionSetCode), 96);
+        AddMaxLength(errors, request.DefaultValue, nameof(request.DefaultValue), 512);
+        AddMaxLength(errors, request.PlaceholderText, nameof(request.PlaceholderText), 160);
+        AddMaxLength(errors, request.HelpText, nameof(request.HelpText), 512);
+        AddMaxLength(errors, request.SectionName, nameof(request.SectionName), 96);
+        AddRequired(errors, request.LifecycleGate, nameof(request.LifecycleGate));
+        AddRequired(errors, request.ValueLockPolicy, nameof(request.ValueLockPolicy));
         AddMaxLength(errors, request.RoleVisibility, nameof(request.RoleVisibility), 512);
 
-        var validDataTypes = new[] { "Text", "Number", "Decimal", "Money", "Integer", "Date", "Boolean", "Lookup" };
+        var validDataTypes = new[] { "Text", "LongText", "Number", "Decimal", "Money", "Integer", "Date", "DateTime", "Boolean", "SingleSelect", "MultiSelect", "Lookup", "AttachmentReference", "Url", "Email", "Phone", "Json" };
         if (!validDataTypes.Contains(request.DataType, StringComparer.OrdinalIgnoreCase))
         {
             errors.Add(new ApiError("validation.lookup", nameof(request.DataType), "Choose a supported UDF data type."));
         }
 
-        var validControlTypes = new[] { "Text", "Number", "Decimal", "Money", "Date", "Checkbox", "Lookup", "Select" };
+        var validControlTypes = new[] { "Text", "Textarea", "Number", "Decimal", "Money", "Date", "DateTime", "Checkbox", "Lookup", "Select", "MultiSelect", "AttachmentReference", "Url", "Email", "Phone", "Json" };
         if (!validControlTypes.Contains(request.ControlType, StringComparer.OrdinalIgnoreCase))
         {
             errors.Add(new ApiError("validation.lookup", nameof(request.ControlType), "Choose a supported UDF control type."));
+        }
+
+        var validEntityLevels = new[] { "Header", "Line", "Detail", "Evidence", "Address", "Contact" };
+        if (!validEntityLevels.Contains(request.EntityLevel, StringComparer.OrdinalIgnoreCase))
+        {
+            errors.Add(new ApiError("validation.lookup", nameof(request.EntityLevel), "Choose a supported UDF entity level."));
+        }
+
+        var validStatuses = new[] { "Draft", "Active", "Inactive", "Retired" };
+        if (!validStatuses.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            errors.Add(new ApiError("validation.lookup", nameof(request.Status), "Choose Draft, Active, Inactive, or Retired."));
         }
 
         if (request.MinNumber.HasValue && request.MaxNumber.HasValue && request.MinNumber.Value > request.MaxNumber.Value)
@@ -1625,29 +2246,83 @@ public sealed class PlatformRuntimeService(
             errors.Add(new ApiError("validation.out_of_range", nameof(request.DecimalScale), "Decimal scale must be between 0 and 6."));
         }
 
+        if (request.DisplayOrder < 0)
+        {
+            errors.Add(new ApiError("validation.out_of_range", nameof(request.DisplayOrder), "Display order must be zero or greater."));
+        }
+
+        if (request.EffectiveFrom.HasValue && request.EffectiveTo.HasValue && request.EffectiveTo.Value < request.EffectiveFrom.Value)
+        {
+            errors.Add(new ApiError("validation.out_of_range", nameof(request.EffectiveTo), "Effective-to date cannot be before effective-from date."));
+        }
+
+        if ((request.DataType.Contains("Select", StringComparison.OrdinalIgnoreCase) ||
+             request.ControlType.Contains("Select", StringComparison.OrdinalIgnoreCase)) &&
+            string.IsNullOrWhiteSpace(request.OptionSetCode) &&
+            string.IsNullOrWhiteSpace(request.LookupSource))
+        {
+            errors.Add(new ApiError("validation.lookup", nameof(request.OptionSetCode), "Select fields require an option set or governed lookup source."));
+        }
+
+        if (request.ControlType.Contains("Lookup", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(request.LookupSource))
+        {
+            errors.Add(new ApiError("validation.lookup", nameof(request.LookupSource), "Lookup fields require a governed lookup source."));
+        }
+
         ThrowIfValidationErrors(errors);
     }
 
     private static void ValidateUdfValue(UdfDefinitionDto definition, UdfValueUpsertRequest request)
     {
         var errors = new List<ApiError>();
+        if (!string.Equals(definition.Status, "Active", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(definition.Status, "Draft", StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add(new ApiError("validation.status", nameof(request.DefinitionId), $"{definition.Label} is {definition.Status} and cannot accept new values."));
+        }
+
+        var populatedLanes = new[]
+        {
+            !string.IsNullOrWhiteSpace(request.ValueText),
+            !string.IsNullOrWhiteSpace(request.ValueLongText),
+            request.ValueInteger.HasValue,
+            request.ValueNumber.HasValue,
+            request.ValueDecimal.HasValue,
+            request.ValueMoneyAmount.HasValue,
+            request.ValueDate.HasValue,
+            request.ValueDateTime.HasValue,
+            request.ValueBoolean.HasValue,
+            request.ValueOptionId.HasValue || !string.IsNullOrWhiteSpace(request.ValueOptionCode),
+            !string.IsNullOrWhiteSpace(request.ValueJson),
+            request.AttachmentReferenceId.HasValue
+        }.Count(lane => lane);
+
+        if (populatedLanes > 1)
+        {
+            errors.Add(new ApiError("validation.udf_value_lane", nameof(request.DefinitionId), $"{definition.Label} must use only one typed value lane."));
+        }
+
         switch (definition.DataType)
         {
             case "Number":
             case "Decimal":
             case "Money":
             case "Integer":
-                if (definition.IsRequired && !request.ValueNumber.HasValue)
+                var numericValue = request.ValueNumber
+                    ?? request.ValueDecimal
+                    ?? request.ValueMoneyAmount
+                    ?? (request.ValueInteger.HasValue ? request.ValueInteger.Value : null);
+                if (definition.IsRequired && !numericValue.HasValue)
                 {
                     errors.Add(new ApiError("validation.required", nameof(request.ValueNumber), $"{definition.Label} is required."));
                 }
 
-                if (request.ValueNumber.HasValue && definition.MinNumber.HasValue && request.ValueNumber.Value < definition.MinNumber.Value)
+                if (numericValue.HasValue && definition.MinNumber.HasValue && numericValue.Value < definition.MinNumber.Value)
                 {
                     errors.Add(new ApiError("validation.out_of_range", nameof(request.ValueNumber), $"{definition.Label} is below the allowed minimum."));
                 }
 
-                if (request.ValueNumber.HasValue && definition.MaxNumber.HasValue && request.ValueNumber.Value > definition.MaxNumber.Value)
+                if (numericValue.HasValue && definition.MaxNumber.HasValue && numericValue.Value > definition.MaxNumber.Value)
                 {
                     errors.Add(new ApiError("validation.out_of_range", nameof(request.ValueNumber), $"{definition.Label} is above the allowed maximum."));
                 }
@@ -1660,6 +2335,13 @@ public sealed class PlatformRuntimeService(
                 }
 
                 break;
+            case "DateTime":
+                if (definition.IsRequired && !request.ValueDateTime.HasValue)
+                {
+                    errors.Add(new ApiError("validation.required", nameof(request.ValueDateTime), $"{definition.Label} date/time is required."));
+                }
+
+                break;
             case "Boolean":
                 if (definition.IsRequired && !request.ValueBoolean.HasValue)
                 {
@@ -1667,13 +2349,30 @@ public sealed class PlatformRuntimeService(
                 }
 
                 break;
+            case "SingleSelect":
+            case "MultiSelect":
+            case "Lookup":
+                if (definition.IsRequired && string.IsNullOrWhiteSpace(request.ValueOptionCode) && string.IsNullOrWhiteSpace(request.ValueText) && !request.ValueOptionId.HasValue)
+                {
+                    errors.Add(new ApiError("validation.required", nameof(request.ValueOptionCode), $"{definition.Label} selection is required."));
+                }
+
+                break;
+            case "AttachmentReference":
+                if (definition.IsRequired && !request.AttachmentReferenceId.HasValue)
+                {
+                    errors.Add(new ApiError("validation.required", nameof(request.AttachmentReferenceId), $"{definition.Label} attachment reference is required."));
+                }
+
+                break;
             default:
-                if (definition.IsRequired && string.IsNullOrWhiteSpace(request.ValueText))
+                var textValue = request.ValueText ?? request.ValueLongText ?? request.ValueJson;
+                if (definition.IsRequired && string.IsNullOrWhiteSpace(textValue))
                 {
                     errors.Add(new ApiError("validation.required", nameof(request.ValueText), $"{definition.Label} is required."));
                 }
 
-                if (definition.MaxLength.HasValue && request.ValueText?.Length > definition.MaxLength.Value)
+                if (definition.MaxLength.HasValue && textValue?.Length > definition.MaxLength.Value)
                 {
                     errors.Add(new ApiError("validation.max_length", nameof(request.ValueText), $"{definition.Label} exceeds the allowed length."));
                 }
@@ -1682,6 +2381,111 @@ public sealed class PlatformRuntimeService(
         }
 
         ThrowIfValidationErrors(errors);
+    }
+
+    private static void ValidateUdfPlacement(UdfPlacementUpsertRequest request)
+    {
+        var errors = new List<ApiError>();
+        if (request.UdfDefinitionId <= 0)
+        {
+            errors.Add(new ApiError("validation.required", nameof(request.UdfDefinitionId), "UDF definition is required."));
+        }
+
+        AddRequired(errors, request.Module, nameof(request.Module));
+        AddMaxLength(errors, request.Module, nameof(request.Module), 64);
+        AddRequired(errors, request.ScreenKey, nameof(request.ScreenKey));
+        AddMaxLength(errors, request.ScreenKey, nameof(request.ScreenKey), 128);
+        AddMaxLength(errors, request.RoutePath, nameof(request.RoutePath), 256);
+        AddRequired(errors, request.EntityType, nameof(request.EntityType));
+        AddMaxLength(errors, request.EntityType, nameof(request.EntityType), 64);
+        AddRequired(errors, request.EntityLevel, nameof(request.EntityLevel));
+        AddMaxLength(errors, request.EntityLevel, nameof(request.EntityLevel), 32);
+        AddRequired(errors, request.SectionName, nameof(request.SectionName));
+        AddMaxLength(errors, request.SectionName, nameof(request.SectionName), 96);
+        AddMaxLength(errors, request.TabName, nameof(request.TabName), 96);
+        AddMaxLength(errors, request.GroupName, nameof(request.GroupName), 96);
+        AddMaxLength(errors, request.PermissionKey, nameof(request.PermissionKey), 128);
+        AddRequired(errors, request.Status, nameof(request.Status));
+        if (request.DisplayOrder < 0)
+        {
+            errors.Add(new ApiError("validation.out_of_range", nameof(request.DisplayOrder), "Display order must be zero or greater."));
+        }
+
+        if (request.ColumnSpan is < 1 or > 12)
+        {
+            errors.Add(new ApiError("validation.out_of_range", nameof(request.ColumnSpan), "Column span must be between 1 and 12."));
+        }
+
+        ThrowIfValidationErrors(errors);
+    }
+
+    private static void ValidateCustomObject(CustomObjectUpsertRequest request)
+    {
+        var errors = new List<ApiError>();
+        AddRequired(errors, request.ObjectCode, nameof(request.ObjectCode));
+        AddMaxLength(errors, request.ObjectCode, nameof(request.ObjectCode), 96);
+        AddRequired(errors, request.ObjectName, nameof(request.ObjectName));
+        AddMaxLength(errors, request.ObjectName, nameof(request.ObjectName), 160);
+        AddRequired(errors, request.Module, nameof(request.Module));
+        AddMaxLength(errors, request.Module, nameof(request.Module), 64);
+        AddMaxLength(errors, request.Category, nameof(request.Category), 64);
+        AddMaxLength(errors, request.PrimaryDisplayFieldCode, nameof(request.PrimaryDisplayFieldCode), 96);
+        AddMaxLength(errors, request.Description, nameof(request.Description), 512);
+        AddRequired(errors, request.Status, nameof(request.Status));
+        ThrowIfValidationErrors(errors);
+    }
+
+    private static void ValidateCustomObjectRecord(CustomObjectRecordUpsertRequest request)
+    {
+        var errors = new List<ApiError>();
+        if (request.CustomObjectId <= 0)
+        {
+            errors.Add(new ApiError("validation.required", nameof(request.CustomObjectId), "Custom object is required."));
+        }
+
+        AddRequired(errors, request.RecordNo, nameof(request.RecordNo));
+        AddMaxLength(errors, request.RecordNo, nameof(request.RecordNo), 96);
+        AddMaxLength(errors, request.DisplayValue, nameof(request.DisplayValue), 256);
+        AddMaxLength(errors, request.LinkedEntityType, nameof(request.LinkedEntityType), 64);
+        AddRequired(errors, request.Status, nameof(request.Status));
+        ThrowIfValidationErrors(errors);
+    }
+
+    private static void ValidateCustomScreen(CustomScreenUpsertRequest request)
+    {
+        var errors = new List<ApiError>();
+        AddRequired(errors, request.ScreenCode, nameof(request.ScreenCode));
+        AddMaxLength(errors, request.ScreenCode, nameof(request.ScreenCode), 96);
+        AddRequired(errors, request.ScreenName, nameof(request.ScreenName));
+        AddMaxLength(errors, request.ScreenName, nameof(request.ScreenName), 160);
+        AddRequired(errors, request.Module, nameof(request.Module));
+        AddMaxLength(errors, request.Module, nameof(request.Module), 64);
+        AddMaxLength(errors, request.NavigationGroup, nameof(request.NavigationGroup), 64);
+        AddMaxLength(errors, request.BoundEntityType, nameof(request.BoundEntityType), 64);
+        AddRequired(errors, request.RoutePath, nameof(request.RoutePath));
+        AddMaxLength(errors, request.RoutePath, nameof(request.RoutePath), 256);
+        AddRequired(errors, request.LayoutJson, nameof(request.LayoutJson));
+        AddMaxLength(errors, request.PermissionKey, nameof(request.PermissionKey), 128);
+        AddRequired(errors, request.Status, nameof(request.Status));
+        ThrowIfValidationErrors(errors);
+    }
+
+    private static string? ResolveUdfDisplayValue(UdfDefinitionDto definition, UdfValueUpsertRequest request)
+    {
+        return definition.DataType switch
+        {
+            "LongText" => request.ValueLongText,
+            "Integer" => request.ValueInteger?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "Number" or "Decimal" => (request.ValueNumber ?? request.ValueDecimal)?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "Money" => request.ValueMoneyAmount?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture),
+            "Date" => request.ValueDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            "DateTime" => request.ValueDateTime?.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            "Boolean" => request.ValueBoolean?.ToString(),
+            "SingleSelect" or "MultiSelect" or "Lookup" => request.ValueOptionCode ?? request.ValueText,
+            "AttachmentReference" => request.AttachmentReferenceId?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "Json" => request.ValueJson,
+            _ => request.ValueText
+        };
     }
 
     private static void AddRequired(List<ApiError> errors, string? value, string field)
@@ -1796,18 +2600,41 @@ public sealed class PlatformRuntimeService(
             SELECT
                 Id,
                 CompanyId,
+                Module,
                 EntityType,
+                EntitySubType,
+                EntityLevel,
                 FieldKey,
                 Label,
+                Description,
                 DataType,
                 ControlType,
                 LookupSource,
                 IsRequired,
+                IsUnique,
+                IsReadOnly,
                 MinNumber,
                 MaxNumber,
                 MaxLength,
                 DecimalScale,
+                DefaultValue,
+                PlaceholderText,
+                HelpText,
+                DisplayOrder,
+                SectionName,
+                EffectiveFrom,
+                EffectiveTo,
+                VersionNo,
+                ValidationRulesJson,
+                OptionSetCode,
+                LookupSourceType,
                 RoleVisibility,
+                IsReportable,
+                AllowIntegration,
+                AllowMobile,
+                IsSensitive,
+                LifecycleGate,
+                ValueLockPolicy,
                 Status,
                 CreatedOn,
                 ModifiedOn

@@ -868,6 +868,40 @@ textarea:focus {
   line-height: 1.35;
 }
 
+.udf-runtime-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.udf-runtime-panel__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.udf-runtime-panel__header h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.udf-runtime-panel__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.udf-runtime-panel__grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .erp-lookup-field--error select,
 .erp-lookup-field--error input,
 .erp-number-field.erp-lookup-field--error input {

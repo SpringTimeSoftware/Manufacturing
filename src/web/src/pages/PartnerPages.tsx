@@ -35,6 +35,7 @@ import {
   type SupplierPartnerWorkspaceSetup,
   type SupplierSetupItem
 } from "../masters/masterDataAdapters";
+import { UdfRuntimePanel } from "../platform/UdfRuntimePanel";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import type { DataGridColumn } from "../ui/DataGrid";
@@ -973,6 +974,15 @@ function CustomerEditor({
           </div>
         </Card>
 
+        <UdfRuntimePanel
+          companyId={customer.companyId}
+          disabledReason={mode === "create" ? "Save the customer before entering governed custom fields." : undefined}
+          entityId={customer.customerId}
+          entityType="Customer"
+          screenKey="partners.customers"
+          title="Customer custom fields"
+        />
+
         <Card title={CUSTOMER_SECTIONS[7]} description="Dispatch route, appointment, and document preferences for shipping execution.">
           <div className="item-master__editor-grid">
             <ErpLookupField label="Dispatch preference" onChange={(value) => updateProfile("dispatchPreference", value)} options={dispatchPreferenceOptions} value={workspace.profile.dispatchPreference ?? "Standard dispatch"} />
@@ -1241,6 +1251,15 @@ function SupplierEditor({
             <ErpLookupField label="Procurement release control" onChange={(value) => updateProfile("procurementReleaseControl", value)} options={["Standard", "Compliance review", "Quality approval"].map(toOption)} value={workspace.profile.procurementReleaseControl ?? "Standard"} />
           </div>
         </Card>
+
+        <UdfRuntimePanel
+          companyId={supplier.companyId}
+          disabledReason={mode === "create" ? "Save the supplier before entering governed custom fields." : undefined}
+          entityId={supplier.supplierId}
+          entityType="Supplier"
+          screenKey="partners.suppliers"
+          title="Supplier custom fields"
+        />
 
         <Card title={SUPPLIER_SECTIONS[6]} description="Supplier category, subcontract capability, and operational capability signals.">
           <div className="item-master__editor-grid">

@@ -24,6 +24,12 @@ import type {
   CompanyDto,
   CompanyUpsertRequest,
   CurrentUserResponse,
+  CustomObjectDto,
+  CustomObjectRecordDto,
+  CustomObjectRecordUpsertRequest,
+  CustomObjectUpsertRequest,
+  CustomScreenDto,
+  CustomScreenUpsertRequest,
   CurrencyDto,
   CurrencyUpsertRequest,
   CustomerAddressDto,
@@ -215,6 +221,10 @@ import type {
   UdfDefinitionDto,
   UdfDefinitionFilter,
   UdfDefinitionUpsertRequest,
+  UdfPlacementDto,
+  UdfPlacementUpsertRequest,
+  UdfRuntimeFieldDto,
+  UdfRuntimeValueSetRequest,
   UdfValueDto,
   UdfValueUpsertRequest,
   WebhookDispatchRequest,
@@ -2001,6 +2011,74 @@ export const apiClient = {
           body: JSON.stringify(body)
         }
       ),
+    udfPlacements: (filter: { screenKey?: string; entityType?: string; entityLevel?: string } = {}) => {
+      const query = serializeFilters(filter);
+      return request<UdfPlacementDto[]>(`/api/platform/udf-placements?${query}`);
+    },
+    createUdfPlacement: (body: UdfPlacementUpsertRequest) =>
+      request<UdfPlacementDto>("/api/platform/udf-placements", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateUdfPlacement: (id: number, body: UdfPlacementUpsertRequest) =>
+      request<UdfPlacementDto>(`/api/platform/udf-placements/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    udfRuntimeFields: (screenKey: string, entityType: string, entityLevel: string, entityId: number, entityLineId?: number | null) => {
+      const query = serializeFilters({ entityLineId: entityLineId ?? undefined });
+      return request<UdfRuntimeFieldDto[]>(
+        `/api/platform/udf-runtime/${encodeURIComponent(screenKey)}/${encodeURIComponent(entityType)}/${encodeURIComponent(entityLevel)}/${encodeURIComponent(String(entityId))}?${query}`
+      );
+    },
+    upsertUdfRuntimeValues: (entityType: string, entityId: number, body: UdfRuntimeValueSetRequest) =>
+      request<UdfValueDto[]>(
+        `/api/platform/udf-runtime/${encodeURIComponent(entityType)}/${encodeURIComponent(String(entityId))}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(body)
+        }
+      ),
+    customObjects: (filter: { module?: string; status?: string } = {}) => {
+      const query = serializeFilters(filter);
+      return request<CustomObjectDto[]>(`/api/platform/custom-objects?${query}`);
+    },
+    createCustomObject: (body: CustomObjectUpsertRequest) =>
+      request<CustomObjectDto>("/api/platform/custom-objects", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateCustomObject: (id: number, body: CustomObjectUpsertRequest) =>
+      request<CustomObjectDto>(`/api/platform/custom-objects/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    customObjectRecords: (customObjectId: number) =>
+      request<CustomObjectRecordDto[]>(`/api/platform/custom-objects/${customObjectId}/records`),
+    createCustomObjectRecord: (body: CustomObjectRecordUpsertRequest) =>
+      request<CustomObjectRecordDto>("/api/platform/custom-object-records", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateCustomObjectRecord: (id: number, body: CustomObjectRecordUpsertRequest) =>
+      request<CustomObjectRecordDto>(`/api/platform/custom-object-records/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
+    customScreens: (filter: { module?: string; status?: string } = {}) => {
+      const query = serializeFilters(filter);
+      return request<CustomScreenDto[]>(`/api/platform/custom-screens?${query}`);
+    },
+    createCustomScreen: (body: CustomScreenUpsertRequest) =>
+      request<CustomScreenDto>("/api/platform/custom-screens", {
+        method: "POST",
+        body: JSON.stringify(body)
+      }),
+    updateCustomScreen: (id: number, body: CustomScreenUpsertRequest) =>
+      request<CustomScreenDto>(`/api/platform/custom-screens/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body)
+      }),
     auditTrail: (filter: QueryFilter = {}) => {
       const query = serializeFilters(filter);
       return request<PagedResult<AuditTrailItemDto>>(`/api/audit-trail?${query}`);

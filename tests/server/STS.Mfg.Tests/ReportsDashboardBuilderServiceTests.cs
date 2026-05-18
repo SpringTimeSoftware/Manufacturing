@@ -5,6 +5,7 @@ using STS.Mfg.Application.Abstractions.Security;
 using STS.Mfg.Application.Contracts.Reporting;
 using STS.Mfg.Application.Exceptions;
 using STS.Mfg.Domain.Inventory;
+using STS.Mfg.Domain.Platform.Customization;
 using STS.Mfg.Domain.Platform.Security;
 using STS.Mfg.Infrastructure.Persistence;
 using STS.Mfg.Infrastructure.Reporting;
@@ -126,6 +127,35 @@ public sealed class ReportsDashboardBuilderServiceTests
         Assert.Contains(widget.Rows, row => row.Values["Item Id"] == "1002");
     }
 
+    [Fact]
+    public async Task UdfValueReport_ExportsReportableTypedValuesOnly()
+    {
+        await using var dbContext = CreateDbContext();
+        var publicDefinition = CreateUdfDefinition("Quote", "customerApprovalRef", "Customer approval reference", isReportable: true, isSensitive: false);
+        var sensitiveDefinition = CreateUdfDefinition("Quote", "secretNote", "Secret note", isReportable: true, isSensitive: true);
+        dbContext.UdfDefinitions.AddRange(publicDefinition, sensitiveDefinition);
+        await dbContext.SaveChangesAsync();
+        dbContext.UdfValues.Add(CreateUdfValue(publicDefinition.Id, "Quote", 5001, "APPROVED-42"));
+        dbContext.UdfValues.Add(CreateUdfValue(sensitiveDefinition.Id, "Quote", 5001, "hidden"));
+        await dbContext.SaveChangesAsync();
+        var service = CreateService(dbContext);
+
+        var definitions = await service.ListReportDefinitionsAsync(new ReportFilter(ReportCode: "PLATFORM-UDF-VALUE-REGISTER"));
+        var definition = Assert.Single(definitions.Items);
+        var run = await service.RunReportAsync(definition.Id, new ReportRunRequest(new Dictionary<string, string?>(), "CSV"));
+
+        Assert.Equal("Completed", run.Status);
+        Assert.Contains("Field Code", run.Columns);
+        var row = Assert.Single(run.Rows);
+        Assert.Equal("customerApprovalRef", row.Values["Field Code"]);
+        Assert.Equal("APPROVED-42", row.Values["Typed Value"]);
+        var output = Assert.Single(run.Outputs);
+        var download = await service.DownloadOutputAsync(output.Id);
+        var csv = System.Text.Encoding.UTF8.GetString(download.Content);
+        Assert.Contains("Customer approval reference", csv);
+        Assert.DoesNotContain("secretNote", csv);
+    }
+
     private static ReportingService CreateService(MfgDbContext dbContext, IReadOnlyCollection<string>? roles = null) =>
         new(dbContext, new AllowAllDataScopeService(), new TestCurrentUserContextAccessor(roles ?? new[] { "ManagementViewer" }), new TestAuditTrail());
 
@@ -136,6 +166,47 @@ public sealed class ReportsDashboardBuilderServiceTests
             .ConfigureWarnings(builder => builder.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new MfgDbContext(options);
+    }
+
+    private static UdfDefinition CreateUdfDefinition(string entityType, string fieldKey, string label, bool isReportable, bool isSensitive)
+    {
+        var definition = NewEntity<UdfDefinition>();
+        Set(definition, nameof(UdfDefinition.CompanyId), 1L);
+        Set(definition, nameof(UdfDefinition.Module), "Sales");
+        Set(definition, nameof(UdfDefinition.EntityType), entityType);
+        Set(definition, nameof(UdfDefinition.EntityLevel), "Header");
+        Set(definition, nameof(UdfDefinition.FieldKey), fieldKey);
+        Set(definition, nameof(UdfDefinition.Label), label);
+        Set(definition, nameof(UdfDefinition.DataType), "Text");
+        Set(definition, nameof(UdfDefinition.ControlType), "Text");
+        Set(definition, nameof(UdfDefinition.RoleVisibility), "All");
+        Set(definition, nameof(UdfDefinition.DisplayOrder), 10);
+        Set(definition, nameof(UdfDefinition.VersionNo), 1);
+        Set(definition, nameof(UdfDefinition.IsReportable), isReportable);
+        Set(definition, nameof(UdfDefinition.IsSensitive), isSensitive);
+        Set(definition, nameof(UdfDefinition.Status), "Active");
+        return definition;
+    }
+
+    private static UdfValue CreateUdfValue(long definitionId, string entityType, long entityId, string value)
+    {
+        var udfValue = NewEntity<UdfValue>();
+        Set(udfValue, nameof(UdfValue.CompanyId), 1L);
+        Set(udfValue, nameof(UdfValue.DefinitionId), definitionId);
+        Set(udfValue, nameof(UdfValue.EntityType), entityType);
+        Set(udfValue, nameof(UdfValue.EntityId), entityId);
+        Set(udfValue, nameof(UdfValue.ValueText), value);
+        Set(udfValue, nameof(UdfValue.DisplayValue), value);
+        Set(udfValue, nameof(UdfValue.Status), "Active");
+        return udfValue;
+    }
+
+    private static T NewEntity<T>() where T : class =>
+        (T)Activator.CreateInstance(typeof(T), nonPublic: true)!;
+
+    private static void Set<T>(T entity, string propertyName, object? value)
+    {
+        typeof(T).GetProperty(propertyName)!.SetValue(entity, value);
     }
 
     private sealed class AllowAllDataScopeService : IDataScopeService

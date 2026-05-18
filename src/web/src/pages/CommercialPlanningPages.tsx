@@ -29,6 +29,7 @@ import {
   type MasterDataSource,
   type SupplierLeadTimeSetupItem
 } from "../masters/masterDataAdapters";
+import { UdfRuntimePanel } from "../platform/UdfRuntimePanel";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
@@ -1582,6 +1583,15 @@ export function QuoteEstimateListPage() {
                 <label className="field-span-4"><span>Print remarks</span><textarea disabled={quoteLocked} onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
               </FormShell>
             </Card>
+            <UdfRuntimePanel
+              companyId={companyId}
+              disabledReason={!draftQuoteId ? "Save the quote draft before entering governed custom fields." : undefined}
+              entityId={draftQuoteId}
+              entityType="Quote"
+              readOnly={quoteLocked}
+              screenKey="commercial.quotes"
+              title="Quote custom fields"
+            />
             <Card title="Quote lines" description="Add every customer demand line before saving the quote draft.">
               <ErpTransactionLineGrid
                 addLabel="Add Line"
@@ -1872,6 +1882,15 @@ export function SalesOrderListPage() {
               <label className="field-span-4"><span>Print remarks</span><textarea onChange={(event) => setDraft({ ...draft, printRemarks: event.target.value })} value={draft.printRemarks ?? ""} /></label>
             </FormShell>
           </Card>
+          <UdfRuntimePanel
+            companyId={companyId}
+            disabledReason={!draftOrderId ? "Save the sales order draft before entering governed custom fields." : undefined}
+            entityId={draftOrderId}
+            entityType="SalesOrder"
+            readOnly={Boolean(draft.sourceQuoteId)}
+            screenKey="commercial.sales-orders"
+            title="Sales order custom fields"
+          />
           <Card title="Sales order lines" description="Add every customer demand line before releasing the order to planning.">
             <ErpTransactionLineGrid
               addLabel="Add Line"

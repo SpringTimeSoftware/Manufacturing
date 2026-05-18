@@ -16,6 +16,7 @@ import {
   type ShipmentLineItem
 } from "../dispatch/dispatchAdapters";
 import { buildMasterFilter, type MasterDataSource } from "../masters/masterDataAdapters";
+import { UdfRuntimePanel } from "../platform/UdfRuntimePanel";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { DataGrid, type DataGridColumn } from "../ui/DataGrid";
@@ -986,6 +987,14 @@ export function ShipmentDeliveryPage() {
               <label className="form-span-2"><span>Proof notes</span><input disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ proofNotes: event.target.value })} value={proofDraft?.proofNotes ?? ""} /></label>
               <label className="form-span-2"><span>POD remarks</span><input aria-label="POD remarks" disabled={!proofDraft || selected.source !== "Live"} onChange={(event) => updateProofDraft({ podRemarks: event.target.value })} value={proofDraft?.podRemarks ?? ""} /></label>
             </FormShell>
+            <UdfRuntimePanel
+              disabledReason={selected.source !== "Live" ? "Live shipment record is required before entering governed custom fields." : undefined}
+              entityId={selected.shipmentId}
+              entityType="Shipment"
+              readOnly={selected.status === "Closed"}
+              screenKey="dispatch.shipments"
+              title="Shipment custom fields"
+            />
             <Card title="POD line confirmation" description="Confirm delivered, short, and damaged quantities without changing SO commercial values.">
               <ErpTransactionLineGrid
                 ariaLabel="POD line confirmation grid"

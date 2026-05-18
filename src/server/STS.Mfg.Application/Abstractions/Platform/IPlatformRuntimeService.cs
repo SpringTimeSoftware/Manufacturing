@@ -94,4 +94,58 @@ public interface IPlatformRuntimeService
         long entityId,
         UdfValueUpsertRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<UdfPlacementDto>> ListUdfPlacementsAsync(
+        string? screenKey = null,
+        string? entityType = null,
+        string? entityLevel = null,
+        CancellationToken cancellationToken = default);
+
+    Task<UdfPlacementDto> UpsertUdfPlacementAsync(
+        long? id,
+        UdfPlacementUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<UdfRuntimeFieldDto>> GetUdfRuntimeFieldsAsync(
+        string screenKey,
+        string entityType,
+        string entityLevel,
+        long entityId,
+        long? entityLineId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<UdfValueDto>> UpsertUdfRuntimeValuesAsync(
+        string entityType,
+        long entityId,
+        UdfRuntimeValueSetRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<CustomObjectDto>> ListCustomObjectsAsync(
+        string? module = null,
+        string? status = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomObjectDto> UpsertCustomObjectAsync(
+        long? id,
+        CustomObjectUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<CustomObjectRecordDto>> ListCustomObjectRecordsAsync(
+        long customObjectId,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomObjectRecordDto> UpsertCustomObjectRecordAsync(
+        long? id,
+        CustomObjectRecordUpsertRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<CustomScreenDto>> ListCustomScreensAsync(
+        string? module = null,
+        string? status = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomScreenDto> UpsertCustomScreenAsync(
+        long? id,
+        CustomScreenUpsertRequest request,
+        CancellationToken cancellationToken = default);
 }

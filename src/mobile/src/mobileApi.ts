@@ -7,6 +7,7 @@ import type {
   MobileScanSource,
   MobileSession,
   MobileTask,
+  MobileUdfValue,
   OfflineQueueEntry,
   QueueOfflineOperationInput
 } from "./mobileTypes";
@@ -69,6 +70,7 @@ interface MobileOfflineOperationResponse {
   failureReason?: string | null;
   conflictReason?: string | null;
   serverReferenceNo?: string | null;
+  udfValues?: MobileUdfValue[];
 }
 
 export const mobileApiConfig = {
@@ -167,6 +169,7 @@ export async function queueOfflineOperation(
       operationType: input.operationType,
       sourceModule: input.sourceModule,
       payloadSnapshotJson: input.payloadSnapshotJson,
+      udfValues: input.udfValues ?? [],
       idempotencyKey: input.idempotencyKey,
       createdOfflineOn: new Date().toISOString()
     }
@@ -174,7 +177,8 @@ export async function queueOfflineOperation(
   return {
     ...mapOperation(operation),
     actionLabel: input.actionLabel,
-    documentRef: input.documentRef
+    documentRef: input.documentRef,
+    udfValues: input.udfValues ?? []
   };
 }
 
@@ -307,6 +311,7 @@ function mapOperation(operation: MobileOfflineOperationResponse): OfflineQueueEn
     failureReason: operation.failureReason,
     conflictReason: operation.conflictReason,
     idempotencyKey: operation.idempotencyKey,
-    serverReferenceNo: operation.serverReferenceNo
+    serverReferenceNo: operation.serverReferenceNo,
+    udfValues: operation.udfValues ?? []
   };
 }

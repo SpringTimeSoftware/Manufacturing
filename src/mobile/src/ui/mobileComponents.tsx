@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { MobileTone } from "../mobileTypes";
+import type { MobileTone, MobileUdfValue } from "../mobileTypes";
 
 interface MobileCardProps extends PropsWithChildren {
   action?: ReactNode;
@@ -129,6 +129,25 @@ export function MobileField({ label, value }: { label: string; value: string }) 
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{value}</Text>
+    </View>
+  );
+}
+
+export function MobileUdfFields({ values }: { values?: MobileUdfValue[] }) {
+  if (!values?.length) {
+    return null;
+  }
+
+  return (
+    <View style={styles.udfStack}>
+      <MobileSectionTitle>Custom fields</MobileSectionTitle>
+      {values.map((value) => (
+        <MobileField
+          key={`${value.entityLevel}-${value.fieldCode}`}
+          label={value.fieldName}
+          value={`${value.displayValue ?? "Not set"} / ${value.syncStatus}`}
+        />
+      ))}
     </View>
   );
 }
@@ -265,6 +284,9 @@ const styles = StyleSheet.create({
     color: "#10251f",
     fontSize: 16,
     fontWeight: "900"
+  },
+  udfStack: {
+    gap: 8
   },
   success: {
     backgroundColor: "#e8f2ee",
